@@ -1,42 +1,133 @@
 import { Link } from "react-router-dom";
+import { Linkedin, Facebook, Instagram, Youtube } from "lucide-react";
 
 const Footer = () => {
+  const offices = [
+    { city: "New Delhi", address: "Desk Connect, First Floor, Plot No-2, Kh.No. 384/2, Mehrauli-Gurgaon Road, Ghitorni, New Delhi 110030", type: "Headquarters" },
+    { city: "Noida", address: "1st Floor, Plot No.D-107, Vyapar Marg, D Block, Sector-2, Uttar Pradesh 201301" },
+    { city: "Gurugram", address: "NH8-Udyog Vihar, 90B, Udyog Vihar, Sector 18, Haryana 122008" },
+    { city: "Jaipur", address: "34/6, Kiran Path, Mansarovar Sector 3, Rajasthan 302020" },
+    { city: "Ahmedabad", address: "SSPACIA 4th floor, Agrawal Complex, Chimanlal Girdharlal Road, Gujarat 380009" },
+    { city: "Bangladesh", address: "Workstation 101, Uttara Tower, Level 4, 1 Jashimuddin Avenue, Sector 3, Uttara, Dhaka 1230" },
+  ];
+
   return (
     <footer className="bg-neutral-900 text-white" data-testid="footer">
-      <div className="container-main py-16 lg:py-20">
+      {/* Offices Section */}
+      <div className="border-b border-neutral-800">
+        <div className="container-main py-16">
+          <h3 className="text-xl font-serif font-medium mb-8">Our Offices</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {offices.map((office, index) => (
+              <div key={index}>
+                <p className="font-medium text-white mb-1">
+                  {office.city}
+                  {office.type && <span className="text-neutral-500 text-sm ml-2">({office.type})</span>}
+                </p>
+                <p className="text-neutral-400 text-sm leading-relaxed">{office.address}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Footer */}
+      <div className="container-main py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8">
-          {/* Brand */}
-          <div className="md:col-span-2">
+          {/* Brand & Social */}
+          <div className="md:col-span-1">
             <Link to="/" className="inline-block mb-6">
-              <span className="font-serif text-3xl font-medium tracking-tight">Locofast</span>
+              <span className="font-serif text-2xl font-medium tracking-tight">Locofast</span>
             </Link>
-            <p className="text-neutral-400 max-w-md leading-relaxed">
-              A platform connecting fabric buyers with textile suppliers. Browse catalogs, review specifications, submit enquiries.
-            </p>
+            <div className="flex items-center gap-4 mt-4">
+              <a 
+                href="https://in.linkedin.com/company/locofast" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-neutral-400 hover:text-white transition-colors"
+                aria-label="LinkedIn"
+              >
+                <Linkedin size={20} />
+              </a>
+              <a 
+                href="https://www.facebook.com/Locofast/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-neutral-400 hover:text-white transition-colors"
+                aria-label="Facebook"
+              >
+                <Facebook size={20} />
+              </a>
+              <a 
+                href="https://www.instagram.com/locofast_official" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-neutral-400 hover:text-white transition-colors"
+                aria-label="Instagram"
+              >
+                <Instagram size={20} />
+              </a>
+              <a 
+                href="https://www.youtube.com/channel/UCpbLo84Y_BVTcIzHHrBjIkw" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-neutral-400 hover:text-white transition-colors"
+                aria-label="YouTube"
+              >
+                <Youtube size={20} />
+              </a>
+            </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Company Links */}
           <div>
-            <h4 className="subheading text-neutral-400 mb-6">Navigation</h4>
+            <h4 className="subheading text-neutral-500 mb-4">Company</h4>
             <ul className="space-y-3">
               <li>
-                <Link to="/fabrics" className="text-neutral-300 hover:text-white transition-colors" data-testid="footer-fabrics-link">
-                  Browse Fabrics
-                </Link>
-              </li>
-              <li>
-                <Link to="/about" className="text-neutral-300 hover:text-white transition-colors" data-testid="footer-about-link">
+                <Link to="/about" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-about">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link to="/how-it-works" className="text-neutral-300 hover:text-white transition-colors" data-testid="footer-how-link">
-                  How It Works
+                <Link to="/customers" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-customers">
+                  Customers
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="text-neutral-300 hover:text-white transition-colors" data-testid="footer-contact-link">
-                  Contact
+                <Link to="/suppliers" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-suppliers">
+                  Suppliers
+                </Link>
+              </li>
+              <li>
+                <Link to="/media" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-media">
+                  Media & Awards
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Resources Links */}
+          <div>
+            <h4 className="subheading text-neutral-500 mb-4">Resources</h4>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/careers" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-careers">
+                  Life at Locofast
+                </Link>
+              </li>
+              <li>
+                <Link to="/faq" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-faq">
+                  FAQs
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-privacy">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-terms">
+                  Terms of Use
                 </Link>
               </li>
             </ul>
@@ -44,28 +135,35 @@ const Footer = () => {
 
           {/* Contact */}
           <div>
-            <h4 className="subheading text-neutral-400 mb-6">Contact</h4>
-            <ul className="space-y-3 text-neutral-300">
-              <li>mail@locofast.com</li>
-              <li>+91 8920 392 418</li>
+            <h4 className="subheading text-neutral-500 mb-4">Contact</h4>
+            <ul className="space-y-3">
+              <li>
+                <a href="tel:+918920392418" className="text-neutral-300 hover:text-white transition-colors text-sm">
+                  +91 8920 392 418
+                </a>
+              </li>
+              <li>
+                <a href="mailto:mail@locofast.com" className="text-neutral-300 hover:text-white transition-colors text-sm">
+                  mail@locofast.com
+                </a>
+              </li>
               <li className="pt-2">
-                <span className="block text-neutral-500 text-sm">Headquarters</span>
-                New Delhi, India
+                <Link to="/contact" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-contact">
+                  Contact Us
+                </Link>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Bottom */}
-        <div className="mt-16 pt-8 border-t border-neutral-800 flex flex-col md:flex-row justify-between items-center gap-4">
+        {/* Bottom Bar */}
+        <div className="mt-12 pt-8 border-t border-neutral-800 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-neutral-500 text-sm">
-            © {new Date().getFullYear()} Locofast. All rights reserved.
+            © {new Date().getFullYear()} Locofast Online Services Pvt. Ltd.
           </p>
-          <div className="flex items-center gap-6">
-            <Link to="/admin/login" className="text-neutral-600 hover:text-neutral-400 text-sm transition-colors" data-testid="admin-link">
-              Admin
-            </Link>
-          </div>
+          <Link to="/admin/login" className="text-neutral-600 hover:text-neutral-400 text-sm transition-colors" data-testid="admin-link">
+            Admin
+          </Link>
         </div>
       </div>
     </footer>
