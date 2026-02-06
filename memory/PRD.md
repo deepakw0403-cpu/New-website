@@ -22,6 +22,14 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - Branding: Neutral professional (Playfair Display + Manrope fonts)
 - Demo Data: Seeded with 8 fabrics, 6 categories
 
+## Brand Language Guidelines Applied
+- **Tone**: Clear, confident, professional, operational
+- **Audience**: B2B buyers and suppliers in textile sourcing
+- **Avoided**: Marketing hype, buzzwords, exaggerated claims
+- **CTAs**: Neutral, functional ("Browse Fabrics", "Request Information", "Submit Enquiry")
+- **Descriptions**: Factual, specification-led (GSM, composition, width, MOQ)
+- **Positioning**: Locofast as facilitator, not seller
+
 ## What's Been Implemented
 
 ### Feb 6, 2026 - MVP Complete
@@ -47,12 +55,20 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
   - Light theme with neutral palette + beige accents
   - Mobile responsive
 
+### Feb 6, 2026 - Brand Language Update
+- Updated all copy to match Locofast brand guidelines
+- Removed marketing language, made copy factual and process-driven
+- Changed CTAs to neutral/functional wording
+- Updated fabric descriptions to be specification-led
+- Positioned Locofast as facilitator (not seller) throughout
+
 ## Prioritized Backlog
 
 ### P0 (Immediate) - Done
 - [x] Core fabric catalog
 - [x] Admin panel
 - [x] Enquiry system
+- [x] Brand language alignment
 
 ### P1 (Next Phase)
 - [ ] Cloudinary integration for images
