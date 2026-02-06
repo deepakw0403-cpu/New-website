@@ -55,12 +55,21 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
   - Light theme with neutral palette + beige accents
   - Mobile responsive
 
-### Feb 6, 2026 - Brand Language Update
-- Updated all copy to match Locofast brand guidelines
-- Removed marketing language, made copy factual and process-driven
-- Changed CTAs to neutral/functional wording
-- Updated fabric descriptions to be specification-led
-- Positioned Locofast as facilitator (not seller) throughout
+### Feb 6, 2026 - Footer & Static Pages Update
+- **Footer**: Replicated locofast.com footer structure
+  - Offices section with all 6 locations
+  - Company links (About, Customers, Suppliers, Media)
+  - Resources links (Careers, FAQs, Privacy Policy, Terms)
+  - Social links (LinkedIn, Facebook, Instagram, YouTube)
+  - Contact info with phone and email
+- **New Static Pages**:
+  - FAQs (10 questions covering platform usage)
+  - Privacy Policy (legal compliance)
+  - Terms of Use (platform terms)
+  - Customers (for buyers)
+  - Suppliers (for sellers)
+  - Media & Awards (press info)
+  - Life at Locofast (careers)
 
 ## Prioritized Backlog
 
