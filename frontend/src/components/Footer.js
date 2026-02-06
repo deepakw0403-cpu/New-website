@@ -11,7 +11,7 @@ const Footer = () => {
               <span className="font-serif text-3xl font-medium tracking-tight">Locofast</span>
             </Link>
             <p className="text-neutral-400 max-w-md leading-relaxed">
-              Your direct path to global fabric sourcing. Connecting brands with premium fabric suppliers worldwide.
+              A platform connecting fabric buyers with textile suppliers. Browse catalogs, review specifications, submit enquiries.
             </p>
           </div>
 
@@ -46,11 +46,11 @@ const Footer = () => {
           <div>
             <h4 className="subheading text-neutral-400 mb-6">Contact</h4>
             <ul className="space-y-3 text-neutral-300">
-              <li>hello@locofast.com</li>
-              <li>+91 98765 43210</li>
+              <li>mail@locofast.com</li>
+              <li>+91 8920 392 418</li>
               <li className="pt-2">
                 <span className="block text-neutral-500 text-sm">Headquarters</span>
-                Bengaluru, India
+                New Delhi, India
               </li>
             </ul>
           </div>

@@ -49,7 +49,7 @@ const Navbar = () => {
               className="btn-primary inline-block"
               data-testid="nav-browse-btn"
             >
-              Browse Catalog
+              Browse Fabrics
             </Link>
           </div>
 
@@ -86,7 +86,7 @@ const Navbar = () => {
               onClick={() => setMobileOpen(false)}
               className="btn-primary inline-block mt-4"
             >
-              Browse Catalog
+              Browse Fabrics
             </Link>
           </div>
         </div>
