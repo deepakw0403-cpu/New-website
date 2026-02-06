@@ -1,0 +1,79 @@
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { LayoutDashboard, Layers, FolderOpen, MessageSquare, LogOut, ArrowLeft } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+
+const AdminLayout = ({ children }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { admin, logout } = useAuth();
+
+  const navItems = [
+    { path: "/admin", label: "Dashboard", icon: LayoutDashboard },
+    { path: "/admin/fabrics", label: "Fabrics", icon: Layers },
+    { path: "/admin/categories", label: "Categories", icon: FolderOpen },
+    { path: "/admin/enquiries", label: "Enquiries", icon: MessageSquare },
+  ];
+
+  const handleLogout = () => {
+    logout();
+    navigate("/admin/login");
+  };
+
+  const isActive = (path) => location.pathname === path;
+
+  return (
+    <div className="min-h-screen bg-neutral-50 flex" data-testid="admin-layout">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white border-r border-neutral-100 fixed h-full flex flex-col" data-testid="admin-sidebar">
+        <div className="p-6 border-b border-neutral-100">
+          <Link to="/" className="flex items-center gap-2 text-neutral-500 hover:text-neutral-900 transition-colors text-sm mb-4">
+            <ArrowLeft size={16} />
+            Back to Site
+          </Link>
+          <h1 className="font-serif text-xl font-medium">Locofast</h1>
+          <p className="text-neutral-500 text-sm">Admin Panel</p>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-1">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              data-testid={`nav-${item.label.toLowerCase()}`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-sm transition-colors ${
+                isActive(item.path)
+                  ? "bg-neutral-900 text-white"
+                  : "text-neutral-600 hover:bg-neutral-100"
+              }`}
+            >
+              <item.icon size={20} />
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-neutral-100">
+          <div className="px-4 py-2 mb-2">
+            <p className="font-medium text-sm">{admin?.name}</p>
+            <p className="text-neutral-500 text-xs truncate">{admin?.email}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-neutral-600 hover:bg-neutral-100 rounded-sm transition-colors"
+            data-testid="logout-btn"
+          >
+            <LogOut size={20} />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 ml-64 p-8" data-testid="admin-content">
+        {children}
+      </main>
+    </div>
+  );
+};
+
+export default AdminLayout;
