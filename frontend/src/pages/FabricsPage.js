@@ -77,7 +77,8 @@ const FabricsPage = () => {
       <div className="bg-neutral-50 py-12 border-b border-neutral-100">
         <div className="container-main">
           <p className="subheading mb-2">Catalog</p>
-          <h1 className="text-4xl font-serif font-medium">Fabric Collection</h1>
+          <h1 className="text-4xl font-serif font-medium">Fabric Catalog</h1>
+          <p className="text-neutral-600 mt-2">Browse fabrics by category, type, or specifications.</p>
         </div>
       </div>
 
@@ -89,7 +90,7 @@ const FabricsPage = () => {
             <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
             <input
               type="text"
-              placeholder="Search fabrics by name, composition, color..."
+              placeholder="Search by fabric name, composition, or color"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-3 border border-neutral-200 rounded-sm focus:border-neutral-900 focus:outline-none"
@@ -214,7 +215,7 @@ const FabricsPage = () => {
 
         {/* Results Count */}
         <p className="text-sm text-neutral-500 mb-6" data-testid="results-count">
-          Showing {fabrics.length} fabric{fabrics.length !== 1 ? "s" : ""}
+          {fabrics.length} fabric{fabrics.length !== 1 ? "s" : ""} found
         </p>
 
         {/* Fabric Grid */}
@@ -231,7 +232,7 @@ const FabricsPage = () => {
           </div>
         ) : fabrics.length === 0 ? (
           <div className="text-center py-20" data-testid="no-results">
-            <p className="text-neutral-500 text-lg">No fabrics found matching your criteria.</p>
+            <p className="text-neutral-500 text-lg">No fabrics match your search criteria.</p>
             <button onClick={clearFilters} className="btn-secondary mt-4">
               Clear Filters
             </button>

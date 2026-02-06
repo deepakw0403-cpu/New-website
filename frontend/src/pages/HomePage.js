@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Layers, Globe, Shield, Truck } from "lucide-react";
+import { ArrowRight, Package, Truck, FileCheck, Users } from "lucide-react";
 import { getCategories, getFabrics } from "../lib/api";
 
 const HomePage = () => {
@@ -23,11 +23,11 @@ const HomePage = () => {
     fetchData();
   }, []);
 
-  const features = [
-    { icon: Layers, title: "Curated Selection", desc: "Hand-picked fabrics from verified global suppliers" },
-    { icon: Globe, title: "Global Sourcing", desc: "Access suppliers from India, China, Turkey & beyond" },
-    { icon: Shield, title: "Quality Assured", desc: "Every fabric meets strict quality standards" },
-    { icon: Truck, title: "Direct Supply", desc: "No middlemen, competitive pricing guaranteed" },
+  const howItWorks = [
+    { icon: Package, title: "Browse Fabric Catalog", desc: "View fabric specifications including GSM, composition, width, and availability across multiple categories." },
+    { icon: FileCheck, title: "Review Specifications", desc: "Access detailed product information. Each listing includes technical data and supplier details." },
+    { icon: Users, title: "Submit Enquiry", desc: "Request information or samples directly. Our team connects you with the relevant supplier." },
+    { icon: Truck, title: "Coordinate Delivery", desc: "Work with suppliers on sampling, pricing, and logistics. Locofast facilitates the process." },
   ];
 
   return (
@@ -45,12 +45,12 @@ const HomePage = () => {
         
         <div className="container-main relative z-10">
           <div className="max-w-2xl">
-            <p className="subheading mb-4 animate-fadeIn">Global Fabric Sourcing Platform</p>
+            <p className="subheading mb-4">Fabric Sourcing Platform</p>
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-medium leading-[1.1] mb-6 animate-slideUp">
-              Your direct path to global fabric sourcing
+              Source fabrics directly from textile suppliers
             </h1>
             <p className="text-lg text-neutral-600 leading-relaxed mb-10 animate-slideUp stagger-1">
-              Discover premium fabrics from verified suppliers worldwide. Browse swatches, compare specs, and connect directly with manufacturers.
+              Locofast connects buyers with fabric suppliers. Browse specifications, compare options, and submit enquiries through a single platform.
             </p>
             <div className="flex flex-wrap gap-4 animate-slideUp stagger-2">
               <Link to="/fabrics" className="btn-primary inline-flex items-center gap-2" data-testid="hero-browse-btn">
@@ -65,15 +65,24 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="section-gap bg-white" data-testid="features-section">
+      {/* How It Works Section */}
+      <section className="section-gap bg-white" data-testid="how-it-works-section">
         <div className="container-main">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <p className="subheading mb-3">Process</p>
+            <h2 className="text-4xl font-serif font-medium">How Locofast Works</h2>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
+            {howItWorks.map((step, index) => (
               <div key={index} className="p-6 border border-neutral-100 hover:border-neutral-200 transition-colors">
-                <feature.icon size={32} strokeWidth={1.5} className="text-neutral-900 mb-4" />
-                <h3 className="text-lg font-serif font-medium mb-2">{feature.title}</h3>
-                <p className="text-neutral-500 text-sm leading-relaxed">{feature.desc}</p>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-neutral-900 text-white flex items-center justify-center text-sm font-medium">
+                    {index + 1}
+                  </div>
+                  <step.icon size={24} strokeWidth={1.5} className="text-neutral-600" />
+                </div>
+                <h3 className="text-lg font-serif font-medium mb-2">{step.title}</h3>
+                <p className="text-neutral-500 text-sm leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -85,7 +94,7 @@ const HomePage = () => {
         <div className="container-main">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
             <div>
-              <p className="subheading mb-3">Explore</p>
+              <p className="subheading mb-3">Catalog</p>
               <h2 className="text-4xl font-serif font-medium">Fabric Categories</h2>
             </div>
             <Link to="/fabrics" className="btn-ghost inline-flex items-center gap-2 mt-4 md:mt-0" data-testid="view-all-categories">
@@ -123,8 +132,8 @@ const HomePage = () => {
         <div className="container-main">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
             <div>
-              <p className="subheading mb-3">Featured</p>
-              <h2 className="text-4xl font-serif font-medium">Popular Fabrics</h2>
+              <p className="subheading mb-3">Catalog</p>
+              <h2 className="text-4xl font-serif font-medium">Available Fabrics</h2>
             </div>
             <Link to="/fabrics" className="btn-ghost inline-flex items-center gap-2 mt-4 md:mt-0" data-testid="view-all-fabrics">
               View All Fabrics
@@ -166,13 +175,13 @@ const HomePage = () => {
       <section className="py-24 bg-neutral-900" data-testid="cta-section">
         <div className="container-main text-center">
           <h2 className="text-4xl md:text-5xl font-serif font-medium text-white mb-6">
-            Ready to source premium fabrics?
+            Start sourcing fabrics
           </h2>
           <p className="text-neutral-400 text-lg mb-10 max-w-2xl mx-auto">
-            Browse our curated collection of fabrics from verified global suppliers.
+            Browse the catalog, review specifications, and submit enquiries for the fabrics you need.
           </p>
           <Link to="/fabrics" className="bg-white text-neutral-900 px-10 py-4 text-sm tracking-widest uppercase font-medium hover:bg-neutral-100 transition-colors inline-flex items-center gap-2" data-testid="cta-browse-btn">
-            Start Browsing
+            Browse Fabrics
             <ArrowRight size={18} />
           </Link>
         </div>

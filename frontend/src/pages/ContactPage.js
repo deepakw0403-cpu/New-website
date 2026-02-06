@@ -23,10 +23,10 @@ const ContactPage = () => {
     setSubmitting(true);
     try {
       await createEnquiry(form);
-      toast.success("Message sent successfully! We'll get back to you soon.");
+      toast.success("Message submitted. Our team will respond within 24 hours.");
       setForm({ name: "", email: "", phone: "", company: "", message: "" });
     } catch (err) {
-      toast.error("Failed to send message. Please try again.");
+      toast.error("Failed to submit. Please try again.");
     }
     setSubmitting(false);
   };
@@ -37,12 +37,12 @@ const ContactPage = () => {
       <section className="py-24 lg:py-32 bg-neutral-50">
         <div className="container-main">
           <div className="max-w-3xl">
-            <p className="subheading mb-4">Get in Touch</p>
+            <p className="subheading mb-4">Contact</p>
             <h1 className="text-5xl md:text-6xl font-serif font-medium leading-tight mb-6">
-              Contact Us
+              Get in Touch
             </h1>
             <p className="text-lg text-neutral-600 leading-relaxed">
-              Have questions about our fabrics or need help with sourcing? Our team is here to assist you.
+              Submit your enquiry or question. Our team will respond within 24 hours.
             </p>
           </div>
         </div>
@@ -54,7 +54,7 @@ const ContactPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             {/* Form */}
             <div data-testid="contact-form-section">
-              <h2 className="text-2xl font-serif font-medium mb-8">Send us a message</h2>
+              <h2 className="text-2xl font-serif font-medium mb-8">Submit Enquiry</h2>
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -111,7 +111,7 @@ const ContactPage = () => {
                     value={form.message}
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
                     className="w-full px-4 py-3 border border-neutral-200 rounded-sm focus:border-neutral-900 focus:outline-none h-40 resize-none"
-                    placeholder="Tell us how we can help..."
+                    placeholder="Describe your requirement or question."
                     required
                     data-testid="contact-message"
                   />
@@ -123,7 +123,7 @@ const ContactPage = () => {
                   className="btn-primary disabled:opacity-50"
                   data-testid="contact-submit-btn"
                 >
-                  {submitting ? "Sending..." : "Send Message"}
+                  {submitting ? "Submitting..." : "Submit Enquiry"}
                 </button>
               </form>
             </div>
@@ -139,8 +139,7 @@ const ContactPage = () => {
                   </div>
                   <div>
                     <h3 className="font-medium mb-1">Email</h3>
-                    <p className="text-neutral-600">hello@locofast.com</p>
-                    <p className="text-neutral-600">sourcing@locofast.com</p>
+                    <p className="text-neutral-600">mail@locofast.com</p>
                   </div>
                 </div>
 
@@ -150,8 +149,8 @@ const ContactPage = () => {
                   </div>
                   <div>
                     <h3 className="font-medium mb-1">Phone</h3>
-                    <p className="text-neutral-600">+91 98765 43210</p>
-                    <p className="text-neutral-500 text-sm">Mon - Fri, 9am - 6pm IST</p>
+                    <p className="text-neutral-600">+91 8920 392 418</p>
+                    <p className="text-neutral-500 text-sm">Mon - Sat, 9am - 6pm IST</p>
                   </div>
                 </div>
 
@@ -160,19 +159,38 @@ const ContactPage = () => {
                     <MapPin size={24} strokeWidth={1.5} />
                   </div>
                   <div>
-                    <h3 className="font-medium mb-1">Office</h3>
+                    <h3 className="font-medium mb-1">Headquarters</h3>
                     <p className="text-neutral-600">
-                      123 Textile Hub, Koramangala<br />
-                      Bengaluru, Karnataka 560034<br />
-                      India
+                      Desk Connect, First Floor<br />
+                      Plot No-2, Kh.No. 384/2<br />
+                      Mehrauli-Gurgaon Road<br />
+                      Ghitorni, New Delhi 110030
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Map placeholder */}
-              <div className="mt-12 aspect-video bg-neutral-100 flex items-center justify-center">
-                <p className="text-neutral-400">Map location</p>
+              {/* Other Offices */}
+              <div className="mt-12 pt-8 border-t border-neutral-100">
+                <h3 className="font-medium mb-4">Other Offices</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm text-neutral-600">
+                  <div>
+                    <p className="font-medium text-neutral-900">Noida</p>
+                    <p>Sector-2, Uttar Pradesh</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-neutral-900">Gurugram</p>
+                    <p>Udyog Vihar, Sector 18</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-neutral-900">Jaipur</p>
+                    <p>Mansarovar Sector 3</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-neutral-900">Ahmedabad</p>
+                    <p>Chimanlal Girdharlal Road</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

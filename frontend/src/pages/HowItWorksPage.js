@@ -6,45 +6,49 @@ const HowItWorksPage = () => {
     {
       icon: Search,
       number: "01",
-      title: "Browse & Discover",
-      description: "Explore our curated catalog of fabrics from verified global suppliers. Use filters to find fabrics by type, composition, GSM, and more.",
+      title: "Browse the Catalog",
+      description: "View fabric listings by category or use filters for fabric type, composition, and GSM range. Each listing displays technical specifications provided by the supplier.",
     },
     {
       icon: FileText,
       number: "02",
       title: "Review Specifications",
-      description: "Access detailed fabric specifications including composition, weight, width, finishes, and pricing. View high-quality swatch images.",
+      description: "Each fabric page includes: composition, GSM, width, finish, color, MOQ, price range (where available), and availability status. Images show fabric swatches.",
     },
     {
       icon: MessageSquare,
       number: "03",
-      title: "Submit Enquiry",
-      description: "Found something you like? Submit an enquiry with your requirements. Our team will connect you with the right supplier.",
+      title: "Submit an Enquiry",
+      description: "Click 'Request Information' to submit an enquiry. Provide your contact details and requirements. Our team will connect you with the supplier.",
     },
     {
       icon: Truck,
       number: "04",
-      title: "Sample & Order",
-      description: "Request samples, negotiate terms, and place orders directly with suppliers. We facilitate the connection for a smooth transaction.",
+      title: "Coordinate with Supplier",
+      description: "Locofast facilitates communication between buyer and supplier. This includes pricing discussions, sample requests, and delivery coordination.",
     },
   ];
 
   const faqs = [
     {
-      q: "What is the minimum order quantity (MOQ)?",
-      a: "MOQ varies by fabric and supplier. Each fabric listing displays the specific MOQ, typically ranging from 200-500 meters for production orders. Sample quantities are usually available for evaluation.",
+      q: "What is the minimum order quantity?",
+      a: "MOQ varies by fabric and supplier. Each listing displays the specific MOQ. For sample quantities, submit an enquiry specifying your requirement.",
     },
     {
       q: "How do I request a sample?",
-      a: "Click the 'Request Details / Enquire' button on any fabric page and mention your sample requirements. Our team will coordinate with the supplier to arrange sample delivery.",
+      a: "Submit an enquiry through the fabric page and mention 'sample request' in your message. Provide the quantity needed and delivery address.",
     },
     {
-      q: "Are all suppliers verified?",
-      a: "Yes, all suppliers on Locofast undergo a thorough verification process including quality assessment, production capacity verification, and compliance checks.",
+      q: "How are suppliers verified?",
+      a: "Suppliers are assessed before being added to the platform. This includes production capacity review and quality documentation. Verification details vary by supplier.",
     },
     {
-      q: "What payment methods are accepted?",
-      a: "Payment terms are negotiated directly with suppliers. Common methods include bank transfer, letter of credit, and trade finance options for larger orders.",
+      q: "What are the payment terms?",
+      a: "Payment terms are negotiated directly between buyer and supplier. Common terms include advance payment, LC, and credit (subject to supplier approval).",
+    },
+    {
+      q: "Does Locofast handle logistics?",
+      a: "Locofast can coordinate logistics through our network. Shipping costs and timelines are provided as part of the quotation process.",
     },
   ];
 
@@ -56,10 +60,10 @@ const HowItWorksPage = () => {
           <div className="max-w-3xl">
             <p className="subheading mb-4">Process</p>
             <h1 className="text-5xl md:text-6xl font-serif font-medium leading-tight mb-6">
-              How Locofast Works
+              How the Platform Works
             </h1>
             <p className="text-lg text-neutral-600 leading-relaxed">
-              From discovery to delivery, here's how you can source premium fabrics through our platform.
+              Locofast connects fabric buyers with suppliers. Here is how the process works from browsing to order placement.
             </p>
           </div>
         </div>
@@ -87,31 +91,31 @@ const HowItWorksPage = () => {
         </div>
       </section>
 
-      {/* Visual Section */}
+      {/* What Locofast Provides */}
       <section className="section-gap bg-neutral-50">
         <div className="container-main">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="order-2 lg:order-1">
-              <p className="subheading mb-4">Why Choose Locofast</p>
+              <p className="subheading mb-4">Platform Services</p>
               <h2 className="text-4xl font-serif font-medium mb-6">
-                Direct access to global textile suppliers
+                What Locofast provides
               </h2>
               <ul className="space-y-4">
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 bg-neutral-900 text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">✓</span>
-                  <span className="text-neutral-600">Verified suppliers with quality certifications</span>
+                  <span className="w-6 h-6 bg-neutral-900 text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                  <span className="text-neutral-600">Fabric catalog with technical specifications from multiple suppliers</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 bg-neutral-900 text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">✓</span>
-                  <span className="text-neutral-600">Detailed specifications and real fabric imagery</span>
+                  <span className="w-6 h-6 bg-neutral-900 text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                  <span className="text-neutral-600">Search and filter tools for finding specific fabric types</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 bg-neutral-900 text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">✓</span>
-                  <span className="text-neutral-600">Direct communication with manufacturers</span>
+                  <span className="w-6 h-6 bg-neutral-900 text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                  <span className="text-neutral-600">Enquiry submission and supplier coordination</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 bg-neutral-900 text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">✓</span>
-                  <span className="text-neutral-600">Competitive pricing without middlemen markup</span>
+                  <span className="w-6 h-6 bg-neutral-900 text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
+                  <span className="text-neutral-600">Logistics support through our supply chain network</span>
                 </li>
               </ul>
             </div>
@@ -132,7 +136,7 @@ const HowItWorksPage = () => {
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-16">
               <p className="subheading mb-4">FAQ</p>
-              <h2 className="text-4xl font-serif font-medium">Frequently Asked Questions</h2>
+              <h2 className="text-4xl font-serif font-medium">Common Questions</h2>
             </div>
 
             <div className="space-y-6">
@@ -151,10 +155,10 @@ const HowItWorksPage = () => {
       <section className="py-24 bg-neutral-900">
         <div className="container-main text-center">
           <h2 className="text-4xl font-serif font-medium text-white mb-6">
-            Ready to start sourcing?
+            View the fabric catalog
           </h2>
           <p className="text-neutral-400 mb-10 max-w-xl mx-auto">
-            Browse our collection and find the perfect fabrics for your next project.
+            Browse fabrics by category, review specifications, and submit enquiries.
           </p>
           <Link to="/fabrics" className="bg-white text-neutral-900 px-10 py-4 text-sm tracking-widest uppercase font-medium hover:bg-neutral-100 transition-colors inline-block" data-testid="how-cta-btn">
             Browse Fabrics

@@ -48,7 +48,7 @@ const FabricDetailPage = () => {
         fabric_id: fabric.id,
         fabric_name: fabric.name,
       });
-      toast.success("Enquiry submitted successfully! We'll get back to you soon.");
+      toast.success("Enquiry submitted. Our team will respond within 24 hours.");
       setShowEnquiryForm(false);
       setEnquiryForm({ name: "", email: "", phone: "", company: "", message: "" });
     } catch (err) {
@@ -182,7 +182,7 @@ const FabricDetailPage = () => {
 
             {/* Specifications */}
             <div className="border-t border-neutral-100 pt-8 mb-8" data-testid="fabric-specs">
-              <h3 className="subheading mb-6">Specifications</h3>
+              <h3 className="subheading mb-6">Technical Specifications</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="border-b border-neutral-100 pb-3">
                   <p className="text-xs text-neutral-400 mb-1">Fabric Type</p>
@@ -245,8 +245,9 @@ const FabricDetailPage = () => {
                 data-testid="enquiry-btn"
               >
                 <Send size={18} />
-                Request Details / Enquire
+                Request Information
               </button>
+              <p className="text-sm text-neutral-500 mt-3">Our team will respond within 24 hours.</p>
             </div>
           </div>
         </div>
@@ -256,8 +257,8 @@ const FabricDetailPage = () => {
       {showEnquiryForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" data-testid="enquiry-modal">
           <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto p-8 animate-slideUp">
-            <h2 className="text-2xl font-serif font-medium mb-2">Enquire About This Fabric</h2>
-            <p className="text-neutral-500 mb-6">{fabric.name}</p>
+            <h2 className="text-2xl font-serif font-medium mb-2">Submit Enquiry</h2>
+            <p className="text-neutral-500 mb-6">Regarding: {fabric.name}</p>
 
             <form onSubmit={handleEnquirySubmit} className="space-y-4">
               <div>
@@ -310,7 +311,7 @@ const FabricDetailPage = () => {
                   value={enquiryForm.message}
                   onChange={(e) => setEnquiryForm({ ...enquiryForm, message: e.target.value })}
                   className="w-full px-4 py-3 border border-neutral-200 rounded-sm h-32 resize-none"
-                  placeholder="Tell us about your requirements..."
+                  placeholder="Describe your requirements: quantity needed, delivery timeline, specific questions."
                   required
                   data-testid="enquiry-message"
                 />
