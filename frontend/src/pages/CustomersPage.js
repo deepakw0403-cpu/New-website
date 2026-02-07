@@ -26,7 +26,7 @@ const CustomersPage = () => {
         <div className="container-main">
           <div className="max-w-3xl">
             <p className="subheading mb-4">For Buyers</p>
-            <h1 className="text-5xl font-serif font-medium mb-6">Customers</h1>
+            <h1 className="text-5xl font-semibold mb-6">Customers</h1>
             <p className="text-neutral-600 text-lg leading-relaxed">
               Locofast connects fabric buyers with textile suppliers. Browse catalogs, compare specifications, and submit enquiries through a single platform.
             </p>
@@ -40,11 +40,11 @@ const CustomersPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <p className="subheading mb-4">Platform Benefits</p>
-              <h2 className="text-4xl font-serif font-medium mb-8">What the platform provides</h2>
+              <h2 className="text-4xl font-semibold mb-8">What the platform provides</h2>
               <ul className="space-y-4">
                 {benefits.map((benefit, index) => (
                   <li key={index} className="flex items-start gap-3">
-                    <CheckCircle size={20} className="text-neutral-900 flex-shrink-0 mt-0.5" />
+                    <CheckCircle size={20} className="text-[#2563EB] flex-shrink-0 mt-0.5" />
                     <span className="text-neutral-600">{benefit}</span>
                   </li>
                 ))}
@@ -66,12 +66,12 @@ const CustomersPage = () => {
         <div className="container-main">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <p className="subheading mb-4">Process</p>
-            <h2 className="text-4xl font-serif font-medium">How it works for buyers</h2>
+            <h2 className="text-4xl font-semibold">How it works for buyers</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {process.map((item, index) => (
               <div key={index} className="bg-white p-6 border border-neutral-100">
-                <span className="text-3xl font-serif font-medium text-neutral-300">{item.step}</span>
+                <span className="text-3xl font-semibold text-neutral-300">{item.step}</span>
                 <h3 className="text-lg font-medium mt-4 mb-2">{item.title}</h3>
                 <p className="text-neutral-500 text-sm leading-relaxed">{item.desc}</p>
               </div>
@@ -81,15 +81,15 @@ const CustomersPage = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-24 bg-neutral-900">
+      <section className="py-24 bg-[#2563EB]">
         <div className="container-main text-center">
-          <h2 className="text-4xl font-serif font-medium text-white mb-6">
+          <h2 className="text-4xl font-semibold text-white mb-6">
             Start browsing the fabric catalog
           </h2>
-          <p className="text-neutral-400 mb-10 max-w-xl mx-auto">
+          <p className="text-blue-100 mb-10 max-w-xl mx-auto">
             View available fabrics and submit enquiries for your requirements.
           </p>
-          <Link to="/fabrics" className="bg-white text-neutral-900 px-10 py-4 text-sm tracking-widest uppercase font-medium hover:bg-neutral-100 transition-colors inline-flex items-center gap-2" data-testid="customers-cta-btn">
+          <Link to="/fabrics" className="bg-white text-[#2563EB] px-10 py-4 text-sm tracking-widest uppercase font-medium hover:bg-blue-50 transition-colors inline-flex items-center gap-2" data-testid="customers-cta-btn">
             Browse Fabrics
             <ArrowRight size={18} />
           </Link>

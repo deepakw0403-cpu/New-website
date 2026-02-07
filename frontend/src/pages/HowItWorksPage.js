@@ -59,7 +59,7 @@ const HowItWorksPage = () => {
         <div className="container-main">
           <div className="max-w-3xl">
             <p className="subheading mb-4">Process</p>
-            <h1 className="text-5xl md:text-6xl font-serif font-medium leading-tight mb-6">
+            <h1 className="text-5xl md:text-6xl font-semibold leading-tight mb-6">
               How the Platform Works
             </h1>
             <p className="text-lg text-neutral-600 leading-relaxed">
@@ -76,13 +76,13 @@ const HowItWorksPage = () => {
             {steps.map((step, index) => (
               <div key={index} className="flex gap-6">
                 <div className="flex-shrink-0">
-                  <div className="w-16 h-16 bg-neutral-900 text-white flex items-center justify-center">
+                  <div className="w-16 h-16 bg-[#2563EB] text-white flex items-center justify-center">
                     <step.icon size={28} strokeWidth={1.5} />
                   </div>
                 </div>
                 <div>
-                  <span className="subheading text-neutral-400">Step {step.number}</span>
-                  <h3 className="text-2xl font-serif font-medium mt-1 mb-3">{step.title}</h3>
+                  <span className="subheading text-blue-100">Step {step.number}</span>
+                  <h3 className="text-2xl font-semibold mt-1 mb-3">{step.title}</h3>
                   <p className="text-neutral-600 leading-relaxed">{step.description}</p>
                 </div>
               </div>
@@ -97,24 +97,24 @@ const HowItWorksPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="order-2 lg:order-1">
               <p className="subheading mb-4">Platform Services</p>
-              <h2 className="text-4xl font-serif font-medium mb-6">
+              <h2 className="text-4xl font-semibold mb-6">
                 What Locofast provides
               </h2>
               <ul className="space-y-4">
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 bg-neutral-900 text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                  <span className="w-6 h-6 bg-[#2563EB] text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
                   <span className="text-neutral-600">Fabric catalog with technical specifications from multiple suppliers</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 bg-neutral-900 text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                  <span className="w-6 h-6 bg-[#2563EB] text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
                   <span className="text-neutral-600">Search and filter tools for finding specific fabric types</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 bg-neutral-900 text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                  <span className="w-6 h-6 bg-[#2563EB] text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
                   <span className="text-neutral-600">Enquiry submission and supplier coordination</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 bg-neutral-900 text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
+                  <span className="w-6 h-6 bg-[#2563EB] text-white text-sm flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
                   <span className="text-neutral-600">Logistics support through our supply chain network</span>
                 </li>
               </ul>
@@ -136,7 +136,7 @@ const HowItWorksPage = () => {
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-16">
               <p className="subheading mb-4">FAQ</p>
-              <h2 className="text-4xl font-serif font-medium">Common Questions</h2>
+              <h2 className="text-4xl font-semibold">Common Questions</h2>
             </div>
 
             <div className="space-y-6">
@@ -152,15 +152,15 @@ const HowItWorksPage = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-24 bg-neutral-900">
+      <section className="py-24 bg-[#2563EB]">
         <div className="container-main text-center">
-          <h2 className="text-4xl font-serif font-medium text-white mb-6">
+          <h2 className="text-4xl font-semibold text-white mb-6">
             View the fabric catalog
           </h2>
-          <p className="text-neutral-400 mb-10 max-w-xl mx-auto">
+          <p className="text-blue-100 mb-10 max-w-xl mx-auto">
             Browse fabrics by category, review specifications, and submit enquiries.
           </p>
-          <Link to="/fabrics" className="bg-white text-neutral-900 px-10 py-4 text-sm tracking-widest uppercase font-medium hover:bg-neutral-100 transition-colors inline-block" data-testid="how-cta-btn">
+          <Link to="/fabrics" className="bg-white text-[#2563EB] px-10 py-4 text-sm tracking-widest uppercase font-medium hover:bg-blue-50 transition-colors inline-block" data-testid="how-cta-btn">
             Browse Fabrics
           </Link>
         </div>

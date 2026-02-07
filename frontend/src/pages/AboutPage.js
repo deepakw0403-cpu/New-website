@@ -16,7 +16,7 @@ const AboutPage = () => {
         <div className="container-main">
           <div className="max-w-3xl">
             <p className="subheading mb-4">About Locofast</p>
-            <h1 className="text-5xl md:text-6xl font-serif font-medium leading-tight mb-6">
+            <h1 className="text-5xl md:text-6xl font-semibold leading-tight mb-6">
               A platform for fabric sourcing
             </h1>
             <p className="text-lg text-neutral-600 leading-relaxed">
@@ -32,7 +32,7 @@ const AboutPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <p className="subheading mb-4">What We Do</p>
-              <h2 className="text-4xl font-serif font-medium mb-6">
+              <h2 className="text-4xl font-semibold mb-6">
                 Facilitating fabric sourcing
               </h2>
               <p className="text-neutral-600 leading-relaxed mb-6">
@@ -61,14 +61,14 @@ const AboutPage = () => {
         <div className="container-main">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <p className="subheading mb-4">Platform Overview</p>
-            <h2 className="text-4xl font-serif font-medium">How we operate</h2>
+            <h2 className="text-4xl font-semibold">How we operate</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {facts.map((fact, index) => (
               <div key={index} className="bg-white p-8 border border-neutral-100">
-                <fact.icon size={32} strokeWidth={1.5} className="text-neutral-900 mb-6" />
-                <h3 className="text-lg font-serif font-medium mb-3">{fact.title}</h3>
+                <fact.icon size={32} strokeWidth={1.5} className="text-[#2563EB] mb-6" />
+                <h3 className="text-lg font-semibold mb-3">{fact.title}</h3>
                 <p className="text-neutral-500 text-sm leading-relaxed">{fact.desc}</p>
               </div>
             ))}
@@ -81,7 +81,7 @@ const AboutPage = () => {
         <div className="container-main">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <p className="subheading mb-4">Locations</p>
-            <h2 className="text-4xl font-serif font-medium">Our Offices</h2>
+            <h2 className="text-4xl font-semibold">Our Offices</h2>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
@@ -105,15 +105,15 @@ const AboutPage = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-24 bg-neutral-900">
+      <section className="py-24 bg-[#2563EB]">
         <div className="container-main text-center">
-          <h2 className="text-4xl font-serif font-medium text-white mb-6">
+          <h2 className="text-4xl font-semibold text-white mb-6">
             Browse the fabric catalog
           </h2>
-          <p className="text-neutral-400 mb-10 max-w-xl mx-auto">
+          <p className="text-blue-100 mb-10 max-w-xl mx-auto">
             View available fabrics, specifications, and submit enquiries.
           </p>
-          <Link to="/fabrics" className="bg-white text-neutral-900 px-10 py-4 text-sm tracking-widest uppercase font-medium hover:bg-neutral-100 transition-colors inline-block" data-testid="about-cta-btn">
+          <Link to="/fabrics" className="bg-white text-[#2563EB] px-10 py-4 text-sm tracking-widest uppercase font-medium hover:bg-blue-50 transition-colors inline-block" data-testid="about-cta-btn">
             Browse Fabrics
           </Link>
         </div>
