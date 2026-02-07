@@ -16,7 +16,7 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-neutral-100" data-testid="navbar">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100" data-testid="navbar">
       <div className="container-main">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
@@ -35,10 +35,10 @@ const Navbar = () => {
                 key={link.path}
                 to={link.path}
                 data-testid={`nav-link-${link.label.toLowerCase().replace(/\s/g, '-')}`}
-                className={`text-sm font-medium tracking-wide transition-colors duration-200 ${
+                className={`text-sm font-medium transition-colors duration-200 ${
                   isActive(link.path)
-                    ? "text-neutral-900"
-                    : "text-neutral-500 hover:text-neutral-900"
+                    ? "text-[#2563EB]"
+                    : "text-gray-600 hover:text-[#2563EB]"
                 }`}
               >
                 {link.label}
@@ -79,7 +79,7 @@ const Navbar = () => {
                 to={link.path}
                 onClick={() => setMobileOpen(false)}
                 className={`block text-lg font-medium ${
-                  isActive(link.path) ? "text-neutral-900" : "text-neutral-500"
+                  isActive(link.path) ? "text-[#2563EB]" : "text-gray-600"
                 }`}
               >
                 {link.label}

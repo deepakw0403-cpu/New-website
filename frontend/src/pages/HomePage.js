@@ -172,15 +172,15 @@ const HomePage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-neutral-900" data-testid="cta-section">
+      <section className="py-24 bg-[#2563EB]" data-testid="cta-section">
         <div className="container-main text-center">
-          <h2 className="text-4xl md:text-5xl font-serif font-medium text-white mb-6">
+          <h2 className="text-4xl md:text-5xl font-semibold text-white mb-6">
             Start sourcing fabrics
           </h2>
-          <p className="text-neutral-400 text-lg mb-10 max-w-2xl mx-auto">
+          <p className="text-blue-100 text-lg mb-10 max-w-2xl mx-auto">
             Browse the catalog, review specifications, and submit enquiries for the fabrics you need.
           </p>
-          <Link to="/fabrics" className="bg-white text-neutral-900 px-10 py-4 text-sm tracking-widest uppercase font-medium hover:bg-neutral-100 transition-colors inline-flex items-center gap-2" data-testid="cta-browse-btn">
+          <Link to="/fabrics" className="bg-white text-[#2563EB] px-10 py-4 text-sm font-medium hover:bg-blue-50 transition-colors inline-flex items-center gap-2 rounded" data-testid="cta-browse-btn">
             Browse Fabrics
             <ArrowRight size={18} />
           </Link>

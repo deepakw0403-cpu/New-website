@@ -12,11 +12,11 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="bg-neutral-900 text-white" data-testid="footer">
+    <footer className="bg-[#1F2937] text-white" data-testid="footer">
       {/* Offices Section */}
-      <div className="border-b border-neutral-800">
+      <div className="border-b border-gray-700">
         <div className="container-main py-16">
-          <h3 className="text-xl font-serif font-medium mb-8">Our Offices</h3>
+          <h3 className="text-xl font-semibold mb-8">Our Offices</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {offices.map((office, index) => (
               <div key={index}>
@@ -161,7 +161,7 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-neutral-800 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="mt-12 pt-8 border-t border-gray-700 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-neutral-500 text-sm">
             © {new Date().getFullYear()} Locofast Online Services Pvt. Ltd.
           </p>
