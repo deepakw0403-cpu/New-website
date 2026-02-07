@@ -20,8 +20,12 @@ const Navbar = () => {
       <div className="container-main">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2" data-testid="navbar-logo">
-            <span className="font-serif text-2xl font-medium tracking-tight">Locofast</span>
+          <Link to="/" className="flex items-center" data-testid="navbar-logo">
+            <img 
+              src="https://customer-assets.emergentagent.com/job_locofast-cms/artifacts/xkuf449w_Locofast%20-%20Medium.svg" 
+              alt="Locofast" 
+              className="h-8"
+            />
           </Link>
 
           {/* Desktop Navigation */}

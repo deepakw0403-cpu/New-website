@@ -41,7 +41,11 @@ const AdminLogin = () => {
       <div className="w-full max-w-md">
         <div className="bg-white p-8 shadow-soft border border-neutral-100">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-serif font-medium mb-2">Locofast</h1>
+            <img 
+              src="https://customer-assets.emergentagent.com/job_locofast-cms/artifacts/xkuf449w_Locofast%20-%20Medium.svg" 
+              alt="Locofast" 
+              className="h-10 mx-auto mb-4"
+            />
             <p className="text-neutral-500">Admin Dashboard</p>
           </div>
 

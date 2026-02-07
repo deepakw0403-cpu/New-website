@@ -37,7 +37,11 @@ const Footer = () => {
           {/* Brand & Social */}
           <div className="md:col-span-1">
             <Link to="/" className="inline-block mb-6">
-              <span className="font-serif text-2xl font-medium tracking-tight">Locofast</span>
+              <img 
+                src="https://customer-assets.emergentagent.com/job_locofast-cms/artifacts/xkuf449w_Locofast%20-%20Medium.svg" 
+                alt="Locofast" 
+                className="h-8 brightness-0 invert"
+              />
             </Link>
             <div className="flex items-center gap-4 mt-4">
               <a 

@@ -30,7 +30,11 @@ const AdminLayout = ({ children }) => {
             <ArrowLeft size={16} />
             Back to Site
           </Link>
-          <h1 className="font-serif text-xl font-medium">Locofast</h1>
+          <img 
+            src="https://customer-assets.emergentagent.com/job_locofast-cms/artifacts/xkuf449w_Locofast%20-%20Medium.svg" 
+            alt="Locofast" 
+            className="h-7 mb-1"
+          />
           <p className="text-neutral-500 text-sm">Admin Panel</p>
         </div>
 
