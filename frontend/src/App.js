@@ -6,6 +6,8 @@ import { AuthProvider } from "./context/AuthContext";
 import HomePage from "./pages/HomePage";
 import FabricsPage from "./pages/FabricsPage";
 import FabricDetailPage from "./pages/FabricDetailPage";
+import CollectionsPage from "./pages/CollectionsPage";
+import CollectionDetailPage from "./pages/CollectionDetailPage";
 import AboutPage from "./pages/AboutPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
 import ContactPage from "./pages/ContactPage";
@@ -23,6 +25,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminFabrics from "./pages/admin/AdminFabrics";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminSellers from "./pages/admin/AdminSellers";
+import AdminCollections from "./pages/admin/AdminCollections";
 import AdminEnquiries from "./pages/admin/AdminEnquiries";
 import ProtectedRoute from "./components/ProtectedRoute";
 
