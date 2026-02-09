@@ -74,15 +74,21 @@ const FabricsPage = () => {
   };
 
   return (
-    <main className="pt-20 min-h-screen" data-testid="fabrics-page">
-      {/* Header */}
-      <div className="bg-gray-50 py-12 border-b border-gray-100">
-        <div className="container-main">
-          <p className="subheading mb-2">Catalog</p>
-          <h1 className="text-4xl font-semibold">Fabric Catalog</h1>
-          <p className="text-neutral-600 mt-2">Browse fabrics by category, type, or specifications.</p>
+    <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+      <Navbar />
+      <main className="flex-grow pt-20" data-testid="fabrics-page">
+        {/* Header */}
+        <div className="bg-gray-50 py-12 border-b border-gray-100">
+          <div className="container-main">
+            <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 text-sm">
+              <ArrowLeft size={16} />
+              Back to Home
+            </Link>
+            <p className="subheading mb-2">Catalog</p>
+            <h1 className="text-4xl font-semibold">Fabric Catalog</h1>
+            <p className="text-neutral-600 mt-2">Browse fabrics by category, type, or specifications.</p>
+          </div>
         </div>
-      </div>
 
       <div className="container-main py-8">
         {/* Search & Filter Bar */}
