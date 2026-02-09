@@ -42,7 +42,7 @@ const AdminFabrics = () => {
   const [form, setForm] = useState(emptyForm);
 
   const fabricTypes = ["woven", "knitted", "non-woven"];
-  const patternOptions = ["Solid", "Print", "None"];
+  const patternOptions = ["Solid", "Print", "Stripes", "Checks", "Floral", "Geometric", "Digital", "Random", "Others"];
   const availabilityOptions = [
     { value: "Sample", label: "Sample Available", color: "bg-blue-50 text-blue-700 border-blue-200" },
     { value: "Bulk", label: "Bulk Available", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
