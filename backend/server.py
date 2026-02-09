@@ -524,6 +524,8 @@ async def get_fabric(fabric_id: str):
     if not fabric:
         raise HTTPException(status_code=404, detail='Fabric not found')
     
+    normalize_fabric(fabric)
+    
     category = await db.categories.find_one({'id': fabric['category_id']}, {'_id': 0})
     fabric['category_name'] = category['name'] if category else ''
     
