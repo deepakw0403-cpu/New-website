@@ -210,8 +210,18 @@ const FabricDetailPage = () => {
                 </div>
                 <div className="border-b border-gray-100 pb-3">
                   <p className="text-xs text-gray-400 mb-1">Composition</p>
-                  <p className="font-medium">{fabric.composition}</p>
+                  <p className="font-medium">
+                    {Array.isArray(fabric.composition) && fabric.composition.length > 0
+                      ? fabric.composition.map(c => `${c.percentage}% ${c.material}`).join(', ')
+                      : fabric.composition || '-'}
+                  </p>
                 </div>
+                {fabric.pattern && fabric.pattern !== "None" && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Pattern</p>
+                    <p className="font-medium">{fabric.pattern}</p>
+                  </div>
+                )}
                 <div className="border-b border-gray-100 pb-3">
                   <p className="text-xs text-gray-400 mb-1">GSM</p>
                   <p className="font-medium tech-data">{fabric.gsm}</p>
@@ -234,14 +244,38 @@ const FabricDetailPage = () => {
                   <p className="text-xs text-gray-400 mb-1">MOQ</p>
                   <p className="font-medium">{fabric.moq}</p>
                 </div>
-                {fabric.price_range && (
+                {fabric.starting_price && (
                   <div className="border-b border-gray-100 pb-3">
-                    <p className="text-xs text-gray-400 mb-1">Price Range</p>
-                    <p className="font-medium">{fabric.price_range}</p>
+                    <p className="text-xs text-gray-400 mb-1">Starting Price</p>
+                    <p className="font-medium text-[#2563EB]">{fabric.starting_price}</p>
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Videos */}
+            {fabric.videos && fabric.videos.length > 0 && (
+              <div className="mb-8" data-testid="fabric-videos">
+                <h3 className="subheading mb-4">Product Videos</h3>
+                <div className="space-y-3">
+                  {fabric.videos.map((video, idx) => (
+                    <a
+                      key={idx}
+                      href={video}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded border border-gray-100 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="w-10 h-10 bg-[#2563EB] rounded flex items-center justify-center text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                      </div>
+                      <span className="text-sm text-gray-700 flex-1 truncate">Watch Video {idx + 1}</span>
+                      <span className="text-xs text-gray-400">External link</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Tags */}
             {fabric.tags && fabric.tags.length > 0 && (
