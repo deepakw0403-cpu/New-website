@@ -172,9 +172,11 @@ const FabricDetailPage = () => {
               <p className="subheading mb-2">{fabric.category_name}</p>
               <h1 className="text-4xl font-semibold mb-4">{fabric.name}</h1>
               <div className="flex items-center gap-3 flex-wrap">
-                <span className={`badge ${getAvailabilityBadge(fabric.availability)}`}>
-                  {fabric.availability}
-                </span>
+                {(Array.isArray(fabric.availability) ? fabric.availability : []).map((avail, idx) => (
+                  <span key={idx} className={`badge ${getAvailabilityBadge(avail)}`}>
+                    {avail}
+                  </span>
+                ))}
                 {fabric.seller_company && (
                   <span className="text-sm text-gray-500">
                     by <span className="font-medium text-gray-700">{fabric.seller_company}</span>
