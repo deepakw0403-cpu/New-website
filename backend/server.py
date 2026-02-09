@@ -326,6 +326,28 @@ async def delete_category(category_id: str, admin=Depends(get_current_admin)):
 @api_router.get("/sellers", response_model=List[Seller])
 async def get_sellers():
     sellers = await db.sellers.find({}, {'_id': 0}).sort('created_at', -1).to_list(100)
+    
+    # Get all category IDs needed
+    all_cat_ids = []
+    for seller in sellers:
+        all_cat_ids.extend(seller.get('category_ids', []))
+    all_cat_ids = list(set(all_cat_ids))
+    
+    # Fetch categories
+    categories = await db.categories.find({'id': {'$in': all_cat_ids}}, {'_id': 0}).to_list(100) if all_cat_ids else []
+    cat_map = {c['id']: c['name'] for c in categories}
+    
+    # Add category names to each seller
+    for seller in sellers:
+        seller['category_names'] = [cat_map.get(cid, '') for cid in seller.get('category_ids', []) if cat_map.get(cid)]
+        if 'category_ids' not in seller:
+            seller['category_ids'] = []
+        # Handle legacy location field
+        if 'city' not in seller:
+            seller['city'] = seller.get('location', '')
+        if 'state' not in seller:
+            seller['state'] = ''
+    
     return sellers
 
 @api_router.get("/sellers/{seller_id}", response_model=Seller)
