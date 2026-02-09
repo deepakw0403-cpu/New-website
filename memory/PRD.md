@@ -33,6 +33,17 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 9, 2026 - Collections Feature
+- **Collections System**: Full CRUD for marketing collections/ranges
+  - Admin can create, edit, delete collections
+  - Add/remove fabrics from collections
+  - Upload collection cover images
+  - Mark collections as "Featured" for homepage display
+- **Public Collections Page**: Browse all collections at /collections
+- **Collection Detail Page**: View all fabrics in a collection at /collections/{id}
+- **Navigation**: Added "Collections" link to main nav and admin sidebar
+- **Dashboard**: Added collections count to admin stats
+
 ### Feb 9, 2026 - Seven New Features
 - **Header Logo Link**: Links to www.locofast.com in new tab
 - **Seller-Category Linking**: Sellers can select multiple category specializations
