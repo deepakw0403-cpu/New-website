@@ -57,16 +57,16 @@ const FabricDetailPage = () => {
     setSubmitting(false);
   };
 
-  const getAvailabilityBadge = (availability) => {
-    switch (availability) {
-      case "Available":
-        return "badge-available";
-      case "On request":
-        return "badge-request";
-      case "Sample only":
-        return "badge-sample";
+  const getAvailabilityBadge = (avail) => {
+    switch (avail) {
+      case "Sample":
+        return "bg-blue-50 text-blue-700";
+      case "Bulk":
+        return "bg-emerald-50 text-emerald-700";
+      case "On Request":
+        return "bg-amber-50 text-amber-700";
       default:
-        return "bg-neutral-100 text-neutral-600";
+        return "bg-gray-100 text-gray-600";
     }
   };
 
@@ -75,12 +75,12 @@ const FabricDetailPage = () => {
       <main className="pt-20 min-h-screen" data-testid="fabric-detail-loading">
         <div className="container-main py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 animate-pulse">
-            <div className="aspect-square bg-neutral-200" />
+            <div className="aspect-square bg-gray-200 rounded" />
             <div className="space-y-4">
-              <div className="h-4 bg-neutral-200 w-1/4" />
-              <div className="h-10 bg-neutral-200 w-3/4" />
-              <div className="h-4 bg-neutral-200 w-full" />
-              <div className="h-4 bg-neutral-200 w-2/3" />
+              <div className="h-4 bg-gray-200 w-1/4 rounded" />
+              <div className="h-10 bg-gray-200 w-3/4 rounded" />
+              <div className="h-4 bg-gray-200 w-full rounded" />
+              <div className="h-4 bg-gray-200 w-2/3 rounded" />
             </div>
           </div>
         </div>
