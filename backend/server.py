@@ -134,28 +134,31 @@ class FabricCreate(BaseModel):
     color: str
     finish: Optional[str] = ""
     moq: str
-    price_range: Optional[str] = ""
+    starting_price: Optional[str] = ""
     availability: List[str] = []  # Sample, Bulk, On Request
     description: str
     tags: List[str] = []
     images: List[str] = []
+    videos: List[str] = []
 
 class FabricUpdate(BaseModel):
     name: Optional[str] = None
     category_id: Optional[str] = None
     seller_id: Optional[str] = None
     fabric_type: Optional[str] = None
-    composition: Optional[str] = None
+    pattern: Optional[str] = None
+    composition: Optional[List[CompositionItem]] = None
     gsm: Optional[int] = None
     width: Optional[str] = None
     color: Optional[str] = None
     finish: Optional[str] = None
     moq: Optional[str] = None
-    price_range: Optional[str] = None
+    starting_price: Optional[str] = None
     availability: Optional[List[str]] = None
     description: Optional[str] = None
     tags: Optional[List[str]] = None
     images: Optional[List[str]] = None
+    videos: Optional[List[str]] = None
 
 class Fabric(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -167,17 +170,19 @@ class Fabric(BaseModel):
     seller_name: str = ""
     seller_company: str = ""
     fabric_type: str
-    composition: str
+    pattern: str = "Solid"
+    composition: List[CompositionItem] = []
     gsm: int
     width: str
     color: str
     finish: str = ""
     moq: str
-    price_range: str = ""
+    starting_price: str = ""
     availability: List[str] = []
     description: str
     tags: List[str] = []
     images: List[str] = []
+    videos: List[str] = []
     created_at: str
 
 class EnquiryCreate(BaseModel):
