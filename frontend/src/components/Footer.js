@@ -3,12 +3,31 @@ import { Linkedin, Facebook, Instagram, Youtube } from "lucide-react";
 
 const Footer = () => {
   const offices = [
-    { city: "New Delhi", address: "Desk Connect, First Floor, Plot No-2, Kh.No. 384/2, Mehrauli-Gurgaon Road, Ghitorni, New Delhi 110030", type: "Headquarters" },
-    { city: "Noida", address: "1st Floor, Plot No.D-107, Vyapar Marg, D Block, Sector-2, Uttar Pradesh 201301" },
-    { city: "Gurugram", address: "NH8-Udyog Vihar, 90B, Udyog Vihar, Sector 18, Haryana 122008" },
-    { city: "Jaipur", address: "34/6, Kiran Path, Mansarovar Sector 3, Rajasthan 302020" },
-    { city: "Ahmedabad", address: "SSPACIA 4th floor, Agrawal Complex, Chimanlal Girdharlal Road, Gujarat 380009" },
-    { city: "Bangladesh", address: "Workstation 101, Uttara Tower, Level 4, 1 Jashimuddin Avenue, Sector 3, Uttara, Dhaka 1230" },
+    { 
+      city: "New Delhi", 
+      address: ["Desk Connect - First Floor,", "Plot No-2, Kh.No. 384/2, 100", "feet Rd, Mehrauli-Gurgaon", "Rd, Opp. Corporation Bank,", "Ghitorni, New Delhi 110030"],
+      type: "Headquarters" 
+    },
+    { 
+      city: "Noida", 
+      address: ["1st Floor, Plot No.D-107,", "Vyapar Marg, D Block, Noida", "Sector-2 Uttar Pradesh", "201301"]
+    },
+    { 
+      city: "Gurugram", 
+      address: ["NH8-Udyog Vihar, 90B, Delhi", "- Jaipur Expy, Udyog Vihar,", "Sector 18, Gurugram,", "Haryana 122008"]
+    },
+    { 
+      city: "Jaipur", 
+      address: ["34/6, Kiran Path,", "Mansarovar Sector 3,", "Mansarovar, Jaipur,", "Rajasthan 302020"]
+    },
+    { 
+      city: "Ahmedabad", 
+      address: ["SSPACIA 4th floor, Agrawal", "Complex, Chimanlal", "Girdharlal Rd, Ahmedabad,", "Gujarat, 380009"]
+    },
+    { 
+      city: "Bangladesh", 
+      address: ["Workstation 101, Uttara", "Tower, Level 4, 1 Jashimuddin", "Avenue, Sector 3, Uttara C/A", "Dhaka 1230, Bangladesh"]
+    },
   ];
 
   return (
