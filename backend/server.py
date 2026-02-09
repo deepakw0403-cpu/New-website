@@ -501,6 +501,10 @@ def normalize_fabric(fabric: dict) -> dict:
         fabric['starting_price'] = ''
     if 'videos' not in fabric:
         fabric['videos'] = []
+    if 'warp_count' not in fabric:
+        fabric['warp_count'] = ''
+    if 'weft_count' not in fabric:
+        fabric['weft_count'] = ''
     if 'availability' not in fabric:
         fabric['availability'] = []
     elif not isinstance(fabric.get('availability'), list):
