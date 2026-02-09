@@ -227,3 +227,11 @@ a {
     @apply bg-background text-foreground;
   }
 }
+
+/* Hide Emergent badge */
+[class*="emergent"], 
+[id*="emergent"],
+a[href*="emergentagent.com"]:not([href*="customer-assets"]),
+div[style*="position: fixed"][style*="bottom"]:has(a[href*="emergent"]) {
+  display: none !important;
+}
