@@ -133,6 +133,8 @@ class FabricCreate(BaseModel):
     composition: List[CompositionItem] = []
     gsm: int
     width: str
+    warp_count: Optional[str] = ""  # threads per inch (warp)
+    weft_count: Optional[str] = ""  # threads per inch (weft)
     color: str
     finish: Optional[str] = ""
     moq: str
@@ -152,6 +154,8 @@ class FabricUpdate(BaseModel):
     composition: Optional[List[CompositionItem]] = None
     gsm: Optional[int] = None
     width: Optional[str] = None
+    warp_count: Optional[str] = None
+    weft_count: Optional[str] = None
     color: Optional[str] = None
     finish: Optional[str] = None
     moq: Optional[str] = None
