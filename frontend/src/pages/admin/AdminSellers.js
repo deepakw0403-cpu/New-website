@@ -122,7 +122,7 @@ const AdminSellers = () => {
         toast.success("Seller created");
       }
       setShowModal(false);
-      fetchSellers();
+      fetchData();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to save seller");
     }
@@ -133,10 +133,15 @@ const AdminSellers = () => {
     try {
       await deleteSeller(seller.id);
       toast.success("Seller deleted");
-      fetchSellers();
+      fetchData();
     } catch (err) {
       toast.error("Failed to delete seller");
     }
+  };
+
+  const getLocationString = (seller) => {
+    const parts = [seller.city, seller.state].filter(Boolean);
+    return parts.length > 0 ? parts.join(', ') : seller.location || '';
   };
 
   return (
