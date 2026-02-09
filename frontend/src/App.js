@@ -22,6 +22,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminFabrics from "./pages/admin/AdminFabrics";
 import AdminCategories from "./pages/admin/AdminCategories";
+import AdminSellers from "./pages/admin/AdminSellers";
 import AdminEnquiries from "./pages/admin/AdminEnquiries";
 import ProtectedRoute from "./components/ProtectedRoute";
 
