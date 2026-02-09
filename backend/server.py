@@ -542,12 +542,14 @@ async def update_enquiry_status(enquiry_id: str, status: str = Query(...), admin
 async def get_stats(admin=Depends(get_current_admin)):
     fabrics_count = await db.fabrics.count_documents({})
     categories_count = await db.categories.count_documents({})
+    sellers_count = await db.sellers.count_documents({})
     enquiries_count = await db.enquiries.count_documents({})
     new_enquiries = await db.enquiries.count_documents({'status': 'new'})
     
     return {
         'fabrics': fabrics_count,
         'categories': categories_count,
+        'sellers': sellers_count,
         'enquiries': enquiries_count,
         'new_enquiries': new_enquiries
     }
