@@ -29,6 +29,10 @@ const CollectionsPage = () => {
         {/* Header */}
         <section className="bg-white border-b border-gray-100">
           <div className="container-main py-16">
+            <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 text-sm">
+              <ArrowLeft size={16} />
+              Back to Home
+            </Link>
             <p className="text-xs tracking-widest text-[#2563EB] font-medium mb-4">CURATED SELECTIONS</p>
             <h1 className="text-4xl md:text-5xl font-serif mb-4">Collections</h1>
             <p className="text-gray-600 max-w-2xl">
