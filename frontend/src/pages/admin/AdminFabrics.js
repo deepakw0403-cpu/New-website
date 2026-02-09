@@ -84,6 +84,7 @@ const AdminFabrics = () => {
     setEditingFabric(fabric);
     setForm({
       ...fabric,
+      seller_id: fabric.seller_id || "",
       gsm: fabric.gsm.toString(),
       tags: fabric.tags.join(", "),
     });
