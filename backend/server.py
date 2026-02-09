@@ -783,6 +783,7 @@ async def get_stats(admin=Depends(get_current_admin)):
     fabrics_count = await db.fabrics.count_documents({})
     categories_count = await db.categories.count_documents({})
     sellers_count = await db.sellers.count_documents({})
+    collections_count = await db.collections.count_documents({})
     enquiries_count = await db.enquiries.count_documents({})
     new_enquiries = await db.enquiries.count_documents({'status': 'new'})
     
@@ -790,6 +791,7 @@ async def get_stats(admin=Depends(get_current_admin)):
         'fabrics': fabrics_count,
         'categories': categories_count,
         'sellers': sellers_count,
+        'collections': collections_count,
         'enquiries': enquiries_count,
         'new_enquiries': new_enquiries
     }
