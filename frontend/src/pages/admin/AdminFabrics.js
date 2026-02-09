@@ -118,18 +118,36 @@ const AdminFabrics = () => {
 
   const openCreateModal = () => {
     setEditingFabric(null);
-    setForm({ ...emptyForm, category_id: categories[0]?.id || "" });
+    setForm({ ...emptyForm, category_id: categories[0]?.id || "", composition: [...emptyComposition] });
     setShowModal(true);
   };
 
   const openEditModal = (fabric) => {
     setEditingFabric(fabric);
+    
+    // Parse composition - could be string (legacy) or array (new)
+    let compositionData = [...emptyComposition];
+    if (Array.isArray(fabric.composition) && fabric.composition.length > 0) {
+      compositionData = [
+        fabric.composition[0] || { material: "", percentage: 0 },
+        fabric.composition[1] || { material: "", percentage: 0 },
+        fabric.composition[2] || { material: "", percentage: 0 },
+      ];
+    } else if (typeof fabric.composition === 'string' && fabric.composition) {
+      // Legacy string format - try to parse "100% Cotton" or "65% Poly, 35% Cotton"
+      compositionData = [{ material: fabric.composition, percentage: 100 }, { material: "", percentage: 0 }, { material: "", percentage: 0 }];
+    }
+    
     setForm({
       ...fabric,
       seller_id: fabric.seller_id || "",
+      pattern: fabric.pattern || "Solid",
+      composition: compositionData,
+      starting_price: fabric.starting_price || "",
       availability: Array.isArray(fabric.availability) ? fabric.availability : [],
       gsm: fabric.gsm.toString(),
-      tags: fabric.tags.join(", "),
+      tags: Array.isArray(fabric.tags) ? fabric.tags.join(", ") : "",
+      videos: Array.isArray(fabric.videos) ? fabric.videos : [],
     });
     setShowModal(true);
   };
