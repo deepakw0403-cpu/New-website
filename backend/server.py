@@ -441,11 +441,22 @@ async def delete_seller(seller_id: str, admin=Depends(get_current_admin)):
 
 def normalize_fabric(fabric: dict) -> dict:
     """Normalize legacy fabric data to current schema"""
+    import re
     # Handle legacy string composition - convert to list format
     if isinstance(fabric.get('composition'), str):
         comp_str = fabric['composition']
-        # Simple conversion: put the string in a single item with 100%
-        fabric['composition'] = [{'material': comp_str, 'percentage': 100}]
+        # Parse legacy format like "100% Cotton" or "65% Polyester, 35% Cotton"
+        # Try to extract percentages and materials from the string
+        parsed = []
+        # Match patterns like "100% Cotton" or "65% Polyester"
+        matches = re.findall(r'(\d+)%\s*([^,]+)', comp_str)
+        if matches:
+            for percentage, material in matches:
+                parsed.append({'material': material.strip(), 'percentage': int(percentage)})
+            fabric['composition'] = parsed
+        else:
+            # No percentage found, assume 100% of the material name
+            fabric['composition'] = [{'material': comp_str, 'percentage': 100}]
     elif not fabric.get('composition'):
         fabric['composition'] = []
     
