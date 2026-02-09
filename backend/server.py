@@ -338,19 +338,30 @@ async def get_seller(seller_id: str):
 @api_router.post("/sellers", response_model=Seller)
 async def create_seller(data: SellerCreate, admin=Depends(get_current_admin)):
     seller_id = str(uuid.uuid4())
+    
+    # Get category names for response
+    category_names = []
+    if data.category_ids:
+        categories = await db.categories.find({'id': {'$in': data.category_ids}}, {'_id': 0}).to_list(100)
+        category_names = [c['name'] for c in categories]
+    
     seller_doc = {
         'id': seller_id,
         'name': data.name,
         'company_name': data.company_name,
         'description': data.description or "",
         'logo_url': data.logo_url or "",
-        'location': data.location or "",
+        'city': data.city or "",
+        'state': data.state or "",
         'contact_email': data.contact_email or "",
         'contact_phone': data.contact_phone or "",
+        'category_ids': data.category_ids or [],
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     await db.sellers.insert_one(seller_doc)
-    return Seller(**seller_doc)
+    
+    response_doc = {**seller_doc, 'category_names': category_names}
+    return Seller(**response_doc)
 
 @api_router.put("/sellers/{seller_id}", response_model=Seller)
 async def update_seller(seller_id: str, data: SellerUpdate, admin=Depends(get_current_admin)):
