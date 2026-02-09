@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, X, Upload, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Upload, Building2, MapPin, Check } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { getSellers, createSeller, updateSeller, deleteSeller, uploadImage } from "../../lib/api";
+import { getSellers, getCategories, createSeller, updateSeller, deleteSeller, uploadImage } from "../../lib/api";
 
 const AdminSellers = () => {
   const [sellers, setSellers] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingSeller, setEditingSeller] = useState(null);
@@ -16,15 +17,37 @@ const AdminSellers = () => {
     company_name: "",
     description: "",
     logo_url: "",
-    location: "",
+    city: "",
+    state: "",
     contact_email: "",
     contact_phone: "",
+    category_ids: [],
   };
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
-    fetchSellers();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [selRes, catRes] = await Promise.all([getSellers(), getCategories()]);
+      setSellers(selRes.data);
+      setCategories(catRes.data);
+    } catch (err) {
+      toast.error("Failed to load data");
+    }
+    setLoading(false);
+  };
+
+  const toggleCategory = (categoryId) => {
+    if (form.category_ids.includes(categoryId)) {
+      setForm({ ...form, category_ids: form.category_ids.filter(id => id !== categoryId) });
+    } else {
+      setForm({ ...form, category_ids: [...form.category_ids, categoryId] });
+    }
+  };
 
   const fetchSellers = async () => {
     setLoading(true);
