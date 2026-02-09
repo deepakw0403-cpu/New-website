@@ -36,14 +36,17 @@ const Footer = () => {
       <div className="border-b border-gray-700">
         <div className="container-main py-16">
           <h3 className="text-xl font-semibold mb-8">Our Offices</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-8">
             {offices.map((office, index) => (
               <div key={index}>
-                <p className="font-medium text-white mb-1">
+                <p className="font-medium text-white mb-2">
                   {office.city}
-                  {office.type && <span className="text-neutral-500 text-sm ml-2">({office.type})</span>}
                 </p>
-                <p className="text-neutral-400 text-sm leading-relaxed">{office.address}</p>
+                <div className="text-neutral-400 text-sm leading-relaxed">
+                  {office.address.map((line, i) => (
+                    <p key={i}>{line}</p>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
