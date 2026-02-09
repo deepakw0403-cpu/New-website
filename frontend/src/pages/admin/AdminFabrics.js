@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, X, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Upload, Check } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { getFabrics, getCategories, getSellers, createFabric, updateFabric, deleteFabric, uploadImage } from "../../lib/api";
@@ -25,7 +25,7 @@ const AdminFabrics = () => {
     finish: "",
     moq: "",
     price_range: "",
-    availability: "Available",
+    availability: [],
     description: "",
     tags: "",
     images: [],
@@ -34,7 +34,19 @@ const AdminFabrics = () => {
   const [form, setForm] = useState(emptyForm);
 
   const fabricTypes = ["woven", "knitted", "non-woven"];
-  const availabilityOptions = ["Available", "On request", "Sample only"];
+  const availabilityOptions = [
+    { value: "Sample", label: "Sample Available", color: "bg-blue-50 text-blue-700 border-blue-200" },
+    { value: "Bulk", label: "Bulk Available", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    { value: "On Request", label: "On Request", color: "bg-amber-50 text-amber-700 border-amber-200" },
+  ];
+
+  const toggleAvailability = (value) => {
+    if (form.availability.includes(value)) {
+      setForm({ ...form, availability: form.availability.filter(v => v !== value) });
+    } else {
+      setForm({ ...form, availability: [...form.availability, value] });
+    }
+  };
 
   useEffect(() => {
     fetchData();
