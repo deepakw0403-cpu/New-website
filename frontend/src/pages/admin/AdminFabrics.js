@@ -504,14 +504,14 @@ const AdminFabrics = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Price Range</label>
+                    <label className="block text-sm font-medium mb-2">Starting Price</label>
                     <input
                       type="text"
-                      value={form.price_range}
-                      onChange={(e) => setForm({ ...form, price_range: e.target.value })}
+                      value={form.starting_price}
+                      onChange={(e) => setForm({ ...form, starting_price: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-200 rounded"
-                      placeholder="e.g., On enquiry"
-                      data-testid="fabric-price-input"
+                      placeholder="e.g., ₹150/meter or On enquiry"
+                      data-testid="fabric-starting-price-input"
                     />
                   </div>
                 </div>
