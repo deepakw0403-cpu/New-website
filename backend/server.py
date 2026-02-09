@@ -113,6 +113,7 @@ class Seller(BaseModel):
 class FabricCreate(BaseModel):
     name: str
     category_id: str
+    seller_id: Optional[str] = ""
     fabric_type: str  # woven / knitted / non-woven
     composition: str
     gsm: int
@@ -129,6 +130,7 @@ class FabricCreate(BaseModel):
 class FabricUpdate(BaseModel):
     name: Optional[str] = None
     category_id: Optional[str] = None
+    seller_id: Optional[str] = None
     fabric_type: Optional[str] = None
     composition: Optional[str] = None
     gsm: Optional[int] = None
