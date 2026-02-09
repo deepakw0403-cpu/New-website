@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Search, FileText, MessageSquare, Truck } from "lucide-react";
+import { Search, FileText, MessageSquare, Truck, ArrowLeft } from "lucide-react";
 
 const HowItWorksPage = () => {
   const steps = [
