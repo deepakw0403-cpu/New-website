@@ -36,13 +36,13 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8">
           {/* Brand & Social */}
           <div className="md:col-span-1">
-            <Link to="/" className="inline-block mb-6">
+            <a href="https://www.locofast.com" className="inline-block mb-6" target="_blank" rel="noopener noreferrer">
               <img 
                 src="https://customer-assets.emergentagent.com/job_locofast-cms/artifacts/xkuf449w_Locofast%20-%20Medium.svg" 
                 alt="Locofast" 
                 className="h-8 brightness-0 invert"
               />
-            </Link>
+            </a>
             <div className="flex items-center gap-4 mt-4">
               <a 
                 href="https://in.linkedin.com/company/locofast" 
