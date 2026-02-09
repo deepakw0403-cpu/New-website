@@ -57,6 +57,10 @@ const HowItWorksPage = () => {
       {/* Hero */}
       <section className="py-24 lg:py-32 bg-neutral-50">
         <div className="container-main">
+          <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 text-sm">
+            <ArrowLeft size={16} />
+            Back to Home
+          </Link>
           <div className="max-w-3xl">
             <p className="subheading mb-4">Process</p>
             <h1 className="text-5xl md:text-6xl font-semibold leading-tight mb-6">
