@@ -180,6 +180,8 @@ class Fabric(BaseModel):
     composition: List[CompositionItem] = []
     gsm: int
     width: str
+    warp_count: str = ""
+    weft_count: str = ""
     color: str
     finish: str = ""
     moq: str
