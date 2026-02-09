@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Shield, Users, TrendingUp, CheckCircle } from "lucide-react";
+import { Shield, Users, TrendingUp, CheckCircle, ArrowLeft } from "lucide-react";
 
 const AboutPage = () => {
   const highlights = [
