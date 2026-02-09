@@ -146,6 +146,8 @@ const AdminFabrics = () => {
       pattern: fabric.pattern || "Solid",
       composition: compositionData,
       starting_price: fabric.starting_price || "",
+      warp_count: fabric.warp_count || "",
+      weft_count: fabric.weft_count || "",
       availability: Array.isArray(fabric.availability) ? fabric.availability : [],
       gsm: fabric.gsm.toString(),
       tags: Array.isArray(fabric.tags) ? fabric.tags.join(", ") : "",
