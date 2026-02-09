@@ -207,6 +207,32 @@ class Enquiry(BaseModel):
     status: str = "new"
     created_at: str
 
+# Collection Models (for marketing ranges/occasions)
+class CollectionCreate(BaseModel):
+    name: str
+    description: Optional[str] = ""
+    image_url: Optional[str] = ""
+    fabric_ids: List[str] = []
+    is_featured: bool = False
+
+class CollectionUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    fabric_ids: Optional[List[str]] = None
+    is_featured: Optional[bool] = None
+
+class Collection(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    name: str
+    description: str = ""
+    image_url: str = ""
+    fabric_ids: List[str] = []
+    fabric_count: int = 0
+    is_featured: bool = False
+    created_at: str
+
 # ==================== AUTH HELPERS ====================
 
 def hash_password(password: str) -> str:
