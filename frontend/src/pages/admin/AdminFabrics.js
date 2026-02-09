@@ -394,16 +394,17 @@ const AdminFabrics = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Composition *</label>
-                    <input
-                      type="text"
-                      value={form.composition}
-                      onChange={(e) => setForm({ ...form, composition: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
-                      placeholder="e.g., 100% Cotton"
-                      required
-                      data-testid="fabric-composition-input"
-                    />
+                    <label className="block text-sm font-medium mb-2">Pattern</label>
+                    <select
+                      value={form.pattern}
+                      onChange={(e) => setForm({ ...form, pattern: e.target.value })}
+                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                      data-testid="fabric-pattern-select"
+                    >
+                      {patternOptions.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">GSM *</label>
@@ -416,6 +417,44 @@ const AdminFabrics = () => {
                       data-testid="fabric-gsm-input"
                     />
                   </div>
+                </div>
+
+                {/* Composition Editor */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Composition (up to 3 materials)
+                    <span className={`ml-2 text-xs ${getCompositionTotal() === 100 ? 'text-emerald-600' : getCompositionTotal() > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                      Total: {getCompositionTotal()}%
+                    </span>
+                  </label>
+                  <div className="space-y-2" data-testid="fabric-composition-editor">
+                    {form.composition.map((comp, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={comp.material}
+                          onChange={(e) => updateComposition(idx, 'material', e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded text-sm"
+                          placeholder={`Material ${idx + 1} (e.g., Cotton)`}
+                          data-testid={`composition-material-${idx}`}
+                        />
+                        <div className="relative w-24">
+                          <input
+                            type="number"
+                            value={comp.percentage || ''}
+                            onChange={(e) => updateComposition(idx, 'percentage', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded text-sm pr-8"
+                            placeholder="0"
+                            min="0"
+                            max="100"
+                            data-testid={`composition-percentage-${idx}`}
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">E.g., Cotton 78%, Polyester 21%, Spandex 1%</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
