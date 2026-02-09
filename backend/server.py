@@ -150,6 +150,9 @@ class Fabric(BaseModel):
     name: str
     category_id: str
     category_name: str = ""
+    seller_id: str = ""
+    seller_name: str = ""
+    seller_company: str = ""
     fabric_type: str
     composition: str
     gsm: int
