@@ -246,26 +246,33 @@ const FabricsPage = () => {
                 className="group"
                 data-testid={`fabric-card-${fabric.id}`}
               >
-                <div className="aspect-[3/4] overflow-hidden bg-neutral-100 mb-4 relative">
+                <div className="aspect-[3/4] overflow-hidden bg-gray-100 mb-4 relative rounded">
                   <img
                     src={fabric.images[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600"}
                     alt={fabric.name}
                     className="w-full h-full object-cover image-zoom"
                   />
-                  <span className={`badge absolute top-3 right-3 ${getAvailabilityBadge(fabric.availability)}`}>
-                    {fabric.availability}
-                  </span>
+                  <div className="absolute top-3 right-3 flex flex-col gap-1">
+                    {(Array.isArray(fabric.availability) ? fabric.availability : []).map((avail, idx) => (
+                      <span key={idx} className={`badge ${getAvailabilityBadge(avail)}`}>
+                        {avail}
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 <p className="subheading mb-1">{fabric.category_name}</p>
-                <h3 className="font-serif text-lg font-medium mb-2 group-hover:text-neutral-600 transition-colors">
+                <h3 className="text-lg font-semibold mb-2 group-hover:text-[#2563EB] transition-colors">
                   {fabric.name}
                 </h3>
-                <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500 mb-2">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-2">
                   <span className="tech-data">{fabric.gsm} GSM</span>
                   <span>•</span>
                   <span>{fabric.width}</span>
                 </div>
-                <p className="text-sm text-neutral-600">{fabric.composition}</p>
+                <p className="text-sm text-gray-600">{fabric.composition}</p>
+                {fabric.seller_company && (
+                  <p className="text-xs text-gray-400 mt-1">by {fabric.seller_company}</p>
+                )}
               </Link>
             ))}
           </div>
