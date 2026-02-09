@@ -291,6 +291,8 @@ const FabricsPage = () => {
         )}
       </div>
     </main>
+    <Footer />
+    </div>
   );
 };
 
