@@ -122,7 +122,7 @@ class FabricCreate(BaseModel):
     finish: Optional[str] = ""
     moq: str
     price_range: Optional[str] = ""
-    availability: str  # Available / On request / Sample only
+    availability: List[str] = []  # Sample, Bulk, On Request
     description: str
     tags: List[str] = []
     images: List[str] = []
@@ -139,7 +139,7 @@ class FabricUpdate(BaseModel):
     finish: Optional[str] = None
     moq: Optional[str] = None
     price_range: Optional[str] = None
-    availability: Optional[str] = None
+    availability: Optional[List[str]] = None
     description: Optional[str] = None
     tags: Optional[List[str]] = None
     images: Optional[List[str]] = None
@@ -161,7 +161,7 @@ class Fabric(BaseModel):
     finish: str = ""
     moq: str
     price_range: str = ""
-    availability: str
+    availability: List[str] = []
     description: str
     tags: List[str] = []
     images: List[str] = []
