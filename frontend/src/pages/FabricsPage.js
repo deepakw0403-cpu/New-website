@@ -58,26 +58,26 @@ const FabricsPage = () => {
 
   const hasFilters = search || selectedCategory || selectedType || gsmRange.min || gsmRange.max;
 
-  const getAvailabilityBadge = (availability) => {
-    switch (availability) {
-      case "Available":
-        return "badge-available";
-      case "On request":
-        return "badge-request";
-      case "Sample only":
-        return "badge-sample";
+  const getAvailabilityBadge = (avail) => {
+    switch (avail) {
+      case "Sample":
+        return "bg-blue-50 text-blue-700";
+      case "Bulk":
+        return "bg-emerald-50 text-emerald-700";
+      case "On Request":
+        return "bg-amber-50 text-amber-700";
       default:
-        return "bg-neutral-100 text-neutral-600";
+        return "bg-gray-100 text-gray-600";
     }
   };
 
   return (
     <main className="pt-20 min-h-screen" data-testid="fabrics-page">
       {/* Header */}
-      <div className="bg-neutral-50 py-12 border-b border-neutral-100">
+      <div className="bg-gray-50 py-12 border-b border-gray-100">
         <div className="container-main">
           <p className="subheading mb-2">Catalog</p>
-          <h1 className="text-4xl font-serif font-medium">Fabric Catalog</h1>
+          <h1 className="text-4xl font-semibold">Fabric Catalog</h1>
           <p className="text-neutral-600 mt-2">Browse fabrics by category, type, or specifications.</p>
         </div>
       </div>
