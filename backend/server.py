@@ -303,6 +303,57 @@ async def delete_category(category_id: str, admin=Depends(get_current_admin)):
         raise HTTPException(status_code=404, detail='Category not found')
     return {'message': 'Category deleted'}
 
+# ==================== SELLER ROUTES ====================
+
+@api_router.get("/sellers", response_model=List[Seller])
+async def get_sellers():
+    sellers = await db.sellers.find({}, {'_id': 0}).sort('created_at', -1).to_list(100)
+    return sellers
+
+@api_router.get("/sellers/{seller_id}", response_model=Seller)
+async def get_seller(seller_id: str):
+    seller = await db.sellers.find_one({'id': seller_id}, {'_id': 0})
+    if not seller:
+        raise HTTPException(status_code=404, detail='Seller not found')
+    return seller
+
+@api_router.post("/sellers", response_model=Seller)
+async def create_seller(data: SellerCreate, admin=Depends(get_current_admin)):
+    seller_id = str(uuid.uuid4())
+    seller_doc = {
+        'id': seller_id,
+        'name': data.name,
+        'company_name': data.company_name,
+        'description': data.description or "",
+        'logo_url': data.logo_url or "",
+        'location': data.location or "",
+        'contact_email': data.contact_email or "",
+        'contact_phone': data.contact_phone or "",
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.sellers.insert_one(seller_doc)
+    return Seller(**seller_doc)
+
+@api_router.put("/sellers/{seller_id}", response_model=Seller)
+async def update_seller(seller_id: str, data: SellerUpdate, admin=Depends(get_current_admin)):
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail='No data to update')
+    
+    result = await db.sellers.update_one({'id': seller_id}, {'$set': update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail='Seller not found')
+    
+    seller = await db.sellers.find_one({'id': seller_id}, {'_id': 0})
+    return Seller(**seller)
+
+@api_router.delete("/sellers/{seller_id}")
+async def delete_seller(seller_id: str, admin=Depends(get_current_admin)):
+    result = await db.sellers.delete_one({'id': seller_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail='Seller not found')
+    return {'message': 'Seller deleted'}
+
 # ==================== FABRIC ROUTES ====================
 
 @api_router.get("/fabrics", response_model=List[Fabric])
