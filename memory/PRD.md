@@ -191,5 +191,12 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - `GET /api/fabrics/{id}` - Get fabric details
 - `GET /api/sellers` - List sellers with category_names
 - `POST /api/sellers` - Create seller with city/state/category_ids
+- `GET /api/collections` - List all collections
+- `GET /api/collections/featured` - Get featured collections
+- `GET /api/collections/{id}` - Get collection details
+- `GET /api/collections/{id}/fabrics` - Get fabrics in a collection
+- `POST /api/collections` - Create collection
+- `PUT /api/collections/{id}` - Update collection
+- `DELETE /api/collections/{id}` - Delete collection
 - `POST /api/enquiries` - Submit enquiry
-- `GET /api/stats` - Dashboard statistics
+- `GET /api/stats` - Dashboard statistics (includes collections count)
