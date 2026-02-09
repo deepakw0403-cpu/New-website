@@ -42,6 +42,13 @@ export const createCategory = (data) => api.post("/categories", data);
 export const updateCategory = (id, data) => api.put(`/categories/${id}`, data);
 export const deleteCategory = (id) => api.delete(`/categories/${id}`);
 
+// Sellers
+export const getSellers = () => api.get("/sellers");
+export const getSeller = (id) => api.get(`/sellers/${id}`);
+export const createSeller = (data) => api.post("/sellers", data);
+export const updateSeller = (id, data) => api.put(`/sellers/${id}`, data);
+export const deleteSeller = (id) => api.delete(`/sellers/${id}`);
+
 // Fabrics
 export const getFabrics = (params) => api.get("/fabrics", { params });
 export const getFabric = (id) => api.get(`/fabrics/${id}`);
