@@ -97,6 +97,7 @@ const AdminFabrics = () => {
     setForm({
       ...fabric,
       seller_id: fabric.seller_id || "",
+      availability: Array.isArray(fabric.availability) ? fabric.availability : [],
       gsm: fabric.gsm.toString(),
       tags: fabric.tags.join(", "),
     });
