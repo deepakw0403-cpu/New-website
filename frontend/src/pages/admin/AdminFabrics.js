@@ -105,6 +105,17 @@ const AdminFabrics = () => {
     setForm({ ...form, images: form.images.filter((_, i) => i !== index) });
   };
 
+  const addVideoUrl = () => {
+    const url = window.prompt("Enter video URL (YouTube, Vimeo, or direct link):");
+    if (url && url.trim()) {
+      setForm({ ...form, videos: [...form.videos, url.trim()] });
+    }
+  };
+
+  const removeVideo = (index) => {
+    setForm({ ...form, videos: form.videos.filter((_, i) => i !== index) });
+  };
+
   const openCreateModal = () => {
     setEditingFabric(null);
     setForm({ ...emptyForm, category_id: categories[0]?.id || "" });
