@@ -359,6 +359,7 @@ async def delete_seller(seller_id: str, admin=Depends(get_current_admin)):
 @api_router.get("/fabrics", response_model=List[Fabric])
 async def get_fabrics(
     category_id: Optional[str] = Query(None),
+    seller_id: Optional[str] = Query(None),
     fabric_type: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
     min_gsm: Optional[int] = Query(None),
@@ -367,6 +368,8 @@ async def get_fabrics(
     query = {}
     if category_id:
         query['category_id'] = category_id
+    if seller_id:
+        query['seller_id'] = seller_id
     if fabric_type:
         query['fabric_type'] = fabric_type
     if min_gsm is not None or max_gsm is not None:
@@ -392,8 +395,18 @@ async def get_fabrics(
     categories = await db.categories.find({'id': {'$in': category_ids}}, {'_id': 0}).to_list(100)
     cat_map = {c['id']: c['name'] for c in categories}
     
+    # Get seller info
+    seller_ids = list(set(f.get('seller_id', '') for f in fabrics if f.get('seller_id')))
+    sellers = await db.sellers.find({'id': {'$in': seller_ids}}, {'_id': 0}).to_list(100) if seller_ids else []
+    seller_map = {s['id']: s for s in sellers}
+    
     for fabric in fabrics:
         fabric['category_name'] = cat_map.get(fabric['category_id'], '')
+        seller = seller_map.get(fabric.get('seller_id', ''))
+        fabric['seller_name'] = seller['name'] if seller else ''
+        fabric['seller_company'] = seller['company_name'] if seller else ''
+        if 'seller_id' not in fabric:
+            fabric['seller_id'] = ''
     
     return fabrics
 
@@ -406,6 +419,16 @@ async def get_fabric(fabric_id: str):
     category = await db.categories.find_one({'id': fabric['category_id']}, {'_id': 0})
     fabric['category_name'] = category['name'] if category else ''
     
+    # Get seller info
+    if fabric.get('seller_id'):
+        seller = await db.sellers.find_one({'id': fabric['seller_id']}, {'_id': 0})
+        fabric['seller_name'] = seller['name'] if seller else ''
+        fabric['seller_company'] = seller['company_name'] if seller else ''
+    else:
+        fabric['seller_id'] = ''
+        fabric['seller_name'] = ''
+        fabric['seller_company'] = ''
+    
     return fabric
 
 @api_router.post("/fabrics", response_model=Fabric)
@@ -414,6 +437,11 @@ async def create_fabric(data: FabricCreate, admin=Depends(get_current_admin)):
     category = await db.categories.find_one({'id': data.category_id}, {'_id': 0})
     if not category:
         raise HTTPException(status_code=400, detail='Category not found')
+    
+    # Get seller info if provided
+    seller = None
+    if data.seller_id:
+        seller = await db.sellers.find_one({'id': data.seller_id}, {'_id': 0})
     
     fabric_id = str(uuid.uuid4())
     fabric_doc = {
@@ -424,6 +452,8 @@ async def create_fabric(data: FabricCreate, admin=Depends(get_current_admin)):
     await db.fabrics.insert_one(fabric_doc)
     
     fabric_doc['category_name'] = category['name']
+    fabric_doc['seller_name'] = seller['name'] if seller else ''
+    fabric_doc['seller_company'] = seller['company_name'] if seller else ''
     return Fabric(**fabric_doc)
 
 @api_router.put("/fabrics/{fabric_id}", response_model=Fabric)
