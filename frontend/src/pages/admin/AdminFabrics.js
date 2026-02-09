@@ -134,7 +134,7 @@ const AdminFabrics = () => {
     <AdminLayout>
       <div data-testid="admin-fabrics-page">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-serif font-medium">Fabrics</h1>
+          <h1 className="text-3xl font-semibold">Fabrics</h1>
           <button onClick={openCreateModal} className="btn-primary inline-flex items-center gap-2" data-testid="add-fabric-btn">
             <Plus size={18} />
             Add Fabric
@@ -144,28 +144,28 @@ const AdminFabrics = () => {
         {loading ? (
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="bg-white p-4 border border-neutral-100 animate-pulse flex gap-4">
-                <div className="w-16 h-16 bg-neutral-200" />
+              <div key={i} className="bg-white p-4 border border-gray-100 animate-pulse flex gap-4 rounded">
+                <div className="w-16 h-16 bg-gray-200 rounded" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-5 bg-neutral-200 w-1/3" />
-                  <div className="h-4 bg-neutral-200 w-1/2" />
+                  <div className="h-5 bg-gray-200 w-1/3 rounded" />
+                  <div className="h-4 bg-gray-200 w-1/2 rounded" />
                 </div>
               </div>
             ))}
           </div>
         ) : fabrics.length === 0 ? (
-          <div className="text-center py-20 bg-white border border-neutral-100">
-            <p className="text-neutral-500 mb-4">No fabrics yet</p>
+          <div className="text-center py-20 bg-white border border-gray-100 rounded">
+            <p className="text-gray-500 mb-4">No fabrics yet</p>
             <button onClick={openCreateModal} className="btn-primary">Add First Fabric</button>
           </div>
         ) : (
-          <div className="bg-white border border-neutral-100 overflow-hidden" data-testid="fabrics-table">
+          <div className="bg-white border border-gray-100 overflow-hidden rounded" data-testid="fabrics-table">
             <table className="w-full">
-              <thead className="bg-neutral-50 border-b border-neutral-100">
+              <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
                   <th className="text-left p-4 font-medium text-sm">Fabric</th>
-                  <th className="text-left p-4 font-medium text-sm hidden md:table-cell">Category</th>
-                  <th className="text-left p-4 font-medium text-sm hidden lg:table-cell">Type</th>
+                  <th className="text-left p-4 font-medium text-sm hidden md:table-cell">Seller</th>
+                  <th className="text-left p-4 font-medium text-sm hidden lg:table-cell">Category</th>
                   <th className="text-left p-4 font-medium text-sm hidden lg:table-cell">GSM</th>
                   <th className="text-left p-4 font-medium text-sm">Status</th>
                   <th className="text-right p-4 font-medium text-sm">Actions</th>
@@ -173,10 +173,10 @@ const AdminFabrics = () => {
               </thead>
               <tbody>
                 {fabrics.map((fabric) => (
-                  <tr key={fabric.id} className="border-b border-neutral-100 last:border-0" data-testid={`fabric-row-${fabric.id}`}>
+                  <tr key={fabric.id} className="border-b border-gray-100 last:border-0" data-testid={`fabric-row-${fabric.id}`}>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-neutral-100 overflow-hidden flex-shrink-0">
+                        <div className="w-12 h-12 bg-gray-100 overflow-hidden flex-shrink-0 rounded">
                           <img
                             src={fabric.images[0] || "https://via.placeholder.com/48"}
                             alt=""
