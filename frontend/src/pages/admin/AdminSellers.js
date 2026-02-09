@@ -190,14 +190,27 @@ const AdminSellers = () => {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-lg truncate">{seller.company_name}</h3>
                     <p className="text-gray-500 text-sm">{seller.name}</p>
-                    {seller.location && (
-                      <p className="text-gray-400 text-sm">{seller.location}</p>
+                    {getLocationString(seller) && (
+                      <p className="text-gray-400 text-sm flex items-center gap-1">
+                        <MapPin size={12} />
+                        {getLocationString(seller)}
+                      </p>
                     )}
                   </div>
                 </div>
                 
                 {seller.description && (
-                  <p className="text-gray-600 text-sm line-clamp-2 mb-4">{seller.description}</p>
+                  <p className="text-gray-600 text-sm line-clamp-2 mb-3">{seller.description}</p>
+                )}
+
+                {seller.category_names && seller.category_names.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {seller.category_names.map((catName, idx) => (
+                      <span key={idx} className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded">
+                        {catName}
+                      </span>
+                    ))}
+                  </div>
                 )}
 
                 <div className="flex gap-2 pt-4 border-t border-gray-100">
