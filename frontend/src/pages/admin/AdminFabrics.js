@@ -57,6 +57,16 @@ const AdminFabrics = () => {
     }
   };
 
+  const updateComposition = (index, field, value) => {
+    const newComp = [...form.composition];
+    newComp[index] = { ...newComp[index], [field]: field === 'percentage' ? parseInt(value) || 0 : value };
+    setForm({ ...form, composition: newComp });
+  };
+
+  const getCompositionTotal = () => {
+    return form.composition.reduce((sum, c) => sum + (c.percentage || 0), 0);
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
