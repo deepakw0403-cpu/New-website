@@ -121,6 +121,20 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## Data Models
 
+### Collection
+```json
+{
+  "id": "string",
+  "name": "string",
+  "description": "string",
+  "image_url": "string",
+  "fabric_ids": ["string"],
+  "fabric_count": "int",
+  "is_featured": "boolean",
+  "created_at": "datetime"
+}
+```
+
 ### Seller
 ```json
 {
