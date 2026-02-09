@@ -474,6 +474,31 @@ const AdminFabrics = () => {
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium mb-2">Warp Count</label>
+                    <input
+                      type="text"
+                      value={form.warp_count}
+                      onChange={(e) => setForm({ ...form, warp_count: e.target.value })}
+                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
+                      placeholder="e.g., 60"
+                      data-testid="fabric-warp-count-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Weft Count</label>
+                    <input
+                      type="text"
+                      value={form.weft_count}
+                      onChange={(e) => setForm({ ...form, weft_count: e.target.value })}
+                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
+                      placeholder="e.g., 60"
+                      data-testid="fabric-weft-count-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
                     <label className="block text-sm font-medium mb-2">Color</label>
                     <input
                       type="text"
