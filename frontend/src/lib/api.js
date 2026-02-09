@@ -61,6 +61,15 @@ export const createEnquiry = (data) => api.post("/enquiries", data);
 export const getEnquiries = () => api.get("/enquiries");
 export const updateEnquiryStatus = (id, status) => api.put(`/enquiries/${id}/status?status=${status}`);
 
+// Collections
+export const getCollections = () => api.get("/collections");
+export const getFeaturedCollections = () => api.get("/collections/featured");
+export const getCollection = (id) => api.get(`/collections/${id}`);
+export const getCollectionFabrics = (id) => api.get(`/collections/${id}/fabrics`);
+export const createCollection = (data) => api.post("/collections", data);
+export const updateCollection = (id, data) => api.put(`/collections/${id}`, data);
+export const deleteCollection = (id) => api.delete(`/collections/${id}`);
+
 // Stats
 export const getStats = () => api.get("/stats");
 
