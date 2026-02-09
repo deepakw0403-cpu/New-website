@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2, X, Upload } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { getFabrics, getCategories, createFabric, updateFabric, deleteFabric, uploadImage } from "../../lib/api";
+import { getFabrics, getCategories, getSellers, createFabric, updateFabric, deleteFabric, uploadImage } from "../../lib/api";
 
 const AdminFabrics = () => {
   const [fabrics, setFabrics] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingFabric, setEditingFabric] = useState(null);
@@ -15,6 +16,7 @@ const AdminFabrics = () => {
   const emptyForm = {
     name: "",
     category_id: "",
+    seller_id: "",
     fabric_type: "woven",
     composition: "",
     gsm: "",
@@ -41,9 +43,10 @@ const AdminFabrics = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [fabRes, catRes] = await Promise.all([getFabrics(), getCategories()]);
+      const [fabRes, catRes, selRes] = await Promise.all([getFabrics(), getCategories(), getSellers()]);
       setFabrics(fabRes.data);
       setCategories(catRes.data);
+      setSellers(selRes.data);
     } catch (err) {
       toast.error("Failed to load data");
     }
