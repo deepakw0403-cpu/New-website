@@ -41,8 +41,10 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<><Navbar /><HomePage /><Footer /></>} />
-          <Route path="/fabrics" element={<><Navbar /><FabricsPage /><Footer /></>} />
-          <Route path="/fabrics/:id" element={<><Navbar /><FabricDetailPage /><Footer /></>} />
+          <Route path="/fabrics" element={<FabricsPage />} />
+          <Route path="/fabrics/:id" element={<FabricDetailPage />} />
+          <Route path="/collections" element={<CollectionsPage />} />
+          <Route path="/collections/:id" element={<CollectionDetailPage />} />
           <Route path="/about" element={<><Navbar /><AboutPage /><Footer /></>} />
           <Route path="/how-it-works" element={<><Navbar /><HowItWorksPage /><Footer /></>} />
           <Route path="/contact" element={<><Navbar /><ContactPage /><Footer /></>} />
