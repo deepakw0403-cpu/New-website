@@ -439,6 +439,30 @@ async def delete_seller(seller_id: str, admin=Depends(get_current_admin)):
 
 # ==================== FABRIC ROUTES ====================
 
+def normalize_fabric(fabric: dict) -> dict:
+    """Normalize legacy fabric data to current schema"""
+    # Handle legacy string composition - convert to list format
+    if isinstance(fabric.get('composition'), str):
+        comp_str = fabric['composition']
+        # Simple conversion: put the string in a single item with 100%
+        fabric['composition'] = [{'material': comp_str, 'percentage': 100}]
+    elif not fabric.get('composition'):
+        fabric['composition'] = []
+    
+    # Handle missing new fields
+    if 'pattern' not in fabric:
+        fabric['pattern'] = 'Solid'
+    if 'starting_price' not in fabric:
+        fabric['starting_price'] = ''
+    if 'videos' not in fabric:
+        fabric['videos'] = []
+    if 'availability' not in fabric:
+        fabric['availability'] = []
+    elif not isinstance(fabric.get('availability'), list):
+        fabric['availability'] = []
+    
+    return fabric
+
 @api_router.get("/fabrics", response_model=List[Fabric])
 async def get_fabrics(
     category_id: Optional[str] = Query(None),
@@ -484,6 +508,7 @@ async def get_fabrics(
     seller_map = {s['id']: s for s in sellers}
     
     for fabric in fabrics:
+        normalize_fabric(fabric)
         fabric['category_name'] = cat_map.get(fabric['category_id'], '')
         seller = seller_map.get(fabric.get('seller_id', ''))
         fabric['seller_name'] = seller['name'] if seller else ''
