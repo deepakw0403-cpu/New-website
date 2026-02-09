@@ -260,7 +260,11 @@ const AdminFabrics = () => {
                         </div>
                         <div>
                           <p className="font-medium">{fabric.name}</p>
-                          <p className="text-sm text-gray-500">{fabric.composition}</p>
+                          <p className="text-sm text-gray-500">
+                            {Array.isArray(fabric.composition) && fabric.composition.length > 0
+                              ? fabric.composition.map(c => `${c.percentage}% ${c.material}`).join(', ')
+                              : fabric.composition || '-'}
+                          </p>
                         </div>
                       </div>
                     </td>
