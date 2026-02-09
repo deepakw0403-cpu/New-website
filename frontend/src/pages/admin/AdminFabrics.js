@@ -185,12 +185,18 @@ const AdminFabrics = () => {
                         </div>
                         <div>
                           <p className="font-medium">{fabric.name}</p>
-                          <p className="text-sm text-neutral-500">{fabric.composition}</p>
+                          <p className="text-sm text-gray-500">{fabric.composition}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 hidden md:table-cell text-neutral-600">{fabric.category_name}</td>
-                    <td className="p-4 hidden lg:table-cell text-neutral-600 capitalize">{fabric.fabric_type}</td>
+                    <td className="p-4 hidden md:table-cell">
+                      {fabric.seller_company ? (
+                        <span className="text-gray-700">{fabric.seller_company}</span>
+                      ) : (
+                        <span className="text-gray-400 text-sm">No seller</span>
+                      )}
+                    </td>
+                    <td className="p-4 hidden lg:table-cell text-gray-600">{fabric.category_name}</td>
                     <td className="p-4 hidden lg:table-cell font-mono text-sm">{fabric.gsm}</td>
                     <td className="p-4">
                       <span className={`badge ${
@@ -203,7 +209,7 @@ const AdminFabrics = () => {
                     <td className="p-4 text-right">
                       <button
                         onClick={() => openEditModal(fabric)}
-                        className="p-2 text-neutral-500 hover:text-neutral-900 transition-colors"
+                        className="p-2 text-gray-500 hover:text-gray-900 transition-colors"
                         data-testid={`edit-fabric-${fabric.id}`}
                         aria-label="Edit"
                       >
@@ -211,7 +217,7 @@ const AdminFabrics = () => {
                       </button>
                       <button
                         onClick={() => handleDelete(fabric)}
-                        className="p-2 text-neutral-500 hover:text-red-600 transition-colors"
+                        className="p-2 text-gray-500 hover:text-red-600 transition-colors"
                         data-testid={`delete-fabric-${fabric.id}`}
                         aria-label="Delete"
                       >
