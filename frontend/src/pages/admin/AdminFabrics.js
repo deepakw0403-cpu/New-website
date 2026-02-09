@@ -597,6 +597,37 @@ const AdminFabrics = () => {
                   </div>
                 </div>
 
+                {/* Videos */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Videos</label>
+                  <div className="space-y-2 mb-3" data-testid="fabric-videos-list">
+                    {form.videos.map((video, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100">
+                        <Video size={16} className="text-gray-400 flex-shrink-0" />
+                        <span className="flex-1 text-sm text-gray-600 truncate">{video}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeVideo(idx)}
+                          className="p-1 text-gray-400 hover:text-red-500"
+                          aria-label="Remove video"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addVideoUrl}
+                    className="btn-secondary text-sm inline-flex items-center gap-2"
+                    data-testid="add-video-btn"
+                  >
+                    <Video size={16} />
+                    Add Video URL
+                  </button>
+                  <p className="text-xs text-gray-500 mt-1">Add YouTube, Vimeo, or direct video links</p>
+                </div>
+
                 <div className="flex gap-4 pt-4 border-t border-neutral-100">
                   <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">
                     Cancel
