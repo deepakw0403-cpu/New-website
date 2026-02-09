@@ -683,6 +683,99 @@ async def update_enquiry_status(enquiry_id: str, status: str = Query(...), admin
         raise HTTPException(status_code=404, detail='Enquiry not found')
     return {'message': 'Status updated'}
 
+# ==================== COLLECTION ROUTES ====================
+
+@api_router.get("/collections", response_model=List[Collection])
+async def get_collections():
+    collections = await db.collections.find({}, {'_id': 0}).sort('created_at', -1).to_list(100)
+    for coll in collections:
+        coll['fabric_count'] = len(coll.get('fabric_ids', []))
+    return collections
+
+@api_router.get("/collections/featured", response_model=List[Collection])
+async def get_featured_collections():
+    collections = await db.collections.find({'is_featured': True}, {'_id': 0}).sort('created_at', -1).to_list(10)
+    for coll in collections:
+        coll['fabric_count'] = len(coll.get('fabric_ids', []))
+    return collections
+
+@api_router.get("/collections/{collection_id}", response_model=Collection)
+async def get_collection(collection_id: str):
+    collection = await db.collections.find_one({'id': collection_id}, {'_id': 0})
+    if not collection:
+        raise HTTPException(status_code=404, detail='Collection not found')
+    collection['fabric_count'] = len(collection.get('fabric_ids', []))
+    return collection
+
+@api_router.get("/collections/{collection_id}/fabrics", response_model=List[Fabric])
+async def get_collection_fabrics(collection_id: str):
+    collection = await db.collections.find_one({'id': collection_id}, {'_id': 0})
+    if not collection:
+        raise HTTPException(status_code=404, detail='Collection not found')
+    
+    fabric_ids = collection.get('fabric_ids', [])
+    if not fabric_ids:
+        return []
+    
+    fabrics = await db.fabrics.find({'id': {'$in': fabric_ids}}, {'_id': 0}).to_list(100)
+    
+    # Get category and seller info
+    category_ids = list(set(f['category_id'] for f in fabrics))
+    categories = await db.categories.find({'id': {'$in': category_ids}}, {'_id': 0}).to_list(100)
+    cat_map = {c['id']: c['name'] for c in categories}
+    
+    seller_ids = list(set(f.get('seller_id', '') for f in fabrics if f.get('seller_id')))
+    sellers = await db.sellers.find({'id': {'$in': seller_ids}}, {'_id': 0}).to_list(100) if seller_ids else []
+    seller_map = {s['id']: s for s in sellers}
+    
+    for fabric in fabrics:
+        normalize_fabric(fabric)
+        fabric['category_name'] = cat_map.get(fabric['category_id'], '')
+        seller = seller_map.get(fabric.get('seller_id', ''))
+        fabric['seller_name'] = seller['name'] if seller else ''
+        fabric['seller_company'] = seller['company_name'] if seller else ''
+        if 'seller_id' not in fabric:
+            fabric['seller_id'] = ''
+    
+    return fabrics
+
+@api_router.post("/collections", response_model=Collection)
+async def create_collection(data: CollectionCreate, admin=Depends(get_current_admin)):
+    collection_id = str(uuid.uuid4())
+    collection_doc = {
+        'id': collection_id,
+        'name': data.name,
+        'description': data.description or "",
+        'image_url': data.image_url or "",
+        'fabric_ids': data.fabric_ids or [],
+        'is_featured': data.is_featured,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.collections.insert_one(collection_doc)
+    collection_doc['fabric_count'] = len(collection_doc['fabric_ids'])
+    return Collection(**collection_doc)
+
+@api_router.put("/collections/{collection_id}", response_model=Collection)
+async def update_collection(collection_id: str, data: CollectionUpdate, admin=Depends(get_current_admin)):
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail='No data to update')
+    
+    result = await db.collections.update_one({'id': collection_id}, {'$set': update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail='Collection not found')
+    
+    collection = await db.collections.find_one({'id': collection_id}, {'_id': 0})
+    collection['fabric_count'] = len(collection.get('fabric_ids', []))
+    return Collection(**collection)
+
+@api_router.delete("/collections/{collection_id}")
+async def delete_collection(collection_id: str, admin=Depends(get_current_admin)):
+    result = await db.collections.delete_one({'id': collection_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail='Collection not found')
+    return {'message': 'Collection deleted'}
+
 # ==================== STATS ====================
 
 @api_router.get("/stats")
