@@ -95,11 +95,13 @@ const AdminSellers = () => {
     setForm({
       name: seller.name,
       company_name: seller.company_name,
-      description: seller.description,
-      logo_url: seller.logo_url,
-      location: seller.location,
-      contact_email: seller.contact_email,
-      contact_phone: seller.contact_phone,
+      description: seller.description || "",
+      logo_url: seller.logo_url || "",
+      city: seller.city || "",
+      state: seller.state || "",
+      contact_email: seller.contact_email || "",
+      contact_phone: seller.contact_phone || "",
+      category_ids: seller.category_ids || [],
     });
     setShowModal(true);
   };
