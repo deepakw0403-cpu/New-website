@@ -154,15 +154,29 @@ const AdminFabrics = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.category_id || !form.composition || !form.gsm) {
+    
+    // Validate composition total
+    const compositionTotal = getCompositionTotal();
+    const hasComposition = form.composition.some(c => c.material && c.percentage > 0);
+    if (hasComposition && compositionTotal !== 100) {
+      toast.error(`Composition percentages must total 100% (currently ${compositionTotal}%)`);
+      return;
+    }
+    
+    if (!form.name || !form.category_id || !form.gsm) {
       toast.error("Please fill in all required fields");
       return;
     }
 
+    // Filter out empty composition entries
+    const cleanComposition = form.composition.filter(c => c.material && c.percentage > 0);
+
     const payload = {
       ...form,
       gsm: parseInt(form.gsm),
+      composition: cleanComposition,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      videos: form.videos || [],
     };
 
     try {
