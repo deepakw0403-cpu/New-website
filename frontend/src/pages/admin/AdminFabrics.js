@@ -212,12 +212,20 @@ const AdminFabrics = () => {
                     <td className="p-4 hidden lg:table-cell text-gray-600">{fabric.category_name}</td>
                     <td className="p-4 hidden lg:table-cell font-mono text-sm">{fabric.gsm}</td>
                     <td className="p-4">
-                      <span className={`badge ${
-                        fabric.availability === "Available" ? "badge-available" :
-                        fabric.availability === "On request" ? "badge-request" : "badge-sample"
-                      }`}>
-                        {fabric.availability}
-                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {(Array.isArray(fabric.availability) ? fabric.availability : []).map((avail, idx) => (
+                          <span key={idx} className={`badge ${
+                            avail === "Sample" ? "bg-blue-50 text-blue-700" :
+                            avail === "Bulk" ? "bg-emerald-50 text-emerald-700" :
+                            "bg-amber-50 text-amber-700"
+                          }`}>
+                            {avail}
+                          </span>
+                        ))}
+                        {(!fabric.availability || fabric.availability.length === 0) && (
+                          <span className="text-gray-400 text-sm">-</span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4 text-right">
                       <button
