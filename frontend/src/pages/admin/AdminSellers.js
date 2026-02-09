@@ -49,17 +49,6 @@ const AdminSellers = () => {
     }
   };
 
-  const fetchSellers = async () => {
-    setLoading(true);
-    try {
-      const res = await getSellers();
-      setSellers(res.data);
-    } catch (err) {
-      toast.error("Failed to load sellers");
-    }
-    setLoading(false);
-  };
-
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
