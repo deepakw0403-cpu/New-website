@@ -332,16 +332,52 @@ const AdminSellers = () => {
                   />
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">City</label>
+                    <input
+                      type="text"
+                      value={form.city}
+                      onChange={(e) => setForm({ ...form, city: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded"
+                      placeholder="Mumbai"
+                      data-testid="seller-city-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">State</label>
+                    <input
+                      type="text"
+                      value={form.state}
+                      onChange={(e) => setForm({ ...form, state: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded"
+                      placeholder="Maharashtra"
+                      data-testid="seller-state-input"
+                    />
+                  </div>
+                </div>
+
+                {/* Category Selection */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">Location</label>
-                  <input
-                    type="text"
-                    value={form.location}
-                    onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded"
-                    placeholder="Mumbai, India"
-                    data-testid="seller-location-input"
-                  />
+                  <label className="block text-sm font-medium mb-2">Categories (product specializations)</label>
+                  <div className="flex flex-wrap gap-2" data-testid="seller-categories">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => toggleCategory(cat.id)}
+                        className={`px-3 py-1.5 rounded border text-sm flex items-center gap-1.5 transition-all ${
+                          form.category_ids.includes(cat.id)
+                            ? "bg-blue-50 text-blue-700 border-blue-200"
+                            : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        {form.category_ids.includes(cat.id) && <Check size={14} />}
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Select fabric categories this seller specializes in</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
