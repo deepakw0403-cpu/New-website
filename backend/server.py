@@ -79,24 +79,33 @@ class Category(BaseModel):
     image_url: str = ""
     created_at: str
 
+# Composition Item Model
+class CompositionItem(BaseModel):
+    material: str
+    percentage: int
+
 # Seller Models
 class SellerCreate(BaseModel):
     name: str
     company_name: str
     description: Optional[str] = ""
     logo_url: Optional[str] = ""
-    location: Optional[str] = ""
+    city: Optional[str] = ""
+    state: Optional[str] = ""
     contact_email: Optional[str] = ""
     contact_phone: Optional[str] = ""
+    category_ids: List[str] = []
 
 class SellerUpdate(BaseModel):
     name: Optional[str] = None
     company_name: Optional[str] = None
     description: Optional[str] = None
     logo_url: Optional[str] = None
-    location: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
+    category_ids: Optional[List[str]] = None
 
 class Seller(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -105,9 +114,12 @@ class Seller(BaseModel):
     company_name: str
     description: str = ""
     logo_url: str = ""
-    location: str = ""
+    city: str = ""
+    state: str = ""
     contact_email: str = ""
     contact_phone: str = ""
+    category_ids: List[str] = []
+    category_names: List[str] = []
     created_at: str
 
 class FabricCreate(BaseModel):
@@ -115,7 +127,8 @@ class FabricCreate(BaseModel):
     category_id: str
     seller_id: Optional[str] = ""
     fabric_type: str  # woven / knitted / non-woven
-    composition: str
+    pattern: str = "Solid"  # Solid / Print / None
+    composition: List[CompositionItem] = []
     gsm: int
     width: str
     color: str
