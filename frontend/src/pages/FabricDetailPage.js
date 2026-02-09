@@ -170,53 +170,71 @@ const FabricDetailPage = () => {
           <div data-testid="fabric-details">
             <div className="mb-6">
               <p className="subheading mb-2">{fabric.category_name}</p>
-              <h1 className="text-4xl font-serif font-medium mb-4">{fabric.name}</h1>
-              <span className={`badge ${getAvailabilityBadge(fabric.availability)}`}>
-                {fabric.availability}
-              </span>
+              <h1 className="text-4xl font-semibold mb-4">{fabric.name}</h1>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className={`badge ${getAvailabilityBadge(fabric.availability)}`}>
+                  {fabric.availability}
+                </span>
+                {fabric.seller_company && (
+                  <span className="text-sm text-gray-500">
+                    by <span className="font-medium text-gray-700">{fabric.seller_company}</span>
+                  </span>
+                )}
+              </div>
             </div>
 
-            <p className="text-neutral-600 leading-relaxed mb-8" data-testid="fabric-description">
+            {/* Seller Info */}
+            {fabric.seller_company && (
+              <div className="mb-6 p-4 bg-gray-50 rounded border border-gray-100" data-testid="seller-info">
+                <p className="text-xs text-gray-500 mb-1">Supplied by</p>
+                <p className="font-medium text-gray-900">{fabric.seller_company}</p>
+                {fabric.seller_name && (
+                  <p className="text-sm text-gray-600">Contact: {fabric.seller_name}</p>
+                )}
+              </div>
+            )}
+
+            <p className="text-gray-600 leading-relaxed mb-8" data-testid="fabric-description">
               {fabric.description}
             </p>
 
             {/* Specifications */}
-            <div className="border-t border-neutral-100 pt-8 mb-8" data-testid="fabric-specs">
+            <div className="border-t border-gray-100 pt-8 mb-8" data-testid="fabric-specs">
               <h3 className="subheading mb-6">Technical Specifications</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div className="border-b border-neutral-100 pb-3">
-                  <p className="text-xs text-neutral-400 mb-1">Fabric Type</p>
+                <div className="border-b border-gray-100 pb-3">
+                  <p className="text-xs text-gray-400 mb-1">Fabric Type</p>
                   <p className="font-medium capitalize">{fabric.fabric_type}</p>
                 </div>
-                <div className="border-b border-neutral-100 pb-3">
-                  <p className="text-xs text-neutral-400 mb-1">Composition</p>
+                <div className="border-b border-gray-100 pb-3">
+                  <p className="text-xs text-gray-400 mb-1">Composition</p>
                   <p className="font-medium">{fabric.composition}</p>
                 </div>
-                <div className="border-b border-neutral-100 pb-3">
-                  <p className="text-xs text-neutral-400 mb-1">GSM</p>
+                <div className="border-b border-gray-100 pb-3">
+                  <p className="text-xs text-gray-400 mb-1">GSM</p>
                   <p className="font-medium tech-data">{fabric.gsm}</p>
                 </div>
-                <div className="border-b border-neutral-100 pb-3">
-                  <p className="text-xs text-neutral-400 mb-1">Width</p>
+                <div className="border-b border-gray-100 pb-3">
+                  <p className="text-xs text-gray-400 mb-1">Width</p>
                   <p className="font-medium">{fabric.width}</p>
                 </div>
-                <div className="border-b border-neutral-100 pb-3">
-                  <p className="text-xs text-neutral-400 mb-1">Color</p>
+                <div className="border-b border-gray-100 pb-3">
+                  <p className="text-xs text-gray-400 mb-1">Color</p>
                   <p className="font-medium">{fabric.color}</p>
                 </div>
                 {fabric.finish && (
-                  <div className="border-b border-neutral-100 pb-3">
-                    <p className="text-xs text-neutral-400 mb-1">Finish</p>
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Finish</p>
                     <p className="font-medium">{fabric.finish}</p>
                   </div>
                 )}
-                <div className="border-b border-neutral-100 pb-3">
-                  <p className="text-xs text-neutral-400 mb-1">MOQ</p>
+                <div className="border-b border-gray-100 pb-3">
+                  <p className="text-xs text-gray-400 mb-1">MOQ</p>
                   <p className="font-medium">{fabric.moq}</p>
                 </div>
                 {fabric.price_range && (
-                  <div className="border-b border-neutral-100 pb-3">
-                    <p className="text-xs text-neutral-400 mb-1">Price Range</p>
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Price Range</p>
                     <p className="font-medium">{fabric.price_range}</p>
                   </div>
                 )}
