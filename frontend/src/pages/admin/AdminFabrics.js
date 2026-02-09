@@ -28,6 +28,8 @@ const AdminFabrics = () => {
     composition: emptyComposition,
     gsm: "",
     width: "",
+    warp_count: "",
+    weft_count: "",
     color: "",
     finish: "",
     moq: "",
