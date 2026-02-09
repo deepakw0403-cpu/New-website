@@ -412,6 +412,22 @@ async def update_seller(seller_id: str, data: SellerUpdate, admin=Depends(get_cu
         raise HTTPException(status_code=404, detail='Seller not found')
     
     seller = await db.sellers.find_one({'id': seller_id}, {'_id': 0})
+    
+    # Get category names
+    category_names = []
+    if seller.get('category_ids'):
+        categories = await db.categories.find({'id': {'$in': seller['category_ids']}}, {'_id': 0}).to_list(100)
+        category_names = [c['name'] for c in categories]
+    seller['category_names'] = category_names
+    
+    # Handle legacy fields
+    if 'category_ids' not in seller:
+        seller['category_ids'] = []
+    if 'city' not in seller:
+        seller['city'] = seller.get('location', '')
+    if 'state' not in seller:
+        seller['state'] = ''
+    
     return Seller(**seller)
 
 @api_router.delete("/sellers/{seller_id}")
