@@ -386,14 +386,14 @@ const AdminFabrics = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">MOQ</label>
                     <input
                       type="text"
                       value={form.moq}
                       onChange={(e) => setForm({ ...form, moq: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
+                      className="w-full px-4 py-2 border border-gray-200 rounded"
                       placeholder="e.g., 500 meters"
                       data-testid="fabric-moq-input"
                     />
@@ -404,24 +404,34 @@ const AdminFabrics = () => {
                       type="text"
                       value={form.price_range}
                       onChange={(e) => setForm({ ...form, price_range: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
-                      placeholder="e.g., $2.50 - $3.00/m"
+                      className="w-full px-4 py-2 border border-gray-200 rounded"
+                      placeholder="e.g., On enquiry"
                       data-testid="fabric-price-input"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Availability</label>
-                    <select
-                      value={form.availability}
-                      onChange={(e) => setForm({ ...form, availability: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
-                      data-testid="fabric-availability-select"
-                    >
-                      {availabilityOptions.map((opt) => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
+                </div>
+
+                {/* Availability Multi-Select */}
+                <div>
+                  <label className="block text-sm font-medium mb-3">Availability</label>
+                  <div className="flex flex-wrap gap-3" data-testid="fabric-availability-options">
+                    {availabilityOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => toggleAvailability(opt.value)}
+                        className={`px-4 py-2 rounded border-2 text-sm font-medium transition-all flex items-center gap-2 ${
+                          form.availability.includes(opt.value)
+                            ? opt.color + " border-current"
+                            : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        {form.availability.includes(opt.value) && <Check size={16} />}
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
+                  <p className="text-xs text-gray-500 mt-2">Select all that apply</p>
                 </div>
 
                 <div>
