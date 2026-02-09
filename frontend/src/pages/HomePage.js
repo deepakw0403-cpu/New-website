@@ -163,7 +163,11 @@ const HomePage = () => {
                 <div className="flex items-center gap-3 text-sm text-neutral-500">
                   <span className="tech-data">{fabric.gsm} GSM</span>
                   <span>•</span>
-                  <span>{fabric.composition}</span>
+                  <span>
+                    {Array.isArray(fabric.composition) && fabric.composition.length > 0
+                      ? fabric.composition.map(c => `${c.percentage}% ${c.material}`).join(', ')
+                      : typeof fabric.composition === 'string' ? fabric.composition : '-'}
+                  </span>
                 </div>
               </Link>
             ))}

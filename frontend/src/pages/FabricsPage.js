@@ -269,7 +269,11 @@ const FabricsPage = () => {
                   <span>•</span>
                   <span>{fabric.width}</span>
                 </div>
-                <p className="text-sm text-gray-600">{fabric.composition}</p>
+                <p className="text-sm text-gray-600">
+                  {Array.isArray(fabric.composition) && fabric.composition.length > 0
+                    ? fabric.composition.map(c => `${c.percentage}% ${c.material}`).join(', ')
+                    : typeof fabric.composition === 'string' ? fabric.composition : '-'}
+                </p>
                 {fabric.seller_company && (
                   <p className="text-xs text-gray-400 mt-1">by {fabric.seller_company}</p>
                 )}
