@@ -475,6 +475,16 @@ async def update_fabric(fabric_id: str, data: FabricUpdate, admin=Depends(get_cu
     category = await db.categories.find_one({'id': fabric['category_id']}, {'_id': 0})
     fabric['category_name'] = category['name'] if category else ''
     
+    # Get seller info
+    if fabric.get('seller_id'):
+        seller = await db.sellers.find_one({'id': fabric['seller_id']}, {'_id': 0})
+        fabric['seller_name'] = seller['name'] if seller else ''
+        fabric['seller_company'] = seller['company_name'] if seller else ''
+    else:
+        fabric['seller_id'] = ''
+        fabric['seller_name'] = ''
+        fabric['seller_company'] = ''
+    
     return Fabric(**fabric)
 
 @api_router.delete("/fabrics/{fabric_id}")
