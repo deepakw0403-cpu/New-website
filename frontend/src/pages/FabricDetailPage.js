@@ -105,59 +105,117 @@ const FabricDetailPage = () => {
   const images = fabric.images.length > 0 ? fabric.images : ["https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800"];
 
   return (
-    <main className="pt-20 min-h-screen" data-testid="fabric-detail-page">
-      {/* Breadcrumb */}
-      <div className="border-b border-neutral-100">
-        <div className="container-main py-4">
-          <Link to="/fabrics" className="inline-flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-900 transition-colors" data-testid="back-to-catalog">
-            <ArrowLeft size={16} />
-            Back to Catalog
-          </Link>
+    <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+      <Navbar />
+      
+      {/* Zoom Modal */}
+      {showZoom && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowZoom(false)}
+          data-testid="zoom-modal"
+        >
+          <button
+            onClick={() => setShowZoom(false)}
+            className="absolute top-4 right-4 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors"
+            aria-label="Close zoom"
+          >
+            <X size={24} />
+          </button>
+          
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); setCurrentImage(currentImage === 0 ? images.length - 1 : currentImage - 1); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors"
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setCurrentImage(currentImage === images.length - 1 ? 0 : currentImage + 1); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors"
+                aria-label="Next image"
+              >
+                <ChevronRight size={24} />
+              </button>
+            </>
+          )}
+          
+          <img
+            src={images[currentImage]}
+            alt={fabric.name}
+            className="max-w-full max-h-[90vh] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+          
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-sm">
+            {currentImage + 1} / {images.length}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="container-main py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
-          {/* Image Gallery */}
-          <div className="space-y-4" data-testid="fabric-images">
-            {/* Main Image */}
-            <div className="aspect-square overflow-hidden bg-neutral-100 relative">
-              <img
-                src={images[currentImage]}
-                alt={fabric.name}
-                className="w-full h-full object-cover"
-                data-testid="main-image"
-              />
-              
+      <main className="flex-grow pt-20" data-testid="fabric-detail-page">
+        {/* Breadcrumb */}
+        <div className="border-b border-neutral-100 bg-white">
+          <div className="container-main py-4">
+            <Link to="/fabrics" className="inline-flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-900 transition-colors" data-testid="back-to-catalog">
+              <ArrowLeft size={16} />
+              Back to Catalog
+            </Link>
+          </div>
+        </div>
+
+        <div className="container-main py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+            {/* Image Gallery */}
+            <div className="space-y-4" data-testid="fabric-images">
+              {/* Main Image */}
+              <div 
+                className="aspect-square overflow-hidden bg-neutral-100 relative cursor-zoom-in group"
+                onClick={() => setShowZoom(true)}
+              >
+                <img
+                  src={images[currentImage]}
+                  alt={fabric.name}
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                  data-testid="main-image"
+                />
+                
+                {/* Zoom indicator */}
+                <div className="absolute top-4 right-4 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ZoomIn size={18} className="text-gray-600" />
+                </div>
+                
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setCurrentImage(currentImage === 0 ? images.length - 1 : currentImage - 1); }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white flex items-center justify-center rounded-full shadow-soft transition-colors"
+                      data-testid="prev-image-btn"
+                      aria-label="Previous image"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setCurrentImage(currentImage === images.length - 1 ? 0 : currentImage + 1); }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white flex items-center justify-center rounded-full shadow-soft transition-colors"
+                      data-testid="next-image-btn"
+                      aria-label="Next image"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Thumbnails */}
               {images.length > 1 && (
-                <>
-                  <button
-                    onClick={() => setCurrentImage(currentImage === 0 ? images.length - 1 : currentImage - 1)}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white flex items-center justify-center rounded-full shadow-soft transition-colors"
-                    data-testid="prev-image-btn"
-                    aria-label="Previous image"
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <button
-                    onClick={() => setCurrentImage(currentImage === images.length - 1 ? 0 : currentImage + 1)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white flex items-center justify-center rounded-full shadow-soft transition-colors"
-                    data-testid="next-image-btn"
-                    aria-label="Next image"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Thumbnails */}
-            {images.length > 1 && (
-              <div className="flex gap-3" data-testid="image-thumbnails">
-                {images.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentImage(idx)}
+                <div className="flex gap-3" data-testid="image-thumbnails">
+                  {images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentImage(idx)}
                     className={`w-20 h-20 overflow-hidden border-2 transition-colors ${
                       currentImage === idx ? "border-neutral-900" : "border-transparent hover:border-neutral-300"
                     }`}
