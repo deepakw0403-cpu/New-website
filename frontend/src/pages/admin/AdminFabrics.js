@@ -206,9 +206,9 @@ const AdminFabrics = () => {
       return;
     }
 
-    // Validate warp/weft - at least one required
-    if (!form.warp_count && !form.weft_count) {
-      toast.error("Please enter at least Warp Count or Weft Count");
+    // Validate EPI/PPI - at least one required
+    if (!form.epi && !form.ppi) {
+      toast.error("Please enter at least EPI or PPI");
       return;
     }
 
@@ -218,10 +218,16 @@ const AdminFabrics = () => {
     const payload = {
       ...form,
       gsm: form.gsm ? parseInt(form.gsm) : null,
+      warp_count: form.epi,  // Map to backend field names
+      weft_count: form.ppi,  // Map to backend field names
       composition: cleanComposition,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
       videos: form.videos || [],
     };
+    
+    // Remove frontend-only fields
+    delete payload.epi;
+    delete payload.ppi;
 
     try {
       if (editingFabric) {
