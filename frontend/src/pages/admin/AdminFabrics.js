@@ -222,6 +222,7 @@ const AdminFabrics = () => {
       gsm: form.gsm ? parseInt(form.gsm) : null,
       warp_count: form.epi,  // Map to backend field names
       weft_count: form.ppi,  // Map to backend field names
+      yarn_count: form.yarn_count,
       composition: cleanComposition,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
       videos: form.videos || [],
