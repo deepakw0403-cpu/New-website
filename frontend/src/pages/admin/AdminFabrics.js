@@ -584,8 +584,19 @@ const AdminFabrics = () => {
                       ))}
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Count (Yarn)</label>
+                    <input
+                      type="text"
+                      value={form.yarn_count}
+                      onChange={(e) => setForm({ ...form, yarn_count: e.target.value })}
+                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
+                      placeholder="e.g., 40s, 60s, 2/40"
+                      data-testid="fabric-yarn-count-input"
+                    />
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 -mt-3">At least one of EPI (Ends Per Inch) or PPI (Picks Per Inch) is required</p>
+                <p className="text-xs text-gray-500 -mt-3">At least one of EPI (Ends Per Inch) or PPI (Picks Per Inch) is required. Count refers to yarn count.</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
