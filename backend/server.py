@@ -511,6 +511,12 @@ def normalize_fabric(fabric: dict) -> dict:
         fabric['warp_count'] = ''
     if 'weft_count' not in fabric:
         fabric['weft_count'] = ''
+    if 'ounce' not in fabric:
+        fabric['ounce'] = ''
+    if 'weight_unit' not in fabric:
+        fabric['weight_unit'] = 'gsm'
+    if 'gsm' not in fabric:
+        fabric['gsm'] = None
     if 'availability' not in fabric:
         fabric['availability'] = []
     elif not isinstance(fabric.get('availability'), list):
