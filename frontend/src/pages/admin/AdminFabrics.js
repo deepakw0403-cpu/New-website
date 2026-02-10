@@ -432,17 +432,47 @@ const AdminFabrics = () => {
                       ))}
                     </select>
                   </div>
+                </div>
+
+                {/* Weight: GSM or Ounce */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">GSM *</label>
-                    <input
-                      type="number"
-                      value={form.gsm}
-                      onChange={(e) => setForm({ ...form, gsm: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
-                      required
-                      data-testid="fabric-gsm-input"
-                    />
+                    <label className="block text-sm font-medium mb-2">Weight Unit *</label>
+                    <select
+                      value={form.weight_unit}
+                      onChange={(e) => setForm({ ...form, weight_unit: e.target.value })}
+                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                      data-testid="fabric-weight-unit-select"
+                    >
+                      <option value="gsm">GSM</option>
+                      <option value="ounce">Ounce</option>
+                    </select>
                   </div>
+                  {form.weight_unit === "gsm" ? (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">GSM *</label>
+                      <input
+                        type="number"
+                        value={form.gsm}
+                        onChange={(e) => setForm({ ...form, gsm: e.target.value })}
+                        className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
+                        placeholder="e.g., 180"
+                        data-testid="fabric-gsm-input"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Ounce *</label>
+                      <input
+                        type="text"
+                        value={form.ounce}
+                        onChange={(e) => setForm({ ...form, ounce: e.target.value })}
+                        className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
+                        placeholder="e.g., 5.5 oz"
+                        data-testid="fabric-ounce-input"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Composition Editor */}
