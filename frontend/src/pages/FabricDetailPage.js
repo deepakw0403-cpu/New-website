@@ -299,8 +299,14 @@ const FabricDetailPage = () => {
                 </div>
                 {(fabric.warp_count || fabric.weft_count) && (
                   <div className="border-b border-gray-100 pb-3">
-                    <p className="text-xs text-gray-400 mb-1">Count (EPI × PPI)</p>
+                    <p className="text-xs text-gray-400 mb-1">EPI × PPI</p>
                     <p className="font-medium tech-data">{fabric.warp_count || '-'} × {fabric.weft_count || '-'}</p>
+                  </div>
+                )}
+                {fabric.yarn_count && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Count (Yarn)</p>
+                    <p className="font-medium tech-data">{fabric.yarn_count}</p>
                   </div>
                 )}
                 <div className="border-b border-gray-100 pb-3">
