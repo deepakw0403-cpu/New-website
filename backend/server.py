@@ -135,8 +135,9 @@ class FabricCreate(BaseModel):
     ounce: Optional[str] = ""  # Ounce value (alternative to GSM)
     weight_unit: str = "gsm"  # "gsm" or "ounce"
     width: str
-    warp_count: Optional[str] = ""  # threads per inch (warp)
-    weft_count: Optional[str] = ""  # threads per inch (weft)
+    warp_count: Optional[str] = ""  # EPI - Ends per inch
+    weft_count: Optional[str] = ""  # PPI - Picks per inch
+    yarn_count: Optional[str] = ""  # Yarn count (e.g., 40s, 60s, 2/40)
     color: str
     finish: Optional[str] = ""  # Bio, Double bio, Silicon, etc.
     moq: str
@@ -160,6 +161,7 @@ class FabricUpdate(BaseModel):
     width: Optional[str] = None
     warp_count: Optional[str] = None
     weft_count: Optional[str] = None
+    yarn_count: Optional[str] = None
     color: Optional[str] = None
     finish: Optional[str] = None
     moq: Optional[str] = None
