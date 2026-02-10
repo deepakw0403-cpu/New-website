@@ -182,7 +182,9 @@ class Fabric(BaseModel):
     fabric_type: str
     pattern: str = "Solid"
     composition: List[CompositionItem] = []
-    gsm: int
+    gsm: Optional[int] = None
+    ounce: str = ""
+    weight_unit: str = "gsm"
     width: str
     warp_count: str = ""
     weft_count: str = ""
