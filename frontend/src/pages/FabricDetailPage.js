@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, Send } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Send, X, ZoomIn } from "lucide-react";
 import { toast } from "sonner";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { getFabric, createEnquiry } from "../lib/api";
 
 const FabricDetailPage = () => {
@@ -9,6 +11,7 @@ const FabricDetailPage = () => {
   const [fabric, setFabric] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentImage, setCurrentImage] = useState(0);
+  const [showZoom, setShowZoom] = useState(false);
   const [showEnquiryForm, setShowEnquiryForm] = useState(false);
   const [enquiryForm, setEnquiryForm] = useState({
     name: "",
