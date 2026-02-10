@@ -527,12 +527,26 @@ def normalize_fabric(fabric: dict) -> dict:
         fabric['weight_unit'] = 'gsm'
     if 'gsm' not in fabric:
         fabric['gsm'] = None
+    if 'fabric_code' not in fabric or not fabric['fabric_code']:
+        fabric['fabric_code'] = ''
     if 'availability' not in fabric:
         fabric['availability'] = []
     elif not isinstance(fabric.get('availability'), list):
         fabric['availability'] = []
     
     return fabric
+
+async def generate_fabric_code() -> str:
+    """Generate a unique fabric code like LF-XXXXX"""
+    import random
+    import string
+    while True:
+        # Generate code like LF-A1B2C
+        code = 'LF-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+        # Check if it exists
+        existing = await db.fabrics.find_one({'fabric_code': code})
+        if not existing:
+            return code
 
 @api_router.get("/fabrics", response_model=List[Fabric])
 async def get_fabrics(
