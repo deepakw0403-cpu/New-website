@@ -48,6 +48,23 @@ const AdminFabrics = () => {
   const fabricTypes = ["woven", "knitted", "non-woven"];
   const patternOptions = ["Solid", "Print", "Stripes", "Checks", "Floral", "Geometric", "Digital", "Random", "Others"];
   const finishOptions = ["", "Bio", "Double Bio", "Silicon", "Double Silicon", "Enzyme Wash", "Sulphur Wash", "Acid Wash", "Normal Wash", "Stone Wash"];
+  
+  // Standard fabric/dye colors
+  const colorOptions = [
+    "", "White", "Off-White", "Cream", "Ivory", "Beige", "Tan", "Brown", "Dark Brown", "Chocolate",
+    "Black", "Charcoal", "Grey", "Light Grey", "Silver",
+    "Red", "Maroon", "Burgundy", "Wine", "Coral", "Salmon", "Pink", "Hot Pink", "Magenta", "Fuchsia",
+    "Orange", "Peach", "Rust", "Terracotta",
+    "Yellow", "Gold", "Mustard", "Lemon", "Butter",
+    "Green", "Olive", "Khaki", "Mint", "Sage", "Forest Green", "Hunter Green", "Lime", "Teal",
+    "Blue", "Navy", "Royal Blue", "Sky Blue", "Baby Blue", "Cobalt", "Indigo", "Denim",
+    "Purple", "Lavender", "Violet", "Plum", "Mauve", "Lilac",
+    "Multi-Color", "Melange", "Heather", "Natural", "Raw", "Undyed"
+  ];
+
+  // EPI/PPI options (0-100)
+  const countOptions = Array.from({ length: 151 }, (_, i) => i);
+
   const availabilityOptions = [
     { value: "Sample", label: "Sample Available", color: "bg-blue-50 text-blue-700 border-blue-200" },
     { value: "Bulk", label: "Bulk Available", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
