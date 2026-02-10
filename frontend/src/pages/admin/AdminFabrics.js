@@ -173,8 +173,24 @@ const AdminFabrics = () => {
       return;
     }
     
-    if (!form.name || !form.category_id || !form.gsm) {
+    if (!form.name || !form.category_id) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+
+    // Validate weight - either GSM or Ounce required based on weight_unit
+    if (form.weight_unit === "gsm" && !form.gsm) {
+      toast.error("Please enter GSM value");
+      return;
+    }
+    if (form.weight_unit === "ounce" && !form.ounce) {
+      toast.error("Please enter Ounce value");
+      return;
+    }
+
+    // Validate warp/weft - at least one required
+    if (!form.warp_count && !form.weft_count) {
+      toast.error("Please enter at least Warp Count or Weft Count");
       return;
     }
 
@@ -183,7 +199,7 @@ const AdminFabrics = () => {
 
     const payload = {
       ...form,
-      gsm: parseInt(form.gsm),
+      gsm: form.gsm ? parseInt(form.gsm) : null,
       composition: cleanComposition,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
       videos: form.videos || [],
