@@ -172,6 +172,7 @@ const AdminFabrics = () => {
       starting_price: fabric.starting_price || "",
       epi: fabric.warp_count || fabric.epi || "",
       ppi: fabric.weft_count || fabric.ppi || "",
+      yarn_count: fabric.yarn_count || "",
       color: fabric.color || "",
       finish: fabric.finish || "",
       availability: Array.isArray(fabric.availability) ? fabric.availability : [],
