@@ -526,7 +526,9 @@ const AdminFabrics = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Warp Count</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Warp Count {!form.weft_count && <span className="text-red-500">*</span>}
+                    </label>
                     <input
                       type="text"
                       value={form.warp_count}
@@ -537,7 +539,9 @@ const AdminFabrics = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Weft Count</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Weft Count {!form.warp_count && <span className="text-red-500">*</span>}
+                    </label>
                     <input
                       type="text"
                       value={form.weft_count}
@@ -548,8 +552,9 @@ const AdminFabrics = () => {
                     />
                   </div>
                 </div>
+                <p className="text-xs text-gray-500 -mt-3">At least one of Warp Count or Weft Count is required</p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Color</label>
                     <input
@@ -562,13 +567,16 @@ const AdminFabrics = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Finish</label>
-                    <input
-                      type="text"
+                    <select
                       value={form.finish}
                       onChange={(e) => setForm({ ...form, finish: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
-                      data-testid="fabric-finish-input"
-                    />
+                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                      data-testid="fabric-finish-select"
+                    >
+                      {finishOptions.map((f) => (
+                        <option key={f} value={f}>{f || "-- Select Finish --"}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
