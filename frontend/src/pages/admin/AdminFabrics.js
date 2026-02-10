@@ -551,43 +551,52 @@ const AdminFabrics = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      Warp Count {!form.weft_count && <span className="text-red-500">*</span>}
+                      EPI {!form.ppi && <span className="text-red-500">*</span>}
                     </label>
-                    <input
-                      type="text"
-                      value={form.warp_count}
-                      onChange={(e) => setForm({ ...form, warp_count: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
-                      placeholder="e.g., 60"
-                      data-testid="fabric-warp-count-input"
-                    />
+                    <select
+                      value={form.epi}
+                      onChange={(e) => setForm({ ...form, epi: e.target.value })}
+                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                      data-testid="fabric-epi-select"
+                    >
+                      <option value="">-- Select EPI --</option>
+                      {countOptions.map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      Weft Count {!form.warp_count && <span className="text-red-500">*</span>}
+                      PPI {!form.epi && <span className="text-red-500">*</span>}
                     </label>
-                    <input
-                      type="text"
-                      value={form.weft_count}
-                      onChange={(e) => setForm({ ...form, weft_count: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
-                      placeholder="e.g., 60"
-                      data-testid="fabric-weft-count-input"
-                    />
+                    <select
+                      value={form.ppi}
+                      onChange={(e) => setForm({ ...form, ppi: e.target.value })}
+                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                      data-testid="fabric-ppi-select"
+                    >
+                      <option value="">-- Select PPI --</option>
+                      {countOptions.map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 -mt-3">At least one of Warp Count or Weft Count is required</p>
+                <p className="text-xs text-gray-500 -mt-3">At least one of EPI (Ends Per Inch) or PPI (Picks Per Inch) is required</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Color</label>
-                    <input
-                      type="text"
+                    <select
                       value={form.color}
                       onChange={(e) => setForm({ ...form, color: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
-                      data-testid="fabric-color-input"
-                    />
+                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                      data-testid="fabric-color-select"
+                    >
+                      {colorOptions.map((c) => (
+                        <option key={c} value={c}>{c || "-- Select Color --"}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Finish</label>
