@@ -131,12 +131,14 @@ class FabricCreate(BaseModel):
     fabric_type: str  # woven / knitted / non-woven
     pattern: str = "Solid"  # Solid / Print / None
     composition: List[CompositionItem] = []
-    gsm: int
+    gsm: Optional[int] = None  # GSM value
+    ounce: Optional[str] = ""  # Ounce value (alternative to GSM)
+    weight_unit: str = "gsm"  # "gsm" or "ounce"
     width: str
     warp_count: Optional[str] = ""  # threads per inch (warp)
     weft_count: Optional[str] = ""  # threads per inch (weft)
     color: str
-    finish: Optional[str] = ""
+    finish: Optional[str] = ""  # Bio, Double bio, Silicon, etc.
     moq: str
     starting_price: Optional[str] = ""
     availability: List[str] = []  # Sample, Bulk, On Request
@@ -153,6 +155,8 @@ class FabricUpdate(BaseModel):
     pattern: Optional[str] = None
     composition: Optional[List[CompositionItem]] = None
     gsm: Optional[int] = None
+    ounce: Optional[str] = None
+    weight_unit: Optional[str] = None
     width: Optional[str] = None
     warp_count: Optional[str] = None
     weft_count: Optional[str] = None
