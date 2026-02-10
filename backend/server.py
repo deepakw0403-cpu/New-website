@@ -175,6 +175,7 @@ class FabricUpdate(BaseModel):
 class Fabric(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
+    fabric_code: str = ""  # Unique ID like LF-XXXXX
     name: str
     category_id: str
     category_name: str = ""
@@ -208,6 +209,9 @@ class EnquiryCreate(BaseModel):
     phone: Optional[str] = ""
     company: Optional[str] = ""
     message: str
+    fabric_id: Optional[str] = None
+    fabric_name: Optional[str] = None
+    fabric_code: Optional[str] = None  # Add fabric code to enquiry
     fabric_id: Optional[str] = None
     fabric_name: Optional[str] = None
 
