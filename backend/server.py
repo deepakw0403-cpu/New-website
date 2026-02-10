@@ -639,8 +639,11 @@ async def create_fabric(data: FabricCreate, admin=Depends(get_current_admin)):
         seller = await db.sellers.find_one({'id': data.seller_id}, {'_id': 0})
     
     fabric_id = str(uuid.uuid4())
+    fabric_code = await generate_fabric_code()
+    
     fabric_doc = {
         'id': fabric_id,
+        'fabric_code': fabric_code,
         **data.model_dump(),
         'created_at': datetime.now(timezone.utc).isoformat()
     }
