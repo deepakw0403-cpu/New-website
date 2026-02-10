@@ -222,10 +222,16 @@ const FabricDetailPage = () => {
                     <p className="font-medium">{fabric.pattern}</p>
                   </div>
                 )}
-                <div className="border-b border-gray-100 pb-3">
-                  <p className="text-xs text-gray-400 mb-1">GSM</p>
-                  <p className="font-medium tech-data">{fabric.gsm}</p>
-                </div>
+                {(fabric.gsm || fabric.ounce) && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">
+                      {fabric.weight_unit === 'ounce' ? 'Weight (Ounce)' : 'GSM'}
+                    </p>
+                    <p className="font-medium tech-data">
+                      {fabric.weight_unit === 'ounce' ? fabric.ounce : fabric.gsm}
+                    </p>
+                  </div>
+                )}
                 <div className="border-b border-gray-100 pb-3">
                   <p className="text-xs text-gray-400 mb-1">Width</p>
                   <p className="font-medium">{fabric.width}</p>
