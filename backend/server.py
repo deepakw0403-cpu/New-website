@@ -225,6 +225,7 @@ class Enquiry(BaseModel):
     message: str
     fabric_id: Optional[str] = None
     fabric_name: Optional[str] = None
+    fabric_code: Optional[str] = None
     status: str = "new"
     created_at: str
 
