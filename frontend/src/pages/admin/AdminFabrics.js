@@ -32,6 +32,7 @@ const AdminFabrics = () => {
     width: "",
     epi: "",
     ppi: "",
+    yarn_count: "",
     color: "",
     finish: "",
     moq: "",
