@@ -467,6 +467,8 @@ const FabricDetailPage = () => {
         </div>
       )}
     </main>
+    <Footer />
+    </div>
   );
 };
 
