@@ -721,6 +721,93 @@ const AdminFabrics = () => {
                   </div>
                 </div>
 
+                {/* Inventory Section for Bookable Fabrics */}
+                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Package size={18} className="text-emerald-700" />
+                      <label className="text-sm font-medium text-emerald-800">Inventory & Booking</label>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.is_bookable}
+                        onChange={(e) => setForm({ ...form, is_bookable: e.target.checked })}
+                        className="rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500"
+                        data-testid="fabric-is-bookable-checkbox"
+                      />
+                      <span className="text-sm text-emerald-700 font-medium">Enable direct booking</span>
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Quantity Available (meters)</label>
+                      <input
+                        type="number"
+                        value={form.quantity_available}
+                        onChange={(e) => setForm({ ...form, quantity_available: e.target.value })}
+                        className="w-full px-4 py-2 border border-emerald-200 rounded bg-white"
+                        placeholder="e.g., 1000"
+                        data-testid="fabric-quantity-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Rate per meter (₹)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={form.rate_per_meter}
+                        onChange={(e) => setForm({ ...form, rate_per_meter: e.target.value })}
+                        className="w-full px-4 py-2 border border-emerald-200 rounded bg-white"
+                        placeholder="e.g., 150.00"
+                        data-testid="fabric-rate-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Dispatch Timeline</label>
+                      <input
+                        type="text"
+                        value={form.dispatch_timeline}
+                        onChange={(e) => setForm({ ...form, dispatch_timeline: e.target.value })}
+                        className="w-full px-4 py-2 border border-emerald-200 rounded bg-white"
+                        placeholder="e.g., 7-10 days"
+                        data-testid="fabric-dispatch-input"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-emerald-600 mt-2">Enable booking to allow customers to place orders directly</p>
+                </div>
+
+                {/* Seller SKU */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Seller SKU / Serial Number</label>
+                  <input
+                    type="text"
+                    value={form.seller_sku}
+                    onChange={(e) => setForm({ ...form, seller_sku: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-200 rounded"
+                    placeholder="Seller's unique identifier for this fabric"
+                    data-testid="fabric-seller-sku-input"
+                  />
+                </div>
+
+                {/* Article Grouping */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Article (Color Variant Group)</label>
+                  <select
+                    value={form.article_id}
+                    onChange={(e) => setForm({ ...form, article_id: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-200 rounded bg-white"
+                    data-testid="fabric-article-select"
+                  >
+                    <option value="">No article (standalone fabric)</option>
+                    {articles.map((article) => (
+                      <option key={article.id} value={article.id}>{article.name} ({article.article_code})</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Link this fabric to an article to group color variants together</p>
+                </div>
+
                 {/* Availability Multi-Select */}
                 <div>
                   <label className="block text-sm font-medium mb-3">Availability</label>
