@@ -500,6 +500,7 @@ async def get_seller(seller_id: str):
 @api_router.post("/sellers", response_model=Seller)
 async def create_seller(data: SellerCreate, admin=Depends(get_current_admin)):
     seller_id = str(uuid.uuid4())
+    seller_code = await generate_seller_code()
     
     # Get category names for response
     category_names = []
@@ -509,6 +510,7 @@ async def create_seller(data: SellerCreate, admin=Depends(get_current_admin)):
     
     seller_doc = {
         'id': seller_id,
+        'seller_code': seller_code,
         'name': data.name,
         'company_name': data.company_name,
         'description': data.description or "",
@@ -518,6 +520,7 @@ async def create_seller(data: SellerCreate, admin=Depends(get_current_admin)):
         'contact_email': data.contact_email or "",
         'contact_phone': data.contact_phone or "",
         'category_ids': data.category_ids or [],
+        'is_active': data.is_active,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     await db.sellers.insert_one(seller_doc)
