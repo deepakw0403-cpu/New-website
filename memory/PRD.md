@@ -3,15 +3,19 @@
 ## Original Problem Statement
 Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing platform. The website allows the Locofast team to upload fabric swatches and related information, and allows customers to browse fabrics easily on the frontend.
 
+**Recent Evolution**: Platform expanding to full B2B marketplace with seller inventory management, direct booking, and order management.
+
 ## User Personas
-1. **Admin (Locofast Team)** - Manages fabrics, categories, sellers and views customer enquiries
-2. **Customer (Frontend User)** - Browses fabrics by category, views details, and submits enquiries
+1. **Admin (Locofast Team)** - Manages fabrics, categories, sellers, articles, orders and views customer enquiries
+2. **Customer (Frontend User)** - Browses fabrics by category, views details, submits enquiries, and can place orders for bookable fabrics
+3. **Seller (Future)** - Manages their own inventory, prices, and dispatch timelines
 
 ## Core Requirements (Static)
 - Admin panel with JWT authentication
 - Fabric management (CRUD with images, specs, tags)
 - Category management
-- Seller management with location and category specializations
+- Seller management with location, category specializations, and activation controls
+- Article management (color variant grouping)
 - Fabric browsing with search & filters
 - Enquiry submission system
 - Static pages (About, How It Works, Contact)
@@ -32,6 +36,31 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - **Positioning**: Locofast as facilitator, not seller
 
 ## What's Been Implemented
+
+### Feb 16, 2026 - Phase 1: B2B Marketplace Foundation
+- **Seller Enhancements**:
+  - Unique seller codes (LS-XXXXX format) auto-generated on creation
+  - Seller activation/deactivation (is_active field)
+  - "Show inactive" toggle on admin sellers page
+  - Visual indicators for inactive sellers
+- **Article System (Color Variant Grouping)**:
+  - New Article model with article_code (ART-XXXXX format)
+  - Article CRUD endpoints and admin page
+  - Fabrics can be linked to articles via article_id
+  - Variant count displayed on article cards
+- **Fabric Inventory Fields**:
+  - quantity_available (meters in stock)
+  - rate_per_meter (price per meter)
+  - dispatch_timeline (e.g., "7-10 days")
+  - is_bookable (toggle for direct ordering)
+  - seller_sku (seller's unique identifier)
+- **Denim-Specific Fields**:
+  - weft_shrinkage (percentage)
+  - stretch_percentage (percentage)
+  - Conditionally displayed when Denim category selected
+- **Dashboard Enhancements**:
+  - 7 stat cards: Fabrics, Articles, Categories, Active Sellers, Collections, Bookable, Enquiries
+  - New stats: articles, active_sellers, bookable_fabrics
 
 ### Feb 9, 2026 - Collections Feature
 - **Collections System**: Full CRUD for marketing collections/ranges
@@ -99,14 +128,21 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - [x] Pattern dropdown (9 options)
 - [x] Starting price field
 - [x] Video URL support
+- [x] Collections feature
+- [x] Seller codes (LS-XXXXX) and activation
+- [x] Article system for color variants (ART-XXXXX)
+- [x] Fabric inventory fields
+- [x] Denim-specific fields
 
-### P1 (Next Phase)
-- [ ] Cloudinary integration for images
-- [ ] Email notifications for enquiries (SendGrid/Resend)
-- [ ] Pagination for fabric listing
-- [ ] SEO meta tags for fabric pages
+### P1 (In Progress - B2B Marketplace Phase 2)
+- [ ] Seller Admin Portal (separate login for sellers to manage their inventory)
+- [ ] Order Management (admin panel to track orders by seller)
+- [ ] Razorpay Payment Integration (advance + full payment options)
+- [ ] Invoice generation after payment
 
 ### P2 (Future)
+- [ ] Cloudinary integration for images
+- [ ] Email notifications for enquiries (SendGrid/Resend)
 - [ ] Seller profiles public page
 - [ ] Price visibility controls
 - [ ] Buyer login/accounts
@@ -120,6 +156,21 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - Auth: JWT with bcrypt
 
 ## Data Models
+
+### Article (NEW)
+```json
+{
+  "id": "string",
+  "article_code": "string (ART-XXXXX)",
+  "name": "string",
+  "base_fabric_id": "string",
+  "description": "string",
+  "seller_id": "string",
+  "category_id": "string",
+  "variant_count": "int",
+  "created_at": "datetime"
+}
+```
 
 ### Collection
 ```json
@@ -135,10 +186,11 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 }
 ```
 
-### Seller
+### Seller (UPDATED)
 ```json
 {
   "id": "string",
+  "seller_code": "string (LS-XXXXX)",
   "name": "string",
   "company_name": "string",
   "description": "string",
@@ -149,24 +201,33 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
   "contact_phone": "string",
   "category_ids": ["string"],
   "category_names": ["string"],
+  "is_active": "boolean",
   "created_at": "datetime"
 }
 ```
 
-### Fabric
+### Fabric (UPDATED)
 ```json
 {
   "id": "string",
+  "fabric_code": "string (LF-XXXXX)",
   "name": "string",
   "category_id": "string",
   "seller_id": "string",
+  "seller_code": "string",
+  "article_id": "string",
   "fabric_type": "woven|knitted|non-woven",
   "pattern": "Solid|Print|Stripes|Checks|Floral|Geometric|Digital|Random|Others",
   "composition": [
     {"material": "string", "percentage": "int"}
   ],
   "gsm": "int",
+  "ounce": "string",
+  "weight_unit": "gsm|ounce",
   "width": "string",
+  "warp_count": "string (EPI)",
+  "weft_count": "string (PPI)",
+  "yarn_count": "string",
   "color": "string",
   "finish": "string",
   "moq": "string",
@@ -176,6 +237,13 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
   "tags": ["string"],
   "images": ["string"],
   "videos": ["string"],
+  "quantity_available": "int",
+  "rate_per_meter": "float",
+  "dispatch_timeline": "string",
+  "is_bookable": "boolean",
+  "weft_shrinkage": "float",
+  "stretch_percentage": "float",
+  "seller_sku": "string",
   "created_at": "datetime"
 }
 ```
@@ -187,10 +255,16 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 ## Key API Endpoints
 - `POST /api/auth/login` - Admin login
 - `GET /api/categories` - List categories
-- `GET /api/fabrics` - List/search fabrics
+- `GET /api/fabrics` - List/search fabrics (supports article_id, bookable_only filters)
 - `GET /api/fabrics/{id}` - Get fabric details
-- `GET /api/sellers` - List sellers with category_names
-- `POST /api/sellers` - Create seller with city/state/category_ids
+- `GET /api/sellers` - List sellers (default: only active, ?include_inactive=true for all)
+- `POST /api/sellers` - Create seller with city/state/category_ids/is_active
+- `GET /api/articles` - List articles
+- `GET /api/articles/{id}` - Get article details
+- `GET /api/articles/{id}/variants` - Get all fabrics linked to an article
+- `POST /api/articles` - Create article
+- `PUT /api/articles/{id}` - Update article
+- `DELETE /api/articles/{id}` - Delete article
 - `GET /api/collections` - List all collections
 - `GET /api/collections/featured` - Get featured collections
 - `GET /api/collections/{id}` - Get collection details
@@ -199,4 +273,4 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - `PUT /api/collections/{id}` - Update collection
 - `DELETE /api/collections/{id}` - Delete collection
 - `POST /api/enquiries` - Submit enquiry
-- `GET /api/stats` - Dashboard statistics (includes collections count)
+- `GET /api/stats` - Dashboard statistics (includes articles, active_sellers, bookable_fabrics)
