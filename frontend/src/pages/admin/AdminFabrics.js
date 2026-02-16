@@ -252,6 +252,16 @@ const AdminFabrics = () => {
       composition: cleanComposition,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
       videos: form.videos || [],
+      // Inventory fields
+      quantity_available: form.quantity_available ? parseInt(form.quantity_available) : null,
+      rate_per_meter: form.rate_per_meter ? parseFloat(form.rate_per_meter) : null,
+      dispatch_timeline: form.dispatch_timeline,
+      is_bookable: form.is_bookable,
+      // Denim fields
+      weft_shrinkage: form.weft_shrinkage ? parseFloat(form.weft_shrinkage) : null,
+      stretch_percentage: form.stretch_percentage ? parseFloat(form.stretch_percentage) : null,
+      seller_sku: form.seller_sku,
+      article_id: form.article_id,
     };
     
     // Remove frontend-only fields
