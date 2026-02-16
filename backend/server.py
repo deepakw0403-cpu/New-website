@@ -752,10 +752,12 @@ async def get_fabric(fabric_id: str):
         seller = await db.sellers.find_one({'id': fabric['seller_id']}, {'_id': 0})
         fabric['seller_name'] = seller['name'] if seller else ''
         fabric['seller_company'] = seller['company_name'] if seller else ''
+        fabric['seller_code'] = seller.get('seller_code', '') if seller else ''
     else:
         fabric['seller_id'] = ''
         fabric['seller_name'] = ''
         fabric['seller_company'] = ''
+        fabric['seller_code'] = ''
     
     return fabric
 
