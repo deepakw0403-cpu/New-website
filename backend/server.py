@@ -291,6 +291,35 @@ class Collection(BaseModel):
     is_featured: bool = False
     created_at: str
 
+# Article Model (for grouping color variants under one article)
+class ArticleCreate(BaseModel):
+    name: str
+    base_fabric_id: Optional[str] = ""  # The main/reference fabric
+    description: Optional[str] = ""
+    seller_id: Optional[str] = ""
+    category_id: Optional[str] = ""
+
+class ArticleUpdate(BaseModel):
+    name: Optional[str] = None
+    base_fabric_id: Optional[str] = None
+    description: Optional[str] = None
+    seller_id: Optional[str] = None
+    category_id: Optional[str] = None
+
+class Article(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    article_code: str = ""  # Unique code like ART-XXXXX
+    name: str
+    base_fabric_id: str = ""
+    description: str = ""
+    seller_id: str = ""
+    seller_name: str = ""
+    category_id: str = ""
+    category_name: str = ""
+    variant_count: int = 0  # Number of color variants
+    created_at: str
+
 # ==================== AUTH HELPERS ====================
 
 def hash_password(password: str) -> str:
