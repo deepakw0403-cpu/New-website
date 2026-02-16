@@ -51,19 +51,19 @@ const AdminDashboard = () => {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6" data-testid="stats-grid">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4" data-testid="stats-grid">
             {statCards.map((stat, index) => (
               <Link
                 key={index}
                 to={stat.link}
-                className="bg-white p-6 border border-neutral-100 hover:border-neutral-200 transition-colors"
+                className="bg-white p-4 border border-neutral-100 hover:border-neutral-200 transition-colors rounded"
                 data-testid={`stat-card-${stat.label.toLowerCase().replace(/\s/g, '-')}`}
               >
-                <div className={`w-12 h-12 ${stat.color} flex items-center justify-center mb-4`}>
-                  <stat.icon size={24} />
+                <div className={`w-10 h-10 ${stat.color} flex items-center justify-center mb-3 rounded`}>
+                  <stat.icon size={20} />
                 </div>
-                <p className="text-4xl font-serif font-medium mb-1">{stat.value}</p>
-                <p className="text-neutral-500 text-sm">{stat.label}</p>
+                <p className="text-2xl font-semibold mb-1">{stat.value}</p>
+                <p className="text-neutral-500 text-xs">{stat.label}</p>
               </Link>
             ))}
           </div>
