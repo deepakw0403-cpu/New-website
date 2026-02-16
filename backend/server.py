@@ -1146,17 +1146,23 @@ async def get_stats(admin=Depends(get_current_admin)):
     fabrics_count = await db.fabrics.count_documents({})
     categories_count = await db.categories.count_documents({})
     sellers_count = await db.sellers.count_documents({})
+    active_sellers_count = await db.sellers.count_documents({'is_active': {'$ne': False}})
     collections_count = await db.collections.count_documents({})
+    articles_count = await db.articles.count_documents({})
     enquiries_count = await db.enquiries.count_documents({})
     new_enquiries = await db.enquiries.count_documents({'status': 'new'})
+    bookable_fabrics = await db.fabrics.count_documents({'is_bookable': True})
     
     return {
         'fabrics': fabrics_count,
         'categories': categories_count,
         'sellers': sellers_count,
+        'active_sellers': active_sellers_count,
         'collections': collections_count,
+        'articles': articles_count,
         'enquiries': enquiries_count,
-        'new_enquiries': new_enquiries
+        'new_enquiries': new_enquiries,
+        'bookable_fabrics': bookable_fabrics
     }
 
 # ==================== SEED DATA ====================
