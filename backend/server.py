@@ -437,8 +437,9 @@ async def delete_category(category_id: str, admin=Depends(get_current_admin)):
 # ==================== SELLER ROUTES ====================
 
 @api_router.get("/sellers", response_model=List[Seller])
-async def get_sellers():
-    sellers = await db.sellers.find({}, {'_id': 0}).sort('created_at', -1).to_list(100)
+async def get_sellers(include_inactive: bool = Query(False)):
+    query = {} if include_inactive else {'is_active': {'$ne': False}}
+    sellers = await db.sellers.find(query, {'_id': 0}).sort('created_at', -1).to_list(100)
     
     # Get all category IDs needed
     all_cat_ids = []
@@ -460,6 +461,11 @@ async def get_sellers():
             seller['city'] = seller.get('location', '')
         if 'state' not in seller:
             seller['state'] = ''
+        # Handle new fields
+        if 'is_active' not in seller:
+            seller['is_active'] = True
+        if 'seller_code' not in seller:
+            seller['seller_code'] = ''
     
     return sellers
 
