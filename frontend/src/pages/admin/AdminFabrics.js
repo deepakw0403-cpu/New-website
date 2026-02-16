@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, X, Upload, Check, Video } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Upload, Check, Video, Package, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { getFabrics, getCategories, getSellers, createFabric, updateFabric, deleteFabric, uploadImage } from "../../lib/api";
+import { getFabrics, getCategories, getSellers, getArticles, createFabric, updateFabric, deleteFabric, uploadImage } from "../../lib/api";
 
 const AdminFabrics = () => {
   const [fabrics, setFabrics] = useState([]);
   const [categories, setCategories] = useState([]);
   const [sellers, setSellers] = useState([]);
+  const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingFabric, setEditingFabric] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   const emptyComposition = [
     { material: "", percentage: 0 },
@@ -23,6 +25,7 @@ const AdminFabrics = () => {
     name: "",
     category_id: "",
     seller_id: "",
+    article_id: "",
     fabric_type: "woven",
     pattern: "Solid",
     composition: emptyComposition,
@@ -42,6 +45,16 @@ const AdminFabrics = () => {
     tags: "",
     images: [],
     videos: [],
+    // Inventory fields
+    quantity_available: "",
+    rate_per_meter: "",
+    dispatch_timeline: "",
+    is_bookable: false,
+    // Denim fields
+    weft_shrinkage: "",
+    stretch_percentage: "",
+    // Seller SKU
+    seller_sku: "",
   };
 
   const [form, setForm] = useState(emptyForm);
