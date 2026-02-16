@@ -676,18 +676,24 @@ async def generate_article_code() -> str:
 async def get_fabrics(
     category_id: Optional[str] = Query(None),
     seller_id: Optional[str] = Query(None),
+    article_id: Optional[str] = Query(None),
     fabric_type: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
     min_gsm: Optional[int] = Query(None),
-    max_gsm: Optional[int] = Query(None)
+    max_gsm: Optional[int] = Query(None),
+    bookable_only: Optional[bool] = Query(None)
 ):
     query = {}
     if category_id:
         query['category_id'] = category_id
     if seller_id:
         query['seller_id'] = seller_id
+    if article_id:
+        query['article_id'] = article_id
     if fabric_type:
         query['fabric_type'] = fabric_type
+    if bookable_only:
+        query['is_bookable'] = True
     if min_gsm is not None or max_gsm is not None:
         query['gsm'] = {}
         if min_gsm is not None:
@@ -701,7 +707,9 @@ async def get_fabrics(
             {'name': {'$regex': search, '$options': 'i'}},
             {'tags': {'$regex': search, '$options': 'i'}},
             {'composition': {'$regex': search, '$options': 'i'}},
-            {'color': {'$regex': search, '$options': 'i'}}
+            {'color': {'$regex': search, '$options': 'i'}},
+            {'fabric_code': {'$regex': search, '$options': 'i'}},
+            {'seller_sku': {'$regex': search, '$options': 'i'}}
         ]
     
     fabrics = await db.fabrics.find(query, {'_id': 0}).sort('created_at', -1).to_list(500)
@@ -711,7 +719,7 @@ async def get_fabrics(
     categories = await db.categories.find({'id': {'$in': category_ids}}, {'_id': 0}).to_list(100)
     cat_map = {c['id']: c['name'] for c in categories}
     
-    # Get seller info
+    # Get seller info (only active sellers unless specifically filtered)
     seller_ids = list(set(f.get('seller_id', '') for f in fabrics if f.get('seller_id')))
     sellers = await db.sellers.find({'id': {'$in': seller_ids}}, {'_id': 0}).to_list(100) if seller_ids else []
     seller_map = {s['id']: s for s in sellers}
@@ -722,6 +730,7 @@ async def get_fabrics(
         seller = seller_map.get(fabric.get('seller_id', ''))
         fabric['seller_name'] = seller['name'] if seller else ''
         fabric['seller_company'] = seller['company_name'] if seller else ''
+        fabric['seller_code'] = seller.get('seller_code', '') if seller else ''
         if 'seller_id' not in fabric:
             fabric['seller_id'] = ''
     
