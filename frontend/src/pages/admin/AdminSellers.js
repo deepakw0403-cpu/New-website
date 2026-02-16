@@ -151,10 +151,21 @@ const AdminSellers = () => {
       <div data-testid="admin-sellers-page">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-semibold">Sellers</h1>
-          <button onClick={openCreateModal} className="btn-primary inline-flex items-center gap-2" data-testid="add-seller-btn">
-            <Plus size={18} />
-            Add Seller
-          </button>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showInactive}
+                onChange={(e) => setShowInactive(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              Show inactive
+            </label>
+            <button onClick={openCreateModal} className="btn-primary inline-flex items-center gap-2" data-testid="add-seller-btn">
+              <Plus size={18} />
+              Add Seller
+            </button>
+          </div>
         </div>
 
         {loading ? (
