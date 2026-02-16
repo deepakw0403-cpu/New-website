@@ -110,10 +110,11 @@ const AdminFabrics = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [fabRes, catRes, selRes] = await Promise.all([getFabrics(), getCategories(), getSellers()]);
+      const [fabRes, catRes, selRes, artRes] = await Promise.all([getFabrics(), getCategories(), getSellers(true), getArticles()]);
       setFabrics(fabRes.data);
       setCategories(catRes.data);
       setSellers(selRes.data);
+      setArticles(artRes.data);
     } catch (err) {
       toast.error("Failed to load data");
     }
