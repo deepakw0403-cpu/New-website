@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Layers, FolderOpen, Building2, Package, MessageSquare } from "lucide-react";
+import { Layers, FolderOpen, Building2, Package, MessageSquare, Palette, ShoppingCart } from "lucide-react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { getStats } from "../../lib/api";
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState({ fabrics: 0, categories: 0, sellers: 0, collections: 0, enquiries: 0, new_enquiries: 0 });
+  const [stats, setStats] = useState({ 
+    fabrics: 0, categories: 0, sellers: 0, active_sellers: 0,
+    collections: 0, articles: 0, enquiries: 0, new_enquiries: 0,
+    bookable_fabrics: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,10 +27,12 @@ const AdminDashboard = () => {
 
   const statCards = [
     { label: "Total Fabrics", value: stats.fabrics, icon: Layers, link: "/admin/fabrics", color: "bg-blue-50 text-blue-600" },
+    { label: "Articles", value: stats.articles, icon: Palette, link: "/admin/articles", color: "bg-indigo-50 text-indigo-600" },
     { label: "Categories", value: stats.categories, icon: FolderOpen, link: "/admin/categories", color: "bg-amber-50 text-amber-600" },
-    { label: "Sellers", value: stats.sellers, icon: Building2, link: "/admin/sellers", color: "bg-purple-50 text-purple-600" },
+    { label: "Active Sellers", value: stats.active_sellers, icon: Building2, link: "/admin/sellers", color: "bg-purple-50 text-purple-600" },
     { label: "Collections", value: stats.collections, icon: Package, link: "/admin/collections", color: "bg-rose-50 text-rose-600" },
-    { label: "Enquiries", value: stats.enquiries, icon: MessageSquare, link: "/admin/enquiries", color: "bg-emerald-50 text-emerald-600" },
+    { label: "Bookable", value: stats.bookable_fabrics, icon: ShoppingCart, link: "/admin/fabrics", color: "bg-emerald-50 text-emerald-600" },
+    { label: "Enquiries", value: stats.enquiries, icon: MessageSquare, link: "/admin/enquiries", color: "bg-cyan-50 text-cyan-600" },
   ];
 
   return (
