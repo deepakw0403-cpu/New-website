@@ -156,11 +156,13 @@ const AdminFabrics = () => {
   const openCreateModal = () => {
     setEditingFabric(null);
     setForm({ ...emptyForm, category_id: categories[0]?.id || "", composition: [...emptyComposition] });
+    setSelectedCategory(categories[0]?.id || "");
     setShowModal(true);
   };
 
   const openEditModal = (fabric) => {
     setEditingFabric(fabric);
+    setSelectedCategory(fabric.category_id || "");
     
     // Parse composition - could be string (legacy) or array (new)
     let compositionData = [...emptyComposition];
@@ -178,6 +180,7 @@ const AdminFabrics = () => {
     setForm({
       ...fabric,
       seller_id: fabric.seller_id || "",
+      article_id: fabric.article_id || "",
       pattern: fabric.pattern || "Solid",
       composition: compositionData,
       gsm: fabric.gsm ? fabric.gsm.toString() : "",
@@ -192,6 +195,15 @@ const AdminFabrics = () => {
       availability: Array.isArray(fabric.availability) ? fabric.availability : [],
       tags: Array.isArray(fabric.tags) ? fabric.tags.join(", ") : "",
       videos: Array.isArray(fabric.videos) ? fabric.videos : [],
+      // Inventory fields
+      quantity_available: fabric.quantity_available ? fabric.quantity_available.toString() : "",
+      rate_per_meter: fabric.rate_per_meter ? fabric.rate_per_meter.toString() : "",
+      dispatch_timeline: fabric.dispatch_timeline || "",
+      is_bookable: fabric.is_bookable || false,
+      // Denim fields
+      weft_shrinkage: fabric.weft_shrinkage ? fabric.weft_shrinkage.toString() : "",
+      stretch_percentage: fabric.stretch_percentage ? fabric.stretch_percentage.toString() : "",
+      seller_sku: fabric.seller_sku || "",
     });
     setShowModal(true);
   };
