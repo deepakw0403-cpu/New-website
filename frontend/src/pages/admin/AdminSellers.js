@@ -93,8 +93,19 @@ const AdminSellers = () => {
       contact_email: seller.contact_email || "",
       contact_phone: seller.contact_phone || "",
       category_ids: seller.category_ids || [],
+      is_active: seller.is_active !== false,
     });
     setShowModal(true);
+  };
+
+  const toggleSellerActive = async (seller) => {
+    try {
+      await updateSeller(seller.id, { is_active: !seller.is_active });
+      toast.success(seller.is_active ? "Seller deactivated" : "Seller activated");
+      fetchData();
+    } catch (err) {
+      toast.error("Failed to update seller status");
+    }
   };
 
   const handleSubmit = async (e) => {
