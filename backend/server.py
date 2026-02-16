@@ -598,6 +598,26 @@ def normalize_fabric(fabric: dict) -> dict:
         fabric['availability'] = []
     elif not isinstance(fabric.get('availability'), list):
         fabric['availability'] = []
+    # Inventory fields
+    if 'quantity_available' not in fabric:
+        fabric['quantity_available'] = None
+    if 'rate_per_meter' not in fabric:
+        fabric['rate_per_meter'] = None
+    if 'dispatch_timeline' not in fabric:
+        fabric['dispatch_timeline'] = ''
+    if 'is_bookable' not in fabric:
+        fabric['is_bookable'] = False
+    # Denim fields
+    if 'weft_shrinkage' not in fabric:
+        fabric['weft_shrinkage'] = None
+    if 'stretch_percentage' not in fabric:
+        fabric['stretch_percentage'] = None
+    # Seller SKU
+    if 'seller_sku' not in fabric:
+        fabric['seller_sku'] = ''
+    # Article ID
+    if 'article_id' not in fabric:
+        fabric['article_id'] = ''
     
     return fabric
 
