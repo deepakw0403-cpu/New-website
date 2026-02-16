@@ -43,7 +43,7 @@ export const updateCategory = (id, data) => api.put(`/categories/${id}`, data);
 export const deleteCategory = (id) => api.delete(`/categories/${id}`);
 
 // Sellers
-export const getSellers = () => api.get("/sellers");
+export const getSellers = (includeInactive = false) => api.get("/sellers", { params: { include_inactive: includeInactive } });
 export const getSeller = (id) => api.get(`/sellers/${id}`);
 export const createSeller = (data) => api.post("/sellers", data);
 export const updateSeller = (id, data) => api.put(`/sellers/${id}`, data);
@@ -55,6 +55,14 @@ export const getFabric = (id) => api.get(`/fabrics/${id}`);
 export const createFabric = (data) => api.post("/fabrics", data);
 export const updateFabric = (id, data) => api.put(`/fabrics/${id}`, data);
 export const deleteFabric = (id) => api.delete(`/fabrics/${id}`);
+
+// Articles (Color Variant Grouping)
+export const getArticles = (params) => api.get("/articles", { params });
+export const getArticle = (id) => api.get(`/articles/${id}`);
+export const getArticleVariants = (id) => api.get(`/articles/${id}/variants`);
+export const createArticle = (data) => api.post("/articles", data);
+export const updateArticle = (id, data) => api.put(`/articles/${id}`, data);
+export const deleteArticle = (id) => api.delete(`/articles/${id}`);
 
 // Enquiries
 export const createEnquiry = (data) => api.post("/enquiries", data);
