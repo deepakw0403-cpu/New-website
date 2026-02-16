@@ -613,6 +613,26 @@ async def generate_fabric_code() -> str:
         if not existing:
             return code
 
+async def generate_seller_code() -> str:
+    """Generate a unique seller code like LS-XXXXX"""
+    import random
+    import string
+    while True:
+        code = 'LS-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+        existing = await db.sellers.find_one({'seller_code': code})
+        if not existing:
+            return code
+
+async def generate_article_code() -> str:
+    """Generate a unique article code like ART-XXXXX"""
+    import random
+    import string
+    while True:
+        code = 'ART-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+        existing = await db.articles.find_one({'article_code': code})
+        if not existing:
+            return code
+
 @api_router.get("/fabrics", response_model=List[Fabric])
 async def get_fabrics(
     category_id: Optional[str] = Query(None),
