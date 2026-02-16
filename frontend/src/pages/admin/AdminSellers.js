@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, X, Upload, Building2, MapPin, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Upload, Building2, MapPin, Check, ToggleLeft, ToggleRight } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { getSellers, getCategories, createSeller, updateSeller, deleteSeller, uploadImage } from "../../lib/api";
@@ -11,6 +11,7 @@ const AdminSellers = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingSeller, setEditingSeller] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
 
   const emptyForm = {
     name: "",
@@ -22,6 +23,7 @@ const AdminSellers = () => {
     contact_email: "",
     contact_phone: "",
     category_ids: [],
+    is_active: true,
   };
   const [form, setForm] = useState(emptyForm);
 
