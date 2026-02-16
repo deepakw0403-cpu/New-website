@@ -27,14 +27,10 @@ const AdminSellers = () => {
   };
   const [form, setForm] = useState(emptyForm);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [selRes, catRes] = await Promise.all([getSellers(), getCategories()]);
+      const [selRes, catRes] = await Promise.all([getSellers(showInactive), getCategories()]);
       setSellers(selRes.data);
       setCategories(catRes.data);
     } catch (err) {
@@ -42,6 +38,10 @@ const AdminSellers = () => {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchData();
+  }, [showInactive]);
 
   const toggleCategory = (categoryId) => {
     if (form.category_ids.includes(categoryId)) {
