@@ -97,6 +97,7 @@ class SellerCreate(BaseModel):
     contact_email: Optional[str] = ""
     contact_phone: Optional[str] = ""
     category_ids: List[str] = []
+    is_active: bool = True  # Seller can be deactivated
 
 class SellerUpdate(BaseModel):
     name: Optional[str] = None
@@ -108,10 +109,12 @@ class SellerUpdate(BaseModel):
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
     category_ids: Optional[List[str]] = None
+    is_active: Optional[bool] = None
 
 class Seller(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
+    seller_code: str = ""  # Unique seller ID like LS-XXXXX
     name: str
     company_name: str
     description: str = ""
@@ -122,6 +125,7 @@ class Seller(BaseModel):
     contact_phone: str = ""
     category_ids: List[str] = []
     category_names: List[str] = []
+    is_active: bool = True
     created_at: str
 
 class FabricCreate(BaseModel):
