@@ -187,7 +187,7 @@ const AdminSellers = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="sellers-grid">
             {sellers.map((seller) => (
-              <div key={seller.id} className="bg-white border border-gray-100 rounded p-6" data-testid={`seller-card-${seller.id}`}>
+              <div key={seller.id} className={`bg-white border rounded p-6 ${seller.is_active === false ? 'border-gray-300 opacity-60' : 'border-gray-100'}`} data-testid={`seller-card-${seller.id}`}>
                 <div className="flex items-start gap-4 mb-4">
                   {seller.logo_url ? (
                     <img
@@ -201,8 +201,16 @@ const AdminSellers = () => {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg truncate">{seller.company_name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-lg truncate">{seller.company_name}</h3>
+                      {seller.is_active === false && (
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded">Inactive</span>
+                      )}
+                    </div>
                     <p className="text-gray-500 text-sm">{seller.name}</p>
+                    {seller.seller_code && (
+                      <p className="text-[#2563EB] text-xs font-mono">{seller.seller_code}</p>
+                    )}
                     {getLocationString(seller) && (
                       <p className="text-gray-400 text-sm flex items-center gap-1">
                         <MapPin size={12} />
@@ -227,6 +235,14 @@ const AdminSellers = () => {
                 )}
 
                 <div className="flex gap-2 pt-4 border-t border-gray-100">
+                  <button
+                    onClick={() => toggleSellerActive(seller)}
+                    className={`p-2 transition-colors ${seller.is_active !== false ? 'text-emerald-600 hover:text-emerald-700' : 'text-gray-400 hover:text-gray-600'}`}
+                    title={seller.is_active !== false ? "Deactivate seller" : "Activate seller"}
+                    data-testid={`toggle-seller-${seller.id}`}
+                  >
+                    {seller.is_active !== false ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                  </button>
                   <button
                     onClick={() => openEditModal(seller)}
                     className="flex-1 btn-secondary text-sm py-2 inline-flex items-center justify-center gap-2"
