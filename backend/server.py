@@ -489,6 +489,11 @@ async def get_seller(seller_id: str):
         seller['city'] = seller.get('location', '')
     if 'state' not in seller:
         seller['state'] = ''
+    # Handle new fields
+    if 'is_active' not in seller:
+        seller['is_active'] = True
+    if 'seller_code' not in seller:
+        seller['seller_code'] = ''
     
     return seller
 
