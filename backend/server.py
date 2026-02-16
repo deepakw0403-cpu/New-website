@@ -132,6 +132,7 @@ class FabricCreate(BaseModel):
     name: str
     category_id: str
     seller_id: Optional[str] = ""
+    article_id: Optional[str] = ""  # Parent article for color variants
     fabric_type: str  # woven / knitted / non-woven
     pattern: str = "Solid"  # Solid / Print / None
     composition: List[CompositionItem] = []
@@ -151,11 +152,22 @@ class FabricCreate(BaseModel):
     tags: List[str] = []
     images: List[str] = []
     videos: List[str] = []
+    # Inventory fields
+    quantity_available: Optional[int] = None
+    rate_per_meter: Optional[float] = None
+    dispatch_timeline: Optional[str] = ""  # e.g., "7-10 days"
+    is_bookable: bool = False  # Whether this fabric can be directly ordered
+    # Denim-specific fields
+    weft_shrinkage: Optional[float] = None  # Percentage
+    stretch_percentage: Optional[float] = None  # Percentage
+    # Seller's unique serial number for this SKU
+    seller_sku: Optional[str] = ""
 
 class FabricUpdate(BaseModel):
     name: Optional[str] = None
     category_id: Optional[str] = None
     seller_id: Optional[str] = None
+    article_id: Optional[str] = None
     fabric_type: Optional[str] = None
     pattern: Optional[str] = None
     composition: Optional[List[CompositionItem]] = None
@@ -175,6 +187,15 @@ class FabricUpdate(BaseModel):
     tags: Optional[List[str]] = None
     images: Optional[List[str]] = None
     videos: Optional[List[str]] = None
+    # Inventory fields
+    quantity_available: Optional[int] = None
+    rate_per_meter: Optional[float] = None
+    dispatch_timeline: Optional[str] = None
+    is_bookable: Optional[bool] = None
+    # Denim-specific fields
+    weft_shrinkage: Optional[float] = None
+    stretch_percentage: Optional[float] = None
+    seller_sku: Optional[str] = None
 
 class Fabric(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -186,6 +207,8 @@ class Fabric(BaseModel):
     seller_id: str = ""
     seller_name: str = ""
     seller_company: str = ""
+    seller_code: str = ""  # Seller's unique code
+    article_id: str = ""  # Parent article for color variants
     fabric_type: str
     pattern: str = "Solid"
     composition: List[CompositionItem] = []
@@ -205,6 +228,15 @@ class Fabric(BaseModel):
     tags: List[str] = []
     images: List[str] = []
     videos: List[str] = []
+    # Inventory fields
+    quantity_available: Optional[int] = None
+    rate_per_meter: Optional[float] = None
+    dispatch_timeline: str = ""
+    is_bookable: bool = False
+    # Denim-specific fields
+    weft_shrinkage: Optional[float] = None
+    stretch_percentage: Optional[float] = None
+    seller_sku: str = ""
     created_at: str
 
 class EnquiryCreate(BaseModel):
