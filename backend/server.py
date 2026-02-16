@@ -805,6 +805,7 @@ async def update_fabric(fabric_id: str, data: FabricUpdate, admin=Depends(get_cu
         raise HTTPException(status_code=404, detail='Fabric not found')
     
     fabric = await db.fabrics.find_one({'id': fabric_id}, {'_id': 0})
+    normalize_fabric(fabric)
     category = await db.categories.find_one({'id': fabric['category_id']}, {'_id': 0})
     fabric['category_name'] = category['name'] if category else ''
     
@@ -813,12 +814,14 @@ async def update_fabric(fabric_id: str, data: FabricUpdate, admin=Depends(get_cu
         seller = await db.sellers.find_one({'id': fabric['seller_id']}, {'_id': 0})
         fabric['seller_name'] = seller['name'] if seller else ''
         fabric['seller_company'] = seller['company_name'] if seller else ''
+        fabric['seller_code'] = seller.get('seller_code', '') if seller else ''
     else:
         fabric['seller_id'] = ''
         fabric['seller_name'] = ''
         fabric['seller_company'] = ''
+        fabric['seller_code'] = ''
     
-    return Fabric(**fabric)
+    return fabric
 
 @api_router.delete("/fabrics/{fabric_id}")
 async def delete_fabric(fabric_id: str, admin=Depends(get_current_admin)):
