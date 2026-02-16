@@ -455,7 +455,10 @@ const AdminFabrics = () => {
                     <label className="block text-sm font-medium mb-2">Category *</label>
                     <select
                       value={form.category_id}
-                      onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+                      onChange={(e) => {
+                        setForm({ ...form, category_id: e.target.value });
+                        setSelectedCategory(e.target.value);
+                      }}
                       className="w-full px-4 py-2 border border-gray-200 rounded bg-white"
                       required
                       data-testid="fabric-category-select"
