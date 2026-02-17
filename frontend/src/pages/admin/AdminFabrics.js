@@ -78,7 +78,7 @@ const AdminFabrics = () => {
 
   // Dropdown options
   const countOptions = Array.from({ length: 101 }, (_, i) => i); // 0-100 for EPI/PPI
-  const ounceOptions = Array.from({ length: 101 }, (_, i) => i); // 0-100 for ounce
+  const ounceOptions = Array.from({ length: 77 }, (_, i) => (1 + i * 0.25).toFixed(2)).map(v => parseFloat(v)); // 1-20 in 0.25 increments
   const percentageOptions = Array.from({ length: 100 }, (_, i) => i + 1); // 1-100
   const gsmOptions = Array.from({ length: 500 }, (_, i) => i + 1); // 1-500 for GSM (fabrics can be 200-400+ GSM)
   const widthOptions = Array.from({ length: 100 }, (_, i) => i + 1); // 1-100 for width in inches
