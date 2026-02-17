@@ -260,7 +260,32 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Fabrics Links */}
+          <div>
+            <h4 className="subheading text-neutral-500 mb-4">Fabrics</h4>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/fabrics/" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-fabrics">
+                  All Fabrics
+                </Link>
+              </li>
+              <li>
+                <Link to="/fabrics/denim/" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-denim">
+                  Denim Fabrics
+                </Link>
+              </li>
+              <li>
+                <Link to="/fabrics/poly-knit-fabrics/" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-poly-knit">
+                  Poly Knit Fabrics
+                </Link>
+              </li>
+              <li>
+                <Link to="/assisted-sourcing" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-sourcing">
+                  Assisted Sourcing
+                </Link>
+              </li>
+            </ul>
+          </div>
           <div>
             <h4 className="subheading text-neutral-500 mb-4">Contact</h4>
             <ul className="space-y-3">
