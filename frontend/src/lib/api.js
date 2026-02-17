@@ -91,4 +91,13 @@ export const uploadImage = (file) => {
   });
 };
 
+// SEO
+export const getFabricSEO = (id) => api.get(`/seo/fabric/${id}`);
+export const generateFabricSEO = (id) => api.post(`/seo/fabric/${id}/generate`);
+export const regenerateSEOBlock = (id, blockName) => api.post(`/seo/fabric/${id}/regenerate-block`, { block_name: blockName });
+export const updateFabricSEO = (id, data) => api.put(`/seo/fabric/${id}`, data);
+export const getSEOPreview = (id) => api.get(`/seo/fabric/${id}/preview`);
+export const getRelatedFabrics = (id) => api.get(`/seo/fabric/${id}/related`);
+export const batchGenerateSlugs = () => api.post(`/seo/batch-generate-slugs`);
+
 export default api;
