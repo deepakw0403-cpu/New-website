@@ -681,7 +681,9 @@ async def get_fabrics(
     search: Optional[str] = Query(None),
     min_gsm: Optional[int] = Query(None),
     max_gsm: Optional[int] = Query(None),
-    bookable_only: Optional[bool] = Query(None)
+    bookable_only: Optional[bool] = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100)
 ):
     query = {}
     if category_id:
@@ -712,7 +714,10 @@ async def get_fabrics(
             {'seller_sku': {'$regex': search, '$options': 'i'}}
         ]
     
-    fabrics = await db.fabrics.find(query, {'_id': 0}).sort('created_at', -1).to_list(500)
+    # Calculate skip for pagination
+    skip = (page - 1) * limit
+    
+    fabrics = await db.fabrics.find(query, {'_id': 0}).sort('created_at', -1).skip(skip).limit(limit).to_list(limit)
     
     # Get category names
     category_ids = list(set(f['category_id'] for f in fabrics))
@@ -735,6 +740,50 @@ async def get_fabrics(
             fabric['seller_id'] = ''
     
     return fabrics
+
+@api_router.get("/fabrics/count")
+async def get_fabrics_count(
+    category_id: Optional[str] = Query(None),
+    seller_id: Optional[str] = Query(None),
+    article_id: Optional[str] = Query(None),
+    fabric_type: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    min_gsm: Optional[int] = Query(None),
+    max_gsm: Optional[int] = Query(None),
+    bookable_only: Optional[bool] = Query(None)
+):
+    """Get total count of fabrics matching filters (for pagination)"""
+    query = {}
+    if category_id:
+        query['category_id'] = category_id
+    if seller_id:
+        query['seller_id'] = seller_id
+    if article_id:
+        query['article_id'] = article_id
+    if fabric_type:
+        query['fabric_type'] = fabric_type
+    if bookable_only:
+        query['is_bookable'] = True
+    if min_gsm is not None or max_gsm is not None:
+        query['gsm'] = {}
+        if min_gsm is not None:
+            query['gsm']['$gte'] = min_gsm
+        if max_gsm is not None:
+            query['gsm']['$lte'] = max_gsm
+        if not query['gsm']:
+            del query['gsm']
+    if search:
+        query['$or'] = [
+            {'name': {'$regex': search, '$options': 'i'}},
+            {'tags': {'$regex': search, '$options': 'i'}},
+            {'composition': {'$regex': search, '$options': 'i'}},
+            {'color': {'$regex': search, '$options': 'i'}},
+            {'fabric_code': {'$regex': search, '$options': 'i'}},
+            {'seller_sku': {'$regex': search, '$options': 'i'}}
+        ]
+    
+    count = await db.fabrics.count_documents(query)
+    return {'count': count}
 
 @api_router.get("/fabrics/{fabric_id}", response_model=Fabric)
 async def get_fabric(fabric_id: str):
