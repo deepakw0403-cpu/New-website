@@ -125,8 +125,8 @@ const AssistedSourcingPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.phone || !formData.company_name) {
-      toast.error("Please fill in all required contact details");
+    if (!formData.name || !formData.phone || !formData.company_name || !formData.gst_number) {
+      toast.error("Please fill in all required contact details including GST number");
       return;
     }
 
