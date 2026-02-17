@@ -148,6 +148,9 @@ Contact Details:
 - GST: ${formData.gst_number || "Not provided"}
 - Email: ${formData.email || "Not provided"}
 
+Search Query: ${searchQuery || "None"}
+Selected Tags: ${selectedTags.length > 0 ? selectedTags.join(", ") : "None"}
+
 Fabric Requirements:
 - Category: ${categories.find(c => c.id === formData.category_id)?.name || "Any"}
 - Fabric Type: ${formData.fabric_type || "Any"}
