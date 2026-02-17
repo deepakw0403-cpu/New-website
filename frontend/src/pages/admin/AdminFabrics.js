@@ -570,19 +570,17 @@ const AdminFabrics = () => {
                           placeholder={`Material ${idx + 1} (e.g., Cotton)`}
                           data-testid={`composition-material-${idx}`}
                         />
-                        <div className="relative w-24">
-                          <input
-                            type="number"
-                            value={comp.percentage || ''}
-                            onChange={(e) => updateComposition(idx, 'percentage', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-200 rounded text-sm pr-8"
-                            placeholder="0"
-                            min="0"
-                            max="100"
-                            data-testid={`composition-percentage-${idx}`}
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
-                        </div>
+                        <select
+                          value={comp.percentage || ''}
+                          onChange={(e) => updateComposition(idx, 'percentage', e.target.value)}
+                          className="w-24 px-2 py-2 border border-gray-200 rounded text-sm bg-white"
+                          data-testid={`composition-percentage-${idx}`}
+                        >
+                          <option value="">%</option>
+                          {percentageOptions.map((n) => (
+                            <option key={n} value={n}>{n}%</option>
+                          ))}
+                        </select>
                       </div>
                     ))}
                   </div>
