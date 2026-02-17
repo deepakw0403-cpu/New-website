@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Linkedin, Facebook, Instagram, Youtube } from "lucide-react";
+import { Linkedin, Facebook, Instagram, Youtube, CheckCircle, Shield, Truck, CreditCard, ArrowRight } from "lucide-react";
 
 const Footer = () => {
   const offices = [
@@ -30,8 +30,107 @@ const Footer = () => {
     },
   ];
 
+  const supplierBenefits = [
+    {
+      icon: CheckCircle,
+      title: "Lifetime Free Enquiries",
+      description: "Unlimited buyer queries at no subscription cost"
+    },
+    {
+      icon: Shield,
+      title: "Payment Protection",
+      description: "Secure 80:20 terms with invoice discounting"
+    },
+    {
+      icon: Truck,
+      title: "Logistics Support",
+      description: "End-to-end dispatch and shipment tracking"
+    },
+    {
+      icon: CreditCard,
+      title: "3% Commission Only",
+      description: "Pay only when transactions complete"
+    }
+  ];
+
   return (
     <footer className="bg-[#1F2937] text-white" data-testid="footer">
+      {/* Supplier Value Proposition Section */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700">
+        <div className="container-main py-12">
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+            {/* Left - Main Message */}
+            <div>
+              <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-4">
+                FOR SUPPLIERS
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+                Sell Fabrics Smarter with Locofast
+              </h2>
+              <p className="text-blue-100 mb-6 text-base">
+                Pay-for-performance B2B marketplace. No subscription fees. Commission charged only on completed transactions.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href="mailto:mail@locofast.com?subject=Supplier%20Enquiry"
+                  className="inline-flex items-center gap-2 bg-white text-blue-600 px-5 py-2.5 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+                  data-testid="supplier-cta"
+                >
+                  Start Selling Today
+                  <ArrowRight size={18} />
+                </a>
+                <a
+                  href="https://sell-fabrics-smarter-wit-vjfamt1.gamma.site/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 border border-white/40 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-white/10 transition-colors"
+                >
+                  Learn More
+                </a>
+              </div>
+              <p className="text-blue-200 text-sm mt-4">
+                <span className="font-semibold text-white">Guaranteed Success Plan:</span> ₹9,999 for 50+ verified queries in 3 weeks. 100% refundable if zero transactions.
+              </p>
+            </div>
+            
+            {/* Right - Benefits Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              {supplierBenefits.map((benefit, index) => (
+                <div 
+                  key={index}
+                  className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/15 transition-colors"
+                >
+                  <benefit.icon className="w-8 h-8 text-blue-200 mb-2" />
+                  <h4 className="font-semibold text-white text-sm mb-1">{benefit.title}</h4>
+                  <p className="text-blue-200 text-xs">{benefit.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Trust Badges */}
+          <div className="mt-8 pt-6 border-t border-white/20 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-6 text-sm text-blue-100">
+              <span className="flex items-center gap-2">
+                <CheckCircle size={16} className="text-green-300" />
+                500+ Active Suppliers
+              </span>
+              <span className="flex items-center gap-2">
+                <CheckCircle size={16} className="text-green-300" />
+                5,000+ Orders Executed
+              </span>
+              <span className="flex items-center gap-2">
+                <CheckCircle size={16} className="text-green-300" />
+                700+ Brands Served
+              </span>
+            </div>
+            <div className="text-xs text-blue-200">
+              Backed by Stellaris Ventures, Chiratae Ventures & Axilor
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Offices Section */}
       <div className="border-b border-gray-700">
         <div className="container-main py-16">
@@ -58,13 +157,13 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8">
           {/* Brand & Social */}
           <div className="md:col-span-1">
-            <a href="https://www.locofast.com" className="inline-block mb-6" target="_blank" rel="noopener noreferrer">
+            <Link to="/" className="inline-block mb-6">
               <img 
                 src="https://customer-assets.emergentagent.com/job_locofast-cms/artifacts/xkuf449w_Locofast%20-%20Medium.svg" 
                 alt="Locofast" 
                 className="h-8 brightness-0 invert"
               />
-            </a>
+            </Link>
             <div className="flex items-center gap-4 mt-4">
               <a 
                 href="https://in.linkedin.com/company/locofast" 
@@ -154,6 +253,11 @@ const Footer = () => {
               <li>
                 <Link to="/terms" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-terms">
                   Terms of Use
+                </Link>
+              </li>
+              <li>
+                <Link to="/tools" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-tools">
+                  Free Tools
                 </Link>
               </li>
             </ul>
