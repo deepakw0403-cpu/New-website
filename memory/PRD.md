@@ -37,6 +37,23 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 17, 2026 - SEO Content Layer (AI-Powered)
+- **SEO Admin Manager** at /admin/seo - Full CRUD for SEO content per fabric
+- **AI Content Generation** using GPT-4o via Emergent LLM Key:
+  - SEO H1 (auto-format: "[Name] – [Weight] [Type] | Bulk Supply in India")
+  - AI Intro (120-160 words, B2B commercial tone)
+  - Applications/Use Cases (inferred from category, tags, specs)
+  - Bulk Order Details (MOQ, Lead Time, Sampling, Dispatch)
+  - "Why This Fabric" bullets (AI-generated from specs)
+  - FAQ (5 questions from GSM, MOQ, lead time, export, sampling)
+- **SEO Meta Fields**: Meta Title (60 chars), Meta Description (160 chars), Canonical URL, Index/Noindex
+- **Auto/Manual Toggle**: Each block can be set to auto-update or manual edit
+- **SEO Preview Panel**: Alerts for missing content, word count validation
+- **Schema Markup**: Breadcrumb, Product, FAQPage schemas via react-helmet-async
+- **Batch Slug Generation**: Auto-generates SEO-friendly slugs for all fabrics
+- **Related Fabrics**: Auto-linked by category and similar GSM (+/- 20)
+- **Internal Linking**: Links to category pages, /fabrics/ hub, /assisted-sourcing
+
 ### Feb 17, 2026 - SEO Landing Pages (21 Pages)
 - **Fabrics Hub Page** at /fabrics/ - Main landing page with category overview
 - **Denim Category** at /fabrics/denim/ - Category page with all denim specifications
