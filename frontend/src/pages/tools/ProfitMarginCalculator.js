@@ -42,7 +42,7 @@ export default function ProfitMarginCalculator() {
         payload.desired_margin = parseFloat(desiredMargin);
       }
       
-      const response = await api.post('/api/tools/profit-margin-calculator', payload);
+      const response = await api.post('/tools/profit-margin-calculator', payload);
       setResult(response.data);
     } catch (err) {
       setError('Calculation failed. Please try again.');

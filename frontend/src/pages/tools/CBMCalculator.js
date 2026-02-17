@@ -22,7 +22,7 @@ export default function CBMCalculator() {
     setError('');
     
     try {
-      const response = await api.post('/api/tools/cbm-calculator', {
+      const response = await api.post('/tools/cbm-calculator', {
         length: parseFloat(length),
         width: parseFloat(width),
         height: parseFloat(height),

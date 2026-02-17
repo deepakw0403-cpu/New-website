@@ -45,7 +45,7 @@ export default function GSMCalculator() {
         };
       }
       
-      const response = await api.post('/api/tools/gsm-calculator', payload);
+      const response = await api.post('/tools/gsm-calculator', payload);
       setResult(response.data);
     } catch (err) {
       setError('Calculation failed. Please try again.');

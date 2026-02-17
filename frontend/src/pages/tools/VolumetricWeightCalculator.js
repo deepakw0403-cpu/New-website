@@ -23,7 +23,7 @@ export default function VolumetricWeightCalculator() {
     setError('');
     
     try {
-      const response = await api.post('/api/tools/volumetric-weight-calculator', {
+      const response = await api.post('/tools/volumetric-weight-calculator', {
         length: parseFloat(length),
         width: parseFloat(width),
         height: parseFloat(height),

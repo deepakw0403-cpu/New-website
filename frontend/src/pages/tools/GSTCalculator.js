@@ -21,7 +21,7 @@ export default function GSTCalculator() {
     setError('');
     
     try {
-      const response = await api.post('/api/tools/gst-calculator', {
+      const response = await api.post('/tools/gst-calculator', {
         amount: parseFloat(amount),
         gst_rate: parseFloat(gstRate),
         is_inclusive: isInclusive

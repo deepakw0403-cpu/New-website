@@ -39,7 +39,7 @@ export default function DiscountCalculator() {
         return;
       }
       
-      const response = await api.post('/api/tools/discount-calculator', payload);
+      const response = await api.post('/tools/discount-calculator', payload);
       setResult(response.data);
     } catch (err) {
       setError('Calculation failed. Please try again.');

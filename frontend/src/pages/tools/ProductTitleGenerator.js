@@ -39,7 +39,7 @@ export default function ProductTitleGenerator() {
       if (formData.color) payload.color = formData.color;
       if (formData.key_feature) payload.key_feature = formData.key_feature;
       
-      const response = await api.post('/api/tools/product-title-generator', payload);
+      const response = await api.post('/tools/product-title-generator', payload);
       setResult(response.data);
     } catch (err) {
       setError('Generation failed. Please try again.');

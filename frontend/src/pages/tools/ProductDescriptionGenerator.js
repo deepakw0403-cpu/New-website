@@ -47,7 +47,7 @@ export default function ProductDescriptionGenerator() {
       if (formData.finish) payload.finish = formData.finish;
       if (formData.use_cases) payload.use_cases = formData.use_cases;
       
-      const response = await api.post('/api/tools/product-description-generator', payload);
+      const response = await api.post('/tools/product-description-generator', payload);
       setResult(response.data);
     } catch (err) {
       setError('Generation failed. Please try again.');
