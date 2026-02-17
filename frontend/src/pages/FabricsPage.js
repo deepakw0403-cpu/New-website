@@ -246,7 +246,8 @@ const FabricsPage = () => {
 
         {/* Results Count */}
         <p className="text-sm text-neutral-500 mb-6" data-testid="results-count">
-          {fabrics.length} fabric{fabrics.length !== 1 ? "s" : ""} found
+          {totalCount} fabric{totalCount !== 1 ? "s" : ""} found
+          {totalPages > 1 && ` • Page ${currentPage} of ${totalPages}`}
         </p>
 
         {/* Fabric Grid */}
