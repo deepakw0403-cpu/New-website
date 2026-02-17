@@ -18,6 +18,7 @@ import CustomersPage from "./pages/CustomersPage";
 import SuppliersPage from "./pages/SuppliersPage";
 import MediaPage from "./pages/MediaPage";
 import CareersPage from "./pages/CareersPage";
+import AssistedSourcingPage from "./pages/AssistedSourcingPage";
 
 // Tools pages
 import {
