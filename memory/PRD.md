@@ -37,6 +37,34 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 17, 2026 - SEO Landing Pages (21 Pages)
+- **Fabrics Hub Page** at /fabrics/ - Main landing page with category overview
+- **Denim Category** at /fabrics/denim/ - Category page with all denim specifications
+- **10 Denim SEO Pages**:
+  - /fabrics/denim/8-oz/ - Lightweight denim for shirts
+  - /fabrics/denim/10-oz/ - Versatile mid-weight denim
+  - /fabrics/denim/12-oz/ - Heavy-weight workwear denim
+  - /fabrics/denim/stretch/ - Comfort stretch denim
+  - /fabrics/denim/rigid/ - 100% cotton non-stretch
+  - /fabrics/denim/indigo-dyed/ - Classic rope-dyed indigo
+  - /fabrics/denim/for-jeans-manufacturers/ - Production-ready denim
+  - /fabrics/denim/bulk-suppliers-india/ - High-volume sourcing
+  - /fabrics/denim/denim-fabric-manufacturers-in-india/ - Connect with mills
+- **Poly Knit Category** at /fabrics/poly-knit-fabrics/ - Category page with specifications
+- **10 Poly Knit SEO Pages**:
+  - /fabrics/poly-knit-fabrics/180-gsm/ - Lightweight performance fabric
+  - /fabrics/poly-knit-fabrics/220-gsm/ - Mid-weight sports fabric
+  - /fabrics/poly-knit-fabrics/240-gsm/ - Heavy-weight winter activewear
+  - /fabrics/poly-knit-fabrics/interlock/ - Double-knit smooth both sides
+  - /fabrics/poly-knit-fabrics/jersey/ - Single-knit for t-shirts
+  - /fabrics/poly-knit-fabrics/moisture-wicking/ - Performance sweat management
+  - /fabrics/poly-knit-fabrics/for-sportswear/ - Technical athletic fabrics
+  - /fabrics/poly-knit-fabrics/bulk-suppliers-india/ - High-volume sourcing
+  - /fabrics/poly-knit-fabrics/polyester-knit-fabric-manufacturers-in-india/ - Connect with mills
+- **Shared SEO Layout** - Reusable component with breadcrumbs, specs table, use cases, pricing, CTAs
+- **Footer Update** - New "Fabrics" section with links to category pages
+- **Internal Linking** - Related fabrics links on each page, breadcrumb navigation
+
 ### Feb 17, 2026 - Free Tools Suite (SEO-Friendly)
 - **10 Free Tools** at individual SEO-friendly URLs (/tools/*)
 - **Calculator Tools**:
