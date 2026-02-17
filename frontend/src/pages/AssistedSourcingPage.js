@@ -307,6 +307,74 @@ Quantity: ${formData.quantity_needed || "Not specified"}`);
               <div className="bg-white rounded-2xl p-8 shadow-sm" data-testid="step-2">
                 <h2 className="text-xl font-semibold text-slate-900 mb-6">Fabric Requirements</h2>
                 <div className="space-y-6">
+                  
+                  {/* Search Bar */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Search or Describe What You Need
+                    </label>
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-12 pr-4 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 text-lg"
+                        placeholder="e.g., Cotton shirting fabric for summer collection"
+                        data-testid="search-input"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Popular Tags */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                        <Tag size={16} />
+                        Quick Tags - Select all that apply
+                      </label>
+                      {selectedTags.length > 0 && (
+                        <button
+                          onClick={clearAllTags}
+                          className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                        >
+                          <X size={14} />
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {popularTags.map((tag) => (
+                        <button
+                          key={tag.label}
+                          onClick={() => toggleTag(tag.label)}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                            selectedTags.includes(tag.label)
+                              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                              : tagColors[tag.category]
+                          }`}
+                          data-testid={`tag-${tag.label.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          {selectedTags.includes(tag.label) && (
+                            <CheckCircle2 size={14} className="inline mr-1" />
+                          )}
+                          {tag.label}
+                        </button>
+                      ))}
+                    </div>
+                    {selectedTags.length > 0 && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-blue-700">
+                          <span className="font-medium">Selected:</span> {selectedTags.join(", ")}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border-t border-slate-100 pt-6">
+                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-4">Or choose from options below</p>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Fabric Category</label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
