@@ -642,38 +642,37 @@ const AdminFabrics = () => {
                 </div>
                 <p className="text-xs text-gray-500 -mt-3">At least one of EPI (Ends Per Inch) or PPI (Picks Per Inch) is required. Count refers to yarn count.</p>
 
-                {/* Denim-specific fields - show when denim category is selected */}
-                {(selectedCategory === 'cat-denim' || categories.find(c => c.id === form.category_id)?.name?.toLowerCase().includes('denim')) && (
-                  <div className="p-4 bg-indigo-50 border border-indigo-100 rounded">
-                    <label className="block text-sm font-medium mb-3 text-indigo-800">Denim Specifications</label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Weft Shrinkage (%)</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={form.weft_shrinkage}
-                          onChange={(e) => setForm({ ...form, weft_shrinkage: e.target.value })}
-                          className="w-full px-4 py-2 border border-indigo-200 rounded bg-white"
-                          placeholder="e.g., 2.5"
-                          data-testid="fabric-weft-shrinkage-input"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Stretch (%)</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={form.stretch_percentage}
-                          onChange={(e) => setForm({ ...form, stretch_percentage: e.target.value })}
-                          className="w-full px-4 py-2 border border-indigo-200 rounded bg-white"
-                          placeholder="e.g., 15"
-                          data-testid="fabric-stretch-input"
-                        />
-                      </div>
-                    </div>
+                {/* Shrinkage & Stretch Fields - Available for all fabrics */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Weft Shrinkage (%)</label>
+                    <select
+                      value={form.weft_shrinkage}
+                      onChange={(e) => setForm({ ...form, weft_shrinkage: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded bg-white"
+                      data-testid="fabric-weft-shrinkage-select"
+                    >
+                      <option value="">-- Select --</option>
+                      {percentageOptions.map((n) => (
+                        <option key={n} value={n}>{n}%</option>
+                      ))}
+                    </select>
                   </div>
-                )}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Stretch (%)</label>
+                    <select
+                      value={form.stretch_percentage}
+                      onChange={(e) => setForm({ ...form, stretch_percentage: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded bg-white"
+                      data-testid="fabric-stretch-select"
+                    >
+                      <option value="">-- Select --</option>
+                      {percentageOptions.map((n) => (
+                        <option key={n} value={n}>{n}%</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
