@@ -185,6 +185,9 @@ Company: ${formData.company_name}
 Phone: ${formData.phone}
 GST: ${formData.gst_number}
 
+Search: ${searchQuery || "N/A"}
+Tags: ${selectedTags.length > 0 ? selectedTags.join(", ") : "None"}
+
 Looking for: ${formData.fabric_type || "Any"} fabric
 Category: ${categories.find(c => c.id === formData.category_id)?.name || "Any"}
 GSM: ${formData.gsm_range || "Any"}
