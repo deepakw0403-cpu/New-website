@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, SlidersHorizontal, X, ArrowLeft } from "lucide-react";
+import { Search, SlidersHorizontal, X, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getFabrics, getCategories } from "../lib/api";
+import { getFabrics, getFabricsCount, getCategories } from "../lib/api";
+
+const ITEMS_PER_PAGE = 20;
 
 const FabricsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -11,6 +13,8 @@ const FabricsPage = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page")) || 1);
 
   // Filters
   const [search, setSearch] = useState(searchParams.get("search") || "");
@@ -22,6 +26,7 @@ const FabricsPage = () => {
   });
 
   const fabricTypes = ["woven", "knitted", "non-woven"];
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   useEffect(() => {
     getCategories().then(res => setCategories(res.data)).catch(console.error);
@@ -31,15 +36,22 @@ const FabricsPage = () => {
     const fetchFabrics = async () => {
       setLoading(true);
       try {
-        const params = {};
+        const params = {
+          page: currentPage,
+          limit: ITEMS_PER_PAGE
+        };
         if (search) params.search = search;
         if (selectedCategory) params.category_id = selectedCategory;
         if (selectedType) params.fabric_type = selectedType;
         if (gsmRange.min) params.min_gsm = gsmRange.min;
         if (gsmRange.max) params.max_gsm = gsmRange.max;
 
-        const res = await getFabrics(params);
-        setFabrics(res.data);
+        const [fabricsRes, countRes] = await Promise.all([
+          getFabrics(params),
+          getFabricsCount(params)
+        ]);
+        setFabrics(fabricsRes.data);
+        setTotalCount(countRes.data.count);
       } catch (err) {
         console.error("Error fetching fabrics:", err);
       }
@@ -48,14 +60,25 @@ const FabricsPage = () => {
 
     const timeout = setTimeout(fetchFabrics, 300);
     return () => clearTimeout(timeout);
-  }, [search, selectedCategory, selectedType, gsmRange]);
+  }, [search, selectedCategory, selectedType, gsmRange, currentPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCategory, selectedType, gsmRange.min, gsmRange.max]);
 
   const clearFilters = () => {
     setSearch("");
     setSelectedCategory("");
     setSelectedType("");
     setGsmRange({ min: "", max: "" });
+    setCurrentPage(1);
     setSearchParams({});
+  };
+
+  const goToPage = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const hasFilters = search || selectedCategory || selectedType || gsmRange.min || gsmRange.max;
