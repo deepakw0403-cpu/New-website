@@ -43,6 +43,53 @@ const AssistedSourcingPage = () => {
   const quantities = ["100-500 meters", "500-1000 meters", "1000-5000 meters", "5000+ meters", "Not Sure Yet"];
   const budgets = ["Under ₹100/m", "₹100-200/m", "₹200-300/m", "₹300-500/m", "₹500+/m", "Flexible"];
 
+  // Popular search tags for quick filtering
+  const popularTags = [
+    { label: "Cotton", category: "composition" },
+    { label: "Denim", category: "type" },
+    { label: "Silk", category: "composition" },
+    { label: "Linen", category: "composition" },
+    { label: "Polyester", category: "composition" },
+    { label: "Shirting", category: "use" },
+    { label: "Suiting", category: "use" },
+    { label: "T-Shirt Fabric", category: "use" },
+    { label: "Printed", category: "pattern" },
+    { label: "Solid", category: "pattern" },
+    { label: "Stripes", category: "pattern" },
+    { label: "Checks", category: "pattern" },
+    { label: "Lightweight", category: "weight" },
+    { label: "Medium Weight", category: "weight" },
+    { label: "Heavy Weight", category: "weight" },
+    { label: "Stretch", category: "feature" },
+    { label: "Wrinkle-Free", category: "feature" },
+    { label: "Organic", category: "feature" },
+    { label: "Sustainable", category: "feature" },
+    { label: "Premium", category: "quality" },
+  ];
+
+  const tagColors = {
+    composition: "bg-blue-100 text-blue-700 border-blue-200",
+    type: "bg-purple-100 text-purple-700 border-purple-200",
+    use: "bg-green-100 text-green-700 border-green-200",
+    pattern: "bg-orange-100 text-orange-700 border-orange-200",
+    weight: "bg-cyan-100 text-cyan-700 border-cyan-200",
+    feature: "bg-pink-100 text-pink-700 border-pink-200",
+    quality: "bg-amber-100 text-amber-700 border-amber-200",
+  };
+
+  const toggleTag = (tag) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag) 
+        : [...prev, tag]
+    );
+  };
+
+  const clearAllTags = () => {
+    setSelectedTags([]);
+    setSearchQuery("");
+  };
+
   useEffect(() => {
     getCategories().then(res => setCategories(res.data)).catch(console.error);
   }, []);
