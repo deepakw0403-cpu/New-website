@@ -37,6 +37,24 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 17, 2026 - Free Tools Suite (SEO-Friendly)
+- **10 Free Tools** at individual SEO-friendly URLs (/tools/*)
+- **Calculator Tools**:
+  - GST Calculator - Calculate GST, CGST, SGST for Indian businesses
+  - Profit Margin Calculator - Calculate margins and selling prices
+  - Discount Calculator - Calculate bulk order discounts
+  - GSM Calculator - Convert fabric weight (GSM ↔ oz/sq yard)
+  - CBM Calculator - Calculate cargo volume for shipping
+  - Volumetric Weight Calculator - Calculate dimensional weight
+- **AI-Powered Tools** (GPT-4o via Emergent LLM key):
+  - Product Description Generator - AI fabric descriptions with tone selection
+  - Product Title Generator - SEO-friendly product titles
+- **Utility Tools**:
+  - Barcode Generator - CODE128, EAN-13, UPC-A, CODE39 barcodes with PNG download
+- **Tools Hub Page** at /tools with categorized tool cards
+- **Navigation**: Added "Free Tools" link to navbar
+- **Backend API**: New /api/tools/* endpoints for all calculators
+
 ### Feb 16, 2026 - Phase 1: B2B Marketplace Foundation
 - **Seller Enhancements**:
   - Unique seller codes (LS-XXXXX format) auto-generated on creation
