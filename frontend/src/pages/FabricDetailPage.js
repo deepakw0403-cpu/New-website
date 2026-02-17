@@ -265,25 +265,27 @@ const FabricDetailPage = () => {
             <div className="border-t border-gray-100 pt-8 mb-8" data-testid="fabric-specs">
               <h3 className="subheading mb-6">Technical Specifications</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div className="border-b border-gray-100 pb-3">
-                  <p className="text-xs text-gray-400 mb-1">Fabric Type</p>
-                  <p className="font-medium capitalize">{fabric.fabric_type}</p>
-                </div>
-                <div className="border-b border-gray-100 pb-3">
-                  <p className="text-xs text-gray-400 mb-1">Composition</p>
-                  <p className="font-medium">
-                    {Array.isArray(fabric.composition) && fabric.composition.length > 0
-                      ? fabric.composition.map(c => `${c.percentage}% ${c.material}`).join(', ')
-                      : fabric.composition || '-'}
-                  </p>
-                </div>
-                {fabric.pattern && fabric.pattern !== "None" && (
+                {fabric.fabric_type && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Fabric Type</p>
+                    <p className="font-medium capitalize">{fabric.fabric_type}</p>
+                  </div>
+                )}
+                {Array.isArray(fabric.composition) && fabric.composition.length > 0 && fabric.composition.some(c => c.material) && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Composition</p>
+                    <p className="font-medium">
+                      {fabric.composition.filter(c => c.material && c.percentage > 0).map(c => `${c.percentage}% ${c.material}`).join(', ')}
+                    </p>
+                  </div>
+                )}
+                {fabric.pattern && fabric.pattern !== "None" && fabric.pattern !== "Solid" && (
                   <div className="border-b border-gray-100 pb-3">
                     <p className="text-xs text-gray-400 mb-1">Pattern</p>
                     <p className="font-medium">{fabric.pattern}</p>
                   </div>
                 )}
-                {(fabric.gsm || fabric.ounce) && (
+                {((fabric.weight_unit === 'ounce' && fabric.ounce) || (fabric.weight_unit !== 'ounce' && fabric.gsm)) && (
                   <div className="border-b border-gray-100 pb-3">
                     <p className="text-xs text-gray-400 mb-1">
                       {fabric.weight_unit === 'ounce' ? 'Weight (Ounce)' : 'GSM'}
@@ -293,14 +295,23 @@ const FabricDetailPage = () => {
                     </p>
                   </div>
                 )}
-                <div className="border-b border-gray-100 pb-3">
-                  <p className="text-xs text-gray-400 mb-1">Width</p>
-                  <p className="font-medium">{fabric.width}</p>
-                </div>
+                {fabric.width && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Width</p>
+                    <p className="font-medium">{fabric.width}</p>
+                  </div>
+                )}
                 {(fabric.warp_count || fabric.weft_count) && (
                   <div className="border-b border-gray-100 pb-3">
                     <p className="text-xs text-gray-400 mb-1">EPI × PPI</p>
-                    <p className="font-medium tech-data">{fabric.warp_count || '-'} × {fabric.weft_count || '-'}</p>
+                    <p className="font-medium tech-data">
+                      {fabric.warp_count && fabric.weft_count 
+                        ? `${fabric.warp_count} × ${fabric.weft_count}`
+                        : fabric.warp_count 
+                          ? `${fabric.warp_count} EPI`
+                          : `${fabric.weft_count} PPI`
+                      }
+                    </p>
                   </div>
                 )}
                 {fabric.yarn_count && (
@@ -309,24 +320,66 @@ const FabricDetailPage = () => {
                     <p className="font-medium tech-data">{fabric.yarn_count}</p>
                   </div>
                 )}
-                <div className="border-b border-gray-100 pb-3">
-                  <p className="text-xs text-gray-400 mb-1">Color</p>
-                  <p className="font-medium">{fabric.color}</p>
-                </div>
+                {fabric.color && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Color</p>
+                    <p className="font-medium">{fabric.color}</p>
+                  </div>
+                )}
                 {fabric.finish && (
                   <div className="border-b border-gray-100 pb-3">
                     <p className="text-xs text-gray-400 mb-1">Finish</p>
                     <p className="font-medium">{fabric.finish}</p>
                   </div>
                 )}
-                <div className="border-b border-gray-100 pb-3">
-                  <p className="text-xs text-gray-400 mb-1">MOQ</p>
-                  <p className="font-medium">{fabric.moq}</p>
-                </div>
+                {fabric.moq && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">MOQ</p>
+                    <p className="font-medium">{fabric.moq}</p>
+                  </div>
+                )}
                 {fabric.starting_price && (
                   <div className="border-b border-gray-100 pb-3">
                     <p className="text-xs text-gray-400 mb-1">Starting Price</p>
                     <p className="font-medium text-[#2563EB]">{fabric.starting_price}</p>
+                  </div>
+                )}
+                {/* Inventory fields - only show when available */}
+                {fabric.quantity_available > 0 && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Available Quantity</p>
+                    <p className="font-medium text-emerald-600">{fabric.quantity_available.toLocaleString()} meters</p>
+                  </div>
+                )}
+                {fabric.rate_per_meter > 0 && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Rate per Meter</p>
+                    <p className="font-medium text-[#2563EB]">₹{fabric.rate_per_meter.toLocaleString()}</p>
+                  </div>
+                )}
+                {fabric.dispatch_timeline && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Dispatch Timeline</p>
+                    <p className="font-medium">{fabric.dispatch_timeline}</p>
+                  </div>
+                )}
+                {/* Denim-specific fields - only show when available */}
+                {fabric.weft_shrinkage > 0 && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Weft Shrinkage</p>
+                    <p className="font-medium">{fabric.weft_shrinkage}%</p>
+                  </div>
+                )}
+                {fabric.stretch_percentage > 0 && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Stretch</p>
+                    <p className="font-medium">{fabric.stretch_percentage}%</p>
+                  </div>
+                )}
+                {fabric.seller_sku && (
+                  <div className="border-b border-gray-100 pb-3">
+                    <p className="text-xs text-gray-400 mb-1">Seller SKU</p>
+                    <p className="font-medium font-mono text-sm">{fabric.seller_sku}</p>
                   </div>
                 )}
               </div>
