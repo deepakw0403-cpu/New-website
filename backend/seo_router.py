@@ -259,12 +259,12 @@ def generate_template_faq(fabric: Dict) -> List[Dict]:
     ounce = fabric.get('ounce', '')
     if gsm:
         faq.append({
-            "question": f"What is the weight of this fabric?",
+            "question": "What is the weight of this fabric?",
             "answer": f"This fabric weighs {gsm} GSM (grams per square meter)."
         })
     elif ounce:
         faq.append({
-            "question": f"What is the weight of this fabric?",
+            "question": "What is the weight of this fabric?",
             "answer": f"This fabric weighs {ounce} oz per square yard."
         })
     
@@ -386,7 +386,7 @@ def generate_template_intro(fabric: Dict) -> str:
     if finish:
         intro += f" Features {finish} finish for enhanced performance."
     
-    intro += f" Sourced from verified Indian mills with consistent quality for bulk manufacturing."
+    intro += " Sourced from verified Indian mills with consistent quality for bulk manufacturing."
     
     if moq:
         intro += f" Available with MOQ of {moq}."
