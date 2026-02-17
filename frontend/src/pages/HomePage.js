@@ -146,7 +146,7 @@ const HomePage = () => {
                 Sell Fabrics Smarter with Locofast
               </h2>
               <p className="text-blue-100 mb-6 text-base">
-                Pay-for-performance B2B marketplace. No subscription fees. Commission charged only on completed transactions.
+                Pay-for-performance B2B marketplace. No subscription fees. Get lifetime free enquiries from verified buyers.
               </p>
               <div className="flex flex-wrap gap-3">
                 <a
@@ -166,9 +166,6 @@ const HomePage = () => {
                   Learn More
                 </a>
               </div>
-              <p className="text-blue-200 text-sm mt-4">
-                <span className="font-semibold text-white">Guaranteed Success Plan:</span> ₹9,999 for 50+ verified queries in 3 weeks. 100% refundable if zero transactions.
-              </p>
             </div>
             
             {/* Right - Benefits Grid */}
