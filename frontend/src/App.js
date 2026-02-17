@@ -110,6 +110,33 @@ function App() {
           <Route path="/tools/product-title-generator" element={<ProductTitleGenerator />} />
           <Route path="/tools/barcode-generator" element={<BarcodeGenerator />} />
           
+          {/* SEO Landing Pages - Fabrics */}
+          <Route path="/fabrics/" element={<FabricsHub />} />
+          
+          {/* Denim SEO Pages */}
+          <Route path="/fabrics/denim/" element={<DenimCategory />} />
+          <Route path="/fabrics/denim/8-oz/" element={<Denim8oz />} />
+          <Route path="/fabrics/denim/10-oz/" element={<Denim10oz />} />
+          <Route path="/fabrics/denim/12-oz/" element={<Denim12oz />} />
+          <Route path="/fabrics/denim/stretch/" element={<DenimStretch />} />
+          <Route path="/fabrics/denim/rigid/" element={<DenimRigid />} />
+          <Route path="/fabrics/denim/indigo-dyed/" element={<DenimIndigoDyed />} />
+          <Route path="/fabrics/denim/for-jeans-manufacturers/" element={<DenimForJeans />} />
+          <Route path="/fabrics/denim/bulk-suppliers-india/" element={<DenimBulkSuppliers />} />
+          <Route path="/fabrics/denim/denim-fabric-manufacturers-in-india/" element={<DenimManufacturers />} />
+          
+          {/* Poly Knit SEO Pages */}
+          <Route path="/fabrics/poly-knit-fabrics/" element={<PolyKnitCategory />} />
+          <Route path="/fabrics/poly-knit-fabrics/180-gsm/" element={<PolyKnit180gsm />} />
+          <Route path="/fabrics/poly-knit-fabrics/220-gsm/" element={<PolyKnit220gsm />} />
+          <Route path="/fabrics/poly-knit-fabrics/240-gsm/" element={<PolyKnit240gsm />} />
+          <Route path="/fabrics/poly-knit-fabrics/interlock/" element={<PolyKnitInterlock />} />
+          <Route path="/fabrics/poly-knit-fabrics/jersey/" element={<PolyKnitJersey />} />
+          <Route path="/fabrics/poly-knit-fabrics/moisture-wicking/" element={<PolyKnitMoistureWicking />} />
+          <Route path="/fabrics/poly-knit-fabrics/for-sportswear/" element={<PolyKnitSportswear />} />
+          <Route path="/fabrics/poly-knit-fabrics/bulk-suppliers-india/" element={<PolyKnitBulkSuppliers />} />
+          <Route path="/fabrics/poly-knit-fabrics/polyester-knit-fabric-manufacturers-in-india/" element={<PolyKnitManufacturers />} />
+          
           {/* Admin routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
