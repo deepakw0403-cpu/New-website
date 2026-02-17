@@ -19,20 +19,8 @@ const AdminFabricSEO = () => {
 
   const loadFabrics = useCallback(async () => {
     try {
-      // Load fabrics in batches of 100
-      let allFabrics = [];
-      let skip = 0;
-      const limit = 100;
-      let hasMore = true;
-      
-      while (hasMore) {
-        const res = await getFabrics({ limit, skip });
-        allFabrics = [...allFabrics, ...res.data];
-        skip += limit;
-        hasMore = res.data.length === limit;
-      }
-      
-      setFabrics(allFabrics);
+      const res = await getFabrics({ limit: 100 });
+      setFabrics(res.data);
     } catch (err) {
       toast.error("Failed to load fabrics");
     }
