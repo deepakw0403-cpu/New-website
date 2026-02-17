@@ -591,13 +591,18 @@ const AdminFabrics = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Width</label>
-                    <input
-                      type="text"
+                    <label className="block text-sm font-medium mb-2">Width (inches)</label>
+                    <select
                       value={form.width}
                       onChange={(e) => setForm({ ...form, width: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
-                      placeholder="e.g., 58 inches"
+                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                      data-testid="fabric-width-select"
+                    >
+                      <option value="">-- Select Width --</option>
+                      {widthOptions.map((n) => (
+                        <option key={n} value={n}>{n}"</option>
+                      ))}
+                    </select>
                       data-testid="fabric-width-input"
                     />
                   </div>
