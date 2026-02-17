@@ -151,9 +151,9 @@ const Footer = () => {
 
       {/* Main Footer */}
       <div className="container-main py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
           {/* Brand & Social */}
-          <div className="md:col-span-1">
+          <div className="col-span-2 md:col-span-3 lg:col-span-1">
             <Link to="/" className="inline-block mb-6">
               <img 
                 src="https://customer-assets.emergentagent.com/job_locofast-cms/artifacts/xkuf449w_Locofast%20-%20Medium.svg" 
