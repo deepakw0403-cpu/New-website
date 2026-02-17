@@ -521,14 +521,17 @@ const AdminFabrics = () => {
                   {form.weight_unit === "gsm" ? (
                     <div>
                       <label className="block text-sm font-medium mb-2">GSM *</label>
-                      <input
-                        type="number"
+                      <select
                         value={form.gsm}
                         onChange={(e) => setForm({ ...form, gsm: e.target.value })}
-                        className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
-                        placeholder="e.g., 180"
-                        data-testid="fabric-gsm-input"
-                      />
+                        className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                        data-testid="fabric-gsm-select"
+                      >
+                        <option value="">-- Select GSM --</option>
+                        {gsmOptions.map((n) => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
                     </div>
                   ) : (
                     <div>
