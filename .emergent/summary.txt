@@ -1,105 +1,97 @@
 <analysis>**original_problem_statement:**
-The user wants to build a B2B fabric sourcing platform that mirrors the professional tone and brand language of the existing  website.
+The user initially wanted to build a B2B fabric sourcing platform mirroring the professional tone and brand language of . The project has since evolved significantly based on user feedback.
 
-**Initial & Ongoing Feature Requests:**
-*   **Branding**: Use Locofast logo and brand colors.
-*   **Admin**: Provide admin credentials and URL.
-*   **Data Models & Features**:
-    *   Implement image uploads for Categories.
-    *   Introduce a 'Seller' concept and link fabrics to sellers.
-    *   Add  &  to Sellers.
-    *   Link Sellers to Categories.
-    *   Fabric  should be a multi-select field.
-    *   Fabric  should support up to three material types with percentages.
-    *   Add a  dropdown for fabrics.
-    *   Add a  field for fabrics.
-    *   Add the ability to include a video for a fabric.
-    *   Make the header logo link to .
-    *   Create marketing Collections to group specific fabrics.
-    *   Add  and  to fabric metadata, later changed to  x  dropdowns (0-150).
-    *   Add a separate  text field for fabrics.
-    *   Fabric  field should be a choice between  and .
-    *   At least one of  or  must be provided.
-    *   The  field should be a non-mandatory dropdown with specific wash types.
-    *   The  field for dyed fabrics should be a dropdown of standard colors.
-    *   Implement a photo zoom feature on the fabric detail page.
-    *   Generate a random, unique Fabric ID (e.g., ) for every fabric and pass it in enquiry forms.
-*   **UI/UX**:
-    *   Remove the Made with Emergent badge.
-    *   Add a 'Home' link to the header.
-    *   Update the About Locofast page content.
-    *   Update all footer addresses.
-    *   Add a Back to Home button on all navigation pages.
-*   **Latest Request**: User asked how to integrate a payment gateway.
+**PRODUCT REQUIREMENTS (Latest):**
+The user has requested a major strategic pivot to transform the website from a simple marketplace into a premium, curated sourcing service, similar to The Urban Company of fabric sourcing. This involves a complete overhaul of the homepage, new user journeys, and several new features.
+
+**New Feature Requests (from message #340 & others):**
+*   **Branding & Positioning:**
+    *   **Positioning Statement**: We help you source the right fabric, faster and from verified mills. Source the right fabric. Without the stress.
+    *   **Homepage Redesign**: Create a premium feel with new CTAs (Explore fabrics, GET assisted sourcing) and a What Makes Us Different section highlighting verified suppliers, clear pricing, and assisted selection.
+*   **New Features:**
+    *   **Assisted Sourcing Form**: A guided questionnaire asking for Name, Company, Phone, GST, and fabric requirements to generate a qualified lead. Show curated fabric options based on answers.
+    *   **Seller Portal**: A separate admin panel for sellers to manage their own inventory (un-started, planned for a future phase).
+    *   **Order Management**: An admin panel to manage orders, showing seller name, quantity, and amount received (un-started, future phase).
+    *   **WhatsApp Advisor**: A click-to-chat WhatsApp feature for assisted purchasing.
+    *   **Blog Section**: A blog with proper SEO-friendly URL structure.
+    *   **Coupon Engine**: An admin feature to create discount coupons (e.g., for quantity, first-time purchase).
+    *   **GSM Calculator**: A tool (link in the top right) to convert fabric specifications to GSM.
+*   **Data Model & UI Changes:**
+    *   **Denim Fields**: Add  and  percentage fields (as dropdowns from 1-50).
+    *   **Article/Variant System**: Club all colors under a single parent article, each with its own image and inventory level.
+    *   **Seller Management**: Ability to deactivate sellers (hiding their inventory) and assign a unique seller serial number.
+    *   **No Free Text**: All numeric input fields in the admin panel should be dropdowns.
+    *   **Conditional Rendering**: On the public-facing site, do not show fabric spec fields if the data is not available or is zero.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The project is a full-stack B2B fabric sourcing platform built with React, FastAPI, and MongoDB.
-- **Frontend**: A comprehensive public website and a feature-rich admin dashboard. Public pages include Homepage, Fabric/Collection listings, and detail pages. The admin panel supports full CRUD operations for Fabrics, Categories, Sellers, and Collections.
-- **Backend**: FastAPI serves REST APIs for all data models, including JWT-based authentication for the admin panel.
-- **Features**: The application includes most of the user's requested features, such as detailed fabric specifications (composition, EPI/PPI, yarn count, finish, color), seller and collection management, image uploads, and a zoomable image gallery. Each fabric has a unique  prefixed ID.
+The application is a full-stack platform (React/FastAPI/MongoDB) with a public-facing website and an admin dashboard.
+- **Backend**: Manages CRUD operations for Fabrics, Categories, Sellers, Collections, and newly added Articles (for color variants). New fields for inventory (, , ), denim specs (, ), and seller status (, ) have been added. The fabric listing API is now paginated.
+- **Frontend**:
+    - **Admin Panel**: Features a comprehensive fabric creation/edit form where all numeric inputs have been converted to dropdowns. Includes new management pages for Articles and updated pages for Sellers (with an  toggle).
+    - **Public Site**: The fabric listing page () now uses pagination to improve performance. The fabric detail page and fabric cards conditionally hide specification fields if their values are empty or zero. The homepage redesign has been initiated.
 
 **Last working item**:
-The agent just finished implementing a unique fabric ID system. The user's last message was a question about integrating a payment gateway.
+The agent was implementing a major set of features to transform the platform into a premium sourcing service, as requested by the user. The agent started by creating the foundation for the new Assisted Sourcing feature.
 
--   **Last item agent was working**: The agent has not yet started working on the payment gateway integration. The user's question is the starting point for the next task.
--   **Status**: NOT STARTED
--   **Agent Testing Done**: N/A
--   **Which testing method agent to use?**: backend testing agent
--   **User Testing Done**: N/A
+-   **Last item agent was working**: Creating the  file, which will house the new guided questionnaire for users. This is the first step in the larger homepage and UX overhaul.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: frontend testing agent
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
 -   **Issue 1: Failing to save seller (P1 - User Reported)**
-    -   The user reported an issue with saving sellers. The previous agent investigated by manually creating a seller through the UI and via , and both attempts were successful. The agent asked the user for more details but received a new feature request instead.
-    -   **Attempted fixes**: Verified seller creation via UI (screenshot) and API (). Both worked.
+    -   The user reported an issue with saving sellers. The previous agent investigated and could not reproduce the error, as both UI and API-based seller creation worked.
+    -   **Attempted fixes**: Verified seller creation via UI (screenshot) and API (). Both were successful.
     -   **Next debug checklist**:
-        1.  Wait for user feedback with specific steps to reproduce the error.
-        2.  If the user provides details, try to replicate the exact scenario.
-        3.  Check browser console logs during the user's reported workflow for any client-side errors.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a core admin function. Although it seems to be working, resolving the user's perceived issue is important for trust and usability.
+        1.  Await user feedback with specific steps to reproduce the error.
+        2.  Check browser console logs if the user can provide a scenario.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a core admin function. Resolving the user's perceived issue is important for trust.
     -   **Status**: BLOCKED (Awaiting user feedback)
     -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: Both
     -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   None.
+-   **Task 1: Premium Sourcing Experience Overhaul (P0)**
+    -   **Description**: This is the current, primary task. It involves redesigning the homepage and implementing the Assisted Sourcing feature to align with the user's new premium sourcing partner vision.
+    -   **Where to resume**:
+        1.  Populate the newly created  with the questionnaire form (Name, Company, GST, fabric questions).
+        2.  Complete the redesign of  to include the new positioning statement, CTAs, and the What Makes Us Different section.
+        3.  Add the WhatsApp click-to-chat link.
+    -   **What will be achieved with this?**: The website's look, feel, and user flow will match the new premium branding, shifting from a simple marketplace to a guided sourcing experience.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Both (frontend for the UI, backend once the form submission logic is added).
+    -   **Blocked on something**: No.
 
 **Upcoming and Future Tasks**
 **Upcoming Tasks:**
--   **P0: Payment Gateway Integration**: The user has asked how to integrate a payment gateway. The next agent must:
-    1.  Acknowledge the user's request.
-    2.  Use the  tool to discuss payment gateway options (e.g., Stripe, Razorpay) and gather requirements.
-    3.  Call the  subagent to get the correct implementation plan.
-    4.  Implement the payment gateway integration as per the playbook.
+-   **P0: Assisted Sourcing Form (Backend Logic)**: Implement the backend endpoint to receive the assisted sourcing form data, process it as a qualified lead, and potentially suggest fabrics.
+-   **P1: GSM Calculator**: Create the GSM calculator tool and link it in the header.
+-   **P1: Blog Section**: Build the blog feature with an admin interface for creating posts and an SEO-friendly frontend structure.
 
 **Future Tasks:**
--   **P1: Cloudinary Integration**: The current file upload system saves images to the local server (). This should be replaced with a production-grade cloud storage solution like Cloudinary.
--   **P2: Email Notifications**: Implement email notifications (e.g., using SendGrid or Resend) for new inquiries submitted through the platform.
+-   **P2: Seller Portal**: Create a separate, invite-based admin portal for sellers to log in and manage their own inventory.
+-   **P2: Order Management Panel**: Build the UI in the main admin panel to view and manage orders.
+-   **P2: Coupon Engine**: Implement the backend and admin UI for creating and managing discount coupons.
+-   **P3: Payment Gateway Integration**: Integrate a payment gateway like Razorpay for handling advance or full payments.
+-   **P3: Cloudinary Integration**: Replace the local file storage with a cloud-based solution like Cloudinary for production-ready image handling.
+-   **P4: Email Notifications**: Integrate an email service for notifications (e.g., for new inquiries).
 
 **Completed work in this session**
--   **Feature: 7 New Fabric/Seller Fields**: Implemented / for sellers, seller-category links, and fabric fields for , , , and .
--   **Feature: Collections**: Built a full CRUD feature for marketing Collections to group fabrics, including admin UI and public-facing pages.
--   **Feature: Detailed Fabric Specs**:
-    -   Added  counts, then evolved them to / dropdowns.
-    -   Added a separate  field.
-    -   Added / toggle for fabric weight.
-    -   Added a comprehensive  dropdown and a  dropdown.
--   **Feature: Unique Fabric ID**: Implemented a system to assign a unique  code to each fabric upon creation and for existing ones via a migration script.
--   **UI/UX Enhancements**:
-    -   Added an image zoom modal on the Fabric Detail page.
-    -   Added a Home link to the navbar and Back to Home links on sub-pages.
-    -   Removed the Made with Emergent badge.
-    -   Updated footer addresses and About Us page content per user's request.
--   **Bug Fixes & Refinements**:
-    -   Resolved a backend crash by handling legacy fabric  data (string vs. list).
-    -   Fixed a deployment blocker by moving the  to an environment variable.
-    -   Confirmed seller save functionality is working despite a user report of failure.
--   **Testing**: Used the testing agent to find and fix bugs in frontend rendering logic after major changes.
+-   **Feature: Inventory & Advanced Fabric Fields**: Added inventory management fields (, , , ), denim-specific fields (, ), and a seller deactivation toggle ().
+-   **Feature: Article System for Variants**: Implemented a new  model and corresponding admin UI to group fabrics by color under a single parent product.
+-   **Feature: Seller Code Generation**: Automatically generate a unique  (e.g., ) for each new seller.
+-   **Performance Fix: Listing Page Pagination**: Resolved slow page loads on the  route by implementing backend and frontend pagination, loading only 20 fabrics per page.
+-   **UX Improvement: Conditional Field Rendering**: Updated the public-facing pages (, , etc.) to hide technical specification fields if their value is 0 or empty, creating a cleaner UI.
+-   **UX Improvement: Admin Form Overhaul**: Converted all numeric and text-based input fields in the fabric admin form into dropdowns with predefined ranges (1-100) to prevent invalid data entry.
+-   **UX Improvement: Ounce Dropdown**: Refined the 'Weight (Ounce)' dropdown to offer values from 1-20 in 0.25 increments.
+-   **Task Started: Premium Sourcing Overhaul**: Began the major platform pivot by starting the homepage redesign and creating the file for the new Assisted Sourcing page.
 
 **Earlier issues found/mentioned but not fixed**
--   The two main issues from the previous session (frontend compilation error, seller save issue) have been addressed. The compilation error was implicitly fixed during other development, and the seller save issue was investigated and determined to be working.
+-   The Failing to save seller issue, originally reported by the user, remains unresolved as it could not be reproduced by the agent. It is currently blocked pending more specific details from the user.
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -108,16 +100,17 @@ The agent just finished implementing a unique fabric ID system. The user's last 
 
 
 **Key Technical Concepts**
--   **Frontend**: React, , , TailwindCSS, , .
+-   **Frontend**: React, , , TailwindCSS, .
 -   **Backend**: FastAPI, Pydantic, Beanie ODM, JWT.
 -   **Database**: MongoDB.
--   **Architecture**: Monorepo with a REST API separating the frontend and backend.
+-   **Architecture**: Monorepo with a paginated REST API separating the frontend and backend.
 
 **key DB schema**
 -   **users**: 
 -   **categories**: 
 -   **sellers**: 
--   **fabrics**: 
+-   **articles**:  (new model)
+-   **fabrics**:  (fields added/modified)
 -   **collections**: 
 -   **enquiries**: 
 
@@ -125,62 +118,57 @@ The agent just finished implementing a unique fabric ID system. The user's last 
 -   None.
 
 **All files of reference**
--   : Heavily modified to add new fields to Fabric, Seller, and add the Collection model.
--   : Updated to handle new fabric fields and legacy data.
--   : Updated to add Collection endpoints.
--   : Updated to include the new routers.
--   : Significantly updated to include forms for all new fabric specifications.
--   : Updated with city, state, and category selection.
--   : New file for managing collections.
--   : Updated to display all new fabric specs and the image zoom modal.
--    & : New public pages for collections.
--   : Updated with Home and Collections links.
--   : Updated with new routes for collections.
+-   : Added  model, updated  and  models with numerous new fields.
+-   : Implemented pagination logic (, ).
+-   : Added CRUD endpoints for the new  model.
+-   : Major overhaul to convert all numeric text inputs to dropdowns.
+-   : New file for managing article-fabric groupings.
+-   : Re-architected to use state for pagination () and fetch data page by page.
+-   : Added conditional rendering logic to hide empty or zero-value spec fields.
+-   : Began a complete redesign to align with new branding.
+-   : New empty file created for the sourcing questionnaire.
 
 **Areas that need refactoring**:
--   The state management in admin components like  is very complex due to numerous  hooks. Using a custom hook or a state management library would improve readability and maintainability.
+-    is extremely large and complex. It could be broken down into smaller components (e.g., , , ).
+-   State management across the app relies heavily on . For more complex pages like the admin forms, a state management library or  could simplify logic.
 
 **key api endpoints**
--   : Admin login.
--   : Get dashboard statistics (includes collections count).
--   , , : CRUD endpoints.
--   : CRUD for collections.
--   , , : Public listing endpoints.
--   , : Public detail endpoints.
+-   : Now paginated with .
+-   : New endpoint to get the total number of fabrics for pagination.
+-   : New CRUD endpoints for managing Articles.
+-   :  method now handles the  field.
 
 **Critical Info for New Agent**
--   The immediate task is to address the user's question about payment gateway integration. You must use the  subagent for this. Do not attempt to implement it from your own knowledge.
--   The Failing to save seller issue was reported by the user but could not be reproduced by the previous agent. Be prepared to investigate further if the user provides more details.
--   The application has evolved significantly with many new fields and features. Review the  and  files to understand the current data structure before making changes.
--   The codebase is in a stable and tested state. A deployment health check was passed successfully.
+-   **Major Pivot in Progress**: The user's priority has shifted dramatically from a simple marketplace to a premium, guided sourcing service. All new development should align with this vision. Do not work on old tasks like payment gateways unless the user reprioritizes them.
+-   **Resume Phase 1**: Your immediate task is to continue the Premium Sourcing Experience Overhaul. This means building the UI for  and completing the  redesign.
+-   **Admin Forms use Dropdowns**: All numeric inputs in the fabric admin form have been converted to dropdowns. Maintain this pattern for any new numeric fields.
 
 **documents and test reports created in this job**
 -    (updated)
--   
+-    (All tests passed for Phase 1 of inventory features)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User (Msg 525)**: Requested a unique Fabric ID (like LF-XXXXX) for enquiries. **Status: COMPLETED**.
-2.  **User (Msg 494)**: Requested to add  as a separate field. **Status: COMPLETED**.
-3.  **User (Msg 479)**: Asked to run a deployment health check. **Status: COMPLETED**.
-4.  **User (Msg 438)**: Requested image zoom, auto-sequencing, color dropdown, and  dropdowns. **Status: COMPLETED**.
-5.  **User (Msg 393)**: Requested GSM/Ounce toggle, mandatory warp/weft, and new  options. **Status: COMPLETED**.
-6.  **User (Msg 352)**: Requested to add  and . **Status: COMPLETED**.
-7.  **User (Msg 348)**: Asked if fabric metadata has warp/weft count. **Status: COMPLETED**.
-8.  **User (Msg 329)**: Asked to run a deployment health check. **Status: COMPLETED** (after fixing a blocker).
-9.  **User (Msg 288)**: Requested a Back to Home button on all pages. **Status: COMPLETED**.
-10. **User (Msg 544)**: How do i integrate a payment gateway in this?. **Status: PENDING**.
+1.  **User (Msg 343)**: Clarified requirements for the new sourcing experience (use WhatsApp links, SEO focus, form questions). **Status: IN PROGRESS**.
+2.  **User (Msg 340)**: Provided a long list of major new requirements, initiating the pivot to a premium sourcing platform. **Status: IN PROGRESS**.
+3.  **User (Msg 333)**: Requested the 'Ounce' dropdown be updated with 0.25 increments from 1-20oz. **Status: COMPLETED**.
+4.  **User (Msg 300)**: Requested that all numeric fields in the admin form be converted to dropdowns (no free text). **Status: COMPLETED**.
+5.  **User (Msg 267)**: Requested 'Weight (Ounce)' be a 0-50 dropdown and / be 1-50 dropdowns shown to customers. **Status: COMPLETED**.
+6.  **User (Msg 234)**: Reported that the fabric listing page loads very slowly. **Status: COMPLETED** (fixed with pagination).
+7.  **User (Msg 231)**: Asked for the URL where suppliers can manage their inventory. **Status: PENDING** (clarified that the seller portal is a future task).
+8.  **User (Msg 194)**: Requested that fields with no data (or zero) not be shown on the frontend. **Status: COMPLETED**.
+9.  **User (Msg 17)**: Provided various requirements for the seller portal and deactivation. **Status: IN PROGRESS** (partially implemented, seller portal is a future task).
+10. **User (Msg 14)**: Provided the initial detailed list of new features, including the seller portal and order management. **Status: IN PROGRESS** (partially implemented, some items are now future tasks).
 
 **Project Health Check:**
--   **Broken**: None. The previous blocker ( not in env) was fixed.
+-   **Broken**: None.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
 -   None currently integrated.
--   **Planned**: Cloudinary (for image hosting), Email Service (for notifications).
--   **Requested**: Payment Gateway (Stripe, Razorpay, etc.).
+-   **Planned**: Payment Gateway (Razorpay), Cloudinary, Email Service (SendGrid/Resend).
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. The agent used  which found and fixed frontend rendering issues.
+-   **Testing agent used after significant changes**: YES. The testing agent was used to validate the new inventory and article features, and all tests passed.
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
 -   **Test files created**: None.
 -   **Known regressions**: None.
@@ -191,4 +179,4 @@ The agent just finished implementing a unique fabric ID system. The user's last 
 -   **Password**: 
 
 **What agent forgot to execute**
--   The agent did not answer the user's last question about payment gateway integration. This is the immediate next step.</analysis>
+-   The agent has correctly prioritized the user's latest and most significant request. Older, un-started tasks like the payment gateway and seller portal have been implicitly de-prioritized by the user and are correctly listed as future work. No tasks appear to have been overlooked.</analysis>
