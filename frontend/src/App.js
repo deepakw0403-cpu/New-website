@@ -45,6 +45,31 @@ import AdminArticles from "./pages/admin/AdminArticles";
 import AdminEnquiries from "./pages/admin/AdminEnquiries";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+// SEO Landing Pages
+import FabricsHub from "./pages/seo/FabricsHub";
+// Denim SEO Pages
+import DenimCategory from "./pages/seo/denim/DenimCategory";
+import Denim8oz from "./pages/seo/denim/Denim8oz";
+import Denim10oz from "./pages/seo/denim/Denim10oz";
+import Denim12oz from "./pages/seo/denim/Denim12oz";
+import DenimStretch from "./pages/seo/denim/DenimStretch";
+import DenimRigid from "./pages/seo/denim/DenimRigid";
+import DenimIndigoDyed from "./pages/seo/denim/DenimIndigoDyed";
+import DenimForJeans from "./pages/seo/denim/DenimForJeans";
+import DenimBulkSuppliers from "./pages/seo/denim/DenimBulkSuppliers";
+import DenimManufacturers from "./pages/seo/denim/DenimManufacturers";
+// Poly Knit SEO Pages
+import PolyKnitCategory from "./pages/seo/poly-knit/PolyKnitCategory";
+import PolyKnit180gsm from "./pages/seo/poly-knit/PolyKnit180gsm";
+import PolyKnit220gsm from "./pages/seo/poly-knit/PolyKnit220gsm";
+import PolyKnit240gsm from "./pages/seo/poly-knit/PolyKnit240gsm";
+import PolyKnitInterlock from "./pages/seo/poly-knit/PolyKnitInterlock";
+import PolyKnitJersey from "./pages/seo/poly-knit/PolyKnitJersey";
+import PolyKnitMoistureWicking from "./pages/seo/poly-knit/PolyKnitMoistureWicking";
+import PolyKnitSportswear from "./pages/seo/poly-knit/PolyKnitSportswear";
+import PolyKnitBulkSuppliers from "./pages/seo/poly-knit/PolyKnitBulkSuppliers";
+import PolyKnitManufacturers from "./pages/seo/poly-knit/PolyKnitManufacturers";
+
 // Layout
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
