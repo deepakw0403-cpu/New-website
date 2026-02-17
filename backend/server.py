@@ -1265,6 +1265,7 @@ async def seed_data():
 
 app.include_router(api_router)
 app.include_router(tools_router)
+app.include_router(seo_router)
 
 # Serve uploaded files
 app.mount("/api/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
