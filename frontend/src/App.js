@@ -71,6 +71,7 @@ function App() {
           <Route path="/suppliers" element={<><Navbar /><SuppliersPage /><Footer /></>} />
           <Route path="/media" element={<><Navbar /><MediaPage /><Footer /></>} />
           <Route path="/careers" element={<><Navbar /><CareersPage /><Footer /></>} />
+          <Route path="/assisted-sourcing" element={<AssistedSourcingPage />} />
           
           {/* Tools routes - SEO friendly individual pages */}
           <Route path="/tools" element={<ToolsPage />} />
