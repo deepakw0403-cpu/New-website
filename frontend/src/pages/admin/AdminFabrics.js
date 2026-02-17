@@ -531,14 +531,17 @@ const AdminFabrics = () => {
                   ) : (
                     <div>
                       <label className="block text-sm font-medium mb-2">Ounce *</label>
-                      <input
-                        type="text"
+                      <select
                         value={form.ounce}
                         onChange={(e) => setForm({ ...form, ounce: e.target.value })}
-                        className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
-                        placeholder="e.g., 5.5 oz"
-                        data-testid="fabric-ounce-input"
-                      />
+                        className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                        data-testid="fabric-ounce-select"
+                      >
+                        <option value="">-- Select Ounce --</option>
+                        {ounceOptions.map((n) => (
+                          <option key={n} value={n}>{n} oz</option>
+                        ))}
+                      </select>
                     </div>
                   )}
                 </div>
