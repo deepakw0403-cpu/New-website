@@ -51,6 +51,7 @@ export const deleteSeller = (id) => api.delete(`/sellers/${id}`);
 
 // Fabrics
 export const getFabrics = (params) => api.get("/fabrics", { params });
+export const getFabricsCount = (params) => api.get("/fabrics/count", { params });
 export const getFabric = (id) => api.get(`/fabrics/${id}`);
 export const createFabric = (data) => api.post("/fabrics", data);
 export const updateFabric = (id, data) => api.put(`/fabrics/${id}`, data);
