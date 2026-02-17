@@ -15,6 +15,7 @@ import jwt
 import bcrypt
 import shutil
 from tools_router import router as tools_router
+from seo_router import router as seo_router
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
