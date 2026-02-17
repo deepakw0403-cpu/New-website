@@ -133,6 +133,82 @@ const HomePage = () => {
         </button>
       </section>
 
+      {/* Supplier Value Proposition - Top Fold */}
+      <section className="bg-gradient-to-r from-blue-600 to-blue-700 py-12" data-testid="supplier-section">
+        <div className="container-main">
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+            {/* Left - Main Message */}
+            <div>
+              <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-4">
+                FOR SUPPLIERS
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+                Sell Fabrics Smarter with Locofast
+              </h2>
+              <p className="text-blue-100 mb-6 text-base">
+                Pay-for-performance B2B marketplace. No subscription fees. Commission charged only on completed transactions.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href="mailto:mail@locofast.com?subject=Supplier%20Enquiry"
+                  className="inline-flex items-center gap-2 bg-white text-blue-600 px-5 py-2.5 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+                  data-testid="supplier-cta-top"
+                >
+                  Start Selling Today
+                  <ArrowRight size={18} />
+                </a>
+                <a
+                  href="https://sell-fabrics-smarter-wit-vjfamt1.gamma.site/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 border border-white/40 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-white/10 transition-colors"
+                >
+                  Learn More
+                </a>
+              </div>
+              <p className="text-blue-200 text-sm mt-4">
+                <span className="font-semibold text-white">Guaranteed Success Plan:</span> ₹9,999 for 50+ verified queries in 3 weeks. 100% refundable if zero transactions.
+              </p>
+            </div>
+            
+            {/* Right - Benefits Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              {supplierBenefits.map((benefit, index) => (
+                <div 
+                  key={index}
+                  className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/15 transition-colors"
+                >
+                  <benefit.icon className="w-8 h-8 text-blue-200 mb-2" />
+                  <h4 className="font-semibold text-white text-sm mb-1">{benefit.title}</h4>
+                  <p className="text-blue-200 text-xs">{benefit.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Trust Badges */}
+          <div className="mt-8 pt-6 border-t border-white/20 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-6 text-sm text-blue-100">
+              <span className="flex items-center gap-2">
+                <CheckCircle size={16} className="text-green-300" />
+                500+ Active Suppliers
+              </span>
+              <span className="flex items-center gap-2">
+                <CheckCircle size={16} className="text-green-300" />
+                5,000+ Orders Executed
+              </span>
+              <span className="flex items-center gap-2">
+                <CheckCircle size={16} className="text-green-300" />
+                700+ Brands Served
+              </span>
+            </div>
+            <div className="text-xs text-blue-200">
+              Backed by Stellaris Ventures, Chiratae Ventures & Axilor
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* What Makes Us Different */}
       <section className="py-20 bg-white" data-testid="why-different-section">
         <div className="container-main">
