@@ -254,12 +254,24 @@ const FabricDetailPage = () => {
                 {fabric.seller_name && (
                   <p className="text-sm text-gray-600">Contact: {fabric.seller_name}</p>
                 )}
+                {fabric.seller_code && (
+                  <p className="text-xs text-gray-400 font-mono mt-1">{fabric.seller_code}</p>
+                )}
               </div>
             )}
 
-            <p className="text-gray-600 leading-relaxed mb-8" data-testid="fabric-description">
-              {fabric.description}
-            </p>
+            {/* Fabric Code */}
+            {fabric.fabric_code && (
+              <div className="mb-4">
+                <span className="text-xs text-gray-400 font-mono bg-gray-100 px-2 py-1 rounded">{fabric.fabric_code}</span>
+              </div>
+            )}
+
+            {fabric.description && (
+              <p className="text-gray-600 leading-relaxed mb-8" data-testid="fabric-description">
+                {fabric.description}
+              </p>
+            )}
 
             {/* Specifications */}
             <div className="border-t border-gray-100 pt-8 mb-8" data-testid="fabric-specs">
