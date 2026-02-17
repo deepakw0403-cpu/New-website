@@ -269,13 +269,13 @@ Quantity: ${formData.quantity_needed || "Not specified"}`);
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">GST Number</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">GST Number *</label>
                     <input
                       type="text"
                       value={formData.gst_number}
-                      onChange={(e) => updateForm("gst_number", e.target.value)}
+                      onChange={(e) => updateForm("gst_number", e.target.value.toUpperCase())}
                       className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="Optional"
+                      placeholder="e.g., 22AAAAA0000A1Z5"
                       data-testid="input-gst"
                     />
                   </div>
