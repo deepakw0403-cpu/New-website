@@ -336,6 +336,59 @@ const FabricsPage = () => {
             ))}
           </div>
         )}
+
+        {/* Pagination */}
+        {totalPages > 1 && !loading && (
+          <div className="flex items-center justify-center gap-2 mt-12" data-testid="pagination">
+            <button
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Previous page"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            
+            {/* Page numbers */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(page => {
+                  // Show first, last, current, and pages around current
+                  if (page === 1 || page === totalPages) return true;
+                  if (Math.abs(page - currentPage) <= 1) return true;
+                  return false;
+                })
+                .map((page, idx, arr) => {
+                  // Add ellipsis if there's a gap
+                  const showEllipsisBefore = idx > 0 && page - arr[idx - 1] > 1;
+                  return (
+                    <span key={page} className="flex items-center">
+                      {showEllipsisBefore && <span className="px-2 text-gray-400">...</span>}
+                      <button
+                        onClick={() => goToPage(page)}
+                        className={`min-w-[40px] h-10 px-3 border rounded font-medium transition-colors ${
+                          currentPage === page
+                            ? "bg-[#2563EB] text-white border-[#2563EB]"
+                            : "border-gray-200 hover:bg-gray-50"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    </span>
+                  );
+                })}
+            </div>
+            
+            <button
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-2 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Next page"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        )}
       </div>
     </main>
     <Footer />
