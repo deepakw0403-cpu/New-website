@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, ArrowLeft, CheckCircle2, MessageCircle, Send } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle2, MessageCircle, Send, Search, X, Tag } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -13,6 +13,8 @@ const AssistedSourcingPage = () => {
   const [recommendedFabrics, setRecommendedFabrics] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState([]);
 
   const [formData, setFormData] = useState({
     // Contact Info
