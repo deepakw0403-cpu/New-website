@@ -71,6 +71,18 @@ function App() {
           <Route path="/media" element={<><Navbar /><MediaPage /><Footer /></>} />
           <Route path="/careers" element={<><Navbar /><CareersPage /><Footer /></>} />
           
+          {/* Tools routes - SEO friendly individual pages */}
+          <Route path="/tools" element={<ToolsPage />} />
+          <Route path="/tools/gst-calculator" element={<GSTCalculator />} />
+          <Route path="/tools/profit-margin-calculator" element={<ProfitMarginCalculator />} />
+          <Route path="/tools/discount-calculator" element={<DiscountCalculator />} />
+          <Route path="/tools/gsm-calculator" element={<GSMCalculator />} />
+          <Route path="/tools/cbm-calculator" element={<CBMCalculator />} />
+          <Route path="/tools/volumetric-weight-calculator" element={<VolumetricWeightCalculator />} />
+          <Route path="/tools/product-description-generator" element={<ProductDescriptionGenerator />} />
+          <Route path="/tools/product-title-generator" element={<ProductTitleGenerator />} />
+          <Route path="/tools/barcode-generator" element={<BarcodeGenerator />} />
+          
           {/* Admin routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
