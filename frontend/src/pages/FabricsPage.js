@@ -266,22 +266,45 @@ const FabricsPage = () => {
                         {avail}
                       </span>
                     ))}
+                    {fabric.is_bookable && (
+                      <span className="badge bg-emerald-500 text-white">Bookable</span>
+                    )}
                   </div>
                 </div>
                 <p className="subheading mb-1">{fabric.category_name}</p>
                 <h3 className="text-lg font-semibold mb-2 group-hover:text-[#2563EB] transition-colors">
                   {fabric.name}
                 </h3>
+                {/* Only show specs that have data */}
                 <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-2">
-                  <span className="tech-data">{fabric.gsm} GSM</span>
-                  <span>•</span>
-                  <span>{fabric.width}</span>
+                  {fabric.gsm > 0 && (
+                    <>
+                      <span className="tech-data">{fabric.gsm} GSM</span>
+                      {fabric.width && <span>•</span>}
+                    </>
+                  )}
+                  {fabric.weight_unit === 'ounce' && fabric.ounce && (
+                    <>
+                      <span className="tech-data">{fabric.ounce} oz</span>
+                      {fabric.width && <span>•</span>}
+                    </>
+                  )}
+                  {fabric.width && <span>{fabric.width}</span>}
                 </div>
-                <p className="text-sm text-gray-600">
-                  {Array.isArray(fabric.composition) && fabric.composition.length > 0
-                    ? fabric.composition.map(c => `${c.percentage}% ${c.material}`).join(', ')
-                    : typeof fabric.composition === 'string' ? fabric.composition : '-'}
-                </p>
+                {/* Composition - only show if available */}
+                {Array.isArray(fabric.composition) && fabric.composition.length > 0 && fabric.composition.some(c => c.material) && (
+                  <p className="text-sm text-gray-600">
+                    {fabric.composition.filter(c => c.material && c.percentage > 0).map(c => `${c.percentage}% ${c.material}`).join(', ')}
+                  </p>
+                )}
+                {/* Rate - show if bookable and has rate */}
+                {fabric.is_bookable && fabric.rate_per_meter > 0 && (
+                  <p className="text-sm font-medium text-[#2563EB] mt-1">₹{fabric.rate_per_meter.toLocaleString()}/m</p>
+                )}
+                {/* Starting price if no rate */}
+                {!fabric.is_bookable && fabric.starting_price && (
+                  <p className="text-sm text-gray-500 mt-1">{fabric.starting_price}</p>
+                )}
                 {fabric.seller_company && (
                   <p className="text-xs text-gray-400 mt-1">by {fabric.seller_company}</p>
                 )}
