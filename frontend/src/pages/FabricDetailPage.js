@@ -376,7 +376,7 @@ const FabricDetailPage = () => {
                     <p className="font-medium">{fabric.dispatch_timeline}</p>
                   </div>
                 )}
-                {/* Denim-specific fields - only show when available */}
+                {/* Denim-specific fields - show when available */}
                 {fabric.weft_shrinkage > 0 && (
                   <div className="border-b border-gray-100 pb-3">
                     <p className="text-xs text-gray-400 mb-1">Weft Shrinkage</p>
