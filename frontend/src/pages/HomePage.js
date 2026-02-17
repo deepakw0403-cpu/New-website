@@ -160,14 +160,22 @@ const HomePage = () => {
                 <h3 className="font-serif text-lg font-medium mb-2 group-hover:text-neutral-600 transition-colors">
                   {fabric.name}
                 </h3>
-                <div className="flex items-center gap-3 text-sm text-neutral-500">
-                  <span className="tech-data">{fabric.gsm} GSM</span>
-                  <span>•</span>
-                  <span>
-                    {Array.isArray(fabric.composition) && fabric.composition.length > 0
-                      ? fabric.composition.map(c => `${c.percentage}% ${c.material}`).join(', ')
-                      : typeof fabric.composition === 'string' ? fabric.composition : '-'}
-                  </span>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500">
+                  {fabric.gsm > 0 && (
+                    <span className="tech-data">{fabric.gsm} GSM</span>
+                  )}
+                  {fabric.weight_unit === 'ounce' && fabric.ounce && (
+                    <span className="tech-data">{fabric.ounce} oz</span>
+                  )}
+                  {(fabric.gsm > 0 || (fabric.weight_unit === 'ounce' && fabric.ounce)) && 
+                    Array.isArray(fabric.composition) && fabric.composition.length > 0 && fabric.composition.some(c => c.material) && (
+                    <span>•</span>
+                  )}
+                  {Array.isArray(fabric.composition) && fabric.composition.length > 0 && fabric.composition.some(c => c.material) && (
+                    <span>
+                      {fabric.composition.filter(c => c.material && c.percentage > 0).map(c => `${c.percentage}% ${c.material}`).join(', ')}
+                    </span>
+                  )}
                 </div>
               </Link>
             ))}
