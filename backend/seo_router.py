@@ -12,8 +12,12 @@ router = APIRouter(prefix="/api/seo", tags=["seo"])
 
 # MongoDB connection - reuse from main server
 mongo_url = os.environ.get('MONGO_URL')
+db_name = os.environ.get('DB_NAME', 'test_database')
+# Strip quotes if present
+if db_name and db_name.startswith('"') and db_name.endswith('"'):
+    db_name = db_name[1:-1]
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ.get('DB_NAME')]
+db = client[db_name]
 
 # ==================== MODELS ====================
 
