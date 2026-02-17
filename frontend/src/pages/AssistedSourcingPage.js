@@ -293,8 +293,8 @@ Quantity: ${formData.quantity_needed || "Not specified"}`);
                 </div>
                 <button
                   onClick={() => {
-                    if (!formData.name || !formData.phone || !formData.company_name) {
-                      toast.error("Please fill in all required fields");
+                    if (!formData.name || !formData.phone || !formData.company_name || !formData.gst_number) {
+                      toast.error("Please fill in all required fields including GST number");
                       return;
                     }
                     setStep(2);
