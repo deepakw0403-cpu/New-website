@@ -601,8 +601,6 @@ const AdminFabrics = () => {
                         <option key={n} value={n}>{n}"</option>
                       ))}
                     </select>
-                      data-testid="fabric-width-input"
-                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">
