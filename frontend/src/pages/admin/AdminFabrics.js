@@ -78,6 +78,8 @@ const AdminFabrics = () => {
 
   // EPI/PPI options (0-100)
   const countOptions = Array.from({ length: 151 }, (_, i) => i);
+  const ounceOptions = Array.from({ length: 51 }, (_, i) => i); // 0-50
+  const percentageOptions = Array.from({ length: 50 }, (_, i) => i + 1); // 1-50
 
   const availabilityOptions = [
     { value: "Sample", label: "Sample Available", color: "bg-blue-50 text-blue-700 border-blue-200" },
