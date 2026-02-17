@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2, MessageCircle, Calculator, Shield, Clock, Users, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, MessageCircle, Calculator, Shield, Clock, Users, Sparkles, CreditCard, Truck, CheckCircle } from "lucide-react";
 import { getCategories, getFabrics } from "../lib/api";
 
 const HomePage = () => {
@@ -44,6 +44,29 @@ const HomePage = () => {
       icon: Users,
       title: "Assisted Selection",
       desc: "Not sure which GSM or weave works? We help you find the perfect match."
+    }
+  ];
+
+  const supplierBenefits = [
+    {
+      icon: CheckCircle,
+      title: "Lifetime Free Enquiries",
+      description: "Unlimited buyer queries at no subscription cost"
+    },
+    {
+      icon: Shield,
+      title: "Payment Protection",
+      description: "Secure 80:20 terms with invoice discounting"
+    },
+    {
+      icon: Truck,
+      title: "Logistics Support",
+      description: "End-to-end dispatch and shipment tracking"
+    },
+    {
+      icon: CreditCard,
+      title: "3% Commission Only",
+      description: "Pay only when transactions complete"
     }
   ];
 
