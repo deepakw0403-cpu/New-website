@@ -19,6 +19,20 @@ import SuppliersPage from "./pages/SuppliersPage";
 import MediaPage from "./pages/MediaPage";
 import CareersPage from "./pages/CareersPage";
 
+// Tools pages
+import {
+  ToolsPage,
+  GSTCalculator,
+  ProfitMarginCalculator,
+  DiscountCalculator,
+  GSMCalculator,
+  CBMCalculator,
+  VolumetricWeightCalculator,
+  ProductDescriptionGenerator,
+  ProductTitleGenerator,
+  BarcodeGenerator
+} from "./pages/tools";
+
 // Admin pages
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
