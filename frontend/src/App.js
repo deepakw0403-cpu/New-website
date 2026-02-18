@@ -19,6 +19,8 @@ import SuppliersPage from "./pages/SuppliersPage";
 import MediaPage from "./pages/MediaPage";
 import CareersPage from "./pages/CareersPage";
 import AssistedSourcingPage from "./pages/AssistedSourcingPage";
+import BlogPage from "./pages/BlogPage";
+import BlogPostPage from "./pages/BlogPostPage";
 
 // Tools pages
 import {
@@ -44,6 +46,7 @@ import AdminCollections from "./pages/admin/AdminCollections";
 import AdminArticles from "./pages/admin/AdminArticles";
 import AdminEnquiries from "./pages/admin/AdminEnquiries";
 import AdminFabricSEO from "./pages/admin/AdminFabricSEO";
+import AdminBlog from "./pages/admin/AdminBlog";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // SEO Landing Pages
@@ -99,6 +102,10 @@ function App() {
           <Route path="/careers" element={<><Navbar /><CareersPage /><Footer /></>} />
           <Route path="/assisted-sourcing" element={<AssistedSourcingPage />} />
           
+          {/* Blog routes */}
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
+          
           {/* Tools routes - SEO friendly individual pages */}
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/tools/gst-calculator" element={<GSTCalculator />} />
@@ -148,6 +155,7 @@ function App() {
           <Route path="/admin/articles" element={<ProtectedRoute><AdminArticles /></ProtectedRoute>} />
           <Route path="/admin/enquiries" element={<ProtectedRoute><AdminEnquiries /></ProtectedRoute>} />
           <Route path="/admin/seo" element={<ProtectedRoute><AdminFabricSEO /></ProtectedRoute>} />
+          <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
