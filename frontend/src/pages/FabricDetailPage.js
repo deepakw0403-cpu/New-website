@@ -288,8 +288,7 @@ const FabricDetailPage = () => {
               <div className="max-w-4xl" data-testid="seo-intro">
                 <ExpandableText 
                   text={seoContent?.seo_intro || fabric.description} 
-                  maxLength={500}
-                  maxLines={8}
+                  maxLines={2}
                 />
               </div>
             )}
