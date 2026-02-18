@@ -284,10 +284,13 @@ const FabricDetailPage = () => {
             <h1 className="text-3xl md:text-4xl font-semibold mb-4" data-testid="fabric-h1">
               {seoContent?.seo_h1 || fabric.name}
             </h1>
-            {seoContent?.seo_intro && (
-              <p className="text-gray-600 leading-relaxed max-w-4xl" data-testid="seo-intro">
-                {seoContent.seo_intro}
-              </p>
+            {(seoContent?.seo_intro || fabric.description) && (
+              <div className="max-w-4xl" data-testid="seo-intro">
+                <ExpandableText 
+                  text={seoContent?.seo_intro || fabric.description} 
+                  maxLength={300}
+                />
+              </div>
             )}
           </div>
 
