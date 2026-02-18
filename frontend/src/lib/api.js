@@ -20,10 +20,32 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("locofast_token");
-      localStorage.removeItem("locofast_admin");
-      if (window.location.pathname.startsWith("/admin") && window.location.pathname !== "/admin/login") {
-        window.location.href = "/admin/login";
+      // Only redirect to login if the failed request required auth
+      // Don't redirect for public endpoints that happen to fail
+      const requestUrl = error.config?.url || '';
+      const authRequiredEndpoints = [
+        '/auth/me',
+        '/enquiries',
+        '/stats',
+        '/fabrics',
+        '/categories',
+        '/sellers',
+        '/collections',
+        '/articles',
+        '/seo/'
+      ];
+      
+      // Check if this was an auth-required endpoint
+      const isAuthRequired = authRequiredEndpoints.some(endpoint => 
+        requestUrl.includes(endpoint) && !requestUrl.includes('/blog/')
+      );
+      
+      if (isAuthRequired) {
+        localStorage.removeItem("locofast_token");
+        localStorage.removeItem("locofast_admin");
+        if (window.location.pathname.startsWith("/admin") && window.location.pathname !== "/admin/login") {
+          window.location.href = "/admin/login";
+        }
       }
     }
     return Promise.reject(error);
