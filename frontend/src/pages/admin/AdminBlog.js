@@ -590,13 +590,12 @@ const AdminBlog = () => {
 
                     <div>
                       <label className="block text-sm font-medium mb-2">Content *</label>
-                      <div className="border border-gray-200 rounded">
-                        <ReactQuill
-                          theme="snow"
+                      <div data-color-mode="light">
+                        <MDEditor
                           value={postForm.content}
-                          onChange={(content) => setPostForm({ ...postForm, content })}
-                          modules={quillModules}
-                          className="min-h-[300px]"
+                          onChange={(value) => setPostForm({ ...postForm, content: value || "" })}
+                          height={400}
+                          preview="edit"
                           data-testid="post-content-editor"
                         />
                       </div>
