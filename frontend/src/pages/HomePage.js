@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle, MessageCircle, Shield, Clock, Users, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle, MessageCircle, Shield, Clock, Users, ChevronDown, ChevronUp, Sparkles, Factory, Store, Layers } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getCollections } from "../lib/api";
@@ -83,8 +83,26 @@ const HomePage = () => {
     {
       quote: "Their curated approach means I only see fabrics that actually match my requirements. Game changer.",
       author: "Rahul Verma",
-      role: "Export House",
+      role: "Export Manufacturer",
       location: "Delhi"
+    }
+  ];
+
+  const audiences = [
+    {
+      icon: Store,
+      title: "Fashion Brands",
+      description: "D2C labels, boutique brands, and fashion houses looking for reliable fabric partners."
+    },
+    {
+      icon: Factory,
+      title: "Manufacturers",
+      description: "Garment manufacturers and export houses needing consistent quality at scale."
+    },
+    {
+      icon: Layers,
+      title: "Designers",
+      description: "Independent designers and studios seeking unique fabrics for their collections."
     }
   ];
 
@@ -124,35 +142,33 @@ const HomePage = () => {
       <main className="bg-white" data-testid="home-page">
         
         {/* ========== HERO SECTION ========== */}
-        <section className="relative min-h-[90vh] flex items-center" data-testid="hero-section">
-          <div className="absolute inset-0">
-            <img
-              src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/8l3peaqq_WhatsApp%20Image%202026-01-29%20at%2014.53.57%20%281%29.jpeg"
-              alt="Locofast team"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-neutral-900/90 via-neutral-900/70 to-neutral-900/40" />
+        <section className="relative min-h-[90vh] flex items-center bg-gradient-to-br from-[#1e3a8a] via-[#2563EB] to-[#3b82f6]" data-testid="hero-section">
+          {/* Abstract pattern overlay */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-20 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
+            <div className="absolute bottom-20 right-10 w-96 h-96 bg-white rounded-full blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white rounded-full blur-3xl opacity-5" />
           </div>
           
-          <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-20">
-            <div className="max-w-2xl">
+          <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-20 w-full">
+            <div className="max-w-3xl mx-auto text-center">
               <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white/90 px-4 py-2 rounded-full text-sm mb-8">
                 <Sparkles size={16} />
-                Trusted by 500+ brands across India
+                Trusted by 500+ brands & manufacturers across India
               </div>
               
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white leading-tight mb-6" data-testid="hero-headline">
-                Reliable Fabric Sourcing for Brands & Boutiques
+                Reliable Fabric Sourcing for Brands & Manufacturers
               </h1>
               
-              <p className="text-lg md:text-xl text-white/80 leading-relaxed mb-10 max-w-xl">
-                We simplify your sourcing process with verified suppliers, clear timelines, and curated options — so you can focus on design, not logistics.
+              <p className="text-lg md:text-xl text-white/80 leading-relaxed mb-10 max-w-2xl mx-auto">
+                We simplify your sourcing process with verified suppliers, clear timelines, and curated options — so you can focus on production, not logistics.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   to="/assisted-sourcing"
-                  className="inline-flex items-center justify-center gap-2 bg-[#2563EB] text-white px-8 py-4 rounded-lg font-medium hover:bg-blue-600 transition-all hover:gap-3"
+                  className="inline-flex items-center justify-center gap-2 bg-white text-[#2563EB] px-8 py-4 rounded-lg font-medium hover:bg-blue-50 transition-all hover:gap-3 shadow-lg shadow-blue-900/20"
                   data-testid="hero-cta-primary"
                 >
                   Get Curated Options
@@ -167,38 +183,62 @@ const HomePage = () => {
                   Talk to a Fabric Expert
                 </Link>
               </div>
+
+              {/* Trust indicators */}
+              <div className="flex flex-wrap justify-center gap-8 mt-16 pt-8 border-t border-white/10">
+                {trustBadges.map((badge, index) => (
+                  <div key={index} className="flex items-center gap-2 text-white/80">
+                    <badge.icon size={18} className="text-blue-200" />
+                    <span className="text-sm font-medium">{badge.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ========== WHO WE SERVE ========== */}
+        <section className="py-20 lg:py-28 bg-white" data-testid="audience-section">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Who We Serve</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
+                Built for Brands & Manufacturers
+              </h2>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+              {audiences.map((audience, index) => (
+                <div key={index} className="text-center p-8">
+                  <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <audience.icon size={32} className="text-[#2563EB]" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-neutral-900 mb-3">{audience.title}</h3>
+                  <p className="text-neutral-600 leading-relaxed">{audience.description}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
         {/* ========== VALUE PROPOSITION ========== */}
-        <section className="py-20 lg:py-28 bg-neutral-50" data-testid="value-section">
+        <section className="py-20 lg:py-28 bg-gradient-to-b from-blue-50 to-white" data-testid="value-section">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
               <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Why Choose Us</p>
               <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
-                Why Designers & Brands Trust Us
+                Why Brands & Manufacturers Trust Us
               </h2>
             </div>
             
-            <div className="grid md:grid-cols-3 gap-8 lg:gap-12 mb-12">
+            <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
               {valueProps.map((prop, index) => (
-                <div key={index} className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center mb-6">
-                    <prop.icon size={28} className="text-[#2563EB]" />
+                <div key={index} className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-lg transition-shadow border border-blue-100">
+                  <div className="w-14 h-14 bg-[#2563EB] rounded-xl flex items-center justify-center mb-6">
+                    <prop.icon size={28} className="text-white" />
                   </div>
                   <h3 className="text-xl font-semibold text-neutral-900 mb-3">{prop.title}</h3>
                   <p className="text-neutral-600 leading-relaxed">{prop.description}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Trust Badges */}
-            <div className="flex flex-wrap justify-center gap-6 pt-8 border-t border-neutral-200">
-              {trustBadges.map((badge, index) => (
-                <div key={index} className="flex items-center gap-2 text-neutral-600">
-                  <badge.icon size={18} className="text-green-600" />
-                  <span className="text-sm font-medium">{badge.label}</span>
                 </div>
               ))}
             </div>
@@ -206,7 +246,7 @@ const HomePage = () => {
         </section>
 
         {/* ========== HOW IT WORKS ========== */}
-        <section className="py-20 lg:py-28" data-testid="how-it-works-section">
+        <section className="py-20 lg:py-28 bg-white" data-testid="how-it-works-section">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
               <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Simple Process</p>
@@ -219,10 +259,10 @@ const HomePage = () => {
               {steps.map((step, index) => (
                 <div key={index} className="relative">
                   {index < steps.length - 1 && (
-                    <div className="hidden md:block absolute top-16 left-full w-full h-px bg-neutral-200 -translate-x-1/2 z-0" />
+                    <div className="hidden md:block absolute top-16 left-full w-full h-px bg-blue-200 -translate-x-1/2 z-0" />
                   )}
-                  <div className="relative bg-white p-8 rounded-2xl border border-neutral-100 hover:border-[#2563EB]/30 transition-colors">
-                    <span className="text-5xl font-bold text-neutral-100 absolute top-4 right-6">{step.number}</span>
+                  <div className="relative bg-white p-8 rounded-2xl border-2 border-blue-100 hover:border-[#2563EB] transition-colors">
+                    <span className="text-6xl font-bold text-blue-100 absolute top-4 right-6">{step.number}</span>
                     <div className="relative">
                       <h3 className="text-xl font-semibold text-neutral-900 mb-3 pr-12">{step.title}</h3>
                       <p className="text-neutral-600 leading-relaxed mb-6">{step.description}</p>
@@ -241,24 +281,24 @@ const HomePage = () => {
         </section>
 
         {/* ========== TESTIMONIALS ========== */}
-        <section className="py-20 lg:py-28 bg-neutral-900" data-testid="testimonials-section">
+        <section className="py-20 lg:py-28 bg-[#1e3a8a]" data-testid="testimonials-section">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <p className="text-sm tracking-widest text-blue-400 uppercase mb-4">Social Proof</p>
+              <p className="text-sm tracking-widest text-blue-300 uppercase mb-4">Social Proof</p>
               <h2 className="text-3xl md:text-4xl font-semibold text-white">
-                What Our Buyers Say
+                What Our Clients Say
               </h2>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {testimonials.map((testimonial, index) => (
-                <div key={index} className="bg-neutral-800/50 p-6 rounded-2xl border border-neutral-700/50">
-                  <p className="text-neutral-300 leading-relaxed mb-6 text-sm">
+                <div key={index} className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/10">
+                  <p className="text-blue-100 leading-relaxed mb-6 text-sm">
                     "{testimonial.quote}"
                   </p>
                   <div>
                     <p className="font-medium text-white">{testimonial.author}</p>
-                    <p className="text-neutral-500 text-sm">{testimonial.role}, {testimonial.location}</p>
+                    <p className="text-blue-300 text-sm">{testimonial.role}, {testimonial.location}</p>
                   </div>
                 </div>
               ))}
@@ -267,7 +307,7 @@ const HomePage = () => {
         </section>
 
         {/* ========== COLLECTION SHOWCASE ========== */}
-        <section className="py-20 lg:py-28" data-testid="collections-section">
+        <section className="py-20 lg:py-28 bg-white" data-testid="collections-section">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
               <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Curated For You</p>
@@ -282,14 +322,12 @@ const HomePage = () => {
                   <Link
                     key={collection.id}
                     to={`/collections/${collection.id}`}
-                    className="group relative bg-neutral-100 rounded-2xl overflow-hidden aspect-[4/5] hover:shadow-lg transition-all"
+                    className="group relative bg-gradient-to-br from-[#2563EB] to-[#1e3a8a] rounded-2xl overflow-hidden aspect-[4/5] hover:shadow-xl transition-all"
                   >
-                    {collection.image ? (
-                      <img src={collection.image} alt={collection.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-neutral-200 to-neutral-300" />
+                    {collection.image && (
+                      <img src={collection.image} alt={collection.name} className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity" />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6">
                       <h3 className="text-xl font-semibold text-white mb-1">{collection.name}</h3>
                       <p className="text-white/70 text-sm mb-3 line-clamp-2">{collection.description}</p>
@@ -300,15 +338,13 @@ const HomePage = () => {
                   </Link>
                 ))
               ) : (
-                // Placeholder collections
                 ["Summer Weaves", "Signature Essentials", "Print Studio", "Premium Blends"].map((name, index) => (
                   <Link
                     key={index}
                     to="/collections"
-                    className="group relative bg-neutral-100 rounded-2xl overflow-hidden aspect-[4/5] hover:shadow-lg transition-all"
+                    className="group relative bg-gradient-to-br from-[#2563EB] to-[#1e3a8a] rounded-2xl overflow-hidden aspect-[4/5] hover:shadow-xl transition-all"
                   >
-                    <div className="w-full h-full bg-gradient-to-br from-neutral-200 to-neutral-300" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6">
                       <h3 className="text-xl font-semibold text-white mb-2">{name}</h3>
                       <span className="inline-flex items-center gap-1 text-white text-sm font-medium group-hover:gap-2 transition-all">
@@ -332,61 +368,47 @@ const HomePage = () => {
         </section>
 
         {/* ========== ABOUT / TRUST BLOCK ========== */}
-        <section className="py-20 lg:py-28 bg-neutral-50" data-testid="about-section">
+        <section className="py-20 lg:py-28 bg-gradient-to-b from-blue-50 to-white" data-testid="about-section">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <div>
-                <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Who We Are</p>
-                <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900 mb-6">
-                  We're a Team of Sourcing Architects
-                </h2>
-                <div className="space-y-4 text-neutral-600 leading-relaxed">
-                  <p>
-                    Built by sourcing, operations, and tech professionals — not random sellers. We understand the challenges brands face because we've lived them.
-                  </p>
-                  <p>
-                    We manage your end-to-end requirements so you get clarity and confidence, not chaos. Every fabric option is vetted, every timeline is realistic, and every price is transparent.
-                  </p>
-                  <p>
-                    Our mission is simple: make fabric sourcing as reliable as it should be.
-                  </p>
+            <div className="max-w-3xl mx-auto text-center">
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Who We Are</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900 mb-6">
+                We're a Team of Sourcing Architects
+              </h2>
+              <div className="space-y-4 text-neutral-600 leading-relaxed text-lg">
+                <p>
+                  Built by sourcing, operations, and tech professionals — not random sellers. We understand the challenges brands and manufacturers face because we've lived them.
+                </p>
+                <p>
+                  We manage your end-to-end requirements so you get clarity and confidence, not chaos. Every fabric option is vetted, every timeline is realistic, and every price is transparent.
+                </p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-8 mt-12">
+                <div className="text-center">
+                  <p className="text-4xl font-bold text-[#2563EB]">500+</p>
+                  <p className="text-neutral-600 text-sm">Brands Served</p>
                 </div>
-                <Link
-                  to="/about"
-                  className="inline-flex items-center gap-2 text-[#2563EB] font-medium mt-8 hover:gap-3 transition-all"
-                >
-                  Learn More About Us <ArrowRight size={18} />
-                </Link>
+                <div className="text-center">
+                  <p className="text-4xl font-bold text-[#2563EB]">200+</p>
+                  <p className="text-neutral-600 text-sm">Verified Mills</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-4xl font-bold text-[#2563EB]">50K+</p>
+                  <p className="text-neutral-600 text-sm">Orders Fulfilled</p>
+                </div>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <img
-                  src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/8l3peaqq_WhatsApp%20Image%202026-01-29%20at%2014.53.57%20%281%29.jpeg"
-                  alt="Team celebration"
-                  className="w-full aspect-square object-cover rounded-2xl"
-                />
-                <img
-                  src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/jsmcl2l3_WhatsApp%20Image%202026-01-29%20at%2014.53.57.jpeg"
-                  alt="Team photo"
-                  className="w-full aspect-square object-cover rounded-2xl mt-8"
-                />
-                <img
-                  src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/1tpvf3i8_WhatsApp%20Image%202026-01-29%20at%2014.53.57%20%282%29.jpeg"
-                  alt="Team bonding"
-                  className="w-full aspect-square object-cover rounded-2xl -mt-8"
-                />
-                <img
-                  src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/10bs4awk_WhatsApp%20Image%202026-01-29%20at%2014.53.58%20%281%29.jpeg"
-                  alt="Team outdoor"
-                  className="w-full aspect-square object-cover rounded-2xl"
-                />
-              </div>
+              <Link
+                to="/about"
+                className="inline-flex items-center gap-2 bg-[#2563EB] text-white px-8 py-4 rounded-lg font-medium mt-10 hover:bg-blue-600 transition-colors"
+              >
+                Learn More About Us <ArrowRight size={18} />
+              </Link>
             </div>
           </div>
         </section>
 
         {/* ========== FAQ SECTION ========== */}
-        <section className="py-20 lg:py-28" data-testid="faq-section">
+        <section className="py-20 lg:py-28 bg-white" data-testid="faq-section">
           <div className="max-w-3xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-16">
               <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">FAQs</p>
@@ -399,17 +421,17 @@ const HomePage = () => {
               {faqs.map((faq, index) => (
                 <div
                   key={index}
-                  className="border border-neutral-200 rounded-xl overflow-hidden"
+                  className="border-2 border-blue-100 rounded-xl overflow-hidden hover:border-blue-200 transition-colors"
                 >
                   <button
                     onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                    className="w-full flex items-center justify-between p-6 text-left hover:bg-neutral-50 transition-colors"
+                    className="w-full flex items-center justify-between p-6 text-left hover:bg-blue-50/50 transition-colors"
                   >
                     <span className="font-medium text-neutral-900 pr-4">{faq.question}</span>
                     {openFaq === index ? (
-                      <ChevronUp size={20} className="text-neutral-400 flex-shrink-0" />
+                      <ChevronUp size={20} className="text-[#2563EB] flex-shrink-0" />
                     ) : (
-                      <ChevronDown size={20} className="text-neutral-400 flex-shrink-0" />
+                      <ChevronDown size={20} className="text-[#2563EB] flex-shrink-0" />
                     )}
                   </button>
                   {openFaq === index && (
@@ -424,18 +446,18 @@ const HomePage = () => {
         </section>
 
         {/* ========== FINAL CTA BLOCK ========== */}
-        <section className="py-20 lg:py-28 bg-[#2563EB]" data-testid="cta-section">
+        <section className="py-20 lg:py-28 bg-gradient-to-r from-[#1e3a8a] via-[#2563EB] to-[#3b82f6]" data-testid="cta-section">
           <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white mb-6">
               Ready to Source the Right Fabric?
             </h2>
             <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
-              Join 500+ brands who source with clarity and confidence.
+              Join 500+ brands and manufacturers who source with clarity and confidence.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/assisted-sourcing"
-                className="inline-flex items-center justify-center gap-2 bg-white text-[#2563EB] px-8 py-4 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+                className="inline-flex items-center justify-center gap-2 bg-white text-[#2563EB] px-8 py-4 rounded-lg font-medium hover:bg-blue-50 transition-colors shadow-lg"
                 data-testid="final-cta-primary"
               >
                 Get Curated Options
@@ -457,7 +479,7 @@ const HomePage = () => {
 
       <Footer />
       
-      {/* ========== STICKY CTA BAR ========== */}
+      {/* ========== STICKY CTA BAR (Mobile) ========== */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 z-40 md:hidden" data-testid="sticky-cta">
         <Link
           to="/assisted-sourcing"
