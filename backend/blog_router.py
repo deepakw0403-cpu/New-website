@@ -546,7 +546,7 @@ async def get_blog_sitemap():
 # ==================== STATS ROUTE ====================
 
 @router.get("/stats")
-async def get_blog_stats(admin=Depends(get_current_admin)):
+async def get_blog_stats():
     """Get blog statistics for admin dashboard"""
     total_posts = await db.blog_posts.count_documents({})
     published_posts = await db.blog_posts.count_documents({'status': 'published'})
