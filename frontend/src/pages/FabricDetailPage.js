@@ -5,6 +5,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Send, X, ZoomIn, Package, Truck, 
 import { toast } from "sonner";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import ExpandableText from "../components/ExpandableText";
 import { getFabric, createEnquiry, getFabricSEO, getRelatedFabrics } from "../lib/api";
 
 const FabricDetailPage = () => {
