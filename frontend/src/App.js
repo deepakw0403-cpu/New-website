@@ -112,7 +112,7 @@ function App() {
           <Route path="/tools/barcode-generator" element={<BarcodeGenerator />} />
           
           {/* SEO Landing Pages - Fabrics */}
-          <Route path="/fabrics/" element={<FabricsHub />} />
+          <Route path="/fabrics-info/" element={<FabricsHub />} />
           
           {/* Denim SEO Pages */}
           <Route path="/fabrics/denim/" element={<DenimCategory />} />
