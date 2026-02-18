@@ -29,7 +29,10 @@ const AdminCollections = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [collRes, fabRes] = await Promise.all([getCollections(), getFabrics()]);
+      const [collRes, fabRes] = await Promise.all([
+        getCollections(), 
+        getFabrics({ limit: 1000 })  // Fetch all fabrics for collection assignment
+      ]);
       setCollections(collRes.data);
       setFabrics(fabRes.data);
     } catch (err) {
