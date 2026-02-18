@@ -1,238 +1,169 @@
 import { Link } from "react-router-dom";
-import { Shield, Users, TrendingUp, CheckCircle, ArrowLeft } from "lucide-react";
+import { Check } from "lucide-react";
 
 const AboutPage = () => {
-  const highlights = [
-    { icon: Shield, title: "Money-Back Guarantee", desc: "Every eligible transaction is protected under the Locofast Money-Back Guarantee, giving buyers confidence at every stage." },
-    { icon: Users, title: "Verified Supplier Network", desc: "We work with hundreds of verified suppliers across India and South Asia, ensuring quality and reliability." },
-    { icon: TrendingUp, title: "Scale & Speed", desc: "Built for serious B2B sourcing—supporting brands, manufacturers, and exporters who need scale, speed, and reliability." },
-    { icon: CheckCircle, title: "End-to-End Tracking", desc: "From posting requirements and comparing quotes to tracking orders, buyers stay in control while we safeguard the transaction." },
+  const philosophyPoints = [
+    "Clarity in pricing and lead times from Day 1",
+    "Structured communication between buyers and suppliers",
+    "Committed suppliers who understand B2B expectations",
+    "Scalable sourcing infrastructure for growing brands"
   ];
 
   return (
-    <main className="pt-20" data-testid="about-page">
-      {/* Hero */}
-      <section className="relative py-24 lg:py-32 bg-neutral-50">
-        <div className="container-main">
-          <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 text-sm">
-            <ArrowLeft size={16} />
-            Back to Home
-          </Link>
-          <div className="max-w-3xl">
-            <p className="subheading mb-4">About Locofast</p>
-            <h1 className="text-4xl md:text-5xl font-semibold leading-tight mb-6">
-              Faster, fairer, and more reliable fabric sourcing
+    <main className="bg-[#FAFAFA]" data-testid="about-page">
+      {/* Section 1: Hero */}
+      <section className="relative h-[85vh] min-h-[600px]" data-testid="hero-section">
+        <div className="absolute inset-0">
+          <img
+            src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/8l3peaqq_WhatsApp%20Image%202026-01-29%20at%2014.53.57%20%281%29.jpeg"
+            alt="Locofast team celebration"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
+        </div>
+        
+        <div className="relative h-full max-w-7xl mx-auto px-6 lg:px-8 flex items-center">
+          <div className="max-w-2xl">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white leading-tight mb-8" data-testid="hero-headline">
+              Built by Operators.<br />
+              Not Just Platform Builders.
             </h1>
-            <p className="text-lg text-neutral-600 leading-relaxed">
-              Locofast was built to make fabric sourcing faster, fairer, and far more reliable for growing fashion and textile businesses.
+            <p className="text-lg md:text-xl text-white/85 leading-relaxed max-w-xl">
+              Locofast was founded by people who have spent years on the ground—understanding supplier relationships, managing production timelines, and solving real procurement challenges. We built this platform because we lived the problem first.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Main Content */}
-      <section className="section-gap">
-        <div className="container-main">
-          <div className="max-w-3xl mx-auto">
-            <div className="prose prose-lg">
-              <p className="text-neutral-600 leading-relaxed mb-6">
-                We believe buyers deserve the price advantage of sourcing directly from suppliers—without taking on unnecessary financial or quality risk.
-              </p>
-              
-              <p className="text-neutral-600 leading-relaxed mb-6">
-                Traditionally, direct sourcing has meant juggling multiple suppliers, unclear price discovery, limited transparency, and little to no protection once payment is made. <strong className="text-neutral-800">Locofast changes that.</strong> Our platform brings verified sellers, transparent price comparison, and platform-backed payment protection together in one seamless experience.
-              </p>
-
-              <p className="text-neutral-600 leading-relaxed mb-6">
-                With Locofast, buyers work directly with suppliers to negotiate and finalise orders, while payments flow securely through our platform. Every eligible transaction is protected under the <strong className="text-neutral-800">Locofast Money-Back Guarantee</strong>, giving buyers confidence and peace of mind at every stage of the order.
-              </p>
-
-              <p className="text-neutral-600 leading-relaxed mb-6">
-                From posting a requirement and comparing quotes to tracking orders end-to-end, buyers stay in control while Locofast safeguards the transaction.
-              </p>
+      {/* Section 2: More Than a Marketplace */}
+      <section className="py-24 lg:py-32" data-testid="marketplace-section">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+            <div>
+              <p className="text-sm tracking-widest text-neutral-500 uppercase mb-4">Our Approach</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900 mb-8">
+                More Than a Marketplace
+              </h2>
+              <div className="space-y-6 text-neutral-600 leading-relaxed">
+                <p>
+                  We are not a listings platform where suppliers compete on price alone. Locofast is a structured sourcing partner—built to help brands find reliable suppliers, negotiate fair terms, and execute orders with confidence.
+                </p>
+                <p>
+                  Every supplier on our platform is vetted. Every transaction is tracked. And every brand gets access to sourcing infrastructure that was previously only available to large enterprises.
+                </p>
+                <p>
+                  Our team works alongside buyers to ensure clarity at every step—from initial requirement to final delivery.
+                </p>
+              </div>
+            </div>
+            <div className="relative">
+              <img
+                src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/1tpvf3i8_WhatsApp%20Image%202026-01-29%20at%2014.53.57%20%282%29.jpeg"
+                alt="Locofast team outdoor activity"
+                className="w-full aspect-[4/3] object-cover"
+              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Highlights */}
-      <section className="section-gap bg-neutral-50" data-testid="highlights-section">
-        <div className="container-main">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <p className="subheading mb-4">Why Locofast</p>
-            <h2 className="text-3xl md:text-4xl font-semibold">Better prices and peace of mind</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {highlights.map((item, index) => (
-              <div key={index} className="bg-white p-8 border border-neutral-100">
-                <item.icon size={32} strokeWidth={1.5} className="text-[#2563EB] mb-6" />
-                <h3 className="text-lg font-semibold mb-3">{item.title}</h3>
-                <p className="text-neutral-500 text-sm leading-relaxed">{item.desc}</p>
+      {/* Section 3: Why We Exist */}
+      <section className="py-24 lg:py-32 bg-white" data-testid="philosophy-section">
+        <div className="max-w-3xl mx-auto px-6 lg:px-8 text-center">
+          <p className="text-sm tracking-widest text-neutral-500 uppercase mb-4">Our Philosophy</p>
+          <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900 mb-12">
+            Why We Exist
+          </h2>
+          
+          <div className="space-y-5 mb-12">
+            {philosophyPoints.map((point, index) => (
+              <div key={index} className="flex items-start gap-4 text-left max-w-lg mx-auto">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-neutral-900 flex items-center justify-center mt-0.5">
+                  <Check size={14} className="text-white" strokeWidth={2.5} />
+                </div>
+                <p className="text-neutral-700 text-lg">{point}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* Built for B2B */}
-      <section className="section-gap">
-        <div className="container-main">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <p className="subheading mb-4">Built for B2B</p>
-              <h2 className="text-3xl md:text-4xl font-semibold mb-6">
-                Serious sourcing at scale
-              </h2>
-              <p className="text-neutral-600 leading-relaxed mb-6">
-                We are built for serious B2B sourcing—supporting brands, manufacturers, and exporters who need scale, speed, and reliability. Our ecosystem is powered by a growing network of verified suppliers, transparent documentation, and dedicated support for quality and logistics resolution.
-              </p>
-              <p className="text-neutral-600 leading-relaxed mb-6">
-                Today, Locofast works with hundreds of suppliers and has enabled thousands of successful transactions for brands across India and South Asia.
-              </p>
-              <p className="text-neutral-600 leading-relaxed">
-                Backed by leading investors and driven by a team deeply rooted in the textile industry, we are focused on one clear mission: <strong className="text-neutral-800">enabling confident sourcing at scale.</strong>
-              </p>
-            </div>
-            <div className="aspect-[4/3] bg-neutral-100 overflow-hidden">
-              <img
-                src="https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800"
-                alt="Textile sourcing"
-                className="w-full h-full object-cover"
-              />
-            </div>
+          <div className="pt-8 border-t border-neutral-200">
+            <p className="text-xl md:text-2xl text-neutral-900 font-medium leading-relaxed">
+              "We do not promise guaranteed sales.<br />
+              <span className="text-neutral-600">We promise structured sourcing."</span>
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Our Team */}
-      <section className="section-gap bg-white" data-testid="team-section">
-        <div className="container-main">
+      {/* Section 4: Team Gallery */}
+      <section className="py-24 lg:py-32" data-testid="team-section">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <p className="subheading mb-4">Our People</p>
-            <h2 className="text-3xl md:text-4xl font-semibold mb-4">The Locofast Team</h2>
+            <p className="text-sm tracking-widest text-neutral-500 uppercase mb-4">Our Team</p>
+            <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900 mb-6">
+              Built by a Young, Driven Team
+            </h2>
             <p className="text-neutral-600 leading-relaxed">
-              We're a passionate team of textile enthusiasts, technology experts, and supply chain specialists united by a single goal: making fabric sourcing simpler and more reliable for businesses across India and beyond.
+              Behind Locofast is a team of operators, not just engineers. People who have managed supplier relationships, handled production delays, and understand what it takes to source fabric at scale. We built this platform because we needed it ourselves.
             </p>
           </div>
 
-          {/* Team Gallery */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            <div className="relative overflow-hidden rounded-lg group">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="aspect-square overflow-hidden">
               <img
                 src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/8l3peaqq_WhatsApp%20Image%202026-01-29%20at%2014.53.57%20%281%29.jpeg"
-                alt="Team Locofast celebrating Diwali"
-                className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-500"
+                alt="Office celebration"
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6">
-                <p className="text-white font-semibold text-lg">Celebrating Together</p>
-                <p className="text-white/80 text-sm">Diwali festivities at our Delhi office</p>
-              </div>
             </div>
-            <div className="relative overflow-hidden rounded-lg group">
-              <img
-                src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/1tpvf3i8_WhatsApp%20Image%202026-01-29%20at%2014.53.57%20%282%29.jpeg"
-                alt="Team Locofast at sports event"
-                className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6">
-                <p className="text-white font-semibold text-lg">Team Bonding</p>
-                <p className="text-white/80 text-sm">Sports day and friendly competition</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="relative overflow-hidden rounded-lg group">
+            <div className="aspect-square overflow-hidden">
               <img
                 src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/jsmcl2l3_WhatsApp%20Image%202026-01-29%20at%2014.53.57.jpeg"
-                alt="Locofast team group photo"
-                className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-500"
+                alt="Team with flag"
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6">
-                <p className="text-white font-semibold text-lg">The Locofast Family</p>
-                <p className="text-white/80 text-sm">Our growing team across India</p>
-              </div>
             </div>
-            <div className="relative overflow-hidden rounded-lg group">
+            <div className="aspect-square overflow-hidden">
+              <img
+                src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/1tpvf3i8_WhatsApp%20Image%202026-01-29%20at%2014.53.57%20%282%29.jpeg"
+                alt="Sports win"
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+              />
+            </div>
+            <div className="aspect-square overflow-hidden">
               <img
                 src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/10bs4awk_WhatsApp%20Image%202026-01-29%20at%2014.53.58%20%281%29.jpeg"
-                alt="Team Locofast outdoor activity"
-                className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-500"
+                alt="Team gathering"
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6">
-                <p className="text-white font-semibold text-lg">Work Hard, Play Hard</p>
-                <p className="text-white/80 text-sm">Building memories beyond the office</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Team Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 pt-16 border-t border-neutral-200">
-            <div className="text-center">
-              <p className="text-4xl font-bold text-[#2563EB] mb-2">50+</p>
-              <p className="text-neutral-600 text-sm">Team Members</p>
-            </div>
-            <div className="text-center">
-              <p className="text-4xl font-bold text-[#2563EB] mb-2">6</p>
-              <p className="text-neutral-600 text-sm">Office Locations</p>
-            </div>
-            <div className="text-center">
-              <p className="text-4xl font-bold text-[#2563EB] mb-2">15+</p>
-              <p className="text-neutral-600 text-sm">Years Combined Experience</p>
-            </div>
-            <div className="text-center">
-              <p className="text-4xl font-bold text-[#2563EB] mb-2">1</p>
-              <p className="text-neutral-600 text-sm">Shared Mission</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Offices */}
-      <section className="section-gap bg-neutral-50" data-testid="offices-section">
-        <div className="container-main">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <p className="subheading mb-4">Locations</p>
-            <h2 className="text-3xl md:text-4xl font-semibold">Our Offices</h2>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center">
-              <p className="font-serif text-lg font-medium mb-1">New Delhi</p>
-              <p className="text-neutral-500 text-sm">Headquarters</p>
-            </div>
-            <div className="text-center">
-              <p className="font-serif text-lg font-medium mb-1">Jaipur</p>
-              <p className="text-neutral-500 text-sm">Regional Office</p>
-            </div>
-            <div className="text-center">
-              <p className="font-serif text-lg font-medium mb-1">Ahmedabad</p>
-              <p className="text-neutral-500 text-sm">Regional Office</p>
-            </div>
-            <div className="text-center">
-              <p className="font-serif text-lg font-medium mb-1">Bangladesh</p>
-              <p className="text-neutral-500 text-sm">International</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-24 bg-[#2563EB]">
-        <div className="container-main text-center">
-          <h2 className="text-3xl md:text-4xl font-semibold text-white mb-4">
-            At Locofast, buyers don't have to choose
+      {/* Section 5: CTA */}
+      <section className="py-24 lg:py-32 bg-white" data-testid="cta-section">
+        <div className="max-w-3xl mx-auto px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900 mb-12">
+            For Brands That Want to Grow.
           </h2>
-          <p className="text-xl text-blue-100 mb-10 max-w-xl mx-auto">
-            Between better prices and peace of mind. With us, they get both.
-          </p>
-          <Link to="/fabrics" className="bg-white text-[#2563EB] px-10 py-4 text-sm tracking-widest uppercase font-medium hover:bg-blue-50 transition-colors inline-block" data-testid="about-cta-btn">
-            Browse Fabrics
-          </Link>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              to="/contact"
+              className="px-10 py-4 bg-neutral-900 text-white text-sm tracking-wide font-medium hover:bg-neutral-800 transition-colors"
+              data-testid="cta-talk"
+            >
+              Talk to Us
+            </Link>
+            <Link
+              to="/assisted-sourcing"
+              className="px-10 py-4 border border-neutral-900 text-neutral-900 text-sm tracking-wide font-medium hover:bg-neutral-50 transition-colors"
+              data-testid="cta-submit"
+            >
+              Submit Your Requirement
+            </Link>
+          </div>
         </div>
       </section>
     </main>
