@@ -157,14 +157,6 @@ const HomePage = () => {
                   Start Selling Today
                   <ArrowRight size={18} />
                 </a>
-                <a
-                  href="https://sell-fabrics-smarter-wit-vjfamt1.gamma.site/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 border border-white/40 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-white/10 transition-colors"
-                >
-                  Learn More
-                </a>
               </div>
             </div>
             
