@@ -111,10 +111,10 @@ const FabricsHub = () => {
                     </div>
 
                     <Link
-                      to={category.slug}
+                      to={category.catalogUrl}
                       className="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-slate-800 transition-colors"
                     >
-                      Explore {category.name}
+                      Browse {category.name}
                       <ArrowRight size={18} />
                     </Link>
                   </div>
