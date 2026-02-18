@@ -9,7 +9,8 @@ import { ChevronDown, ChevronUp } from "lucide-react";
  */
 const ExpandableText = ({ 
   text, 
-  maxLength = 250, 
+  maxLength = 400, 
+  maxLines = 8,
   className = "",
   showToggle = true 
 }) => {
@@ -24,15 +25,13 @@ const ExpandableText = ({
     <div className={`relative ${className}`} data-testid="expandable-text">
       {/* SEO-friendly: Full text is always present in DOM */}
       <div 
-        className={`text-gray-600 leading-relaxed transition-all duration-300 ${
-          !isExpanded && shouldTruncate ? 'line-clamp-4' : ''
-        }`}
+        className="text-gray-600 leading-relaxed transition-all duration-300"
         style={{
           // Use CSS to visually truncate while keeping full text for SEO
           display: '-webkit-box',
           WebkitBoxOrient: 'vertical',
           overflow: isExpanded ? 'visible' : 'hidden',
-          WebkitLineClamp: isExpanded ? 'unset' : 4,
+          WebkitLineClamp: isExpanded ? 'unset' : maxLines,
         }}
       >
         {text}
