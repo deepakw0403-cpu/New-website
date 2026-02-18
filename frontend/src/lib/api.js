@@ -100,4 +100,33 @@ export const getSEOPreview = (id) => api.get(`/seo/fabric/${id}/preview`);
 export const getRelatedFabrics = (id) => api.get(`/seo/fabric/${id}/related`);
 export const batchGenerateSlugs = () => api.post(`/seo/batch-generate-slugs`);
 
+// Blog - Categories
+export const getBlogCategories = () => api.get("/blog/categories");
+export const getBlogCategory = (id) => api.get(`/blog/categories/${id}`);
+export const getBlogCategoryBySlug = (slug) => api.get(`/blog/categories/slug/${slug}`);
+export const createBlogCategory = (data) => api.post("/blog/categories", data);
+export const updateBlogCategory = (id, data) => api.put(`/blog/categories/${id}`, data);
+export const deleteBlogCategory = (id) => api.delete(`/blog/categories/${id}`);
+
+// Blog - Tags
+export const getBlogTags = () => api.get("/blog/tags");
+export const getBlogTag = (id) => api.get(`/blog/tags/${id}`);
+export const getBlogTagBySlug = (slug) => api.get(`/blog/tags/slug/${slug}`);
+export const createBlogTag = (data) => api.post("/blog/tags", data);
+export const updateBlogTag = (id, data) => api.put(`/blog/tags/${id}`, data);
+export const deleteBlogTag = (id) => api.delete(`/blog/tags/${id}`);
+
+// Blog - Posts
+export const getBlogPosts = (params) => api.get("/blog/posts", { params });
+export const getBlogPostsCount = (params) => api.get("/blog/posts/count", { params });
+export const getBlogPost = (id) => api.get(`/blog/posts/${id}`);
+export const getBlogPostBySlug = (slug) => api.get(`/blog/posts/slug/${slug}`);
+export const createBlogPost = (data) => api.post("/blog/posts", data);
+export const updateBlogPost = (id, data) => api.put(`/blog/posts/${id}`, data);
+export const deleteBlogPost = (id) => api.delete(`/blog/posts/${id}`);
+
+// Blog - Stats & Sitemap
+export const getBlogStats = () => api.get("/blog/stats");
+export const getBlogSitemap = () => api.get("/blog/sitemap");
+
 export default api;
