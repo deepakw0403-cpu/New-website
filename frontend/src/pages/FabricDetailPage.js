@@ -436,6 +436,17 @@ const FabricDetailPage = () => {
                 </div>
               </div>
 
+              {/* Product Description - Expandable for long text */}
+              {fabric.description && (
+                <div className="border-t border-gray-100 pt-6 mb-6" data-testid="fabric-description">
+                  <h2 className="text-lg font-semibold mb-4">Product Description</h2>
+                  <ExpandableText 
+                    text={fabric.description} 
+                    maxLength={250}
+                  />
+                </div>
+              )}
+
               {/* CTA - Early position */}
               <div className="bg-[#2563EB] text-white p-6 rounded-lg mb-8">
                 <p className="font-medium mb-2">Interested in this fabric?</p>
