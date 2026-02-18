@@ -4,15 +4,11 @@ from typing import List, Optional
 from datetime import datetime, timezone
 import uuid
 import re
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
 
-router = APIRouter(prefix="/blog", tags=["blog"])
+router = APIRouter(prefix="/api/blog", tags=["blog"])
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# Import db from server to avoid duplicate connection
+from server import db, get_current_admin
 
 # ==================== MODELS ====================
 
@@ -131,9 +127,6 @@ def generate_excerpt(content: str, max_length: int = 160) -> str:
     if len(text) > max_length:
         text = text[:max_length].rsplit(' ', 1)[0] + '...'
     return text
-
-# Auth dependency (imported from main server)
-from server import get_current_admin
 
 # ==================== CATEGORY ROUTES ====================
 
