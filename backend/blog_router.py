@@ -1,14 +1,41 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from datetime import datetime, timezone
 import uuid
 import re
+import os
+import jwt
+from motor.motor_asyncio import AsyncIOMotorClient
 
 router = APIRouter(prefix="/api/blog", tags=["blog"])
+security = HTTPBearer()
 
-# Import db from server to avoid duplicate connection
-from server import db, get_current_admin
+# MongoDB connection
+mongo_url = os.environ.get('MONGO_URL')
+db_name = os.environ.get('DB_NAME', 'test_database')
+if db_name and db_name.startswith('"') and db_name.endswith('"'):
+    db_name = db_name[1:-1]
+client = AsyncIOMotorClient(mongo_url)
+db = client[db_name]
+
+# JWT Config
+JWT_SECRET = os.environ.get('JWT_SECRET', 'fallback_secret')
+JWT_ALGORITHM = 'HS256'
+
+async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        admin_id = payload.get('sub')
+        admin = await db.admins.find_one({'id': admin_id}, {'_id': 0})
+        if not admin:
+            raise HTTPException(status_code=401, detail='Invalid token')
+        return admin
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail='Token expired')
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail='Invalid token')
 
 # ==================== MODELS ====================
 
