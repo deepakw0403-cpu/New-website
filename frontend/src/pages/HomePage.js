@@ -1,475 +1,473 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2, MessageCircle, Calculator, Shield, Clock, Users, Sparkles, CreditCard, Truck, CheckCircle } from "lucide-react";
-import { getCategories, getFabrics } from "../lib/api";
+import { ArrowRight, CheckCircle, MessageCircle, Shield, Clock, Users, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import { getCollections } from "../lib/api";
 
 const HomePage = () => {
-  const [categories, setCategories] = useState([]);
-  const [featuredFabrics, setFeaturedFabrics] = useState([]);
-  const [showGSMCalculator, setShowGSMCalculator] = useState(false);
+  const [collections, setCollections] = useState([]);
+  const [openFaq, setOpenFaq] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [catRes, fabRes] = await Promise.all([
-          getCategories(),
-          getFabrics({ limit: 8 })
-        ]);
-        setCategories(catRes.data);
-        setFeaturedFabrics(fabRes.data.slice(0, 8));
-      } catch (err) {
-        console.error("Error fetching data:", err);
-      }
-    };
-    fetchData();
+    fetchCollections();
   }, []);
 
-  const whyDifferent = [
+  const fetchCollections = async () => {
+    try {
+      const res = await getCollections();
+      setCollections(res.data.slice(0, 4));
+    } catch (err) {
+      console.error("Failed to fetch collections");
+    }
+  };
+
+  const valueProps = [
     {
       icon: Shield,
-      title: "Verified & Invested Suppliers",
-      desc: "Every supplier on our platform is screened and committed — not casually listed."
+      title: "Verified Network of Suppliers",
+      description: "Every supplier in our network goes through quality checks and verification before onboarding."
     },
     {
-      icon: CheckCircle2,
-      title: "Clear MOQ & Pricing",
-      desc: "No last-minute surprises. Know exactly what you're getting into."
+      icon: CheckCircle,
+      title: "Transparent MOQ & Pricing",
+      description: "No hidden costs. Clear minimum order quantities and pricing shared upfront."
     },
     {
       icon: Clock,
-      title: "Dispatch Transparency",
-      desc: "Know where your fabric is coming from and when it will arrive."
-    },
-    {
-      icon: Users,
-      title: "Assisted Selection",
-      desc: "Not sure which GSM or weave works? We help you find the perfect match."
+      title: "Fast Curated Options",
+      description: "Get matched with relevant fabric options within 24-48 hours of your requirement."
     }
   ];
 
-  const supplierBenefits = [
+  const steps = [
     {
-      icon: CheckCircle,
-      title: "Lifetime Free Enquiries",
-      description: "Unlimited buyer queries at no subscription cost"
+      number: "01",
+      title: "Tell Us Your Requirements",
+      description: "Share your fabric needs — type, quantity, budget, and timeline. We listen first.",
+      cta: "Submit Requirement"
     },
     {
-      icon: Shield,
-      title: "Payment Protection",
-      description: "Secure 80:20 terms with invoice discounting"
+      number: "02",
+      title: "We Match Curated Options",
+      description: "Our team handpicks options from verified mills that fit your exact specifications.",
+      cta: "How We Select"
     },
     {
-      icon: Truck,
-      title: "Logistics Support",
-      description: "End-to-end dispatch and shipment tracking"
-    },
-    {
-      icon: CreditCard,
-      title: "3% Commission Only",
-      description: "Pay only when transactions complete"
+      number: "03",
+      title: "Review, Select & Get Delivery Clarity",
+      description: "Compare options, request samples, and get clear delivery timelines before you commit.",
+      cta: "Start Now"
     }
   ];
 
-  const whatsappNumber = "918920392418"; // Locofast WhatsApp number
+  const testimonials = [
+    {
+      quote: "Delivered quality swatches before I even paid — fast and transparent. This is how sourcing should work.",
+      author: "Priya Sharma",
+      role: "Boutique Owner",
+      location: "Jaipur"
+    },
+    {
+      quote: "Finally found a sourcing partner who understands what small brands need. No more chasing suppliers.",
+      author: "Arjun Mehta",
+      role: "Fashion Designer",
+      location: "Mumbai"
+    },
+    {
+      quote: "The clarity on MOQ and pricing saved us weeks of back-and-forth. Highly recommended.",
+      author: "Sneha Patel",
+      role: "D2C Brand Founder",
+      location: "Bangalore"
+    },
+    {
+      quote: "Their curated approach means I only see fabrics that actually match my requirements. Game changer.",
+      author: "Rahul Verma",
+      role: "Export House",
+      location: "Delhi"
+    }
+  ];
+
+  const faqs = [
+    {
+      question: "Can I get samples before placing a bulk order?",
+      answer: "Yes, absolutely. We encourage sampling before bulk orders. Sample costs vary by fabric type and are typically adjusted against your final order."
+    },
+    {
+      question: "What is the minimum order quantity (MOQ)?",
+      answer: "MOQ varies by supplier and fabric type, typically ranging from 300-1500 meters. We always share this upfront so there are no surprises."
+    },
+    {
+      question: "How fast is delivery?",
+      answer: "Standard lead times range from 15-45 days depending on the fabric and customization required. We provide clear timelines before you commit."
+    },
+    {
+      question: "How does pricing work?",
+      answer: "Pricing is transparent and shared per meter/kg based on the fabric. We don't add hidden margins — what you see is what you pay."
+    },
+    {
+      question: "Do you handle logistics and shipping?",
+      answer: "Yes, we can manage end-to-end logistics including quality checks, packaging, and delivery to your location across India."
+    }
+  ];
+
+  const trustBadges = [
+    { label: "100+ Quality Checks", icon: CheckCircle },
+    { label: "Verified Mills", icon: Shield },
+    { label: "500+ Brands Served", icon: Users }
+  ];
 
   return (
-    <main className="pt-20" data-testid="home-page">
-      {/* Hero Section - Premium Service Feel */}
-      <section className="relative min-h-[85vh] flex items-center" data-testid="hero-section">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-20 left-20 w-72 h-72 bg-blue-500 rounded-full filter blur-[120px]" />
-            <div className="absolute bottom-20 right-20 w-96 h-96 bg-indigo-500 rounded-full filter blur-[150px]" />
-          </div>
-        </div>
+    <>
+      <Navbar />
+      
+      <main className="bg-white" data-testid="home-page">
         
-        <div className="container-main relative z-10 py-20">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full mb-8">
-              <Sparkles size={16} className="text-blue-400" />
-              <span className="text-blue-200 text-sm font-medium">Trusted by 500+ brands across India</span>
-            </div>
-            
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-white leading-[1.15] mb-6">
-              Source the right fabric.
-              <span className="block text-blue-400">Without the stress.</span>
-            </h1>
-            
-            <p className="text-lg sm:text-xl text-slate-300 leading-relaxed mb-10 max-w-2xl">
-              We help you source the right fabric, faster and from verified mills. 
-              No marketplace chaos — just curated options matched to your needs.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link 
-                to="/fabrics" 
-                className="bg-white text-slate-900 px-8 py-4 font-semibold hover:bg-slate-100 transition-all inline-flex items-center justify-center gap-2 rounded-lg shadow-lg shadow-white/10"
-                data-testid="hero-explore-btn"
-              >
-                Explore Fabrics
-                <ArrowRight size={18} />
-              </Link>
-              <Link 
-                to="/assisted-sourcing" 
-                className="bg-blue-600 text-white px-8 py-4 font-semibold hover:bg-blue-700 transition-all inline-flex items-center justify-center gap-2 rounded-lg border border-blue-500"
-                data-testid="hero-assisted-btn"
-              >
-                Get Assisted Sourcing
-                <Users size={18} />
-              </Link>
-            </div>
+        {/* ========== HERO SECTION ========== */}
+        <section className="relative min-h-[90vh] flex items-center" data-testid="hero-section">
+          <div className="absolute inset-0">
+            <img
+              src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/8l3peaqq_WhatsApp%20Image%202026-01-29%20at%2014.53.57%20%281%29.jpeg"
+              alt="Locofast team"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-neutral-900/90 via-neutral-900/70 to-neutral-900/40" />
           </div>
-        </div>
-
-        {/* GSM Calculator Link */}
-        <button
-          onClick={() => setShowGSMCalculator(true)}
-          className="absolute top-24 right-6 md:right-10 flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white/90 hover:bg-white/20 transition-colors rounded-lg text-sm"
-          data-testid="gsm-calculator-btn"
-        >
-          <Calculator size={16} />
-          GSM Calculator
-        </button>
-      </section>
-
-      {/* Supplier Value Proposition - Top Fold */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-700 py-12" data-testid="supplier-section">
-        <div className="container-main">
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
-            {/* Left - Main Message */}
-            <div>
-              <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-4">
-                FOR SUPPLIERS
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
-                Sell Fabrics Smarter with Locofast
-              </h2>
-              <p className="text-blue-100 mb-6 text-base">
-                Pay-for-performance B2B marketplace. No subscription fees. Get lifetime free enquiries from verified buyers.
+          
+          <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-20">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white/90 px-4 py-2 rounded-full text-sm mb-8">
+                <Sparkles size={16} />
+                Trusted by 500+ brands across India
+              </div>
+              
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white leading-tight mb-6" data-testid="hero-headline">
+                Reliable Fabric Sourcing for Brands & Boutiques
+              </h1>
+              
+              <p className="text-lg md:text-xl text-white/80 leading-relaxed mb-10 max-w-xl">
+                We simplify your sourcing process with verified suppliers, clear timelines, and curated options — so you can focus on design, not logistics.
               </p>
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href="mailto:mail@locofast.com?subject=Supplier%20Enquiry"
-                  className="inline-flex items-center gap-2 bg-white text-blue-600 px-5 py-2.5 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
-                  data-testid="supplier-cta-top"
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  to="/assisted-sourcing"
+                  className="inline-flex items-center justify-center gap-2 bg-[#2563EB] text-white px-8 py-4 rounded-lg font-medium hover:bg-blue-600 transition-all hover:gap-3"
+                  data-testid="hero-cta-primary"
                 >
-                  Start Selling Today
+                  Get Curated Options
                   <ArrowRight size={18} />
-                </a>
+                </Link>
+                <Link
+                  to="/contact"
+                  className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-medium hover:bg-white/20 transition-colors border border-white/20"
+                  data-testid="hero-cta-secondary"
+                >
+                  <MessageCircle size={18} />
+                  Talk to a Fabric Expert
+                </Link>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ========== VALUE PROPOSITION ========== */}
+        <section className="py-20 lg:py-28 bg-neutral-50" data-testid="value-section">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Why Choose Us</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
+                Why Designers & Brands Trust Us
+              </h2>
+            </div>
             
-            {/* Right - Benefits Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              {supplierBenefits.map((benefit, index) => (
-                <div 
-                  key={index}
-                  className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/15 transition-colors"
-                >
-                  <benefit.icon className="w-8 h-8 text-blue-200 mb-2" />
-                  <h4 className="font-semibold text-white text-sm mb-1">{benefit.title}</h4>
-                  <p className="text-blue-200 text-xs">{benefit.description}</p>
+            <div className="grid md:grid-cols-3 gap-8 lg:gap-12 mb-12">
+              {valueProps.map((prop, index) => (
+                <div key={index} className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center mb-6">
+                    <prop.icon size={28} className="text-[#2563EB]" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-neutral-900 mb-3">{prop.title}</h3>
+                  <p className="text-neutral-600 leading-relaxed">{prop.description}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Trust Badges */}
+            <div className="flex flex-wrap justify-center gap-6 pt-8 border-t border-neutral-200">
+              {trustBadges.map((badge, index) => (
+                <div key={index} className="flex items-center gap-2 text-neutral-600">
+                  <badge.icon size={18} className="text-green-600" />
+                  <span className="text-sm font-medium">{badge.label}</span>
                 </div>
               ))}
             </div>
           </div>
-          
-          {/* Trust Badges */}
-          <div className="mt-8 pt-6 border-t border-white/20 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-6 text-sm text-blue-100">
-              <span className="flex items-center gap-2">
-                <CheckCircle size={16} className="text-green-300" />
-                500+ Active Suppliers
-              </span>
-              <span className="flex items-center gap-2">
-                <CheckCircle size={16} className="text-green-300" />
-                5,000+ Orders Executed
-              </span>
-              <span className="flex items-center gap-2">
-                <CheckCircle size={16} className="text-green-300" />
-                700+ Brands Served
-              </span>
-            </div>
-            <div className="text-xs text-blue-200">
-              Backed by Stellaris Ventures, Chiratae Ventures & Axilor
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      {/* What Makes Us Different */}
-      <section className="py-20 bg-white" data-testid="why-different-section">
-        <div className="container-main">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <p className="text-blue-600 font-semibold text-sm uppercase tracking-wider mb-3">What Makes Us Different</p>
-            <h2 className="text-3xl sm:text-4xl font-semibold text-slate-900 mb-4">
-              Not a marketplace.<br />
-              <span className="text-blue-600">A curated sourcing network.</span>
-            </h2>
-            <p className="text-slate-600 text-lg">
-              We're not here to list thousands of options and leave you confused. 
-              We're here to match you with exactly what you need.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {whyDifferent.map((item, index) => (
-              <div 
-                key={index} 
-                className="p-6 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors group"
-              >
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                  <item.icon size={24} className="text-blue-600 group-hover:text-white transition-colors" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">{item.title}</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Categories Section */}
-      <section className="py-20 bg-slate-50" data-testid="categories-section">
-        <div className="container-main">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
-            <div>
-              <p className="text-blue-600 font-semibold text-sm uppercase tracking-wider mb-2">Browse by Category</p>
-              <h2 className="text-3xl sm:text-4xl font-semibold text-slate-900">Fabric Categories</h2>
-            </div>
-            <Link to="/fabrics" className="text-blue-600 font-semibold inline-flex items-center gap-2 mt-4 md:mt-0 hover:gap-3 transition-all" data-testid="view-all-categories">
-              View All Categories
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {categories.slice(0, 6).map((category) => (
-              <Link
-                key={category.id}
-                to={`/fabrics?category=${category.id}`}
-                className="group relative aspect-square overflow-hidden rounded-xl bg-slate-200"
-                data-testid={`category-card-${category.id}`}
-              >
-                <img
-                  src={category.image_url || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400"}
-                  alt={category.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <h3 className="text-white font-semibold text-sm sm:text-base">{category.name}</h3>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Fabrics */}
-      <section className="py-20 bg-white" data-testid="featured-fabrics-section">
-        <div className="container-main">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
-            <div>
-              <p className="text-blue-600 font-semibold text-sm uppercase tracking-wider mb-2">Curated Selection</p>
-              <h2 className="text-3xl sm:text-4xl font-semibold text-slate-900">Featured Fabrics</h2>
-            </div>
-            <Link to="/fabrics" className="text-blue-600 font-semibold inline-flex items-center gap-2 mt-4 md:mt-0 hover:gap-3 transition-all" data-testid="view-all-fabrics">
-              Explore All Fabrics
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {featuredFabrics.map((fabric) => (
-              <Link
-                key={fabric.id}
-                to={`/fabrics/${fabric.id}`}
-                className="group"
-                data-testid={`fabric-card-${fabric.id}`}
-              >
-                <div className="aspect-square overflow-hidden bg-slate-100 mb-3 rounded-lg">
-                  <img
-                    src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400"}
-                    alt={fabric.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-                <p className="text-blue-600 text-xs font-semibold uppercase tracking-wider mb-1">{fabric.category_name}</p>
-                <h3 className="font-semibold text-slate-900 text-sm sm:text-base mb-1 group-hover:text-blue-600 transition-colors line-clamp-2">
-                  {fabric.name}
-                </h3>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                  {fabric.gsm > 0 && <span>{fabric.gsm} GSM</span>}
-                  {fabric.weight_unit === 'ounce' && fabric.ounce && <span>{fabric.ounce} oz</span>}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section - Assisted Sourcing */}
-      <section className="py-20 bg-gradient-to-br from-blue-600 to-blue-700" data-testid="cta-section">
-        <div className="container-main">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl sm:text-4xl font-semibold text-white mb-6">
-                Not sure what you need?<br />
-                Let us help you find it.
+        {/* ========== HOW IT WORKS ========== */}
+        <section className="py-20 lg:py-28" data-testid="how-it-works-section">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Simple Process</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
+                How It Works
               </h2>
-              <p className="text-blue-100 text-lg mb-8 leading-relaxed">
-                Fill out a quick sourcing brief and our fabric experts will curate the best options for you. 
-                No endless scrolling — just matched recommendations.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link 
-                  to="/assisted-sourcing" 
-                  className="bg-white text-blue-600 px-8 py-4 font-semibold hover:bg-blue-50 transition-colors inline-flex items-center justify-center gap-2 rounded-lg"
-                  data-testid="cta-assisted-btn"
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {steps.map((step, index) => (
+                <div key={index} className="relative">
+                  {index < steps.length - 1 && (
+                    <div className="hidden md:block absolute top-16 left-full w-full h-px bg-neutral-200 -translate-x-1/2 z-0" />
+                  )}
+                  <div className="relative bg-white p-8 rounded-2xl border border-neutral-100 hover:border-[#2563EB]/30 transition-colors">
+                    <span className="text-5xl font-bold text-neutral-100 absolute top-4 right-6">{step.number}</span>
+                    <div className="relative">
+                      <h3 className="text-xl font-semibold text-neutral-900 mb-3 pr-12">{step.title}</h3>
+                      <p className="text-neutral-600 leading-relaxed mb-6">{step.description}</p>
+                      <Link
+                        to="/assisted-sourcing"
+                        className="inline-flex items-center gap-1 text-[#2563EB] font-medium text-sm hover:gap-2 transition-all"
+                      >
+                        {step.cta} <ArrowRight size={14} />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ========== TESTIMONIALS ========== */}
+        <section className="py-20 lg:py-28 bg-neutral-900" data-testid="testimonials-section">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <p className="text-sm tracking-widest text-blue-400 uppercase mb-4">Social Proof</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-white">
+                What Our Buyers Say
+              </h2>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {testimonials.map((testimonial, index) => (
+                <div key={index} className="bg-neutral-800/50 p-6 rounded-2xl border border-neutral-700/50">
+                  <p className="text-neutral-300 leading-relaxed mb-6 text-sm">
+                    "{testimonial.quote}"
+                  </p>
+                  <div>
+                    <p className="font-medium text-white">{testimonial.author}</p>
+                    <p className="text-neutral-500 text-sm">{testimonial.role}, {testimonial.location}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ========== COLLECTION SHOWCASE ========== */}
+        <section className="py-20 lg:py-28" data-testid="collections-section">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Curated For You</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
+                Explore Curated Fabric Groups
+              </h2>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {collections.length > 0 ? (
+                collections.map((collection) => (
+                  <Link
+                    key={collection.id}
+                    to={`/collections/${collection.id}`}
+                    className="group relative bg-neutral-100 rounded-2xl overflow-hidden aspect-[4/5] hover:shadow-lg transition-all"
+                  >
+                    {collection.image ? (
+                      <img src={collection.image} alt={collection.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-neutral-200 to-neutral-300" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-6">
+                      <h3 className="text-xl font-semibold text-white mb-1">{collection.name}</h3>
+                      <p className="text-white/70 text-sm mb-3 line-clamp-2">{collection.description}</p>
+                      <span className="inline-flex items-center gap-1 text-white text-sm font-medium group-hover:gap-2 transition-all">
+                        View Options <ArrowRight size={14} />
+                      </span>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                // Placeholder collections
+                ["Summer Weaves", "Signature Essentials", "Print Studio", "Premium Blends"].map((name, index) => (
+                  <Link
+                    key={index}
+                    to="/collections"
+                    className="group relative bg-neutral-100 rounded-2xl overflow-hidden aspect-[4/5] hover:shadow-lg transition-all"
+                  >
+                    <div className="w-full h-full bg-gradient-to-br from-neutral-200 to-neutral-300" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-6">
+                      <h3 className="text-xl font-semibold text-white mb-2">{name}</h3>
+                      <span className="inline-flex items-center gap-1 text-white text-sm font-medium group-hover:gap-2 transition-all">
+                        View Options <ArrowRight size={14} />
+                      </span>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+
+            <div className="text-center mt-12">
+              <Link
+                to="/collections"
+                className="inline-flex items-center gap-2 text-[#2563EB] font-medium hover:gap-3 transition-all"
+              >
+                View All Collections <ArrowRight size={18} />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ========== ABOUT / TRUST BLOCK ========== */}
+        <section className="py-20 lg:py-28 bg-neutral-50" data-testid="about-section">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              <div>
+                <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Who We Are</p>
+                <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900 mb-6">
+                  We're a Team of Sourcing Architects
+                </h2>
+                <div className="space-y-4 text-neutral-600 leading-relaxed">
+                  <p>
+                    Built by sourcing, operations, and tech professionals — not random sellers. We understand the challenges brands face because we've lived them.
+                  </p>
+                  <p>
+                    We manage your end-to-end requirements so you get clarity and confidence, not chaos. Every fabric option is vetted, every timeline is realistic, and every price is transparent.
+                  </p>
+                  <p>
+                    Our mission is simple: make fabric sourcing as reliable as it should be.
+                  </p>
+                </div>
+                <Link
+                  to="/about"
+                  className="inline-flex items-center gap-2 text-[#2563EB] font-medium mt-8 hover:gap-3 transition-all"
                 >
-                  Get Assisted Sourcing
-                  <ArrowRight size={18} />
+                  Learn More About Us <ArrowRight size={18} />
                 </Link>
-                <a 
-                  href={`https://wa.me/${whatsappNumber}?text=Hi, I need help sourcing fabric.`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-green-500 text-white px-8 py-4 font-semibold hover:bg-green-600 transition-colors inline-flex items-center justify-center gap-2 rounded-lg"
-                  data-testid="cta-whatsapp-btn"
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <img
+                  src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/8l3peaqq_WhatsApp%20Image%202026-01-29%20at%2014.53.57%20%281%29.jpeg"
+                  alt="Team celebration"
+                  className="w-full aspect-square object-cover rounded-2xl"
+                />
+                <img
+                  src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/jsmcl2l3_WhatsApp%20Image%202026-01-29%20at%2014.53.57.jpeg"
+                  alt="Team photo"
+                  className="w-full aspect-square object-cover rounded-2xl mt-8"
+                />
+                <img
+                  src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/1tpvf3i8_WhatsApp%20Image%202026-01-29%20at%2014.53.57%20%282%29.jpeg"
+                  alt="Team bonding"
+                  className="w-full aspect-square object-cover rounded-2xl -mt-8"
+                />
+                <img
+                  src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/10bs4awk_WhatsApp%20Image%202026-01-29%20at%2014.53.58%20%281%29.jpeg"
+                  alt="Team outdoor"
+                  className="w-full aspect-square object-cover rounded-2xl"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ========== FAQ SECTION ========== */}
+        <section className="py-20 lg:py-28" data-testid="faq-section">
+          <div className="max-w-3xl mx-auto px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">FAQs</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
+                Common Questions
+              </h2>
+            </div>
+
+            <div className="space-y-4">
+              {faqs.map((faq, index) => (
+                <div
+                  key={index}
+                  className="border border-neutral-200 rounded-xl overflow-hidden"
                 >
-                  <MessageCircle size={18} />
-                  Chat on WhatsApp
-                </a>
-              </div>
-            </div>
-            <div className="hidden lg:block">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-                <h3 className="text-white font-semibold text-xl mb-6">What our experts help with:</h3>
-                <ul className="space-y-4">
-                  {[
-                    "Finding the right GSM and weave for your product",
-                    "Matching fabric to your budget and MOQ",
-                    "Connecting you with verified suppliers",
-                    "Sample coordination and quality checks"
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-blue-100">
-                      <CheckCircle2 size={20} className="text-green-400 flex-shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                  <button
+                    onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                    className="w-full flex items-center justify-between p-6 text-left hover:bg-neutral-50 transition-colors"
+                  >
+                    <span className="font-medium text-neutral-900 pr-4">{faq.question}</span>
+                    {openFaq === index ? (
+                      <ChevronUp size={20} className="text-neutral-400 flex-shrink-0" />
+                    ) : (
+                      <ChevronDown size={20} className="text-neutral-400 flex-shrink-0" />
+                    )}
+                  </button>
+                  {openFaq === index && (
+                    <div className="px-6 pb-6 pt-0">
+                      <p className="text-neutral-600 leading-relaxed">{faq.answer}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* WhatsApp Floating Button */}
-      <a
-        href={`https://wa.me/${whatsappNumber}?text=Hi, I need help sourcing fabric.`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition-colors hover:scale-110 transform"
-        data-testid="whatsapp-float-btn"
-        aria-label="Chat on WhatsApp"
-      >
-        <MessageCircle size={28} fill="currentColor" />
-      </a>
-
-      {/* GSM Calculator Modal */}
-      {showGSMCalculator && (
-        <GSMCalculatorModal onClose={() => setShowGSMCalculator(false)} />
-      )}
-    </main>
-  );
-};
-
-// GSM Calculator Modal Component
-const GSMCalculatorModal = ({ onClose }) => {
-  const [weight, setWeight] = useState("");
-  const [length, setLength] = useState("");
-  const [width, setWidth] = useState("");
-  const [gsm, setGsm] = useState(null);
-
-  const calculateGSM = () => {
-    if (weight && length && width) {
-      const w = parseFloat(weight);
-      const l = parseFloat(length);
-      const wd = parseFloat(width);
-      if (w > 0 && l > 0 && wd > 0) {
-        // GSM = (Weight in grams / (Length in meters × Width in meters)) 
-        // If width is in inches, convert to meters (1 inch = 0.0254 meters)
-        const widthInMeters = wd * 0.0254;
-        const lengthInMeters = l;
-        const area = lengthInMeters * widthInMeters;
-        const calculatedGSM = Math.round(w / area);
-        setGsm(calculatedGSM);
-      }
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={e => e.stopPropagation()} data-testid="gsm-calculator-modal">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold text-slate-900">GSM Calculator</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
-        </div>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Fabric Weight (grams)</label>
-            <input
-              type="number"
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., 150"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Fabric Length (meters)</label>
-            <input
-              type="number"
-              value={length}
-              onChange={(e) => setLength(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., 1"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Fabric Width (inches)</label>
-            <input
-              type="number"
-              value={width}
-              onChange={(e) => setWidth(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., 58"
-            />
-          </div>
-          
-          <button
-            onClick={calculateGSM}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-          >
-            Calculate GSM
-          </button>
-          
-          {gsm !== null && (
-            <div className="mt-4 p-4 bg-green-50 rounded-lg text-center">
-              <p className="text-sm text-green-600 mb-1">Calculated GSM</p>
-              <p className="text-3xl font-bold text-green-700">{gsm} GSM</p>
+        {/* ========== FINAL CTA BLOCK ========== */}
+        <section className="py-20 lg:py-28 bg-[#2563EB]" data-testid="cta-section">
+          <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white mb-6">
+              Ready to Source the Right Fabric?
+            </h2>
+            <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
+              Join 500+ brands who source with clarity and confidence.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/assisted-sourcing"
+                className="inline-flex items-center justify-center gap-2 bg-white text-[#2563EB] px-8 py-4 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+                data-testid="final-cta-primary"
+              >
+                Get Curated Options
+                <ArrowRight size={18} />
+              </Link>
+              <Link
+                to="/contact"
+                className="inline-flex items-center justify-center gap-2 bg-transparent text-white px-8 py-4 rounded-lg font-medium border-2 border-white/30 hover:bg-white/10 transition-colors"
+                data-testid="final-cta-secondary"
+              >
+                <MessageCircle size={18} />
+                Talk to an Expert
+              </Link>
             </div>
-          )}
-        </div>
-        
-        <p className="text-xs text-slate-500 mt-4">
-          Formula: GSM = Weight (g) / (Length (m) × Width (m))
-        </p>
+          </div>
+        </section>
+
+      </main>
+
+      <Footer />
+      
+      {/* ========== STICKY CTA BAR ========== */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 z-40 md:hidden" data-testid="sticky-cta">
+        <Link
+          to="/assisted-sourcing"
+          className="flex items-center justify-center gap-2 bg-[#2563EB] text-white w-full py-3 rounded-lg font-medium"
+        >
+          Get Curated Options
+          <ArrowRight size={18} />
+        </Link>
       </div>
-    </div>
+    </>
   );
 };
 
