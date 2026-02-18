@@ -105,6 +105,94 @@ const AboutPage = () => {
         </div>
       </section>
 
+      {/* Our Team */}
+      <section className="section-gap bg-white" data-testid="team-section">
+        <div className="container-main">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <p className="subheading mb-4">Our People</p>
+            <h2 className="text-3xl md:text-4xl font-semibold mb-4">The Locofast Team</h2>
+            <p className="text-neutral-600 leading-relaxed">
+              We're a passionate team of textile enthusiasts, technology experts, and supply chain specialists united by a single goal: making fabric sourcing simpler and more reliable for businesses across India and beyond.
+            </p>
+          </div>
+
+          {/* Team Gallery */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            <div className="relative overflow-hidden rounded-lg group">
+              <img
+                src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/8l3peaqq_WhatsApp%20Image%202026-01-29%20at%2014.53.57%20%281%29.jpeg"
+                alt="Team Locofast celebrating Diwali"
+                className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <p className="text-white font-semibold text-lg">Celebrating Together</p>
+                <p className="text-white/80 text-sm">Diwali festivities at our Delhi office</p>
+              </div>
+            </div>
+            <div className="relative overflow-hidden rounded-lg group">
+              <img
+                src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/1tpvf3i8_WhatsApp%20Image%202026-01-29%20at%2014.53.57%20%282%29.jpeg"
+                alt="Team Locofast at sports event"
+                className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <p className="text-white font-semibold text-lg">Team Bonding</p>
+                <p className="text-white/80 text-sm">Sports day and friendly competition</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="relative overflow-hidden rounded-lg group">
+              <img
+                src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/jsmcl2l3_WhatsApp%20Image%202026-01-29%20at%2014.53.57.jpeg"
+                alt="Locofast team group photo"
+                className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <p className="text-white font-semibold text-lg">The Locofast Family</p>
+                <p className="text-white/80 text-sm">Our growing team across India</p>
+              </div>
+            </div>
+            <div className="relative overflow-hidden rounded-lg group">
+              <img
+                src="https://customer-assets.emergentagent.com/job_13644b54-5ee2-48ed-bdd9-d8ac683b189f/artifacts/10bs4awk_WhatsApp%20Image%202026-01-29%20at%2014.53.58%20%281%29.jpeg"
+                alt="Team Locofast outdoor activity"
+                className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <p className="text-white font-semibold text-lg">Work Hard, Play Hard</p>
+                <p className="text-white/80 text-sm">Building memories beyond the office</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Team Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 pt-16 border-t border-neutral-200">
+            <div className="text-center">
+              <p className="text-4xl font-bold text-[#2563EB] mb-2">50+</p>
+              <p className="text-neutral-600 text-sm">Team Members</p>
+            </div>
+            <div className="text-center">
+              <p className="text-4xl font-bold text-[#2563EB] mb-2">6</p>
+              <p className="text-neutral-600 text-sm">Office Locations</p>
+            </div>
+            <div className="text-center">
+              <p className="text-4xl font-bold text-[#2563EB] mb-2">15+</p>
+              <p className="text-neutral-600 text-sm">Years Combined Experience</p>
+            </div>
+            <div className="text-center">
+              <p className="text-4xl font-bold text-[#2563EB] mb-2">1</p>
+              <p className="text-neutral-600 text-sm">Shared Mission</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Offices */}
       <section className="section-gap bg-neutral-50" data-testid="offices-section">
         <div className="container-main">
