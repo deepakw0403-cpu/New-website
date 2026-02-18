@@ -443,7 +443,8 @@ const FabricDetailPage = () => {
                   <h2 className="text-lg font-semibold mb-4">Product Description</h2>
                   <ExpandableText 
                     text={fabric.description} 
-                    maxLength={250}
+                    maxLength={400}
+                    maxLines={6}
                   />
                 </div>
               )}
