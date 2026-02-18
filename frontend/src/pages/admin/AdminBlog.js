@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
-import { Plus, Pencil, Trash2, X, FileText, Tag, FolderOpen, Eye, Search, Filter, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Pencil, Trash2, X, FileText, Tag, FolderOpen, Eye, Search, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import MDEditor from "@uiw/react-md-editor";
 import AdminLayout from "../../components/admin/AdminLayout";
 import {
   getBlogPosts, getBlogCategories, getBlogTags,
