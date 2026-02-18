@@ -265,17 +265,17 @@ const Footer = () => {
             <h4 className="subheading text-neutral-500 mb-4">Fabrics</h4>
             <ul className="space-y-3">
               <li>
-                <Link to="/fabrics/" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-fabrics">
-                  All Fabrics
+                <Link to="/fabrics" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-fabrics">
+                  Browse All Fabrics
                 </Link>
               </li>
               <li>
-                <Link to="/fabrics/denim/" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-denim">
+                <Link to="/fabrics?category=cat-denim" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-denim">
                   Denim Fabrics
                 </Link>
               </li>
               <li>
-                <Link to="/fabrics/poly-knit-fabrics/" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-poly-knit">
+                <Link to="/fabrics?category=cat-knits" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-poly-knit">
                   Poly Knit Fabrics
                 </Link>
               </li>
