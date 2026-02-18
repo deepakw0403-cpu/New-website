@@ -9,7 +9,7 @@ const FabricsHub = () => {
     {
       name: 'Denim Fabrics',
       slug: '/fabrics/denim/',
-      catalogUrl: '/catalog?category=cat-denim',
+      catalogUrl: '/fabrics?category=cat-denim',
       description: 'Premium denim from Indian mills. Available in multiple weights from 6 oz to 14 oz, with stretch and rigid options.',
       image: 'https://images.unsplash.com/photo-1565084888279-aca607ecce0c?w=600&h=400&fit=crop',
       specs: ['6-14 oz weights', 'Stretch & Rigid', 'Indigo & Black', 'Raw & Washed'],
@@ -25,7 +25,7 @@ const FabricsHub = () => {
     {
       name: 'Poly Knit Fabrics',
       slug: '/fabrics/poly-knit-fabrics/',
-      catalogUrl: '/catalog?category=cat-knits',
+      catalogUrl: '/fabrics?category=cat-knits',
       description: 'High-performance polyester knits for sportswear and activewear. GSM range from 140 to 280.',
       image: 'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600&h=400&fit=crop',
       specs: ['140-280 GSM', 'Interlock & Jersey', 'Moisture Wicking', 'Quick Dry'],
