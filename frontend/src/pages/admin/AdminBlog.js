@@ -49,20 +49,6 @@ const AdminBlog = () => {
   const [showSEOFields, setShowSEOFields] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // Quill editor modules
-  const quillModules = useMemo(() => ({
-    toolbar: [
-      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-      [{ 'indent': '-1' }, { 'indent': '+1' }],
-      ['link', 'image'],
-      [{ 'align': [] }],
-      ['blockquote', 'code-block'],
-      ['clean']
-    ]
-  }), []);
-
   useEffect(() => {
     fetchData();
   }, []);
