@@ -9,8 +9,8 @@ import { ChevronDown, ChevronUp } from "lucide-react";
  */
 const ExpandableText = ({ 
   text, 
-  maxLength = 400, 
-  maxLines = 8,
+  maxLength = 200, 
+  maxLines = 2,
   className = "",
   showToggle = true 
 }) => {
