@@ -71,16 +71,31 @@ const AdminBlog = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [postsRes, catsRes, tagsRes, statsRes] = await Promise.all([
+      // Fetch posts, categories, and tags (all required)
+      const [postsRes, catsRes, tagsRes] = await Promise.all([
         getBlogPosts(),
         getBlogCategories(),
-        getBlogTags(),
-        getBlogStats()
+        getBlogTags()
       ]);
       setPosts(postsRes.data);
       setCategories(catsRes.data);
       setTags(tagsRes.data);
-      setStats(statsRes.data);
+      
+      // Fetch stats separately (optional, may fail without auth)
+      try {
+        const statsRes = await getBlogStats();
+        setStats(statsRes.data);
+      } catch (statsErr) {
+        console.log("Stats not available:", statsErr);
+        // Set default stats if can't fetch
+        setStats({
+          total_posts: postsRes.data.length,
+          published_posts: postsRes.data.filter(p => p.status === 'published').length,
+          draft_posts: postsRes.data.filter(p => p.status === 'draft').length,
+          total_categories: catsRes.data.length,
+          total_tags: tagsRes.data.length
+        });
+      }
     } catch (err) {
       toast.error("Failed to load blog data");
     }
