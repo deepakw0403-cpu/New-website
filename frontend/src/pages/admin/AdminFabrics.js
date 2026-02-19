@@ -107,6 +107,30 @@ const AdminFabrics = () => {
     }
   };
 
+  const updatePricingTier = (index, field, value) => {
+    const newTiers = [...form.pricing_tiers];
+    newTiers[index] = { ...newTiers[index], [field]: value };
+    setForm({ ...form, pricing_tiers: newTiers });
+  };
+
+  const addPricingTier = () => {
+    const lastTier = form.pricing_tiers[form.pricing_tiers.length - 1];
+    const newMinQty = lastTier ? (parseInt(lastTier.max_qty) || 0) + 1 : 0;
+    setForm({
+      ...form,
+      pricing_tiers: [...form.pricing_tiers, { min_qty: newMinQty, max_qty: newMinQty + 999, price: "" }]
+    });
+  };
+
+  const removePricingTier = (index) => {
+    if (form.pricing_tiers.length > 1) {
+      setForm({
+        ...form,
+        pricing_tiers: form.pricing_tiers.filter((_, i) => i !== index)
+      });
+    }
+  };
+
   const updateComposition = (index, field, value) => {
     const newComp = [...form.composition];
     newComp[index] = { ...newComp[index], [field]: field === 'percentage' ? parseInt(value) || 0 : value };
