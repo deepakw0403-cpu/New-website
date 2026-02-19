@@ -332,10 +332,15 @@ const InventoryPage = () => {
                     <div className="p-5">
                       <p className="text-xs font-medium text-emerald-600 mb-1">{fabric.category_name}</p>
                       <Link to={`/fabrics/${fabric.id}`}>
-                        <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors line-clamp-2">
+                        <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-emerald-600 transition-colors line-clamp-2">
                           {fabric.name}
                         </h3>
                       </Link>
+                      {(fabric.seller_name || fabric.seller_company) && (
+                        <p className="text-sm text-gray-500 mb-2">
+                          by <span className="font-medium text-gray-700">{fabric.seller_company || fabric.seller_name}</span>
+                        </p>
+                      )}
 
                       <div className="flex flex-wrap gap-2 text-xs text-gray-500 mb-3">
                         {fabric.gsm > 0 && (
