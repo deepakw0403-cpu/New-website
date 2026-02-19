@@ -78,6 +78,93 @@ const FabricDetailPage = () => {
     setSubmitting(false);
   };
 
+  // Check available actions
+  const getAvailableActions = () => {
+    if (!fabric) return { canBookSample: false, canBookBulk: false };
+    return {
+      canBookSample: fabric.is_bookable && (fabric.sample_price > 0 || fabric.rate_per_meter > 0),
+      canBookBulk: fabric.is_bookable && fabric.quantity_available > 0,
+      samplePrice: fabric.sample_price || fabric.rate_per_meter,
+      hasTiers: fabric.pricing_tiers && fabric.pricing_tiers.length > 0
+    };
+  };
+
+  const actions = getAvailableActions();
+
+  // Calculate bulk price based on tiers
+  const calculateBulkPrice = (quantity) => {
+    if (!fabric || !quantity || quantity <= 0) return null;
+    const qty = parseInt(quantity);
+    const tiers = fabric.pricing_tiers || [];
+    
+    for (const tier of tiers) {
+      if (qty >= tier.min_qty && qty <= tier.max_qty) {
+        return { pricePerMeter: tier.price_per_meter, totalPrice: tier.price_per_meter * qty, tierLabel: `${tier.min_qty}-${tier.max_qty}m` };
+      }
+    }
+    if (fabric.rate_per_meter) {
+      return { pricePerMeter: fabric.rate_per_meter, totalPrice: fabric.rate_per_meter * qty, tierLabel: "Base rate" };
+    }
+    return null;
+  };
+
+  // Cart value calculation
+  const cartValue = useMemo(() => {
+    if (!fabric || !orderModalType) return null;
+    
+    if (orderModalType === "sample") {
+      const samplePrice = fabric.sample_price || fabric.rate_per_meter || 0;
+      return { pricePerMeter: samplePrice, quantity: sampleQty, totalPrice: samplePrice * sampleQty, label: "Sample" };
+    } else if (orderModalType === "bulk") {
+      return calculateBulkPrice(bulkQty);
+    }
+    return null;
+  }, [fabric, orderModalType, sampleQty, bulkQty]);
+
+  // Handle order submit
+  const handleOrderSubmit = async (e) => {
+    e.preventDefault();
+    if (!fabric) return;
+    
+    setSubmitting(true);
+    try {
+      let enquiryData = {
+        fabric_id: fabric.id,
+        fabric_name: fabric.name,
+        ...orderForm,
+      };
+
+      if (orderModalType === "sample") {
+        enquiryData.enquiry_type = "sample_order";
+        enquiryData.quantity_required = `${sampleQty} meters (sample)`;
+        enquiryData.message = `Sample Order: ${sampleQty}m × ₹${cartValue?.pricePerMeter?.toLocaleString()}/m = ₹${cartValue?.totalPrice?.toLocaleString()}\n\n${orderForm.message || ""}`;
+      } else if (orderModalType === "bulk") {
+        enquiryData.enquiry_type = "bulk_order";
+        enquiryData.quantity_required = `${bulkQty} meters`;
+        enquiryData.message = `Bulk Order: ${bulkQty}m × ₹${cartValue?.pricePerMeter?.toLocaleString()}/m = ₹${cartValue?.totalPrice?.toLocaleString()}\n\n${orderForm.message || ""}`;
+      }
+
+      await createEnquiry(enquiryData);
+      
+      const successMsg = orderModalType === "sample" 
+        ? "Sample order submitted! We'll contact you shortly." 
+        : "Bulk order submitted! We'll contact you shortly.";
+      toast.success(successMsg);
+      setOrderModalType(null);
+      setOrderForm({ name: "", email: "", phone: "", company: "", message: "" });
+    } catch (err) {
+      toast.error("Failed to submit order. Please try again.");
+    }
+    setSubmitting(false);
+  };
+
+  const openOrderModal = (type) => {
+    setOrderModalType(type);
+    setSampleQty(1);
+    setBulkQty("");
+    setOrderForm({ name: "", email: "", phone: "", company: "", message: "" });
+  };
+
   const getAvailabilityBadge = (avail) => {
     switch (avail) {
       case "Sample":
