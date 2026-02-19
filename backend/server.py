@@ -1360,6 +1360,91 @@ async def seed_data():
     
     return {'message': 'Data seeded successfully', 'admin_email': 'admin@locofast.com', 'admin_password': 'admin123'}
 
+# ==================== SITEMAP ====================
+
+from fastapi.responses import Response
+
+@api_router.get("/sitemap.xml", response_class=Response)
+async def get_sitemap():
+    """Generate dynamic sitemap.xml"""
+    base_url = "https://locofast.com"
+    
+    # Get all fabrics
+    fabrics = await db.fabrics.find({}, {'id': 1, 'created_at': 1}).to_list(length=1000)
+    
+    # Get all collections
+    collections = await db.collections.find({}, {'id': 1, 'created_at': 1}).to_list(length=100)
+    
+    # Get all blog posts
+    posts = await db.posts.find({'status': 'published'}, {'slug': 1, 'updated_at': 1}).to_list(length=500)
+    
+    # Get all categories
+    categories = await db.categories.find({}, {'id': 1}).to_list(length=100)
+    
+    # Static pages
+    static_pages = [
+        {'loc': '/', 'priority': '1.0', 'changefreq': 'daily'},
+        {'loc': '/fabrics', 'priority': '0.9', 'changefreq': 'daily'},
+        {'loc': '/collections', 'priority': '0.8', 'changefreq': 'weekly'},
+        {'loc': '/about', 'priority': '0.7', 'changefreq': 'monthly'},
+        {'loc': '/contact', 'priority': '0.7', 'changefreq': 'monthly'},
+        {'loc': '/blog', 'priority': '0.8', 'changefreq': 'daily'},
+        {'loc': '/suppliers', 'priority': '0.7', 'changefreq': 'weekly'},
+        {'loc': '/assisted-sourcing', 'priority': '0.8', 'changefreq': 'monthly'},
+        {'loc': '/free-tools', 'priority': '0.7', 'changefreq': 'weekly'},
+    ]
+    
+    xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml_content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    
+    # Add static pages
+    for page in static_pages:
+        xml_content += f'''  <url>
+    <loc>{base_url}{page['loc']}</loc>
+    <changefreq>{page['changefreq']}</changefreq>
+    <priority>{page['priority']}</priority>
+  </url>\n'''
+    
+    # Add fabric pages
+    for fabric in fabrics:
+        last_mod = fabric.get('created_at', datetime.now(timezone.utc)).strftime('%Y-%m-%d')
+        xml_content += f'''  <url>
+    <loc>{base_url}/fabrics/{fabric['id']}</loc>
+    <lastmod>{last_mod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>\n'''
+    
+    # Add collection pages
+    for collection in collections:
+        xml_content += f'''  <url>
+    <loc>{base_url}/collections/{collection['id']}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>\n'''
+    
+    # Add blog posts
+    for post in posts:
+        last_mod = post.get('updated_at', datetime.now(timezone.utc)).strftime('%Y-%m-%d')
+        xml_content += f'''  <url>
+    <loc>{base_url}/blog/{post['slug']}</loc>
+    <lastmod>{last_mod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>\n'''
+    
+    # Add category pages
+    for cat in categories:
+        xml_content += f'''  <url>
+    <loc>{base_url}/fabrics?category={cat['id']}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>\n'''
+    
+    xml_content += '</urlset>'
+    
+    return Response(content=xml_content, media_type="application/xml")
+
 # ==================== SETUP ====================
 
 app.include_router(api_router)
