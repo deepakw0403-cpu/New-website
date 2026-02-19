@@ -113,6 +113,21 @@ export const uploadImage = (file) => {
   });
 };
 
+export const uploadVideo = (file, onProgress) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post("/upload/video", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: 300000, // 5 min timeout for large files
+    onUploadProgress: (progressEvent) => {
+      if (onProgress) {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        onProgress(percentCompleted);
+      }
+    },
+  });
+};
+
 // SEO
 export const getFabricSEO = (id) => api.get(`/seo/fabric/${id}`);
 export const generateFabricSEO = (id) => api.post(`/seo/fabric/${id}/generate`);
