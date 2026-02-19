@@ -160,6 +160,9 @@ class FabricCreate(BaseModel):
     rate_per_meter: Optional[float] = None
     dispatch_timeline: Optional[str] = ""  # e.g., "7-10 days"
     is_bookable: bool = False  # Whether this fabric can be directly ordered
+    # Pricing fields
+    sample_price: Optional[float] = None  # Price per meter for samples (1-5m)
+    pricing_tiers: List[dict] = []  # [{min_qty, max_qty, price_per_meter}, ...]
     # Denim-specific fields
     weft_shrinkage: Optional[float] = None  # Percentage
     stretch_percentage: Optional[float] = None  # Percentage
@@ -195,6 +198,9 @@ class FabricUpdate(BaseModel):
     rate_per_meter: Optional[float] = None
     dispatch_timeline: Optional[str] = None
     is_bookable: Optional[bool] = None
+    # Pricing fields
+    sample_price: Optional[float] = None
+    pricing_tiers: Optional[List[dict]] = None
     # Denim-specific fields
     weft_shrinkage: Optional[float] = None
     stretch_percentage: Optional[float] = None
@@ -236,6 +242,9 @@ class Fabric(BaseModel):
     rate_per_meter: Optional[float] = None
     dispatch_timeline: str = ""
     is_bookable: bool = False
+    # Pricing fields
+    sample_price: Optional[float] = None
+    pricing_tiers: List[dict] = []
     # Denim-specific fields
     weft_shrinkage: Optional[float] = None
     stretch_percentage: Optional[float] = None
