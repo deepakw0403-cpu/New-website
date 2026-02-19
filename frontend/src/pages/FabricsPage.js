@@ -82,11 +82,12 @@ const FabricsPage = () => {
     if (search) params.set("search", search);
     if (selectedCategory) params.set("category", selectedCategory);
     if (selectedType) params.set("type", selectedType);
+    if (availabilityFilter) params.set("availability", availabilityFilter);
     if (gsmRange.min) params.set("min_gsm", gsmRange.min);
     if (gsmRange.max) params.set("max_gsm", gsmRange.max);
     if (currentPage > 1) params.set("page", currentPage.toString());
     setSearchParams(params, { replace: true });
-  }, [search, selectedCategory, selectedType, gsmRange, currentPage, setSearchParams]);
+  }, [search, selectedCategory, selectedType, availabilityFilter, gsmRange, currentPage, setSearchParams]);
 
   const goToPage = (page) => {
     setCurrentPage(page);
@@ -97,6 +98,7 @@ const FabricsPage = () => {
     setSearch("");
     setSelectedCategory("");
     setSelectedType("");
+    setAvailabilityFilter("");
     setGsmRange({ min: "", max: "" });
     setCurrentPage(1);
   };
