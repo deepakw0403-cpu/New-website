@@ -13,6 +13,8 @@ const AdminFabrics = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingFabric, setEditingFabric] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState("");
 
   const emptyComposition = [
