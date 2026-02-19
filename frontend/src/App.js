@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -90,7 +90,7 @@ function App() {
           <Route path="/fabrics" element={<FabricsPage />} />
           <Route path="/fabrics/:id" element={<FabricDetailPage />} />
           <Route path="/collections" element={<CollectionsPage />} />
-          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/inventory" element={<Navigate to="/fabrics" replace />} />
           <Route path="/collections/:id" element={<CollectionDetailPage />} />
           <Route path="/about" element={<><Navbar /><AboutPage /><Footer /></>} />
           <Route path="/how-it-works" element={<><Navbar /><HowItWorksPage /><Footer /></>} />
