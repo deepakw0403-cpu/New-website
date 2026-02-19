@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Search, Package, ShoppingCart, Clock, ArrowLeft, Filter, ChevronDown, Check } from "lucide-react";
+import { Search, Package, ShoppingCart, Clock, ArrowLeft, Check, Info } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getFabrics, getFabricsCount, getCategories, createEnquiry } from "../lib/api";
@@ -14,13 +14,15 @@ const InventoryPage = () => {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [sortBy, setSortBy] = useState("price_low");
-  const [enquiryModal, setEnquiryModal] = useState(null);
+  const [orderModal, setOrderModal] = useState(null);
+  const [orderType, setOrderType] = useState("sample"); // "sample" or "bulk"
+  const [sampleQty, setSampleQty] = useState(1);
+  const [bulkQty, setBulkQty] = useState("");
   const [enquiryForm, setEnquiryForm] = useState({
     name: "",
     email: "",
     phone: "",
     company: "",
-    quantity: "",
     message: ""
   });
   const [submitting, setSubmitting] = useState(false);
@@ -71,24 +73,88 @@ const InventoryPage = () => {
     return () => clearTimeout(timeout);
   }, [search, selectedCategory, sortBy]);
 
-  const handleEnquiry = async (e) => {
+  // Calculate price based on quantity and pricing tiers
+  const calculateBulkPrice = (fabric, quantity) => {
+    if (!quantity || quantity <= 0) return null;
+    
+    const qty = parseInt(quantity);
+    const tiers = fabric.pricing_tiers || [];
+    
+    // Find matching tier
+    for (const tier of tiers) {
+      if (qty >= tier.min_qty && qty <= tier.max_qty) {
+        return {
+          pricePerMeter: tier.price_per_meter,
+          totalPrice: tier.price_per_meter * qty,
+          tierLabel: `${tier.min_qty}-${tier.max_qty}m`
+        };
+      }
+    }
+    
+    // If no tier matches, use base rate
+    if (fabric.rate_per_meter) {
+      return {
+        pricePerMeter: fabric.rate_per_meter,
+        totalPrice: fabric.rate_per_meter * qty,
+        tierLabel: "Base rate"
+      };
+    }
+    
+    return null;
+  };
+
+  // Calculate cart value based on order type
+  const cartValue = useMemo(() => {
+    if (!orderModal) return null;
+    
+    if (orderType === "sample") {
+      const samplePrice = orderModal.sample_price || orderModal.rate_per_meter || 0;
+      return {
+        pricePerMeter: samplePrice,
+        quantity: sampleQty,
+        totalPrice: samplePrice * sampleQty,
+        label: "Sample"
+      };
+    } else {
+      const bulkCalc = calculateBulkPrice(orderModal, bulkQty);
+      if (bulkCalc) {
+        return {
+          pricePerMeter: bulkCalc.pricePerMeter,
+          quantity: parseInt(bulkQty),
+          totalPrice: bulkCalc.totalPrice,
+          label: bulkCalc.tierLabel
+        };
+      }
+    }
+    return null;
+  }, [orderModal, orderType, sampleQty, bulkQty]);
+
+  const openOrderModal = (fabric) => {
+    setOrderModal(fabric);
+    setOrderType("sample");
+    setSampleQty(1);
+    setBulkQty("");
+    setEnquiryForm({ name: "", email: "", phone: "", company: "", message: "" });
+  };
+
+  const handleSubmitOrder = async (e) => {
     e.preventDefault();
-    if (!enquiryModal) return;
+    if (!orderModal || !cartValue) return;
     
     setSubmitting(true);
     try {
       await createEnquiry({
-        fabric_id: enquiryModal.id,
-        fabric_name: enquiryModal.name,
+        fabric_id: orderModal.id,
+        fabric_name: orderModal.name,
         ...enquiryForm,
-        enquiry_type: "order",
-        quantity_required: enquiryForm.quantity
+        enquiry_type: orderType === "sample" ? "sample_order" : "bulk_order",
+        quantity_required: `${cartValue.quantity} meters`,
+        message: `${orderType === "sample" ? "Sample" : "Bulk"} Order Request\nQuantity: ${cartValue.quantity} meters\nPrice/m: ₹${cartValue.pricePerMeter.toLocaleString()}\nTotal Value: ₹${cartValue.totalPrice.toLocaleString()}\n\n${enquiryForm.message || "No additional notes"}`
       });
-      toast.success("Order enquiry submitted! We'll contact you shortly.");
-      setEnquiryModal(null);
-      setEnquiryForm({ name: "", email: "", phone: "", company: "", quantity: "", message: "" });
+      toast.success("Order submitted! We'll contact you shortly.");
+      setOrderModal(null);
     } catch (err) {
-      toast.error("Failed to submit enquiry. Please try again.");
+      toast.error("Failed to submit order. Please try again.");
     }
     setSubmitting(false);
   };
@@ -99,6 +165,17 @@ const InventoryPage = () => {
       .filter(c => c.material && c.percentage > 0)
       .map(c => `${c.percentage}% ${c.material}`)
       .join(', ');
+  };
+
+  const getDisplayPrice = (fabric) => {
+    // Show sample price if available, otherwise base rate
+    if (fabric.sample_price) {
+      return { price: fabric.sample_price, label: "sample" };
+    }
+    if (fabric.rate_per_meter) {
+      return { price: fabric.rate_per_meter, label: "from" };
+    }
+    return null;
   };
 
   return (
@@ -122,17 +199,16 @@ const InventoryPage = () => {
               </div>
             </div>
             <p className="text-emerald-100 max-w-2xl">
-              Browse fabrics available for immediate ordering. All items listed here have confirmed stock, 
-              fixed pricing, and defined dispatch timelines.
+              Browse fabrics available for immediate ordering. Order samples (1-5m) or bulk quantities with tiered pricing.
             </p>
             <div className="flex items-center gap-6 mt-6 text-sm">
               <div className="flex items-center gap-2">
                 <Check size={18} className="text-emerald-300" />
-                <span>Confirmed Stock</span>
+                <span>Sample Orders (1-5m)</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check size={18} className="text-emerald-300" />
-                <span>Fixed Pricing</span>
+                <span>Bulk Pricing Tiers</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check size={18} className="text-emerald-300" />
@@ -146,7 +222,6 @@ const InventoryPage = () => {
           {/* Filters Bar */}
           <div className="bg-white rounded-lg border border-gray-200 p-4 mb-8">
             <div className="flex flex-col md:flex-row gap-4">
-              {/* Search */}
               <div className="relative flex-1">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -158,8 +233,6 @@ const InventoryPage = () => {
                   data-testid="inventory-search"
                 />
               </div>
-
-              {/* Category Filter */}
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -171,8 +244,6 @@ const InventoryPage = () => {
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
-
-              {/* Sort */}
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
@@ -185,8 +256,6 @@ const InventoryPage = () => {
                 <option value="newest">Newest First</option>
               </select>
             </div>
-
-            {/* Results count */}
             <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
               <p className="text-sm text-gray-600">
                 <span className="font-medium text-gray-900">{totalCount}</span> items available for order
@@ -232,109 +301,107 @@ const InventoryPage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="inventory-grid">
-              {fabrics.map((fabric) => (
-                <div 
-                  key={fabric.id} 
-                  className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group"
-                  data-testid={`inventory-item-${fabric.id}`}
-                >
-                  {/* Image */}
-                  <Link to={`/fabrics/${fabric.id}`} className="block aspect-[4/3] overflow-hidden relative">
-                    <img
-                      src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600"}
-                      alt={fabric.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 left-3">
-                      <span className="px-2.5 py-1 bg-emerald-500 text-white text-xs font-medium rounded-full">
-                        In Stock
-                      </span>
-                    </div>
-                    {fabric.quantity_available > 0 && (
-                      <div className="absolute top-3 right-3">
-                        <span className="px-2.5 py-1 bg-white/90 backdrop-blur text-gray-700 text-xs font-medium rounded-full">
-                          {fabric.quantity_available.toLocaleString()} {fabric.weight_unit === 'ounce' ? 'yds' : 'm'} available
+              {fabrics.map((fabric) => {
+                const displayPrice = getDisplayPrice(fabric);
+                return (
+                  <div 
+                    key={fabric.id} 
+                    className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group"
+                    data-testid={`inventory-item-${fabric.id}`}
+                  >
+                    <Link to={`/fabrics/${fabric.id}`} className="block aspect-[4/3] overflow-hidden relative">
+                      <img
+                        src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600"}
+                        alt={fabric.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute top-3 left-3">
+                        <span className="px-2.5 py-1 bg-emerald-500 text-white text-xs font-medium rounded-full">
+                          In Stock
                         </span>
                       </div>
-                    )}
-                  </Link>
-
-                  {/* Content */}
-                  <div className="p-5">
-                    <p className="text-xs font-medium text-emerald-600 mb-1">{fabric.category_name}</p>
-                    <Link to={`/fabrics/${fabric.id}`}>
-                      <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors line-clamp-2">
-                        {fabric.name}
-                      </h3>
-                    </Link>
-
-                    {/* Specs */}
-                    <div className="flex flex-wrap gap-2 text-xs text-gray-500 mb-3">
-                      {fabric.gsm > 0 && (
-                        <span className="px-2 py-0.5 bg-gray-100 rounded">{fabric.gsm} GSM</span>
-                      )}
-                      {fabric.weight_unit === 'ounce' && fabric.ounce && (
-                        <span className="px-2 py-0.5 bg-gray-100 rounded">{fabric.ounce} oz</span>
-                      )}
-                      {fabric.width && (
-                        <span className="px-2 py-0.5 bg-gray-100 rounded">{fabric.width}" width</span>
-                      )}
-                    </div>
-
-                    {/* Composition */}
-                    {formatComposition(fabric.composition) && (
-                      <p className="text-sm text-gray-600 mb-3">{formatComposition(fabric.composition)}</p>
-                    )}
-
-                    {/* Price & Dispatch */}
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <div>
-                        <p className="text-xs text-gray-400">Price</p>
-                        <p className="text-lg font-bold text-emerald-600">
-                          ₹{fabric.rate_per_meter?.toLocaleString() || "—"}<span className="text-sm font-normal text-gray-500">/m</span>
-                        </p>
-                      </div>
-                      {fabric.dispatch_timeline && (
-                        <div className="text-right">
-                          <p className="text-xs text-gray-400">Dispatch</p>
-                          <div className="flex items-center gap-1 text-sm text-gray-700">
-                            <Clock size={14} />
-                            <span>{fabric.dispatch_timeline} days</span>
-                          </div>
+                      {fabric.quantity_available > 0 && (
+                        <div className="absolute top-3 right-3">
+                          <span className="px-2.5 py-1 bg-white/90 backdrop-blur text-gray-700 text-xs font-medium rounded-full">
+                            {fabric.quantity_available.toLocaleString()}m available
+                          </span>
                         </div>
                       )}
-                    </div>
+                    </Link>
 
-                    {/* MOQ */}
-                    {fabric.moq && (
-                      <p className="text-xs text-gray-500 mt-2">MOQ: {fabric.moq}</p>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 mt-4">
-                      <button
-                        onClick={() => setEnquiryModal(fabric)}
-                        className="flex-1 btn-primary flex items-center justify-center gap-2 py-2.5"
-                        data-testid={`order-btn-${fabric.id}`}
-                      >
-                        <ShoppingCart size={16} />
-                        Place Order
-                      </button>
-                      <Link
-                        to={`/fabrics/${fabric.id}`}
-                        className="px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium"
-                      >
-                        Details
+                    <div className="p-5">
+                      <p className="text-xs font-medium text-emerald-600 mb-1">{fabric.category_name}</p>
+                      <Link to={`/fabrics/${fabric.id}`}>
+                        <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors line-clamp-2">
+                          {fabric.name}
+                        </h3>
                       </Link>
+
+                      <div className="flex flex-wrap gap-2 text-xs text-gray-500 mb-3">
+                        {fabric.gsm > 0 && (
+                          <span className="px-2 py-0.5 bg-gray-100 rounded">{fabric.gsm} GSM</span>
+                        )}
+                        {fabric.weight_unit === 'ounce' && fabric.ounce && (
+                          <span className="px-2 py-0.5 bg-gray-100 rounded">{fabric.ounce} oz</span>
+                        )}
+                        {fabric.width && (
+                          <span className="px-2 py-0.5 bg-gray-100 rounded">{fabric.width}" width</span>
+                        )}
+                      </div>
+
+                      {formatComposition(fabric.composition) && (
+                        <p className="text-sm text-gray-600 mb-3">{formatComposition(fabric.composition)}</p>
+                      )}
+
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                        <div>
+                          <p className="text-xs text-gray-400">{displayPrice?.label === "sample" ? "Sample price" : "Price"}</p>
+                          <p className="text-lg font-bold text-emerald-600">
+                            ₹{displayPrice?.price?.toLocaleString() || "—"}<span className="text-sm font-normal text-gray-500">/m</span>
+                          </p>
+                        </div>
+                        {fabric.dispatch_timeline && (
+                          <div className="text-right">
+                            <p className="text-xs text-gray-400">Dispatch</p>
+                            <div className="flex items-center gap-1 text-sm text-gray-700">
+                              <Clock size={14} />
+                              <span>{fabric.dispatch_timeline} days</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {fabric.pricing_tiers && fabric.pricing_tiers.length > 0 && (
+                        <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+                          <Info size={12} />
+                          Bulk pricing available
+                        </p>
+                      )}
+
+                      <div className="flex gap-2 mt-4">
+                        <button
+                          onClick={() => openOrderModal(fabric)}
+                          className="flex-1 btn-primary flex items-center justify-center gap-2 py-2.5"
+                          data-testid={`order-btn-${fabric.id}`}
+                        >
+                          <ShoppingCart size={16} />
+                          Order Now
+                        </button>
+                        <Link
+                          to={`/fabrics/${fabric.id}`}
+                          className="px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium"
+                        >
+                          Details
+                        </Link>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* No inventory CTA */}
         {!loading && fabrics.length > 0 && (
           <div className="bg-emerald-50 border-y border-emerald-100 py-12 mt-8">
             <div className="container-main text-center">
@@ -354,124 +421,208 @@ const InventoryPage = () => {
       </main>
       <Footer />
 
-      {/* Order Enquiry Modal */}
-      {enquiryModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setEnquiryModal(null)}>
+      {/* Order Modal */}
+      {orderModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setOrderModal(null)}>
           <div 
             className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-gray-100">
-              <h2 className="text-xl font-semibold">Place Order Enquiry</h2>
-              <p className="text-sm text-gray-500 mt-1">{enquiryModal.name}</p>
+              <h2 className="text-xl font-semibold">Place Order</h2>
+              <p className="text-sm text-gray-500 mt-1">{orderModal.name}</p>
             </div>
 
-            <form onSubmit={handleEnquiry} className="p-6 space-y-4">
+            <form onSubmit={handleSubmitOrder} className="p-6 space-y-5">
               {/* Fabric Summary */}
-              <div className="bg-emerald-50 rounded-lg p-4 flex gap-4">
+              <div className="bg-gray-50 rounded-lg p-4 flex gap-4">
                 <img
-                  src={enquiryModal.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
-                  alt={enquiryModal.name}
+                  src={orderModal.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
+                  alt={orderModal.name}
                   className="w-16 h-16 object-cover rounded"
                 />
                 <div className="flex-1">
-                  <p className="font-medium text-gray-900">{enquiryModal.name}</p>
-                  <p className="text-sm text-gray-600">{enquiryModal.category_name}</p>
-                  <p className="text-emerald-600 font-semibold mt-1">₹{enquiryModal.rate_per_meter?.toLocaleString()}/m</p>
+                  <p className="font-medium text-gray-900">{orderModal.name}</p>
+                  <p className="text-sm text-gray-600">{orderModal.category_name}</p>
+                  {orderModal.quantity_available && (
+                    <p className="text-xs text-gray-500 mt-1">{orderModal.quantity_available.toLocaleString()}m in stock</p>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={enquiryForm.name}
-                    onChange={(e) => setEnquiryForm({ ...enquiryForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none"
-                    data-testid="enquiry-name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
-                  <input
-                    type="text"
-                    value={enquiryForm.company}
-                    onChange={(e) => setEnquiryForm({ ...enquiryForm, company: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none"
-                    data-testid="enquiry-company"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                  <input
-                    type="email"
-                    required
-                    value={enquiryForm.email}
-                    onChange={(e) => setEnquiryForm({ ...enquiryForm, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none"
-                    data-testid="enquiry-email"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
-                  <input
-                    type="tel"
-                    required
-                    value={enquiryForm.phone}
-                    onChange={(e) => setEnquiryForm({ ...enquiryForm, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none"
-                    data-testid="enquiry-phone"
-                  />
-                </div>
-              </div>
-
+              {/* Order Type Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Quantity Required * <span className="text-gray-400 font-normal">(e.g., 500 meters)</span>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Order Type</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setOrderType("sample")}
+                    className={`p-4 rounded-lg border-2 text-left transition-all ${
+                      orderType === "sample" 
+                        ? "border-emerald-500 bg-emerald-50" 
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <p className="font-medium text-gray-900">Sample Order</p>
+                    <p className="text-sm text-gray-500">1-5 meters</p>
+                    {orderModal.sample_price && (
+                      <p className="text-emerald-600 font-semibold mt-1">₹{orderModal.sample_price.toLocaleString()}/m</p>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderType("bulk")}
+                    className={`p-4 rounded-lg border-2 text-left transition-all ${
+                      orderType === "bulk" 
+                        ? "border-emerald-500 bg-emerald-50" 
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <p className="font-medium text-gray-900">Bulk Order</p>
+                    <p className="text-sm text-gray-500">6+ meters</p>
+                    {orderModal.pricing_tiers?.length > 0 && (
+                      <p className="text-emerald-600 text-xs mt-1">Tiered pricing available</p>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Quantity Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Quantity {orderType === "sample" ? "(meters)" : "(meters)"}
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={enquiryForm.quantity}
-                  onChange={(e) => setEnquiryForm({ ...enquiryForm, quantity: e.target.value })}
-                  placeholder="Enter quantity with unit"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none"
-                  data-testid="enquiry-quantity"
-                />
+                {orderType === "sample" ? (
+                  <select
+                    value={sampleQty}
+                    onChange={(e) => setSampleQty(parseInt(e.target.value))}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none bg-white"
+                    data-testid="sample-qty-select"
+                  >
+                    {[1, 2, 3, 4, 5].map(qty => (
+                      <option key={qty} value={qty}>{qty} meter{qty > 1 ? 's' : ''}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="number"
+                    min="6"
+                    value={bulkQty}
+                    onChange={(e) => setBulkQty(e.target.value)}
+                    placeholder="Enter quantity (min 6 meters)"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none"
+                    data-testid="bulk-qty-input"
+                  />
+                )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
-                <textarea
-                  value={enquiryForm.message}
-                  onChange={(e) => setEnquiryForm({ ...enquiryForm, message: e.target.value })}
-                  rows={3}
-                  placeholder="Any specific requirements or questions..."
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none resize-none"
-                  data-testid="enquiry-message"
-                />
+              {/* Pricing Tiers Info (for bulk) */}
+              {orderType === "bulk" && orderModal.pricing_tiers?.length > 0 && (
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <p className="text-sm font-medium text-blue-800 mb-2">Bulk Pricing Tiers</p>
+                  <div className="space-y-1">
+                    {orderModal.pricing_tiers.map((tier, idx) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span className="text-blue-700">{tier.min_qty} - {tier.max_qty} meters</span>
+                        <span className="font-medium text-blue-900">₹{tier.price_per_meter?.toLocaleString()}/m</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cart Value */}
+              {cartValue && (
+                <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-emerald-700">Order Summary ({cartValue.label})</p>
+                      <p className="text-xs text-emerald-600">{cartValue.quantity} meters × ₹{cartValue.pricePerMeter.toLocaleString()}/m</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-emerald-600">Total Value</p>
+                      <p className="text-2xl font-bold text-emerald-700">₹{cartValue.totalPrice.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Contact Details */}
+              <div className="pt-4 border-t border-gray-100">
+                <p className="text-sm font-medium text-gray-700 mb-3">Contact Details</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <input
+                      type="text"
+                      required
+                      value={enquiryForm.name}
+                      onChange={(e) => setEnquiryForm({ ...enquiryForm, name: e.target.value })}
+                      placeholder="Your Name *"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none text-sm"
+                      data-testid="order-name"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      value={enquiryForm.company}
+                      onChange={(e) => setEnquiryForm({ ...enquiryForm, company: e.target.value })}
+                      placeholder="Company"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none text-sm"
+                      data-testid="order-company"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="email"
+                      required
+                      value={enquiryForm.email}
+                      onChange={(e) => setEnquiryForm({ ...enquiryForm, email: e.target.value })}
+                      placeholder="Email *"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none text-sm"
+                      data-testid="order-email"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="tel"
+                      required
+                      value={enquiryForm.phone}
+                      onChange={(e) => setEnquiryForm({ ...enquiryForm, phone: e.target.value })}
+                      placeholder="Phone *"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none text-sm"
+                      data-testid="order-phone"
+                    />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <textarea
+                    value={enquiryForm.message}
+                    onChange={(e) => setEnquiryForm({ ...enquiryForm, message: e.target.value })}
+                    rows={2}
+                    placeholder="Additional notes (optional)"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none resize-none text-sm"
+                    data-testid="order-message"
+                  />
+                </div>
               </div>
 
+              {/* Submit Buttons */}
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setEnquiryModal(null)}
+                  onClick={() => setOrderModal(null)}
                   className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !cartValue}
                   className="flex-1 btn-primary py-2.5 disabled:opacity-50"
-                  data-testid="submit-enquiry-btn"
+                  data-testid="submit-order-btn"
                 >
-                  {submitting ? "Submitting..." : "Submit Order Enquiry"}
+                  {submitting ? "Submitting..." : `Submit ${orderType === "sample" ? "Sample" : "Bulk"} Order`}
                 </button>
               </div>
             </form>
