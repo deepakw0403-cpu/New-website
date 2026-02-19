@@ -1102,16 +1102,48 @@ const AdminFabrics = () => {
                       </div>
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={addVideoUrl}
-                    className="btn-secondary text-sm inline-flex items-center gap-2"
-                    data-testid="add-video-btn"
-                  >
-                    <Video size={16} />
-                    Add Video URL
-                  </button>
-                  <p className="text-xs text-gray-500 mt-1">Add YouTube, Vimeo, or direct video links</p>
+                  
+                  {/* Video Upload Progress */}
+                  {uploadingVideo && (
+                    <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-blue-700">Uploading video...</span>
+                        <span className="text-sm font-medium text-blue-800">{videoUploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-blue-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${videoUploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2">
+                    <label className={`btn-primary text-sm inline-flex items-center gap-2 cursor-pointer ${uploadingVideo ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                      <Upload size={16} />
+                      {uploadingVideo ? 'Uploading...' : 'Upload Video'}
+                      <input
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/mpeg"
+                        onChange={handleVideoUpload}
+                        className="hidden"
+                        disabled={uploadingVideo}
+                        data-testid="video-upload-input"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addVideoUrl}
+                      className="btn-secondary text-sm inline-flex items-center gap-2"
+                      disabled={uploadingVideo}
+                      data-testid="add-video-btn"
+                    >
+                      <Video size={16} />
+                      Add URL
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Upload videos up to 150MB (MP4, WebM, MOV) or add external URLs</p>
                 </div>
 
                 <div className="flex gap-4 pt-4 border-t border-neutral-100">
