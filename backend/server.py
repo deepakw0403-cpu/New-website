@@ -717,10 +717,10 @@ async def get_fabrics(
         query['quantity_available'] = {'$gt': 0}
     if sample_available:
         query['is_bookable'] = True
-        query['$or'] = [
+        query['sample_or_rate'] = {'$or': [
             {'sample_price': {'$gt': 0}},
             {'rate_per_meter': {'$gt': 0}}
-        ]
+        ]}
     if min_gsm is not None or max_gsm is not None:
         query['gsm'] = {}
         if min_gsm is not None:
@@ -729,15 +729,46 @@ async def get_fabrics(
             query['gsm']['$lte'] = max_gsm
         if not query['gsm']:
             del query['gsm']
+    
+    # Build search conditions
+    search_conditions = []
     if search:
-        query['$or'] = [
-            {'name': {'$regex': search, '$options': 'i'}},
-            {'tags': {'$regex': search, '$options': 'i'}},
-            {'composition': {'$regex': search, '$options': 'i'}},
-            {'color': {'$regex': search, '$options': 'i'}},
-            {'fabric_code': {'$regex': search, '$options': 'i'}},
-            {'seller_sku': {'$regex': search, '$options': 'i'}}
-        ]
+        search_conditions.append({
+            '$or': [
+                {'name': {'$regex': search, '$options': 'i'}},
+                {'tags': {'$regex': search, '$options': 'i'}},
+                {'composition': {'$regex': search, '$options': 'i'}},
+                {'color': {'$regex': search, '$options': 'i'}},
+                {'fabric_code': {'$regex': search, '$options': 'i'}},
+                {'seller_sku': {'$regex': search, '$options': 'i'}}
+            ]
+        })
+    
+    # Handle sample_available $or condition
+    if 'sample_or_rate' in query:
+        sample_cond = query.pop('sample_or_rate')
+        search_conditions.append(sample_cond['$or'][0])  # Just check if either exists
+        # Actually use $or for sample/rate check
+        if '$and' not in query:
+            query['$and'] = []
+        query['$and'].append({'$or': [
+            {'sample_price': {'$gt': 0}},
+            {'rate_per_meter': {'$gt': 0}}
+        ]})
+    
+    if search_conditions and search:
+        if '$and' not in query:
+            query['$and'] = []
+        query['$and'].append({
+            '$or': [
+                {'name': {'$regex': search, '$options': 'i'}},
+                {'tags': {'$regex': search, '$options': 'i'}},
+                {'composition': {'$regex': search, '$options': 'i'}},
+                {'color': {'$regex': search, '$options': 'i'}},
+                {'fabric_code': {'$regex': search, '$options': 'i'}},
+                {'seller_sku': {'$regex': search, '$options': 'i'}}
+            ]
+        })
     
     # Calculate skip for pagination
     skip = (page - 1) * limit
