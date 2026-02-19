@@ -50,6 +50,16 @@ const AdminFabrics = () => {
     rate_per_meter: "",
     dispatch_timeline: "",
     is_bookable: false,
+    // Pricing fields
+    sample_price: "",
+    pricing_tiers: [
+      { min_qty: 0, max_qty: 100, price: "" },
+      { min_qty: 101, max_qty: 500, price: "" },
+      { min_qty: 501, max_qty: 1000, price: "" },
+      { min_qty: 1001, max_qty: 2500, price: "" },
+      { min_qty: 2501, max_qty: 5000, price: "" },
+      { min_qty: 5001, max_qty: 10000, price: "" },
+    ],
     // Denim fields
     weft_shrinkage: "",
     stretch_percentage: "",
