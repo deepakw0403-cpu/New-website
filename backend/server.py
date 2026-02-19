@@ -965,6 +965,37 @@ async def upload_image(file: UploadFile = File(...), admin=Depends(get_current_a
     
     return {'url': f'/api/uploads/{filename}'}
 
+@api_router.post("/upload/video")
+async def upload_video(file: UploadFile = File(...), admin=Depends(get_current_admin)):
+    """Upload video files up to 150MB"""
+    allowed_types = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/mpeg']
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail='File must be a video (MP4, WebM, MOV, AVI, MPEG)')
+    
+    # Check file size (150MB max)
+    file.file.seek(0, 2)  # Seek to end
+    file_size = file.file.tell()
+    file.file.seek(0)  # Seek back to start
+    
+    max_size = 150 * 1024 * 1024  # 150MB
+    if file_size > max_size:
+        raise HTTPException(status_code=400, detail=f'Video file too large. Maximum size is 150MB')
+    
+    ext = file.filename.split('.')[-1] if '.' in file.filename else 'mp4'
+    filename = f"video_{uuid.uuid4()}.{ext}"
+    filepath = UPLOAD_DIR / filename
+    
+    # Write file in chunks to handle large files
+    chunk_size = 1024 * 1024  # 1MB chunks
+    with open(filepath, 'wb') as f:
+        while True:
+            chunk = await file.read(chunk_size)
+            if not chunk:
+                break
+            f.write(chunk)
+    
+    return {'url': f'/api/uploads/{filename}', 'filename': filename, 'size': file_size}
+
 # ==================== ARTICLE ROUTES (Color Variant Grouping) ====================
 
 @api_router.get("/articles", response_model=List[Article])
