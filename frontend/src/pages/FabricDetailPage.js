@@ -542,18 +542,75 @@ const FabricDetailPage = () => {
                 </div>
               )}
 
-              {/* CTA - Early position */}
-              <div className="bg-[#2563EB] text-white p-6 rounded-lg mb-8">
-                <p className="font-medium mb-2">Interested in this fabric?</p>
-                <p className="text-sm text-blue-100 mb-4">Get pricing, samples, and availability information</p>
-                <button
-                  onClick={() => setShowEnquiryForm(true)}
-                  className="bg-white text-[#2563EB] px-6 py-3 rounded font-medium hover:bg-blue-50 transition-colors inline-flex items-center gap-2"
-                  data-testid="enquiry-btn"
-                >
-                  <Send size={18} />
-                  Raise Your Requirement
-                </button>
+              {/* CTA - Contextual Buttons */}
+              <div className="bg-gray-50 border border-gray-200 p-6 rounded-lg mb-8">
+                {/* Pricing Info */}
+                {actions.canBookSample && (
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+                    <div>
+                      <p className="text-sm text-gray-500">Sample Price</p>
+                      <p className="text-2xl font-bold text-emerald-600">₹{actions.samplePrice?.toLocaleString()}<span className="text-sm font-normal text-gray-500">/m</span></p>
+                    </div>
+                    {fabric.quantity_available > 0 && (
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500">In Stock</p>
+                        <p className="text-lg font-semibold text-gray-900">{fabric.quantity_available?.toLocaleString()}m</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {actions.hasTiers && (
+                  <div className="mb-4 pb-4 border-b border-gray-200">
+                    <p className="text-sm text-gray-500 mb-2">Bulk Pricing Available</p>
+                    <div className="flex flex-wrap gap-2">
+                      {fabric.pricing_tiers?.slice(0, 3).map((tier, idx) => (
+                        <span key={idx} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                          {tier.min_qty}-{tier.max_qty}m: ₹{tier.price_per_meter}/m
+                        </span>
+                      ))}
+                      {fabric.pricing_tiers?.length > 3 && (
+                        <span className="text-xs text-gray-500">+{fabric.pricing_tiers.length - 3} more tiers</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <p className="font-medium mb-2 text-gray-900">Interested in this fabric?</p>
+                <p className="text-sm text-gray-500 mb-4">
+                  {actions.canBookBulk ? "Order samples or bulk quantities directly" : "Get pricing, samples, and availability information"}
+                </p>
+                
+                <div className="flex flex-col gap-3">
+                  {actions.canBookBulk && (
+                    <button
+                      onClick={() => openOrderModal('bulk')}
+                      className="w-full bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors inline-flex items-center justify-center gap-2"
+                      data-testid="book-bulk-btn"
+                    >
+                      <ShoppingCart size={18} />
+                      Book Bulk Now
+                    </button>
+                  )}
+                  {actions.canBookSample && (
+                    <button
+                      onClick={() => openOrderModal('sample')}
+                      className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-2"
+                      data-testid="book-sample-btn"
+                    >
+                      <Package size={18} />
+                      Book Sample (1-5m)
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowEnquiryForm(true)}
+                    className="w-full border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors inline-flex items-center justify-center gap-2"
+                    data-testid="enquiry-btn"
+                  >
+                    <MessageSquare size={18} />
+                    Send Enquiry
+                  </button>
+                </div>
               </div>
             </div>
           </div>
