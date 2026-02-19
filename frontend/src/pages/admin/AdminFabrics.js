@@ -182,6 +182,40 @@ const AdminFabrics = () => {
     setForm({ ...form, images: form.images.filter((_, i) => i !== index) });
   };
 
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check file size (150MB max)
+    const maxSize = 150 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("Video file too large. Maximum size is 150MB");
+      return;
+    }
+
+    // Check file type
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/mpeg'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Invalid video format. Allowed: MP4, WebM, MOV, AVI, MPEG");
+      return;
+    }
+
+    setUploadingVideo(true);
+    setVideoUploadProgress(0);
+    
+    try {
+      const result = await uploadVideo(file, (progress) => {
+        setVideoUploadProgress(progress);
+      });
+      setForm({ ...form, videos: [...form.videos, result.data.url] });
+      toast.success("Video uploaded successfully!");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to upload video");
+    }
+    setUploadingVideo(false);
+    setVideoUploadProgress(0);
+  };
+
   const addVideoUrl = () => {
     const url = window.prompt("Enter video URL (YouTube, Vimeo, or direct link):");
     if (url && url.trim()) {
