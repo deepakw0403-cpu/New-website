@@ -55,6 +55,19 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - **Files Created**: `frontend/src/pages/InventoryPage.js`
 - **Files Updated**: `App.js` (route), `Navbar.js` (nav link)
 
+### Feb 19, 2026 - Unified Fabrics & Inventory Experience
+- **Merged Fabrics and Inventory** into a single streamlined listing
+- **Contextual Action Buttons** on each fabric card:
+  - **Book Bulk Now** (green) - shows if fabric has inventory (`is_bookable` + `quantity_available > 0`)
+  - **Book Sample** (blue) - shows if fabric has sample pricing configured
+  - **Send Enquiry** (outline) - always available on all fabrics
+- **In Stock Badge** - shows on cards with available inventory
+- **Removed Inventory from navbar** - single "Fabrics" entry now covers all
+- **Redirect**: `/inventory` now redirects to `/fabrics`
+- **Seller name** displayed on all fabric cards ("by [Company Name]")
+- **Sample price** shown on cards when available
+- **Files Updated**: `FabricsPage.js` (complete rewrite), `Navbar.js`, `App.js`
+
 ### Feb 19, 2026 - Tiered Pricing System
 - **Sample Pricing**: Fixed price for sample orders (1-5 meters dropdown)
 - **Bulk Pricing Tiers**: Configurable quantity brackets with different prices
