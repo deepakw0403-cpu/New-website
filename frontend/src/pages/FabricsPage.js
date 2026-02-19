@@ -57,6 +57,8 @@ const FabricsPage = () => {
         if (selectedType) params.fabric_type = selectedType;
         if (gsmRange.min) params.min_gsm = gsmRange.min;
         if (gsmRange.max) params.max_gsm = gsmRange.max;
+        if (availabilityFilter === "sample") params.sample_available = true;
+        if (availabilityFilter === "bulk") params.bookable_only = true;
 
         const [fabricsRes, countRes] = await Promise.all([
           getFabrics(params),
