@@ -25,6 +25,14 @@ const FabricDetailPage = () => {
     message: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  
+  // Order modal states
+  const [orderModalType, setOrderModalType] = useState(null); // 'sample' | 'bulk' | null
+  const [sampleQty, setSampleQty] = useState(1);
+  const [bulkQty, setBulkQty] = useState("");
+  const [orderForm, setOrderForm] = useState({
+    name: "", email: "", phone: "", company: "", message: ""
+  });
 
   useEffect(() => {
     const fetchData = async () => {
