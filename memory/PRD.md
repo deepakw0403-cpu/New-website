@@ -55,6 +55,14 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - **Files Created**: `frontend/src/pages/InventoryPage.js`
 - **Files Updated**: `App.js` (route), `Navbar.js` (nav link)
 
+### Feb 19, 2026 - Video Upload Feature
+- **Direct Video Upload**: Up to 150MB per video file
+- **Supported formats**: MP4, WebM, MOV, AVI, MPEG
+- **Upload Progress**: Shows percentage progress bar during upload
+- **UI**: Two options - "Upload Video" (direct) and "Add URL" (external links)
+- **Backend**: New `/api/upload/video` endpoint with chunked upload for large files
+- **Files Updated**: `server.py`, `api.js`, `AdminFabrics.js`
+
 ### Feb 19, 2026 - Unified Fabrics & Inventory Experience
 - **Merged Fabrics and Inventory** into a single streamlined listing
 - **Contextual Action Buttons** on each fabric card:
