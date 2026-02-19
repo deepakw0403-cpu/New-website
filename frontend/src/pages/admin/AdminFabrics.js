@@ -214,6 +214,22 @@ const AdminFabrics = () => {
       rate_per_meter: fabric.rate_per_meter ? fabric.rate_per_meter.toString() : "",
       dispatch_timeline: fabric.dispatch_timeline || "",
       is_bookable: fabric.is_bookable || false,
+      // Pricing fields
+      sample_price: fabric.sample_price ? fabric.sample_price.toString() : "",
+      pricing_tiers: fabric.pricing_tiers && fabric.pricing_tiers.length > 0 
+        ? fabric.pricing_tiers.map(t => ({
+            min_qty: t.min_qty || 0,
+            max_qty: t.max_qty || 0,
+            price: t.price_per_meter ? t.price_per_meter.toString() : ""
+          }))
+        : [
+            { min_qty: 0, max_qty: 100, price: "" },
+            { min_qty: 101, max_qty: 500, price: "" },
+            { min_qty: 501, max_qty: 1000, price: "" },
+            { min_qty: 1001, max_qty: 2500, price: "" },
+            { min_qty: 2501, max_qty: 5000, price: "" },
+            { min_qty: 5001, max_qty: 10000, price: "" },
+          ],
       // Denim fields
       weft_shrinkage: fabric.weft_shrinkage ? fabric.weft_shrinkage.toString() : "",
       stretch_percentage: fabric.stretch_percentage ? fabric.stretch_percentage.toString() : "",
