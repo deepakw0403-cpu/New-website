@@ -287,6 +287,15 @@ const AdminFabrics = () => {
       rate_per_meter: form.rate_per_meter ? parseFloat(form.rate_per_meter) : null,
       dispatch_timeline: form.dispatch_timeline,
       is_bookable: form.is_bookable,
+      // Pricing fields
+      sample_price: form.sample_price ? parseFloat(form.sample_price) : null,
+      pricing_tiers: form.pricing_tiers
+        .filter(t => t.price && t.price !== "")
+        .map(t => ({
+          min_qty: parseInt(t.min_qty) || 0,
+          max_qty: parseInt(t.max_qty) || 0,
+          price_per_meter: parseFloat(t.price) || 0
+        })),
       // Denim fields
       weft_shrinkage: form.weft_shrinkage ? parseFloat(form.weft_shrinkage) : null,
       stretch_percentage: form.stretch_percentage ? parseFloat(form.stretch_percentage) : null,
