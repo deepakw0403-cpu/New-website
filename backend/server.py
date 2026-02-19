@@ -806,7 +806,8 @@ async def get_fabrics_count(
     search: Optional[str] = Query(None),
     min_gsm: Optional[int] = Query(None),
     max_gsm: Optional[int] = Query(None),
-    bookable_only: Optional[bool] = Query(None)
+    bookable_only: Optional[bool] = Query(None),
+    sample_available: Optional[bool] = Query(None)
 ):
     """Get total count of fabrics matching filters (for pagination)"""
     query = {}
@@ -820,6 +821,15 @@ async def get_fabrics_count(
         query['fabric_type'] = fabric_type
     if bookable_only:
         query['is_bookable'] = True
+        query['quantity_available'] = {'$gt': 0}
+    if sample_available:
+        query['is_bookable'] = True
+        if '$and' not in query:
+            query['$and'] = []
+        query['$and'].append({'$or': [
+            {'sample_price': {'$gt': 0}},
+            {'rate_per_meter': {'$gt': 0}}
+        ]})
     if min_gsm is not None or max_gsm is not None:
         query['gsm'] = {}
         if min_gsm is not None:
@@ -829,14 +839,18 @@ async def get_fabrics_count(
         if not query['gsm']:
             del query['gsm']
     if search:
-        query['$or'] = [
-            {'name': {'$regex': search, '$options': 'i'}},
-            {'tags': {'$regex': search, '$options': 'i'}},
-            {'composition': {'$regex': search, '$options': 'i'}},
-            {'color': {'$regex': search, '$options': 'i'}},
-            {'fabric_code': {'$regex': search, '$options': 'i'}},
-            {'seller_sku': {'$regex': search, '$options': 'i'}}
-        ]
+        if '$and' not in query:
+            query['$and'] = []
+        query['$and'].append({
+            '$or': [
+                {'name': {'$regex': search, '$options': 'i'}},
+                {'tags': {'$regex': search, '$options': 'i'}},
+                {'composition': {'$regex': search, '$options': 'i'}},
+                {'color': {'$regex': search, '$options': 'i'}},
+                {'fabric_code': {'$regex': search, '$options': 'i'}},
+                {'seller_sku': {'$regex': search, '$options': 'i'}}
+            ]
+        })
     
     count = await db.fabrics.count_documents(query)
     return {'count': count}
