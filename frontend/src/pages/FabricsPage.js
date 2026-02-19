@@ -21,6 +21,7 @@ const FabricsPage = () => {
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "");
   const [selectedType, setSelectedType] = useState(searchParams.get("type") || "");
+  const [availabilityFilter, setAvailabilityFilter] = useState(searchParams.get("availability") || "");
   const [gsmRange, setGsmRange] = useState({
     min: searchParams.get("min_gsm") || "",
     max: searchParams.get("max_gsm") || "",
