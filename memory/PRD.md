@@ -42,6 +42,19 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - **Change**: Updated `AdminFabricSEO.js` to fetch up to 1000 fabrics
 - **Result**: All 191 fabrics now visible for SEO content generation
 
+### Feb 19, 2026 - Inventory Page (Bookable Fabrics)
+- **New Page**: `/inventory` - Dedicated page for bookable fabrics with pricing and ordering
+- **Features**:
+  - Shows only fabrics marked as "bookable" with confirmed stock
+  - Displays price per meter, dispatch timeline, MOQ, quantity available
+  - Search and category filter
+  - Sort by: Price (low/high), Stock (high), Newest
+  - "Place Order" button opens enquiry modal with fabric summary
+  - "Details" link to full fabric page
+- **Navigation**: Added "Inventory" link to main navbar
+- **Files Created**: `frontend/src/pages/InventoryPage.js`
+- **Files Updated**: `App.js` (route), `Navbar.js` (nav link)
+
 ### Feb 17, 2026 - SEO Content Layer (AI-Powered)
 - **SEO Admin Manager** at /admin/seo - Full CRUD for SEO content per fabric
 - **AI Content Generation** using GPT-4o via Emergent LLM Key:
