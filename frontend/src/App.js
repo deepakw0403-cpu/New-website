@@ -21,6 +21,7 @@ import CareersPage from "./pages/CareersPage";
 import AssistedSourcingPage from "./pages/AssistedSourcingPage";
 import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
+import InventoryPage from "./pages/InventoryPage";
 
 // Tools pages
 import {
@@ -89,6 +90,7 @@ function App() {
           <Route path="/fabrics" element={<FabricsPage />} />
           <Route path="/fabrics/:id" element={<FabricDetailPage />} />
           <Route path="/collections" element={<CollectionsPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/collections/:id" element={<CollectionDetailPage />} />
           <Route path="/about" element={<><Navbar /><AboutPage /><Footer /></>} />
           <Route path="/how-it-works" element={<><Navbar /><HowItWorksPage /><Footer /></>} />
