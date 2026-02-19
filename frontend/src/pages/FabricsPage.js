@@ -74,7 +74,7 @@ const FabricsPage = () => {
 
     const timeout = setTimeout(fetchFabrics, 300);
     return () => clearTimeout(timeout);
-  }, [search, selectedCategory, selectedType, gsmRange, currentPage]);
+  }, [search, selectedCategory, selectedType, availabilityFilter, gsmRange, currentPage]);
 
   // Update URL params
   useEffect(() => {
