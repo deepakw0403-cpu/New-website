@@ -649,6 +649,11 @@ def normalize_fabric(fabric: dict) -> dict:
     # Article ID
     if 'article_id' not in fabric:
         fabric['article_id'] = ''
+    # Pricing fields
+    if 'sample_price' not in fabric:
+        fabric['sample_price'] = None
+    if 'pricing_tiers' not in fabric:
+        fabric['pricing_tiers'] = []
     
     return fabric
 
