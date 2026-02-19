@@ -37,6 +37,11 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 19, 2026 - Bug Fix: SEO Content Generation Limit
+- **Fixed**: Admin SEO Manager was only showing 100 fabrics
+- **Change**: Updated `AdminFabricSEO.js` to fetch up to 1000 fabrics
+- **Result**: All 191 fabrics now visible for SEO content generation
+
 ### Feb 17, 2026 - SEO Content Layer (AI-Powered)
 - **SEO Admin Manager** at /admin/seo - Full CRUD for SEO content per fabric
 - **AI Content Generation** using GPT-4o via Emergent LLM Key:
