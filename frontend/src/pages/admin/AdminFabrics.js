@@ -814,7 +814,9 @@ const AdminFabrics = () => {
                       <span className="text-sm text-emerald-700 font-medium">Enable direct booking</span>
                     </label>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  
+                  {/* Basic Inventory Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Quantity Available (meters)</label>
                       <input
@@ -827,7 +829,7 @@ const AdminFabrics = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Rate per meter (₹)</label>
+                      <label className="block text-sm font-medium mb-2">Base Rate per meter (₹)</label>
                       <input
                         type="number"
                         step="0.01"
@@ -850,7 +852,88 @@ const AdminFabrics = () => {
                       />
                     </div>
                   </div>
-                  <p className="text-xs text-emerald-600 mt-2">Enable booking to allow customers to place orders directly</p>
+
+                  {/* Sample Pricing */}
+                  <div className="bg-white rounded p-3 mb-4 border border-emerald-200">
+                    <label className="block text-sm font-medium text-emerald-800 mb-2">Sample Pricing (1-5 meters)</label>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-600">Price per meter for samples:</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-500">₹</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={form.sample_price}
+                          onChange={(e) => setForm({ ...form, sample_price: e.target.value })}
+                          className="w-28 px-3 py-1.5 border border-emerald-200 rounded bg-white text-sm"
+                          placeholder="e.g., 200"
+                          data-testid="fabric-sample-price-input"
+                        />
+                        <span className="text-gray-500">/m</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Customers can order 1-5 meters at this sample rate</p>
+                  </div>
+
+                  {/* Bulk Pricing Tiers */}
+                  <div className="bg-white rounded p-3 border border-emerald-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-medium text-emerald-800">Bulk Pricing Tiers</label>
+                      <button
+                        type="button"
+                        onClick={addPricingTier}
+                        className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                      >
+                        <Plus size={14} />
+                        Add Tier
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {form.pricing_tiers.map((tier, index) => (
+                        <div key={index} className="flex items-center gap-2 text-sm">
+                          <span className="text-gray-500 w-8">{index + 1}.</span>
+                          <input
+                            type="number"
+                            value={tier.min_qty}
+                            onChange={(e) => updatePricingTier(index, 'min_qty', e.target.value)}
+                            className="w-20 px-2 py-1.5 border border-gray-200 rounded text-sm"
+                            placeholder="Min"
+                          />
+                          <span className="text-gray-400">to</span>
+                          <input
+                            type="number"
+                            value={tier.max_qty}
+                            onChange={(e) => updatePricingTier(index, 'max_qty', e.target.value)}
+                            className="w-20 px-2 py-1.5 border border-gray-200 rounded text-sm"
+                            placeholder="Max"
+                          />
+                          <span className="text-gray-500">meters @</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-500">₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={tier.price}
+                              onChange={(e) => updatePricingTier(index, 'price', e.target.value)}
+                              className="w-24 px-2 py-1.5 border border-gray-200 rounded text-sm"
+                              placeholder="Price/m"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removePricingTier(index)}
+                            className="p-1 text-gray-400 hover:text-red-500"
+                            title="Remove tier"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">Define quantity brackets with different prices per meter. Leave price empty to skip a tier.</p>
+                  </div>
+
+                  <p className="text-xs text-emerald-600 mt-3">Enable booking to allow customers to place orders directly with tiered pricing</p>
                 </div>
 
                 {/* Seller SKU */}
