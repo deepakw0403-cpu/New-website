@@ -979,7 +979,7 @@ async def upload_video(file: UploadFile = File(...), admin=Depends(get_current_a
     
     max_size = 150 * 1024 * 1024  # 150MB
     if file_size > max_size:
-        raise HTTPException(status_code=400, detail=f'Video file too large. Maximum size is 150MB')
+        raise HTTPException(status_code=400, detail='Video file too large. Maximum size is 150MB')
     
     ext = file.filename.split('.')[-1] if '.' in file.filename else 'mp4'
     filename = f"video_{uuid.uuid4()}.{ext}"
