@@ -55,6 +55,21 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - **Files Created**: `frontend/src/pages/InventoryPage.js`
 - **Files Updated**: `App.js` (route), `Navbar.js` (nav link)
 
+### Feb 19, 2026 - Tiered Pricing System
+- **Sample Pricing**: Fixed price for sample orders (1-5 meters dropdown)
+- **Bulk Pricing Tiers**: Configurable quantity brackets with different prices
+  - Admin can define 6+ tiers (e.g., 6-100m, 101-500m, 501-1000m, etc.)
+  - Each tier has min_qty, max_qty, and price_per_meter
+- **Admin UI**: 
+  - Sample price input in Inventory & Booking section
+  - Bulk Pricing Tiers manager with add/remove functionality
+- **Order Modal**:
+  - Toggle between "Sample Order" (1-5m dropdown) and "Bulk Order" (quantity input)
+  - Shows all available pricing tiers for bulk orders
+  - Real-time cart value calculation based on selected tier
+- **Backend**: Added `sample_price` and `pricing_tiers` fields to fabric model
+- **Files Updated**: `server.py`, `AdminFabrics.js`, `InventoryPage.js`
+
 ### Feb 17, 2026 - SEO Content Layer (AI-Powered)
 - **SEO Admin Manager** at /admin/seo - Full CRUD for SEO content per fabric
 - **AI Content Generation** using GPT-4o via Emergent LLM Key:
