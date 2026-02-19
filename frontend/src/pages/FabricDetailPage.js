@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, ChevronLeft, ChevronRight, Send, X, ZoomIn, Package, Truck, FileCheck, MapPin, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Send, X, ZoomIn, Package, Truck, FileCheck, MapPin, CheckCircle2, ShoppingCart, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
