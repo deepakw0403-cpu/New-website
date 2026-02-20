@@ -9,6 +9,7 @@ import { toast } from "sonner";
 const ITEMS_PER_PAGE = 20;
 
 const FabricsPage = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [fabrics, setFabrics] = useState([]);
   const [categories, setCategories] = useState([]);
