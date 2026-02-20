@@ -24,6 +24,7 @@ const AdminSellers = () => {
     contact_phone: "",
     category_ids: [],
     is_active: true,
+    password: "",
   };
   const [form, setForm] = useState(emptyForm);
 
