@@ -232,6 +232,118 @@ def get_order_received_admin_email(order: dict) -> str:
     </html>
     """
 
+def get_enquiry_notification_email(enquiry: dict) -> str:
+    """Generate enquiry notification email for admin"""
+    enquiry_type = enquiry.get('enquiry_type', 'general')
+    type_label = {
+        'general': 'General Enquiry',
+        'sample_order': 'Sample Order Request',
+        'bulk_order': 'Bulk Order Request'
+    }.get(enquiry_type, 'Enquiry')
+    
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; color: #333;">
+        
+        <div style="background: #dbeafe; border-left: 4px solid #2563eb; padding: 15px; margin-bottom: 20px;">
+            <strong style="color: #1e40af;">New {type_label}</strong>
+        </div>
+        
+        <h2 style="margin: 0 0 20px 0;">{enquiry.get('fabric_name', 'Unknown Fabric')}</h2>
+        
+        <table style="width: 100%; margin-bottom: 20px;">
+            <tr>
+                <td style="padding: 8px 0; width: 120px;"><strong>Customer:</strong></td>
+                <td>{enquiry.get('name', '')} {f"({enquiry.get('company')})" if enquiry.get('company') else ''}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0;"><strong>Email:</strong></td>
+                <td><a href="mailto:{enquiry.get('email', '')}">{enquiry.get('email', '')}</a></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0;"><strong>Phone:</strong></td>
+                <td><a href="tel:{enquiry.get('phone', '')}">{enquiry.get('phone', '')}</a></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0;"><strong>Type:</strong></td>
+                <td><span style="background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-size: 12px;">{type_label}</span></td>
+            </tr>
+            {f'<tr><td style="padding: 8px 0;"><strong>Quantity:</strong></td><td>{enquiry.get("quantity_required", "")}</td></tr>' if enquiry.get('quantity_required') else ''}
+        </table>
+        
+        <h3 style="margin: 20px 0 10px 0;">Message:</h3>
+        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            {enquiry.get('message', 'No message provided')}
+        </div>
+        
+        <p style="margin-top: 30px; color: #64748b; font-size: 13px;">
+            <a href="https://locofast.com/admin/enquiries" style="color: #2563EB;">View in Admin Panel →</a>
+        </p>
+        
+    </body>
+    </html>
+    """
+
+def get_customer_enquiry_confirmation_email(enquiry: dict) -> str:
+    """Generate enquiry confirmation email for customer"""
+    enquiry_type = enquiry.get('enquiry_type', 'general')
+    type_label = {
+        'general': 'enquiry',
+        'sample_order': 'sample order request',
+        'bulk_order': 'bulk order request'
+    }.get(enquiry_type, 'enquiry')
+    
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        
+        <!-- Header -->
+        <div style="text-align: center; padding: 30px 0; background: linear-gradient(135deg, #2563EB 0%, #1e3a8a 100%); border-radius: 12px 12px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">We've Received Your Request!</h1>
+        </div>
+        
+        <!-- Content -->
+        <div style="background: #f8fafc; padding: 30px; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+            <p style="margin: 0 0 20px 0;">Hi {enquiry.get('name', 'there').split()[0]},</p>
+            
+            <p style="margin: 0 0 20px 0;">
+                Thank you for your {type_label} regarding <strong>{enquiry.get('fabric_name', 'our fabric')}</strong>. 
+                Our team has received your request and will get back to you within 24 hours.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin: 20px 0;">
+                <h3 style="margin: 0 0 15px 0; font-size: 14px; color: #64748b; text-transform: uppercase;">Your Request Summary</h3>
+                <p style="margin: 0 0 8px 0;"><strong>Fabric:</strong> {enquiry.get('fabric_name', 'N/A')}</p>
+                {f'<p style="margin: 0 0 8px 0;"><strong>Quantity:</strong> {enquiry.get("quantity_required", "")}</p>' if enquiry.get('quantity_required') else ''}
+                <p style="margin: 0;"><strong>Message:</strong> {enquiry.get('message', 'N/A')[:100]}{'...' if len(enquiry.get('message', '')) > 100 else ''}</p>
+            </div>
+            
+            <p style="margin: 0; color: #64748b; font-size: 14px;">
+                If you have any urgent questions, feel free to reach out to us at 
+                <a href="mailto:b2c@locofast.com" style="color: #2563EB;">b2c@locofast.com</a>
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 0 0 12px 12px;">
+            <p style="margin: 0; color: #94a3b8; font-size: 13px;">
+                Locofast - Reliable Fabric Sourcing for Brands & Manufacturers
+            </p>
+        </div>
+        
+    </body>
+    </html>
+    """
+
 # ==================== EMAIL ENDPOINTS ====================
 
 @router.post("/send")
