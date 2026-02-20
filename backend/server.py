@@ -14,14 +14,17 @@ from datetime import datetime, timezone, timedelta
 import jwt
 import bcrypt
 import shutil
+
+# Load environment variables FIRST before importing modules that need them
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / '.env')
+
+# Now import modules that depend on environment variables
 from tools_router import router as tools_router
 from seo_router import router as seo_router
 from blog_router import router as blog_router
 import orders_router
 import email_router
-
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
