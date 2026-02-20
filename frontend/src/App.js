@@ -169,6 +169,7 @@ function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </HelmetProvider>
   );
 }
 
