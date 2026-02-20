@@ -232,6 +232,113 @@ def get_order_received_admin_email(order: dict) -> str:
     </html>
     """
 
+def get_seller_order_notification_email(order: dict, items: list, seller: dict) -> str:
+    """Generate order notification email for seller/supplier"""
+    items_html = ""
+    total_quantity = 0
+    for item in items:
+        total_quantity += item.get('quantity', 0)
+        items_html += f"""
+        <tr>
+            <td style="padding: 12px; border-bottom: 1px solid #eee;">
+                <strong>{item.get('fabric_name', 'Fabric')}</strong><br>
+                <span style="color: #666; font-size: 14px;">{item.get('fabric_code', '')}</span>
+            </td>
+            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">
+                <span style="background: {'#dbeafe' if item.get('order_type') == 'sample' else '#d1fae5'}; color: {'#1e40af' if item.get('order_type') == 'sample' else '#065f46'}; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                    {'Sample' if item.get('order_type') == 'sample' else 'Bulk'}
+                </span>
+            </td>
+            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">
+                {item.get('quantity', 0)} meters
+            </td>
+        </tr>
+        """
+    
+    customer = order.get('customer', {})
+    
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        
+        <!-- Header -->
+        <div style="text-align: center; padding: 30px 0; background: linear-gradient(135deg, #059669 0%, #047857 100%); border-radius: 12px 12px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">New Order Booking!</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Please prepare goods for pickup</p>
+        </div>
+        
+        <!-- Order Info -->
+        <div style="background: #ecfdf5; padding: 20px; border-left: 1px solid #d1fae5; border-right: 1px solid #d1fae5;">
+            <table style="width: 100%;">
+                <tr>
+                    <td>
+                        <strong style="color: #065f46; font-size: 12px; text-transform: uppercase;">Order Number</strong><br>
+                        <span style="font-size: 20px; font-weight: 600; color: #059669;">{order.get('order_number', '')}</span>
+                    </td>
+                    <td style="text-align: right;">
+                        <strong style="color: #065f46; font-size: 12px; text-transform: uppercase;">Total Quantity</strong><br>
+                        <span style="font-size: 20px; font-weight: 600;">{total_quantity} meters</span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Action Required -->
+        <div style="background: #fef3c7; padding: 15px 20px; border-left: 4px solid #f59e0b;">
+            <strong style="color: #92400e;">Action Required:</strong>
+            <p style="margin: 5px 0 0 0; color: #78350f;">Please keep the following items ready for pickup. Our logistics partner will contact you for collection.</p>
+        </div>
+        
+        <!-- Items -->
+        <div style="background: white; padding: 20px; border: 1px solid #e2e8f0;">
+            <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #1e293b;">Items to Prepare</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f1f5f9;">
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: #475569; font-size: 13px;">Fabric</th>
+                        <th style="padding: 12px; text-align: center; font-weight: 600; color: #475569; font-size: 13px;">Type</th>
+                        <th style="padding: 12px; text-align: center; font-weight: 600; color: #475569; font-size: 13px;">Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {items_html}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Shipping To -->
+        <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #475569;">Shipping To</h3>
+            <p style="margin: 0; color: #1e293b;">
+                <strong>{customer.get('name', '')}</strong><br>
+                {customer.get('company', '')}<br>
+                {customer.get('address', '')}<br>
+                {customer.get('city', '')}, {customer.get('state', '')} {customer.get('pincode', '')}<br>
+                <br>
+                <strong>Phone:</strong> {customer.get('phone', '')}
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div style="text-align: center; padding: 30px 0; color: #64748b; font-size: 13px;">
+            <p style="margin: 0 0 10px 0;">Questions about this order?</p>
+            <p style="margin: 0;">
+                <a href="mailto:b2c@locofast.com" style="color: #059669; text-decoration: none;">b2c@locofast.com</a>
+            </p>
+            <p style="margin: 20px 0 0 0; color: #94a3b8;">
+                Locofast - Reliable Fabric Sourcing for Brands & Manufacturers
+            </p>
+        </div>
+        
+    </body>
+    </html>
+    """
+
 def get_enquiry_notification_email(enquiry: dict) -> str:
     """Generate enquiry notification email for admin"""
     enquiry_type = enquiry.get('enquiry_type', 'general')
