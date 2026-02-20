@@ -580,6 +580,17 @@ const CheckoutPage = () => {
                     <span className="text-gray-600">GST (5%)</span>
                     <span>₹{tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
+                  {shippingCost > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Shipping</span>
+                      <span>₹{shippingCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
+                  {selectedShipping && (
+                    <div className="text-xs text-gray-500 bg-gray-50 rounded p-2">
+                      {selectedShipping.courier_name} • {selectedShipping.estimated_delivery_days || "3-5"} days
+                    </div>
+                  )}
                   <div className="flex justify-between pt-3 border-t border-gray-200 text-lg font-semibold">
                     <span>Total</span>
                     <span className="text-emerald-600">₹{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
