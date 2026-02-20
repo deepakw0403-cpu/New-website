@@ -399,27 +399,30 @@ const FabricsPage = () => {
                             className="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-xs sm:text-sm font-medium transition-colors"
                             data-testid={`bulk-btn-${fabric.id}`}
                           >
-                            <ShoppingCart size={14} />
-                            Book Bulk Now
+                            <ShoppingCart size={12} className="sm:w-[14px] sm:h-[14px]" />
+                            <span className="hidden sm:inline">Book Bulk Now</span>
+                            <span className="sm:hidden">Bulk</span>
                           </button>
                         )}
                         {actions.canBookSample && (
                           <button
                             onClick={(e) => { e.preventDefault(); openModal(fabric, 'sample'); }}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+                            className="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm font-medium transition-colors"
                             data-testid={`sample-btn-${fabric.id}`}
                           >
-                            <Package size={14} />
-                            Book Sample
+                            <Package size={12} className="sm:w-[14px] sm:h-[14px]" />
+                            <span className="hidden sm:inline">Book Sample</span>
+                            <span className="sm:hidden">Sample</span>
                           </button>
                         )}
                         <button
                           onClick={(e) => { e.preventDefault(); openModal(fabric, 'enquiry'); }}
-                          className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors"
+                          className="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-xs sm:text-sm font-medium transition-colors"
                           data-testid={`enquiry-btn-${fabric.id}`}
                         >
-                          <MessageSquare size={14} />
-                          Send Enquiry
+                          <MessageSquare size={12} className="sm:w-[14px] sm:h-[14px]" />
+                          <span className="hidden sm:inline">Send Enquiry</span>
+                          <span className="sm:hidden">Enquiry</span>
                         </button>
                       </div>
                     </div>
