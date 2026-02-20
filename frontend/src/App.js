@@ -165,6 +165,7 @@ function App() {
           <Route path="/admin/collections" element={<ProtectedRoute><AdminCollections /></ProtectedRoute>} />
           <Route path="/admin/articles" element={<ProtectedRoute><AdminArticles /></ProtectedRoute>} />
           <Route path="/admin/enquiries" element={<ProtectedRoute><AdminEnquiries /></ProtectedRoute>} />
+          <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
           <Route path="/admin/seo" element={<ProtectedRoute><AdminFabricSEO /></ProtectedRoute>} />
           <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
         </Routes>
