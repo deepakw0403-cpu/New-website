@@ -46,10 +46,20 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
   - Tracking by AWB: `/api/shipping/track/awb/{awb_code}`
   - Tracking by Order: `/api/shipping/track/order/{order_id}`
   - Pickup locations: `/api/shipping/pickup-locations`
-- **Files Created**:
+- **Checkout Page Shipping Integration**:
+  - Shipping rates fetched when customer enters pincode
+  - Multiple courier options displayed (Xpressbees, Delhivery, Shadowfax, Ekart, etc.)
+  - Customer can select preferred shipping option
+  - Shipping cost added to order total
+- **Auto-Create Shiprocket Shipment**:
+  - After Razorpay payment verification, shipment auto-created in Shiprocket
+  - Shiprocket order ID and shipment ID stored in order document
+- **Files Created/Updated**:
   - `backend/shiprocket_service.py` - Core Shiprocket API service
   - `backend/shiprocket_router.py` - FastAPI routes for shipping
-- **Status**: COMPLETED - 12 courier options available, 16 pickup locations configured
+  - `backend/orders_router.py` - Updated with shipping support
+  - `frontend/src/pages/CheckoutPage.js` - Shipping UI integration
+- **Status**: COMPLETED - 12+ courier options, auto-shipment creation
 
 ### Feb 20, 2026 - Multi-Vendor Portal & Filters (Session 2)
 - **Quick Filter Toggles**: Added prominent filter buttons above search bar:
