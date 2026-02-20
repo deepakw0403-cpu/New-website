@@ -166,4 +166,17 @@ export const deleteBlogPost = (id) => api.delete(`/blog/posts/${id}`);
 export const getBlogStats = () => api.get("/blog/stats");
 export const getBlogSitemap = () => api.get("/blog/sitemap");
 
+// Orders
+export const createOrder = (data) => api.post("/orders/create", data);
+export const verifyPayment = (data) => api.post("/orders/verify-payment", data);
+export const getOrder = (id) => api.get(`/orders/${id}`);
+export const getOrderByRazorpayId = (razorpayOrderId) => api.get(`/orders/by-razorpay/${razorpayOrderId}`);
+export const listOrders = (params) => api.get("/orders", { params });
+export const updateOrderStatus = (id, status) => api.put(`/orders/${id}/status?status=${status}`);
+export const getOrderStats = () => api.get("/orders/stats/summary");
+
+// Email
+export const sendOrderConfirmation = (orderId) => api.post(`/email/order-confirmation/${orderId}`);
+export const sendTestEmail = (email) => api.post(`/email/test?recipient=${email}`);
+
 export default api;
