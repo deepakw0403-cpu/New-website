@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
+import { VendorAuthProvider } from "./context/VendorAuthContext";
 
 // Public pages
 import HomePage from "./pages/HomePage";
@@ -25,6 +26,13 @@ import BlogPostPage from "./pages/BlogPostPage";
 import InventoryPage from "./pages/InventoryPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
+
+// Vendor pages
+import VendorLogin from "./pages/vendor/VendorLogin";
+import VendorDashboard from "./pages/vendor/VendorDashboard";
+import VendorInventory from "./pages/vendor/VendorInventory";
+import VendorOrders from "./pages/vendor/VendorOrders";
+import VendorProtectedRoute from "./components/VendorProtectedRoute";
 
 // Tools pages
 import {
