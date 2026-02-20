@@ -23,6 +23,8 @@ import AssistedSourcingPage from "./pages/AssistedSourcingPage";
 import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import InventoryPage from "./pages/InventoryPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 
 // Tools pages
 import {
@@ -109,6 +111,10 @@ function App() {
           {/* Blog routes */}
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
+          
+          {/* Checkout & Order routes */}
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmationPage />} />
           
           {/* Tools routes - SEO friendly individual pages */}
           <Route path="/tools" element={<ToolsPage />} />
