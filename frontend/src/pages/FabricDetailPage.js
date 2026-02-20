@@ -182,19 +182,6 @@ const FabricDetailPage = () => {
     closeOrderModal();
   };
 
-  // Calculate cart value for modal
-  const cartValue = useMemo(() => {
-    if (!fabric || !orderModalType) return null;
-    
-    if (orderModalType === "sample") {
-      const samplePrice = fabric.sample_price || fabric.rate_per_meter || 0;
-      return { pricePerMeter: samplePrice, quantity: sampleQty, totalPrice: samplePrice * sampleQty, label: "Sample" };
-    } else if (orderModalType === "bulk") {
-      return calculateBulkPrice(bulkQty);
-    }
-    return null;
-  }, [fabric, orderModalType, sampleQty, bulkQty]);
-
   const getAvailabilityBadge = (avail) => {
     switch (avail) {
       case "Sample":
