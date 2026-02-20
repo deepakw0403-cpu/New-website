@@ -60,6 +60,8 @@ const FabricsPage = () => {
         if (gsmRange.max) params.max_gsm = gsmRange.max;
         if (availabilityFilter === "sample") params.sample_available = true;
         if (availabilityFilter === "bulk") params.bookable_only = true;
+        if (availabilityFilter === "instant") params.instant_bookable = true;
+        if (availabilityFilter === "enquiry") params.enquiry_only = true;
 
         const [fabricsRes, countRes] = await Promise.all([
           getFabrics(params),
@@ -280,8 +282,10 @@ const FabricsPage = () => {
                     data-testid="availability-filter"
                   >
                     <option value="">All Fabrics</option>
-                    <option value="sample">Bookable Samples</option>
-                    <option value="bulk">Bookable Bulk (In Stock)</option>
+                    <option value="instant">Instant Bookable (Sample/Bulk)</option>
+                    <option value="sample">Samples Only</option>
+                    <option value="bulk">Bulk In Stock</option>
+                    <option value="enquiry">Enquiry Only</option>
                   </select>
                 </div>
                 <div>

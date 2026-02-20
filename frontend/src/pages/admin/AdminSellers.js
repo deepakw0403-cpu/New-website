@@ -332,7 +332,7 @@ const AdminSellers = () => {
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-200 rounded"
-                      placeholder="John Doe"
+                      placeholder="Rajesh Kumar"
                       required
                       data-testid="seller-name-input"
                     />
