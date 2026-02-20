@@ -291,16 +291,15 @@ async def send_order_confirmation(order_id: str):
         logger.info(f"Order confirmation email sent to {customer_email}")
         
         # Send admin notification (best effort)
-        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@locofast.com')
         try:
             admin_params = {
                 "from": SENDER_EMAIL,
-                "to": [admin_email],
+                "to": [ADMIN_NOTIFICATION_EMAIL],
                 "subject": f"New Order Received - {order.get('order_number', '')}",
                 "html": get_order_received_admin_email(order)
             }
             await asyncio.to_thread(resend.Emails.send, admin_params)
-            logger.info(f"Admin notification sent to {admin_email}")
+            logger.info(f"Admin notification sent to {ADMIN_NOTIFICATION_EMAIL}")
         except Exception as e:
             logger.warning(f"Failed to send admin notification: {str(e)}")
         
