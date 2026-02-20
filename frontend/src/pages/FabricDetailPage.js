@@ -160,6 +160,13 @@ const FabricDetailPage = () => {
   };
 
   const openOrderModal = (type) => {
+    // For sample/bulk orders, navigate to checkout page
+    if (type === "sample" || type === "bulk") {
+      const qty = type === "sample" ? 1 : 6; // Default quantities
+      navigate(`/checkout?fabric_id=${fabric.id}&type=${type}&qty=${qty}`);
+      return;
+    }
+    // For enquiry, show modal (though enquiry uses showEnquiryForm, not orderModalType)
     setOrderModalType(type);
     setSampleQty(1);
     setBulkQty("");
