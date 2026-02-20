@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -81,10 +82,11 @@ import Footer from "./components/Footer";
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Toaster position="top-right" richColors />
-        <Routes>
+    <HelmetProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Toaster position="top-right" richColors />
+          <Routes>
           {/* Public routes */}
           <Route path="/" element={<><Navbar /><HomePage /><Footer /></>} />
           <Route path="/fabrics" element={<FabricsPage />} />
