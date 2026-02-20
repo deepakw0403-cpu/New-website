@@ -180,4 +180,16 @@ export const sendOrderConfirmation = (orderId) => api.post(`/email/order-confirm
 export const sendEnquiryNotification = (enquiry) => api.post("/email/enquiry-notification", enquiry);
 export const sendTestEmail = (email) => api.post(`/email/test?recipient=${email}`);
 
+// Vendor Portal
+export const vendorLogin = (data) => api.post("/vendor/login", data);
+export const getVendorProfile = () => api.get("/vendor/me");
+export const getVendorFabrics = () => api.get("/vendor/fabrics");
+export const getVendorFabric = (id) => api.get(`/vendor/fabrics/${id}`);
+export const createVendorFabric = (data) => api.post("/vendor/fabrics", data);
+export const updateVendorFabric = (id, data) => api.put(`/vendor/fabrics/${id}`, data);
+export const deleteVendorFabric = (id) => api.delete(`/vendor/fabrics/${id}`);
+export const getVendorOrders = () => api.get("/vendor/orders");
+export const getVendorStats = () => api.get("/vendor/stats");
+export const getVendorCategories = () => api.get("/vendor/categories");
+
 export default api;
