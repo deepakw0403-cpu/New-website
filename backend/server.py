@@ -527,6 +527,11 @@ async def create_seller(data: SellerCreate, admin=Depends(get_current_admin)):
         categories = await db.categories.find({'id': {'$in': data.category_ids}}, {'_id': 0}).to_list(100)
         category_names = [c['name'] for c in categories]
     
+    # Hash password if provided
+    hashed_password = ""
+    if data.password:
+        hashed_password = bcrypt.hashpw(data.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
     seller_doc = {
         'id': seller_id,
         'seller_code': seller_code,
@@ -536,10 +541,11 @@ async def create_seller(data: SellerCreate, admin=Depends(get_current_admin)):
         'logo_url': data.logo_url or "",
         'city': data.city or "",
         'state': data.state or "",
-        'contact_email': data.contact_email or "",
-        'contact_phone': data.contact_phone or "",
+        'contact_email': data.contact_email,
+        'contact_phone': data.contact_phone,
         'category_ids': data.category_ids or [],
         'is_active': data.is_active,
+        'password_hash': hashed_password,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     await db.sellers.insert_one(seller_doc)
