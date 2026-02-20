@@ -309,7 +309,7 @@ const FabricsPage = () => {
           {/* Expandable Filters */}
           {showFilters && (
             <div className="bg-white p-6 rounded-lg border border-gray-200 mb-8 animate-fadeIn">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
                   <label className="block text-sm font-medium mb-2">Category</label>
                   <select
@@ -334,21 +334,6 @@ const FabricsPage = () => {
                     {fabricTypes.map((type) => (
                       <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
                     ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Availability</label>
-                  <select
-                    value={availabilityFilter}
-                    onChange={(e) => { setAvailabilityFilter(e.target.value); setCurrentPage(1); }}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none"
-                    data-testid="availability-filter"
-                  >
-                    <option value="">All Fabrics</option>
-                    <option value="instant">Instant Bookable (Sample/Bulk)</option>
-                    <option value="sample">Samples Only</option>
-                    <option value="bulk">Bulk In Stock</option>
-                    <option value="enquiry">Enquiry Only</option>
                   </select>
                 </div>
                 <div>
