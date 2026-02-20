@@ -477,11 +477,7 @@ const FabricsPage = () => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={closeModal}>
           <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100">
-              <h2 className="text-xl font-semibold">
-                {modalType === "enquiry" && "Send Enquiry"}
-                {modalType === "sample" && "Book Sample"}
-                {modalType === "bulk" && "Book Bulk Order"}
-              </h2>
+              <h2 className="text-xl font-semibold">Send Enquiry</h2>
               <p className="text-sm text-gray-500 mt-1">{selectedFabric.name}</p>
             </div>
 
@@ -499,93 +495,22 @@ const FabricsPage = () => {
                   {selectedFabric.seller_company && (
                     <p className="text-xs text-gray-500">by {selectedFabric.seller_company}</p>
                   )}
-                  {selectedFabric.quantity_available > 0 && modalType === "bulk" && (
-                    <p className="text-xs text-emerald-600 mt-1">{selectedFabric.quantity_available.toLocaleString()}m in stock</p>
-                  )}
                 </div>
               </div>
 
-              {/* Sample Order Options */}
-              {modalType === "sample" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Sample Quantity (1-5 meters)</label>
-                  <select
-                    value={sampleQty}
-                    onChange={(e) => setSampleQty(parseInt(e.target.value))}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none bg-white"
-                    data-testid="sample-qty-select"
-                  >
-                    {[1, 2, 3, 4, 5].map(qty => (
-                      <option key={qty} value={qty}>{qty} meter{qty > 1 ? 's' : ''}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Bulk Order Options */}
-              {modalType === "bulk" && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Quantity (meters)</label>
-                    <input
-                      type="number"
-                      min="6"
-                      value={bulkQty}
-                      onChange={(e) => setBulkQty(e.target.value)}
-                      placeholder="Enter quantity (min 6 meters)"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none"
-                      data-testid="bulk-qty-input"
-                    />
-                  </div>
-                  
-                  {/* Pricing Tiers */}
-                  {selectedFabric.pricing_tiers?.length > 0 && (
-                    <div className="bg-blue-50 rounded-lg p-4">
-                      <p className="text-sm font-medium text-blue-800 mb-2">Bulk Pricing Tiers</p>
-                      <div className="space-y-1">
-                        {selectedFabric.pricing_tiers.map((tier, idx) => (
-                          <div key={idx} className="flex justify-between text-sm">
-                            <span className="text-blue-700">{tier.min_qty} - {tier.max_qty} meters</span>
-                            <span className="font-medium text-blue-900">₹{tier.price_per_meter?.toLocaleString()}/m</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Cart Value (for sample and bulk) */}
-              {(modalType === "sample" || modalType === "bulk") && cartValue && (
-                <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-emerald-700">Order Summary</p>
-                      <p className="text-xs text-emerald-600">{cartValue.quantity} meters × ₹{cartValue.pricePerMeter?.toLocaleString()}/m</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-emerald-600">Total Value</p>
-                      <p className="text-2xl font-bold text-emerald-700">₹{cartValue.totalPrice?.toLocaleString()}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Enquiry Message */}
-              {modalType === "enquiry" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Your Message *</label>
-                  <textarea
-                    required
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    rows={3}
-                    placeholder="What would you like to know about this fabric?"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-none"
-                    data-testid="enquiry-message"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Your Message *</label>
+                <textarea
+                  required
+                  value={formData.message}
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  rows={3}
+                  placeholder="What would you like to know about this fabric?"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-none"
+                  data-testid="enquiry-message"
+                />
+              </div>
 
               {/* Contact Details */}
               <div className="pt-4 border-t border-gray-100">
@@ -623,17 +548,6 @@ const FabricsPage = () => {
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
                   />
                 </div>
-                {(modalType === "sample" || modalType === "bulk") && (
-                  <div className="mt-3">
-                    <textarea
-                      value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      rows={2}
-                      placeholder="Additional notes (optional)"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-none text-sm"
-                    />
-                  </div>
-                )}
               </div>
 
               {/* Submit */}
@@ -647,18 +561,11 @@ const FabricsPage = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting || ((modalType === "bulk") && !cartValue)}
-                  className={`flex-1 py-2.5 rounded-lg font-medium disabled:opacity-50 ${
-                    modalType === "enquiry" ? "bg-gray-900 text-white hover:bg-gray-800" :
-                    modalType === "sample" ? "bg-blue-600 text-white hover:bg-blue-700" :
-                    "bg-emerald-600 text-white hover:bg-emerald-700"
-                  }`}
+                  disabled={submitting}
+                  className="flex-1 py-2.5 rounded-lg font-medium disabled:opacity-50 bg-gray-900 text-white hover:bg-gray-800"
                   data-testid="submit-btn"
                 >
-                  {submitting ? "Submitting..." : 
-                    modalType === "enquiry" ? "Send Enquiry" :
-                    modalType === "sample" ? "Book Sample" : "Place Bulk Order"
-                  }
+                  {submitting ? "Submitting..." : "Send Enquiry"}
                 </button>
               </div>
             </form>
