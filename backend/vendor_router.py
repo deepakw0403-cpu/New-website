@@ -1,0 +1,285 @@
+"""
+Vendor Router - Handles vendor/seller portal authentication and inventory management
+"""
+from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel, ConfigDict
+from typing import List, Optional
+import os
+import uuid
+import jwt
+import bcrypt
+from datetime import datetime, timezone, timedelta
+from motor.motor_asyncio import AsyncIOMotorClient
+
+router = APIRouter(prefix="/api/vendor", tags=["vendor"])
+
+# MongoDB connection
+mongo_url = os.environ.get('MONGO_URL')
+db_name = os.environ.get('DB_NAME', 'test_database')
+if db_name and db_name.startswith('"') and db_name.endswith('"'):
+    db_name = db_name[1:-1]
+client = AsyncIOMotorClient(mongo_url)
+db = client[db_name]
+
+# JWT settings
+JWT_SECRET = os.environ.get('JWT_SECRET', 'vendor-secret-key')
+JWT_ALGORITHM = "HS256"
+security = HTTPBearer()
+
+# ==================== MODELS ====================
+
+class VendorLogin(BaseModel):
+    email: str
+    password: str
+
+class VendorResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    seller_code: str = ""
+    name: str
+    company_name: str
+    contact_email: str
+    contact_phone: str
+    city: str = ""
+    state: str = ""
+
+class FabricCreate(BaseModel):
+    name: str
+    fabric_code: str = ""
+    category_id: str = ""
+    description: str = ""
+    composition: str = ""
+    gsm: Optional[int] = None
+    width: Optional[str] = ""
+    finish: str = ""
+    tags: str = ""
+    images: List[str] = []
+    is_bookable: bool = False
+    quantity_available: int = 0
+    rate_per_meter: float = 0
+    sample_price: Optional[float] = None
+    moq: str = ""
+    dispatch_timeline: str = ""
+
+class FabricUpdate(BaseModel):
+    name: Optional[str] = None
+    fabric_code: Optional[str] = None
+    description: Optional[str] = None
+    composition: Optional[str] = None
+    gsm: Optional[int] = None
+    width: Optional[str] = None
+    finish: Optional[str] = None
+    tags: Optional[str] = None
+    images: Optional[List[str]] = None
+    is_bookable: Optional[bool] = None
+    quantity_available: Optional[int] = None
+    rate_per_meter: Optional[float] = None
+    sample_price: Optional[float] = None
+    moq: Optional[str] = None
+    dispatch_timeline: Optional[str] = None
+
+# ==================== AUTH HELPERS ====================
+
+def create_vendor_token(seller_id: str, email: str) -> str:
+    """Create JWT token for vendor"""
+    payload = {
+        'seller_id': seller_id,
+        'email': email,
+        'type': 'vendor',
+        'exp': datetime.now(timezone.utc) + timedelta(days=7)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+async def get_current_vendor(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Verify vendor JWT token and return seller info"""
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        
+        if payload.get('type') != 'vendor':
+            raise HTTPException(status_code=401, detail='Invalid token type')
+        
+        seller_id = payload.get('seller_id')
+        seller = await db.sellers.find_one({'id': seller_id, 'is_active': True}, {'_id': 0, 'password_hash': 0})
+        
+        if not seller:
+            raise HTTPException(status_code=401, detail='Vendor not found or inactive')
+        
+        return seller
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail='Token expired')
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail='Invalid token')
+
+# ==================== AUTH ENDPOINTS ====================
+
+@router.post("/login")
+async def vendor_login(data: VendorLogin):
+    """Vendor login with email and password"""
+    seller = await db.sellers.find_one({'contact_email': data.email, 'is_active': True})
+    
+    if not seller:
+        raise HTTPException(status_code=401, detail='Invalid email or password')
+    
+    password_hash = seller.get('password_hash', '')
+    if not password_hash:
+        raise HTTPException(status_code=401, detail='Vendor account not set up. Please contact admin.')
+    
+    if not bcrypt.checkpw(data.password.encode('utf-8'), password_hash.encode('utf-8')):
+        raise HTTPException(status_code=401, detail='Invalid email or password')
+    
+    token = create_vendor_token(seller['id'], data.email)
+    
+    return {
+        'token': token,
+        'vendor': VendorResponse(
+            id=seller['id'],
+            seller_code=seller.get('seller_code', ''),
+            name=seller.get('name', ''),
+            company_name=seller.get('company_name', ''),
+            contact_email=seller.get('contact_email', ''),
+            contact_phone=seller.get('contact_phone', ''),
+            city=seller.get('city', ''),
+            state=seller.get('state', '')
+        )
+    }
+
+@router.get("/me")
+async def get_vendor_profile(vendor=Depends(get_current_vendor)):
+    """Get current vendor profile"""
+    return VendorResponse(**vendor)
+
+# ==================== INVENTORY ENDPOINTS ====================
+
+@router.get("/fabrics")
+async def get_vendor_fabrics(vendor=Depends(get_current_vendor)):
+    """Get all fabrics belonging to this vendor"""
+    fabrics = await db.fabrics.find(
+        {'seller_id': vendor['id']},
+        {'_id': 0}
+    ).sort('created_at', -1).to_list(1000)
+    
+    return fabrics
+
+@router.get("/fabrics/{fabric_id}")
+async def get_vendor_fabric(fabric_id: str, vendor=Depends(get_current_vendor)):
+    """Get a specific fabric belonging to this vendor"""
+    fabric = await db.fabrics.find_one(
+        {'id': fabric_id, 'seller_id': vendor['id']},
+        {'_id': 0}
+    )
+    
+    if not fabric:
+        raise HTTPException(status_code=404, detail='Fabric not found')
+    
+    return fabric
+
+@router.post("/fabrics")
+async def create_vendor_fabric(data: FabricCreate, vendor=Depends(get_current_vendor)):
+    """Create a new fabric for this vendor"""
+    fabric_id = str(uuid.uuid4())
+    
+    # Get category name
+    category_name = ""
+    if data.category_id:
+        category = await db.categories.find_one({'id': data.category_id}, {'_id': 0})
+        category_name = category.get('name', '') if category else ""
+    
+    fabric_doc = {
+        'id': fabric_id,
+        'name': data.name,
+        'fabric_code': data.fabric_code,
+        'seller_id': vendor['id'],
+        'seller_company': vendor.get('company_name', ''),
+        'category_id': data.category_id,
+        'category_name': category_name,
+        'description': data.description,
+        'composition': data.composition,
+        'gsm': data.gsm,
+        'width': data.width,
+        'finish': data.finish,
+        'tags': data.tags,
+        'images': data.images,
+        'is_bookable': data.is_bookable,
+        'quantity_available': data.quantity_available,
+        'rate_per_meter': data.rate_per_meter,
+        'sample_price': data.sample_price,
+        'moq': data.moq,
+        'dispatch_timeline': data.dispatch_timeline,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.fabrics.insert_one(fabric_doc)
+    return fabric_doc
+
+@router.put("/fabrics/{fabric_id}")
+async def update_vendor_fabric(fabric_id: str, data: FabricUpdate, vendor=Depends(get_current_vendor)):
+    """Update a fabric belonging to this vendor"""
+    # Verify ownership
+    fabric = await db.fabrics.find_one({'id': fabric_id, 'seller_id': vendor['id']})
+    if not fabric:
+        raise HTTPException(status_code=404, detail='Fabric not found or not owned by you')
+    
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail='No data to update')
+    
+    await db.fabrics.update_one({'id': fabric_id}, {'$set': update_data})
+    
+    updated = await db.fabrics.find_one({'id': fabric_id}, {'_id': 0})
+    return updated
+
+@router.delete("/fabrics/{fabric_id}")
+async def delete_vendor_fabric(fabric_id: str, vendor=Depends(get_current_vendor)):
+    """Delete a fabric belonging to this vendor"""
+    # Verify ownership
+    fabric = await db.fabrics.find_one({'id': fabric_id, 'seller_id': vendor['id']})
+    if not fabric:
+        raise HTTPException(status_code=404, detail='Fabric not found or not owned by you')
+    
+    await db.fabrics.delete_one({'id': fabric_id})
+    return {'success': True, 'message': 'Fabric deleted'}
+
+@router.get("/orders")
+async def get_vendor_orders(vendor=Depends(get_current_vendor)):
+    """Get orders containing this vendor's fabrics"""
+    # Find orders that have items from this vendor's fabrics
+    vendor_fabric_ids = await db.fabrics.distinct('id', {'seller_id': vendor['id']})
+    
+    orders = await db.orders.find(
+        {'items.fabric_id': {'$in': vendor_fabric_ids}},
+        {'_id': 0}
+    ).sort('created_at', -1).to_list(500)
+    
+    # Filter items to only show vendor's fabrics
+    for order in orders:
+        order['items'] = [item for item in order.get('items', []) if item.get('fabric_id') in vendor_fabric_ids]
+    
+    return orders
+
+@router.get("/stats")
+async def get_vendor_stats(vendor=Depends(get_current_vendor)):
+    """Get vendor statistics"""
+    total_fabrics = await db.fabrics.count_documents({'seller_id': vendor['id']})
+    active_fabrics = await db.fabrics.count_documents({'seller_id': vendor['id'], 'is_bookable': True})
+    
+    # Get vendor's fabric IDs
+    vendor_fabric_ids = await db.fabrics.distinct('id', {'seller_id': vendor['id']})
+    
+    # Count orders with vendor's fabrics
+    total_orders = await db.orders.count_documents({'items.fabric_id': {'$in': vendor_fabric_ids}})
+    
+    return {
+        'total_fabrics': total_fabrics,
+        'active_fabrics': active_fabrics,
+        'total_orders': total_orders,
+        'vendor_code': vendor.get('seller_code', '')
+    }
+
+@router.get("/categories")
+async def get_categories_for_vendor():
+    """Get all categories (for fabric creation dropdown)"""
+    categories = await db.categories.find({}, {'_id': 0}).to_list(100)
+    return categories
