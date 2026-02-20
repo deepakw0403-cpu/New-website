@@ -37,6 +37,50 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 20, 2026 - Phase 1: Payment & Orders (Razorpay + Resend)
+- **Payment Gateway**: Razorpay integration for order payments
+  - Checkout page with shipping form, GST calculation, pricing tiers
+  - Razorpay SDK loads dynamically for payment modal
+  - Payment verification with signature validation
+  - Webhook endpoint for payment status updates
+- **Orders Collection**: Full order management system
+  - Order creation with items, customer info, totals
+  - Order statuses: pending, payment_pending, paid, confirmed, processing, shipped, delivered, cancelled
+  - Auto inventory deduction on successful payment
+  - Unique order numbers (ORD-XXXXXX format)
+- **Order Confirmation Page**: Post-payment success page
+  - Shows order number, items, shipping address, payment summary
+  - "What's Next" steps for customer expectations
+- **Email Notifications** (Resend integration):
+  - Order confirmation email to customer with HTML template
+  - Admin notification email for new orders
+- **Admin Orders Dashboard**: `/admin/orders`
+  - Order statistics: Total, Pending Payment, Paid, Confirmed, Shipped, Delivered, Revenue
+  - Order list with search, status filter
+  - Order detail modal with customer info, items, payment status
+  - Status update dropdown, resend confirmation button
+- **Frontend Updates**:
+  - "Book Sample" and "Book Bulk Now" now navigate to checkout page
+  - Checkout collects shipping address and creates order via API
+- **Files Created**:
+  - `backend/orders_router.py` - Order CRUD + payment endpoints
+  - `backend/email_router.py` - Email sending with Resend
+  - `frontend/src/pages/CheckoutPage.js` - Checkout flow
+  - `frontend/src/pages/OrderConfirmationPage.js` - Order success page
+  - `frontend/src/pages/admin/AdminOrders.js` - Admin order management
+- **API Endpoints Added**:
+  - `POST /api/orders/create` - Create order + Razorpay order
+  - `POST /api/orders/verify-payment` - Verify Razorpay payment
+  - `GET /api/orders` - List orders with filters
+  - `GET /api/orders/{id}` - Get order by ID or order_number
+  - `GET /api/orders/stats/summary` - Order statistics
+  - `PUT /api/orders/{id}/status` - Update order status
+  - `POST /api/orders/webhook/razorpay` - Razorpay webhook
+  - `POST /api/email/order-confirmation/{id}` - Send confirmation email
+- **Status**: COMPLETED (requires real API keys for production)
+  - Razorpay: Placeholder test keys configured - need real keys from dashboard
+  - Resend: API key needed for email sending
+
 ### Feb 19, 2026 - Bug Fix: SEO Content Generation Limit
 - **Fixed**: Admin SEO Manager was only showing 100 fabrics
 - **Change**: Updated `AdminFabricSEO.js` to fetch up to 1000 fabrics
