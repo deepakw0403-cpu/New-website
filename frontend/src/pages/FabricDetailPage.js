@@ -553,7 +553,7 @@ const FabricDetailPage = () => {
                     </div>
                     {fabric.quantity_available > 0 && (
                       <div className="text-right">
-                        <p className="text-sm text-gray-500">In Stock</p>
+                        <p className="text-sm text-gray-500">Total Available</p>
                         <p className="text-lg font-semibold text-gray-900">{fabric.quantity_available?.toLocaleString()}m</p>
                       </div>
                     )}
