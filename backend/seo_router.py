@@ -185,7 +185,7 @@ def generate_bulk_details(moq: str, dispatch_timeline: str, is_bookable: bool) -
         "dispatch_region": "Pan-India"
     }
 
-def infer_applications(category_name: str, fabric_type: str, tags: List[str], composition: List[Dict]) -> List[str]:
+def infer_applications(category_name: str, fabric_type: str, tags: List[str], composition) -> List[str]:
     """Infer likely applications from fabric properties"""
     applications = []
     
@@ -234,10 +234,10 @@ def generate_why_fabric_bullets(fabric: Dict) -> List[str]:
     elif fabric.get('fabric_type') == 'knitted':
         bullets.append("Knit construction for stretch and comfort")
     
-    # From composition
+    # From composition - use helper function
     composition = fabric.get('composition', [])
-    if composition:
-        materials = [c.get('material', '').lower() for c in composition if c.get('material')]
+    materials = get_composition_materials(composition)
+    if materials:
         if any('cotton' in m for m in materials):
             bullets.append("Cotton content for breathability and comfort")
         if any('poly' in m for m in materials):
