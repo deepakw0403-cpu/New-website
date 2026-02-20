@@ -448,7 +448,7 @@ const CheckoutPage = () => {
                     <span>₹{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">GST (18%)</span>
+                    <span className="text-gray-600">GST (5%)</span>
                     <span>₹{tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between pt-3 border-t border-gray-200 text-lg font-semibold">
