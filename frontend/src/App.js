@@ -176,9 +176,16 @@ function App() {
           <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
           <Route path="/admin/seo" element={<ProtectedRoute><AdminFabricSEO /></ProtectedRoute>} />
           <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
+
+          {/* Vendor routes */}
+          <Route path="/vendor/login" element={<VendorLogin />} />
+          <Route path="/vendor" element={<VendorProtectedRoute><VendorDashboard /></VendorProtectedRoute>} />
+          <Route path="/vendor/inventory" element={<VendorProtectedRoute><VendorInventory /></VendorProtectedRoute>} />
+          <Route path="/vendor/orders" element={<VendorProtectedRoute><VendorOrders /></VendorProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </VendorAuthProvider>
     </HelmetProvider>
   );
 }
