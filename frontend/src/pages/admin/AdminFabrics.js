@@ -150,7 +150,12 @@ const AdminFabrics = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [fabRes, catRes, selRes, artRes] = await Promise.all([getFabrics(), getCategories(), getSellers(true), getArticles()]);
+      const [fabRes, catRes, selRes, artRes] = await Promise.all([
+        getFabrics({ limit: 1000 }), // Load all fabrics for admin
+        getCategories(), 
+        getSellers(true), 
+        getArticles()
+      ]);
       setFabrics(fabRes.data);
       setCategories(catRes.data);
       setSellers(selRes.data);
