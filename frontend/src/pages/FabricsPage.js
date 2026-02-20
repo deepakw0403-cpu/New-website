@@ -113,8 +113,15 @@ const FabricsPage = () => {
     return badges[availability] || "bg-gray-100 text-gray-700";
   };
 
-  // Modal handlers
+  // Modal handlers - only used for enquiry now
   const openModal = (fabric, type) => {
+    if (type === "sample" || type === "bulk") {
+      // For sample/bulk orders, navigate to checkout
+      const qty = type === "sample" ? 1 : 6; // Default quantities
+      navigate(`/checkout?fabric_id=${fabric.id}&type=${type}&qty=${qty}`);
+      return;
+    }
+    // For enquiry, show modal
     setSelectedFabric(fabric);
     setModalType(type);
     setSampleQty(1);
@@ -144,7 +151,7 @@ const FabricsPage = () => {
     return null;
   };
 
-  // Cart value calculation
+  // Cart value calculation - only for enquiry modal now
   const cartValue = useMemo(() => {
     if (!selectedFabric) return null;
     
@@ -157,7 +164,7 @@ const FabricsPage = () => {
     return null;
   }, [selectedFabric, modalType, sampleQty, bulkQty]);
 
-  // Submit handler
+  // Submit handler - only for enquiry now
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedFabric) return;
@@ -170,25 +177,12 @@ const FabricsPage = () => {
         ...formData,
       };
 
-      if (modalType === "enquiry") {
-        enquiryData.enquiry_type = "general";
-        enquiryData.message = formData.message || "General enquiry about this fabric";
-      } else if (modalType === "sample") {
-        enquiryData.enquiry_type = "sample_order";
-        enquiryData.quantity_required = `${sampleQty} meters (sample)`;
-        enquiryData.message = `Sample Order: ${sampleQty}m × ₹${cartValue?.pricePerMeter?.toLocaleString()}/m = ₹${cartValue?.totalPrice?.toLocaleString()}\n\n${formData.message || ""}`;
-      } else if (modalType === "bulk") {
-        enquiryData.enquiry_type = "bulk_order";
-        enquiryData.quantity_required = `${bulkQty} meters`;
-        enquiryData.message = `Bulk Order: ${bulkQty}m × ₹${cartValue?.pricePerMeter?.toLocaleString()}/m = ₹${cartValue?.totalPrice?.toLocaleString()}\n\n${formData.message || ""}`;
-      }
+      enquiryData.enquiry_type = "general";
+      enquiryData.message = formData.message || "General enquiry about this fabric";
 
       await createEnquiry(enquiryData);
       
-      const successMsg = modalType === "enquiry" 
-        ? "Enquiry submitted! We'll get back to you soon." 
-        : `${modalType === "sample" ? "Sample" : "Bulk"} order submitted! We'll contact you shortly.`;
-      toast.success(successMsg);
+      toast.success("Enquiry submitted! We'll get back to you soon.");
       closeModal();
     } catch (err) {
       toast.error("Failed to submit. Please try again.");
