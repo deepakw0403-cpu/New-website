@@ -102,10 +102,11 @@ class SellerCreate(BaseModel):
     logo_url: Optional[str] = ""
     city: Optional[str] = ""
     state: Optional[str] = ""
-    contact_email: Optional[str] = ""
-    contact_phone: Optional[str] = ""
+    contact_email: str  # Required for notifications
+    contact_phone: str  # Required
     category_ids: List[str] = []
-    is_active: bool = True  # Seller can be deactivated
+    is_active: bool = True
+    password: Optional[str] = ""  # For vendor portal login
 
 class SellerUpdate(BaseModel):
     name: Optional[str] = None
@@ -118,11 +119,12 @@ class SellerUpdate(BaseModel):
     contact_phone: Optional[str] = None
     category_ids: Optional[List[str]] = None
     is_active: Optional[bool] = None
+    password: Optional[str] = None
 
 class Seller(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
-    seller_code: str = ""  # Unique seller ID like LS-XXXXX
+    seller_code: str = ""
     name: str
     company_name: str
     description: str = ""
