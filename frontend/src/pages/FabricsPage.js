@@ -335,7 +335,7 @@ const FabricsPage = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" data-testid="fabrics-grid">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6" data-testid="fabrics-grid">
               {fabrics.map((fabric) => {
                 const actions = getAvailableActions(fabric);
                 return (
@@ -351,14 +351,14 @@ const FabricsPage = () => {
                           alt={fabric.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                        <div className="absolute top-3 right-3 flex flex-col gap-1">
+                        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col gap-1">
                           {fabric.is_bookable && fabric.quantity_available > 0 && (
-                            <span className="badge bg-emerald-500 text-white text-xs px-2 py-1 rounded-full">
+                            <span className="badge bg-emerald-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
                               In Stock
                             </span>
                           )}
                           {actions.canBookSample && !actions.canBookBulk && (
-                            <span className="badge bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                            <span className="badge bg-blue-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
                               Samples
                             </span>
                           )}
@@ -366,8 +366,8 @@ const FabricsPage = () => {
                       </div>
                     </Link>
                     
-                    <div className="p-4">
-                      <p className="text-xs font-medium text-[#2563EB] mb-1">{fabric.category_name}</p>
+                    <div className="p-3 sm:p-4">
+                      <p className="text-[10px] sm:text-xs font-medium text-[#2563EB] mb-0.5 sm:mb-1">{fabric.category_name}</p>
                       <Link to={`/fabrics/${fabric.id}`}>
                         <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-[#2563EB] transition-colors line-clamp-2">
                           {fabric.name}
