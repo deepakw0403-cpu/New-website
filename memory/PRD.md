@@ -462,7 +462,12 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## Admin Credentials
 - Email: admin@locofast.com
-- Password: admin123
+- Password: NewAdmin@2024
+
+## Vendor Portal
+- URL: /vendor/login
+- Credentials: Created via Admin → Sellers page (requires email, phone, password)
+- Features: Inventory management (CRUD), order notifications, dashboard stats
 
 ## Key API Endpoints
 - `POST /api/auth/login` - Admin login
