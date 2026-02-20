@@ -8,9 +8,18 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("locofast_token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  // Check for vendor token first (for /vendor/* routes)
+  if (config.url?.startsWith('/vendor') && !config.url?.includes('/vendor/login')) {
+    const vendorToken = localStorage.getItem("vendor_token");
+    if (vendorToken) {
+      config.headers.Authorization = `Bearer ${vendorToken}`;
+    }
+  } else {
+    // Admin token for other protected routes
+    const token = localStorage.getItem("locofast_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
