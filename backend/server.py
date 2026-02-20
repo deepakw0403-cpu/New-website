@@ -847,7 +847,9 @@ async def get_fabrics_count(
     min_gsm: Optional[int] = Query(None),
     max_gsm: Optional[int] = Query(None),
     bookable_only: Optional[bool] = Query(None),
-    sample_available: Optional[bool] = Query(None)
+    sample_available: Optional[bool] = Query(None),
+    instant_bookable: Optional[bool] = Query(None),
+    enquiry_only: Optional[bool] = Query(None)
 ):
     """Get total count of fabrics matching filters (for pagination)"""
     query = {}
@@ -870,6 +872,22 @@ async def get_fabrics_count(
             {'sample_price': {'$gt': 0}},
             {'rate_per_meter': {'$gt': 0}}
         ]})
+    if instant_bookable:
+        query['is_bookable'] = True
+        query['$or'] = [
+            {'sample_price': {'$gt': 0}},
+            {'rate_per_meter': {'$gt': 0}},
+            {'quantity_available': {'$gt': 0}}
+        ]
+    if enquiry_only:
+        query['$or'] = [
+            {'is_bookable': {'$ne': True}},
+            {'$and': [
+                {'sample_price': {'$in': [None, 0]}},
+                {'rate_per_meter': {'$in': [None, 0]}},
+                {'quantity_available': {'$in': [None, 0]}}
+            ]}
+        ]
     if min_gsm is not None or max_gsm is not None:
         query['gsm'] = {}
         if min_gsm is not None:
