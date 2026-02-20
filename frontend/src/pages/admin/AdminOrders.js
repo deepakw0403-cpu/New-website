@@ -359,7 +359,7 @@ const AdminOrders = () => {
                       <span>₹{selectedOrder.subtotal?.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">GST (18%)</span>
+                      <span className="text-gray-600">GST (5%)</span>
                       <span>₹{selectedOrder.tax?.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between pt-2 border-t border-gray-200 font-semibold">

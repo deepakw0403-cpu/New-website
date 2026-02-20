@@ -122,7 +122,7 @@ def get_order_confirmation_email(order: dict) -> str:
                         <td style="padding: 5px 0; text-align: right;">₹{order.get('subtotal', 0):,.2f}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 5px 0; color: #64748b;">GST (18%)</td>
+                        <td style="padding: 5px 0; color: #64748b;">GST (5%)</td>
                         <td style="padding: 5px 0; text-align: right;">₹{order.get('tax', 0):,.2f}</td>
                     </tr>
                     <tr style="font-size: 18px; font-weight: 600;">

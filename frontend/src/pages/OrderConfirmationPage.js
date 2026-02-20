@@ -150,7 +150,7 @@ const OrderConfirmationPage = () => {
                       <span>₹{order.subtotal?.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">GST (18%)</span>
+                      <span className="text-gray-600">GST (5%)</span>
                       <span>₹{order.tax?.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between pt-3 border-t border-gray-100 text-lg font-semibold">
