@@ -37,6 +37,26 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 20, 2026 - Mobile Responsiveness Fixes
+- **Fixed**: Fluid width issues on mobile devices causing horizontal scroll
+- **Improvements**:
+  - Fabric cards: Compact text, shorter button labels on mobile ("Bulk", "Sample", "Enquiry")
+  - Proper text sizing with sm: breakpoints
+  - Fixed container padding on small screens
+  - Prevented horizontal overflow with `overflow-x: hidden`
+
+### Feb 20, 2026 - Email Notifications to b2c@locofast.com
+- **All notifications go to b2c@locofast.com**:
+  - Order notifications (sample + bulk orders)
+  - Enquiry notifications (all types)
+- **Customer confirmation emails**:
+  - Order confirmation (Shopify-style HTML template)
+  - Enquiry acknowledgment email
+- **Email templates created**:
+  - `get_enquiry_notification_email()` - Admin notification for enquiries
+  - `get_customer_enquiry_confirmation_email()` - Customer acknowledgment
+- **Auto-send on enquiry creation**: Emails queued asynchronously on every enquiry
+
 ### Feb 20, 2026 - Phase 1: Payment & Orders (Razorpay + Resend)
 - **Payment Gateway**: Razorpay integration for order payments
   - Checkout page with shipping form, GST calculation, pricing tiers
