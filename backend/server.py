@@ -555,7 +555,12 @@ async def create_seller(data: SellerCreate, admin=Depends(get_current_admin)):
 
 @api_router.put("/sellers/{seller_id}", response_model=Seller)
 async def update_seller(seller_id: str, data: SellerUpdate, admin=Depends(get_current_admin)):
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None and k != 'password'}
+    
+    # Hash password if provided
+    if data.password:
+        update_data['password_hash'] = bcrypt.hashpw(data.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
     if not update_data:
         raise HTTPException(status_code=400, detail='No data to update')
     
