@@ -813,7 +813,62 @@ async def get_fabrics(
     # Calculate skip for pagination
     skip = (page - 1) * limit
     
-    fabrics = await db.fabrics.find(query, {'_id': 0}).sort('created_at', -1).skip(skip).limit(limit).to_list(limit)
+    # Use aggregation for priority-based sorting:
+    # Priority 1: Both Bulk AND Sample bookable (is_bookable + quantity > 0 + sample_price > 0)
+    # Priority 2: Bulk only bookable (is_bookable + quantity > 0)
+    # Priority 3: Sample only bookable (is_bookable + sample_price > 0)
+    # Priority 4: Enquiry only (not bookable or no stock/pricing)
+    
+    pipeline = [
+        {'$match': query},
+        {'$addFields': {
+            'booking_priority': {
+                '$switch': {
+                    'branches': [
+                        # Priority 1: Both Bulk AND Sample bookable
+                        {
+                            'case': {
+                                '$and': [
+                                    {'$eq': ['$is_bookable', True]},
+                                    {'$gt': [{'$ifNull': ['$quantity_available', 0]}, 0]},
+                                    {'$gt': [{'$ifNull': ['$sample_price', 0]}, 0]}
+                                ]
+                            },
+                            'then': 1
+                        },
+                        # Priority 2: Bulk only bookable
+                        {
+                            'case': {
+                                '$and': [
+                                    {'$eq': ['$is_bookable', True]},
+                                    {'$gt': [{'$ifNull': ['$quantity_available', 0]}, 0]}
+                                ]
+                            },
+                            'then': 2
+                        },
+                        # Priority 3: Sample only bookable
+                        {
+                            'case': {
+                                '$and': [
+                                    {'$eq': ['$is_bookable', True]},
+                                    {'$gt': [{'$ifNull': ['$sample_price', 0]}, 0]}
+                                ]
+                            },
+                            'then': 3
+                        }
+                    ],
+                    # Priority 4: Enquiry only (default)
+                    'default': 4
+                }
+            }
+        }},
+        {'$sort': {'booking_priority': 1, 'created_at': -1}},
+        {'$skip': skip},
+        {'$limit': limit},
+        {'$project': {'_id': 0, 'booking_priority': 0}}
+    ]
+    
+    fabrics = await db.fabrics.aggregate(pipeline).to_list(limit)
     
     # Get category names
     category_ids = list(set(f['category_id'] for f in fabrics))
