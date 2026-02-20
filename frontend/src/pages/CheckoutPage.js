@@ -150,7 +150,7 @@ const CheckoutPage = () => {
     setPricePerMeter(price);
     setSubtotal(sub);
     setTax(taxAmount);
-    setTotal(sub + taxAmount);
+    setTotal(sub + taxAmount + shippingCost);
   };
 
   const loadRazorpayScript = () => {
