@@ -63,7 +63,54 @@ const CheckoutPage = () => {
     if (fabric) {
       calculatePricing();
     }
-  }, [fabric, quantity, orderType]);
+  }, [fabric, quantity, orderType, shippingCost]);
+
+  // Fetch shipping rates when pincode changes
+  useEffect(() => {
+    if (customer.pincode && customer.pincode.length === 6) {
+      fetchShippingRates();
+    } else {
+      setShippingRates([]);
+      setSelectedShipping(null);
+      setShippingCost(0);
+    }
+  }, [customer.pincode]);
+
+  const fetchShippingRates = async () => {
+    setLoadingShipping(true);
+    setShippingError(null);
+    
+    try {
+      // Calculate weight based on quantity (assume 0.3kg per meter)
+      const weightKg = Math.max(0.5, quantity * 0.3);
+      const declaredValue = subtotal || 1000;
+      
+      const response = await axios.get(`${API_URL}/api/shipping/rates`, {
+        params: {
+          pickup_pincode: "110019", // Primary pickup location
+          delivery_pincode: customer.pincode,
+          weight_kg: weightKg,
+          declared_value: declaredValue,
+          cod: false
+        }
+      });
+      
+      if (response.data.success && response.data.couriers.length > 0) {
+        setShippingRates(response.data.couriers);
+        // Auto-select cheapest option
+        const cheapest = response.data.couriers[0];
+        setSelectedShipping(cheapest);
+        setShippingCost(cheapest.rate);
+      } else {
+        setShippingRates([]);
+        setShippingError("No shipping options available for this pincode");
+      }
+    } catch (err) {
+      console.error("Error fetching shipping rates:", err);
+      setShippingError("Unable to fetch shipping rates. Please try again.");
+    }
+    setLoadingShipping(false);
+  };
 
   const fetchFabric = async () => {
     try {
