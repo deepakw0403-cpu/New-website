@@ -37,6 +37,34 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 20, 2026 - Multi-Vendor Portal & Filters (Session 2)
+- **Instant Bookable Filter**: Enhanced availability filter on /fabrics page with 4 options:
+  - "Instant Bookable (Sample/Bulk)" - Shows fabrics that can be ordered immediately
+  - "Samples Only" - Shows fabrics with sample pricing available
+  - "Bulk In Stock" - Shows fabrics with bulk inventory available
+  - "Enquiry Only" - Shows fabrics that require manual enquiry
+- **Backend Filter Support**: Added `instant_bookable` and `enquiry_only` query parameters to `/api/fabrics` and `/api/fabrics/count`
+- **GST Updated to 5%**: Changed GST calculation from 18% to 5% across:
+  - CheckoutPage.js (frontend calculation)
+  - orders_router.py (backend order creation)
+  - email_router.py (email templates)
+- **UI Polish - Indian Names**: Replaced "John Doe" placeholder with culturally relevant names:
+  - "Rajesh Kumar" in Admin Seller form
+  - "Amit Sharma" in Checkout form
+- **Vendor Portal Scaffolding**: Multi-vendor system implemented with:
+  - Vendor login page at `/vendor/login`
+  - VendorAuthContext for JWT-based vendor authentication
+  - VendorProtectedRoute for protected vendor pages
+  - VendorDashboard, VendorInventory, VendorOrders pages
+  - Backend vendor_router.py with login, CRUD operations scoped to vendor
+- **Seller Email Notifications**: When orders are placed, vendor receives email notification (via Resend)
+- **Files Updated**:
+  - `frontend/src/pages/FabricsPage.js` - Added 4 filter options
+  - `backend/server.py` - Added instant_bookable and enquiry_only filters
+  - `frontend/src/pages/CheckoutPage.js` - 5% GST, Indian name placeholder
+  - `frontend/src/pages/admin/AdminSellers.js` - Indian name placeholder
+- **Status**: COMPLETED (tested with 100% success rate)
+
 ### Feb 20, 2026 - Mobile Responsiveness Fixes
 - **Fixed**: Fluid width issues on mobile devices causing horizontal scroll
 - **Improvements**:
