@@ -16,6 +16,8 @@ import os
 import asyncio
 import logging
 
+from shiprocket_service import shiprocket_service
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
