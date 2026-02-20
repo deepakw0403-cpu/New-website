@@ -438,3 +438,18 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - `DELETE /api/collections/{id}` - Delete collection
 - `POST /api/enquiries` - Submit enquiry
 - `GET /api/stats` - Dashboard statistics (includes articles, active_sellers, bookable_fabrics)
+
+### Orders API (Phase 1)
+- `POST /api/orders/create` - Create order with Razorpay payment
+- `POST /api/orders/verify-payment` - Verify Razorpay payment signature
+- `GET /api/orders` - List orders (params: status, payment_status, limit, skip)
+- `GET /api/orders/{id}` - Get order by ID or order_number
+- `GET /api/orders/by-razorpay/{razorpay_order_id}` - Get order by Razorpay ID
+- `GET /api/orders/stats/summary` - Order statistics
+- `PUT /api/orders/{id}/status` - Update order status
+- `POST /api/orders/webhook/razorpay` - Razorpay webhook handler
+
+### Email API
+- `POST /api/email/send` - Send custom email
+- `POST /api/email/order-confirmation/{id}` - Send order confirmation
+- `POST /api/email/test` - Send test email
