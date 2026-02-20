@@ -88,7 +88,7 @@ const CheckoutPage = () => {
     }
     
     const sub = price * quantity;
-    const taxAmount = sub * 0.18; // 18% GST
+    const taxAmount = sub * 0.05; // 5% GST
     
     setPricePerMeter(price);
     setSubtotal(sub);
