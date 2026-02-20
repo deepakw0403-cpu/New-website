@@ -177,6 +177,7 @@ export const getOrderStats = () => api.get("/orders/stats/summary");
 
 // Email
 export const sendOrderConfirmation = (orderId) => api.post(`/email/order-confirmation/${orderId}`);
+export const sendEnquiryNotification = (enquiry) => api.post("/email/enquiry-notification", enquiry);
 export const sendTestEmail = (email) => api.post(`/email/test?recipient=${email}`);
 
 export default api;
