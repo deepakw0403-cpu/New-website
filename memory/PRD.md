@@ -38,6 +38,11 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 ## What's Been Implemented
 
 ### Feb 20, 2026 - Multi-Vendor Portal & Filters (Session 2)
+- **Quick Filter Toggles**: Added prominent filter buttons above search bar:
+  - "Instant Bookable" (green) - Shows fabrics available for immediate booking
+  - "Bulk In Stock" (blue) - Shows fabrics with bulk inventory
+  - "Samples Available" (purple) - Shows fabrics with sample pricing
+  - Toggle on/off with single click, X icon appears when active
 - **Priority-Based Fabric Sorting**: Fabrics on listing page sorted by bookability:
   1. Bulk + Sample bookable (highest priority)
   2. Bulk only bookable
