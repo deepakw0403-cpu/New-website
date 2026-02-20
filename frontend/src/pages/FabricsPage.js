@@ -223,63 +223,62 @@ const FabricsPage = () => {
           <div className="flex flex-wrap gap-2 mb-4" data-testid="quick-filters">
             <button
               onClick={() => {
-                if (availabilityFilter === "instant") {
-                  setAvailabilityFilter("");
-                } else {
-                  setAvailabilityFilter("instant");
-                }
+                setAvailabilityFilter("");
                 setCurrentPage(1);
               }}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                availabilityFilter === "instant"
-                  ? "bg-emerald-600 text-white shadow-md"
-                  : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                availabilityFilter === ""
+                  ? "bg-gray-900 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
               }`}
-              data-testid="quick-filter-instant"
+              data-testid="quick-filter-all"
             >
-              <ShoppingCart size={16} />
-              Instant Bookable
-              {availabilityFilter === "instant" && (
-                <X size={14} className="ml-1" />
-              )}
+              All
             </button>
             <button
               onClick={() => {
-                if (availabilityFilter === "bulk") {
-                  setAvailabilityFilter("");
-                } else {
-                  setAvailabilityFilter("bulk");
-                }
+                setAvailabilityFilter("bulk");
                 setCurrentPage(1);
               }}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 availabilityFilter === "bulk"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                  ? "bg-emerald-600 text-white shadow-md"
+                  : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
               }`}
               data-testid="quick-filter-bulk"
             >
               <Package size={16} />
-              Bulk In Stock
+              Bulk Bookable
             </button>
             <button
               onClick={() => {
-                if (availabilityFilter === "sample") {
-                  setAvailabilityFilter("");
-                } else {
-                  setAvailabilityFilter("sample");
-                }
+                setAvailabilityFilter("sample");
                 setCurrentPage(1);
               }}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 availabilityFilter === "sample"
-                  ? "bg-purple-600 text-white shadow-md"
-                  : "bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200"
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
               }`}
               data-testid="quick-filter-sample"
             >
               <Clock size={16} />
-              Samples Available
+              Sample Bookable
+            </button>
+            <button
+              onClick={() => {
+                setAvailabilityFilter("enquiry");
+                setCurrentPage(1);
+              }}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                availabilityFilter === "enquiry"
+                  ? "bg-orange-600 text-white shadow-md"
+                  : "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200"
+              }`}
+              data-testid="quick-filter-enquiry"
+            >
+              <MessageSquare size={16} />
+              Enquiry
             </button>
           </div>
 
