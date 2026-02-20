@@ -152,13 +152,10 @@ def generate_meta_title(name: str, category_name: str, gsm: Optional[int], ounce
     
     return base + suffix
 
-def generate_meta_description(name: str, category_name: str, composition: List[Dict], gsm: Optional[int], ounce: str, moq: str, finish: str) -> str:
+def generate_meta_description(name: str, category_name: str, composition, gsm: Optional[int], ounce: str, moq: str, finish: str) -> str:
     """Generate meta description (max 160 chars)"""
-    # Build composition string
-    comp_str = ""
-    if composition:
-        comp_parts = [f"{c.get('percentage', 0)}% {c.get('material', '')}" for c in composition if c.get('material') and c.get('percentage', 0) > 0]
-        comp_str = ", ".join(comp_parts)
+    # Build composition string using helper function
+    comp_str = parse_composition(composition)
     
     weight = f"{gsm} GSM" if gsm else f"{ounce} oz" if ounce else ""
     
