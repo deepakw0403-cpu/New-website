@@ -52,6 +52,7 @@ class OrderItem(BaseModel):
     fabric_code: str = ""
     category_name: str = ""
     seller_company: str = ""
+    seller_id: str = ""
     quantity: int  # in meters
     price_per_meter: float
     order_type: str = "bulk"  # "sample" or "bulk"
@@ -67,10 +68,18 @@ class CustomerInfo(BaseModel):
     state: str = ""
     pincode: str = ""
 
+class ShippingInfo(BaseModel):
+    courier_id: Optional[int] = None
+    courier_name: Optional[str] = None
+    rate: Optional[float] = None
+    estimated_delivery_days: Optional[str] = None
+
 class OrderCreate(BaseModel):
     items: List[OrderItem]
     customer: CustomerInfo
     notes: str = ""
+    shipping: Optional[ShippingInfo] = None
+    shipping_cost: float = 0
 
 class Order(BaseModel):
     model_config = ConfigDict(extra="ignore")
