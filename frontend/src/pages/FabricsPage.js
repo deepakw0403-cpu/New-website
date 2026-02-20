@@ -219,6 +219,70 @@ const FabricsPage = () => {
             </div>
           </div>
 
+          {/* Quick Filter Toggle */}
+          <div className="flex flex-wrap gap-2 mb-4" data-testid="quick-filters">
+            <button
+              onClick={() => {
+                if (availabilityFilter === "instant") {
+                  setAvailabilityFilter("");
+                } else {
+                  setAvailabilityFilter("instant");
+                }
+                setCurrentPage(1);
+              }}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                availabilityFilter === "instant"
+                  ? "bg-emerald-600 text-white shadow-md"
+                  : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+              }`}
+              data-testid="quick-filter-instant"
+            >
+              <ShoppingCart size={16} />
+              Instant Bookable
+              {availabilityFilter === "instant" && (
+                <X size={14} className="ml-1" />
+              )}
+            </button>
+            <button
+              onClick={() => {
+                if (availabilityFilter === "bulk") {
+                  setAvailabilityFilter("");
+                } else {
+                  setAvailabilityFilter("bulk");
+                }
+                setCurrentPage(1);
+              }}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                availabilityFilter === "bulk"
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+              }`}
+              data-testid="quick-filter-bulk"
+            >
+              <Package size={16} />
+              Bulk In Stock
+            </button>
+            <button
+              onClick={() => {
+                if (availabilityFilter === "sample") {
+                  setAvailabilityFilter("");
+                } else {
+                  setAvailabilityFilter("sample");
+                }
+                setCurrentPage(1);
+              }}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                availabilityFilter === "sample"
+                  ? "bg-purple-600 text-white shadow-md"
+                  : "bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200"
+              }`}
+              data-testid="quick-filter-sample"
+            >
+              <Clock size={16} />
+              Samples Available
+            </button>
+          </div>
+
           {/* Search and Filters */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
             <div className="relative flex-1">
