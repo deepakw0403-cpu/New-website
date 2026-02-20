@@ -479,7 +479,7 @@ async def send_email(request: EmailRequest):
 
 @router.post("/order-confirmation/{order_id}")
 async def send_order_confirmation(order_id: str):
-    """Send order confirmation email to customer"""
+    """Send order confirmation email to customer and notify sellers"""
     if not RESEND_API_KEY:
         logger.warning("Email service not configured - skipping order confirmation email")
         return {"success": False, "message": "Email service not configured"}
@@ -497,6 +497,8 @@ async def send_order_confirmation(order_id: str):
     if not customer_email:
         raise HTTPException(status_code=400, detail="Customer email not found")
     
+    results = {"customer_sent": False, "admin_sent": False, "sellers_notified": []}
+    
     # Send customer confirmation
     try:
         customer_params = {
@@ -507,6 +509,7 @@ async def send_order_confirmation(order_id: str):
         }
         
         customer_result = await asyncio.to_thread(resend.Emails.send, customer_params)
+        results["customer_sent"] = True
         logger.info(f"Order confirmation email sent to {customer_email}")
         
         # Send admin notification (best effort)
@@ -518,14 +521,46 @@ async def send_order_confirmation(order_id: str):
                 "html": get_order_received_admin_email(order)
             }
             await asyncio.to_thread(resend.Emails.send, admin_params)
+            results["admin_sent"] = True
             logger.info(f"Admin notification sent to {ADMIN_NOTIFICATION_EMAIL}")
         except Exception as e:
             logger.warning(f"Failed to send admin notification: {str(e)}")
         
+        # Send seller notifications (best effort)
+        items = order.get("items", [])
+        seller_items = {}  # Group items by seller
+        
+        for item in items:
+            fabric_id = item.get("fabric_id")
+            if fabric_id:
+                fabric = await db.fabrics.find_one({"id": fabric_id}, {"_id": 0, "seller_id": 1})
+                if fabric and fabric.get("seller_id"):
+                    seller_id = fabric["seller_id"]
+                    if seller_id not in seller_items:
+                        seller_items[seller_id] = []
+                    seller_items[seller_id].append(item)
+        
+        for seller_id, seller_order_items in seller_items.items():
+            try:
+                seller = await db.sellers.find_one({"id": seller_id}, {"_id": 0})
+                if seller and seller.get("contact_email"):
+                    seller_params = {
+                        "from": SENDER_EMAIL,
+                        "to": [seller["contact_email"]],
+                        "subject": f"New Order Booking - {order.get('order_number', '')} | Prepare for Pickup",
+                        "html": get_seller_order_notification_email(order, seller_order_items, seller)
+                    }
+                    await asyncio.to_thread(resend.Emails.send, seller_params)
+                    results["sellers_notified"].append(seller["contact_email"])
+                    logger.info(f"Seller notification sent to {seller['contact_email']}")
+            except Exception as e:
+                logger.warning(f"Failed to send seller notification to {seller_id}: {str(e)}")
+        
         return {
             "success": True,
             "message": f"Order confirmation sent to {customer_email}",
-            "email_id": customer_result.get("id")
+            "email_id": customer_result.get("id"),
+            **results
         }
         
     except Exception as e:
