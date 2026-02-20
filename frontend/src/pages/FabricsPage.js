@@ -536,98 +536,213 @@ const FabricsPage = () => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={closeModal}>
           <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100">
-              <h2 className="text-xl font-semibold">Send Enquiry</h2>
+              <h2 className="text-xl font-semibold">
+                {modalType === "enquiry" ? "Send Enquiry" : modalType === "sample" ? "Book Sample" : "Book Bulk Order"}
+              </h2>
               <p className="text-sm text-gray-500 mt-1">{selectedFabric.name}</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              {/* Fabric Summary */}
-              <div className="bg-gray-50 rounded-lg p-4 flex gap-4">
-                <img
-                  src={selectedFabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
-                  alt={selectedFabric.name}
-                  className="w-16 h-16 object-cover rounded"
-                />
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">{selectedFabric.name}</p>
-                  <p className="text-sm text-gray-600">{selectedFabric.category_name}</p>
-                  {selectedFabric.seller_company && (
-                    <p className="text-xs text-gray-500">by {selectedFabric.seller_company}</p>
+            {/* Sample/Bulk Order Modal */}
+            {(modalType === "sample" || modalType === "bulk") && (
+              <div className="p-6 space-y-5">
+                {/* Fabric Summary */}
+                <div className="bg-gray-50 rounded-lg p-4 flex gap-4">
+                  <img
+                    src={selectedFabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
+                    alt={selectedFabric.name}
+                    className="w-20 h-20 object-cover rounded"
+                  />
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{selectedFabric.name}</p>
+                    <p className="text-sm text-gray-600">{selectedFabric.category_name}</p>
+                    {selectedFabric.seller_company && (
+                      <p className="text-xs text-gray-500">by {selectedFabric.seller_company}</p>
+                    )}
+                    {modalType === "bulk" && selectedFabric.quantity_available && (
+                      <p className="text-xs text-emerald-600 mt-1 font-medium">
+                        {selectedFabric.quantity_available.toLocaleString()} meters available
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quantity Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {modalType === "sample" ? "Sample Quantity" : "Bulk Quantity (meters)"}
+                  </label>
+                  {modalType === "sample" ? (
+                    <select
+                      value={sampleQty}
+                      onChange={(e) => setSampleQty(parseInt(e.target.value))}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
+                      data-testid="sample-qty-select"
+                    >
+                      {[1, 2, 3, 4, 5].map((qty) => (
+                        <option key={qty} value={qty}>{qty} meter{qty > 1 ? "s" : ""}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="number"
+                      min="1"
+                      max={selectedFabric.quantity_available || 10000}
+                      value={bulkQty}
+                      onChange={(e) => setBulkQty(e.target.value)}
+                      placeholder="Enter quantity in meters"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
+                      data-testid="bulk-qty-input"
+                    />
                   )}
                 </div>
-              </div>
 
-              {/* Enquiry Message */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Your Message *</label>
-                <textarea
-                  required
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  rows={3}
-                  placeholder="What would you like to know about this fabric?"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-none"
-                  data-testid="enquiry-message"
-                />
-              </div>
+                {/* Pricing Tiers for Bulk */}
+                {modalType === "bulk" && selectedFabric.pricing_tiers && selectedFabric.pricing_tiers.length > 0 && (
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm font-medium text-blue-800 mb-2">Bulk Pricing Tiers</p>
+                    <div className="space-y-1">
+                      {selectedFabric.pricing_tiers.map((tier, idx) => (
+                        <div key={idx} className="flex justify-between text-sm">
+                          <span className="text-blue-700">{tier.min_qty} - {tier.max_qty} meters</span>
+                          <span className="font-medium text-blue-900">₹{tier.price_per_meter}/m</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              {/* Contact Details */}
-              <div className="pt-4 border-t border-gray-100">
-                <p className="text-sm font-medium text-gray-700 mb-3">Contact Details</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Your Name *"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
-                  />
-                  <input
-                    type="text"
-                    value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                    placeholder="Company"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
-                  />
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="Email *"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
-                  />
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="Phone *"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
-                  />
+                {/* Price Summary */}
+                {cartValue && (
+                  <div className="bg-gray-900 text-white rounded-lg p-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sm text-gray-300">
+                          {modalType === "sample" ? `${sampleQty} meter${sampleQty > 1 ? "s" : ""}` : `${bulkQty} meters`}
+                          {cartValue.tierLabel && <span className="ml-1">({cartValue.tierLabel})</span>}
+                        </p>
+                        <p className="text-xs text-gray-400">@ ₹{cartValue.pricePerMeter?.toLocaleString()}/m</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold">₹{cartValue.totalPrice?.toLocaleString()}</p>
+                        <p className="text-xs text-gray-400">+ 5% GST</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={proceedToCheckout}
+                    disabled={modalType === "bulk" && (!bulkQty || parseInt(bulkQty) <= 0)}
+                    className="flex-1 py-3 rounded-lg font-medium disabled:opacity-50 bg-emerald-600 text-white hover:bg-emerald-700"
+                    data-testid="proceed-checkout-btn"
+                  >
+                    Proceed to Checkout
+                  </button>
                 </div>
               </div>
+            )}
 
-              {/* Submit */}
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 py-2.5 rounded-lg font-medium disabled:opacity-50 bg-gray-900 text-white hover:bg-gray-800"
-                  data-testid="submit-btn"
-                >
-                  {submitting ? "Submitting..." : "Send Enquiry"}
-                </button>
-              </div>
-            </form>
+            {/* Enquiry Modal */}
+            {modalType === "enquiry" && (
+              <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                {/* Fabric Summary */}
+                <div className="bg-gray-50 rounded-lg p-4 flex gap-4">
+                  <img
+                    src={selectedFabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
+                    alt={selectedFabric.name}
+                    className="w-16 h-16 object-cover rounded"
+                  />
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{selectedFabric.name}</p>
+                    <p className="text-sm text-gray-600">{selectedFabric.category_name}</p>
+                    {selectedFabric.seller_company && (
+                      <p className="text-xs text-gray-500">by {selectedFabric.seller_company}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Enquiry Message */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Your Message *</label>
+                  <textarea
+                    required
+                    value={formData.message}
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    rows={3}
+                    placeholder="What would you like to know about this fabric?"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-none"
+                    data-testid="enquiry-message"
+                  />
+                </div>
+
+                {/* Contact Details */}
+                <div className="pt-4 border-t border-gray-100">
+                  <p className="text-sm font-medium text-gray-700 mb-3">Contact Details</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Your Name *"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
+                    />
+                    <input
+                      type="text"
+                      value={formData.company}
+                      onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                      placeholder="Company"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
+                    />
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="Email *"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
+                    />
+                    <input
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="Phone *"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Submit */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 py-2.5 rounded-lg font-medium disabled:opacity-50 bg-gray-900 text-white hover:bg-gray-800"
+                    data-testid="submit-btn"
+                  >
+                    {submitting ? "Submitting..." : "Send Enquiry"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
