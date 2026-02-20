@@ -1487,9 +1487,18 @@ async def seed_data():
 
 from fastapi.responses import Response
 
-@api_router.get("/sitemap.xml", response_class=Response)
-async def get_sitemap():
-    """Generate dynamic sitemap.xml"""
+def parse_date_string(date_str: str) -> str:
+    """Parse ISO date string and return YYYY-MM-DD format"""
+    try:
+        if isinstance(date_str, str):
+            # Parse ISO format string like "2024-12-01T10:30:00+00:00"
+            return date_str[:10]  # Extract YYYY-MM-DD part
+        return datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    except:
+        return datetime.now(timezone.utc).strftime('%Y-%m-%d')
+
+async def generate_sitemap_xml():
+    """Generate dynamic sitemap.xml content"""
     base_url = "https://locofast.com"
     
     # Get all fabrics
@@ -1530,7 +1539,7 @@ async def get_sitemap():
     
     # Add fabric pages
     for fabric in fabrics:
-        last_mod = fabric.get('created_at', datetime.now(timezone.utc)).strftime('%Y-%m-%d')
+        last_mod = parse_date_string(fabric.get('created_at', ''))
         xml_content += f'''  <url>
     <loc>{base_url}/fabrics/{fabric['id']}</loc>
     <lastmod>{last_mod}</lastmod>
@@ -1548,7 +1557,7 @@ async def get_sitemap():
     
     # Add blog posts
     for post in posts:
-        last_mod = post.get('updated_at', datetime.now(timezone.utc)).strftime('%Y-%m-%d')
+        last_mod = parse_date_string(post.get('updated_at', ''))
         xml_content += f'''  <url>
     <loc>{base_url}/blog/{post['slug']}</loc>
     <lastmod>{last_mod}</lastmod>
@@ -1566,6 +1575,13 @@ async def get_sitemap():
     
     xml_content += '</urlset>'
     
+    return xml_content
+
+# Root-level sitemap endpoint (served at /sitemap.xml via ingress routing)
+@api_router.get("/sitemap.xml", response_class=Response)
+async def get_sitemap():
+    """Generate dynamic sitemap.xml - accessible at /api/sitemap.xml"""
+    xml_content = await generate_sitemap_xml()
     return Response(content=xml_content, media_type="application/xml")
 
 # ==================== SETUP ====================
