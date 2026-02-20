@@ -367,36 +367,36 @@ const FabricsPage = () => {
                     </Link>
                     
                     <div className="p-3 sm:p-4">
-                      <p className="text-[10px] sm:text-xs font-medium text-[#2563EB] mb-0.5 sm:mb-1">{fabric.category_name}</p>
+                      <p className="text-[10px] sm:text-xs font-medium text-[#2563EB] mb-0.5 sm:mb-1 truncate">{fabric.category_name}</p>
                       <Link to={`/fabrics/${fabric.id}`}>
-                        <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-[#2563EB] transition-colors line-clamp-2">
+                        <h3 className="font-semibold text-gray-900 text-sm sm:text-base mb-1 group-hover:text-[#2563EB] transition-colors line-clamp-2">
                           {fabric.name}
                         </h3>
                       </Link>
                       {fabric.seller_company && (
-                        <p className="text-xs text-gray-500 mb-2">by <span className="font-medium">{fabric.seller_company}</span></p>
+                        <p className="text-[10px] sm:text-xs text-gray-500 mb-2 truncate">by <span className="font-medium">{fabric.seller_company}</span></p>
                       )}
                       
-                      <div className="flex flex-wrap gap-1.5 text-xs text-gray-500 mb-3">
-                        {fabric.gsm > 0 && <span className="px-1.5 py-0.5 bg-gray-100 rounded">{fabric.gsm} GSM</span>}
-                        {fabric.weight_unit === 'ounce' && fabric.ounce && <span className="px-1.5 py-0.5 bg-gray-100 rounded">{fabric.ounce} oz</span>}
-                        {fabric.width && <span className="px-1.5 py-0.5 bg-gray-100 rounded">{fabric.width}"</span>}
+                      <div className="flex flex-wrap gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-gray-500 mb-2 sm:mb-3">
+                        {fabric.gsm > 0 && <span className="px-1 sm:px-1.5 py-0.5 bg-gray-100 rounded">{fabric.gsm} GSM</span>}
+                        {fabric.weight_unit === 'ounce' && fabric.ounce && <span className="px-1 sm:px-1.5 py-0.5 bg-gray-100 rounded">{fabric.ounce} oz</span>}
+                        {fabric.width && <span className="px-1 sm:px-1.5 py-0.5 bg-gray-100 rounded">{fabric.width}"</span>}
                       </div>
 
                       {/* Pricing info */}
                       {actions.canBookSample && (
-                        <div className="flex items-center justify-between text-sm mb-3 pt-2 border-t border-gray-100">
-                          <span className="text-gray-500">Sample price</span>
+                        <div className="flex items-center justify-between text-xs sm:text-sm mb-2 sm:mb-3 pt-2 border-t border-gray-100">
+                          <span className="text-gray-500">Sample</span>
                           <span className="font-semibold text-emerald-600">₹{actions.samplePrice?.toLocaleString()}/m</span>
                         </div>
                       )}
 
                       {/* Action Buttons */}
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-1.5 sm:gap-2">
                         {actions.canBookBulk && (
                           <button
                             onClick={(e) => { e.preventDefault(); openModal(fabric, 'bulk'); }}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium transition-colors"
+                            className="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-xs sm:text-sm font-medium transition-colors"
                             data-testid={`bulk-btn-${fabric.id}`}
                           >
                             <ShoppingCart size={14} />
