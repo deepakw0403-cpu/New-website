@@ -394,7 +394,7 @@ def generate_template_intro(fabric: Dict) -> str:
     name = fabric.get('name', '')
     category = fabric.get('category_name', '')
     composition = fabric.get('composition', [])
-    comp_str = ", ".join([f"{c.get('percentage', 0)}% {c.get('material', '')}" for c in composition if c.get('material') and c.get('percentage', 0) > 0])
+    comp_str = parse_composition(composition)
     gsm = fabric.get('gsm')
     ounce = fabric.get('ounce', '')
     weight = f"{gsm} GSM" if gsm else f"{ounce} oz" if ounce else ""
