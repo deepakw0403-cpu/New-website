@@ -435,14 +435,78 @@ const CheckoutPage = () => {
                       <input
                         type="text"
                         required
+                        maxLength={6}
                         value={customer.pincode}
-                        onChange={(e) => setCustomer({ ...customer, pincode: e.target.value })}
+                        onChange={(e) => setCustomer({ ...customer, pincode: e.target.value.replace(/\D/g, '') })}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
                         placeholder="400001"
+                        data-testid="checkout-pincode"
                       />
                     </div>
                   </div>
                 </div>
+
+                {/* Shipping Options */}
+                {customer.pincode && customer.pincode.length === 6 && (
+                  <div className="bg-white rounded-xl p-6 border border-gray-200">
+                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Package size={20} />
+                      Shipping Options
+                    </h2>
+                    
+                    {loadingShipping ? (
+                      <div className="flex items-center gap-3 py-4">
+                        <Loader2 className="animate-spin text-blue-600" size={20} />
+                        <span className="text-gray-600">Finding best shipping rates...</span>
+                      </div>
+                    ) : shippingError ? (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-600">
+                        {shippingError}
+                      </div>
+                    ) : shippingRates.length > 0 ? (
+                      <div className="space-y-3">
+                        {shippingRates.slice(0, 5).map((rate, idx) => (
+                          <label
+                            key={idx}
+                            className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-all ${
+                              selectedShipping?.courier_id === rate.courier_id
+                                ? "border-emerald-500 bg-emerald-50"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="radio"
+                                name="shipping"
+                                checked={selectedShipping?.courier_id === rate.courier_id}
+                                onChange={() => {
+                                  setSelectedShipping(rate);
+                                  setShippingCost(rate.rate);
+                                }}
+                                className="w-4 h-4 text-emerald-600"
+                              />
+                              <div>
+                                <p className="font-medium text-gray-900">{rate.courier_name}</p>
+                                <p className="text-sm text-gray-500">
+                                  Delivery in {rate.estimated_delivery_days || "3-5"} days
+                                  {rate.is_surface ? " (Surface)" : " (Air)"}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="font-semibold text-gray-900">₹{rate.rate}</span>
+                          </label>
+                        ))}
+                        {shippingRates.length > 5 && (
+                          <p className="text-sm text-gray-500 text-center">
+                            +{shippingRates.length - 5} more options available
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 py-4">Enter your pincode to see shipping options</p>
+                    )}
+                  </div>
+                )}
 
                 {/* Additional Notes */}
                 <div className="bg-white rounded-xl p-6 border border-gray-200">
