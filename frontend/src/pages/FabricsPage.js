@@ -115,25 +115,29 @@ const FabricsPage = () => {
     return badges[availability] || "bg-gray-100 text-gray-700";
   };
 
-  // Modal handlers - only used for enquiry now
+  // Modal handlers
   const openModal = (fabric, type) => {
-    if (type === "sample" || type === "bulk") {
-      // For sample/bulk orders, navigate to checkout
-      const qty = type === "sample" ? 1 : 6; // Default quantities
-      navigate(`/checkout?fabric_id=${fabric.id}&type=${type}&qty=${qty}`);
-      return;
-    }
-    // For enquiry, show modal
     setSelectedFabric(fabric);
     setModalType(type);
     setSampleQty(1);
-    setBulkQty("");
+    setBulkQty(fabric.moq || "10"); // Default to MOQ or 10
     setFormData({ name: "", email: "", phone: "", company: "", message: "" });
   };
 
   const closeModal = () => {
     setSelectedFabric(null);
     setModalType(null);
+  };
+
+  const proceedToCheckout = () => {
+    if (!selectedFabric) return;
+    const qty = modalType === "sample" ? sampleQty : bulkQty;
+    if (modalType === "bulk" && (!bulkQty || parseInt(bulkQty) <= 0)) {
+      toast.error("Please enter a valid quantity");
+      return;
+    }
+    navigate(`/checkout?fabric_id=${selectedFabric.id}&type=${modalType}&qty=${qty}`);
+    closeModal();
   };
 
   // Calculate bulk price based on tiers
