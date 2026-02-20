@@ -94,6 +94,7 @@ import Footer from "./components/Footer";
 function App() {
   return (
     <HelmetProvider>
+    <VendorAuthProvider>
       <AuthProvider>
         <BrowserRouter>
           <Toaster position="top-right" richColors />
