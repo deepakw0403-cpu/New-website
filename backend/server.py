@@ -26,6 +26,7 @@ from blog_router import router as blog_router
 import orders_router
 import email_router
 import vendor_router
+import shiprocket_router
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
