@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowLeft, ChevronLeft, ChevronRight, Send, X, ZoomIn, Package, Truck, FileCheck, MapPin, CheckCircle2, ShoppingCart, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { getFabric, createEnquiry, getFabricSEO, getRelatedFabrics } from "../li
 
 const FabricDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [fabric, setFabric] = useState(null);
   const [seoContent, setSeoContent] = useState(null);
   const [relatedFabrics, setRelatedFabrics] = useState([]);
@@ -26,7 +27,7 @@ const FabricDetailPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   
-  // Order modal states
+  // Order modal states - only for enquiry now (sample/bulk go to checkout)
   const [orderModalType, setOrderModalType] = useState(null); // 'sample' | 'bulk' | null
   const [sampleQty, setSampleQty] = useState(1);
   const [bulkQty, setBulkQty] = useState("");
