@@ -320,7 +320,15 @@ async def generate_ai_intro(fabric: Dict) -> str:
     name = fabric.get('name', '')
     category = fabric.get('category_name', '')
     composition = fabric.get('composition', [])
-    comp_str = ", ".join([f"{c.get('percentage', 0)}% {c.get('material', '')}" for c in composition if c.get('material') and c.get('percentage', 0) > 0])
+    
+    # Handle composition - can be a string or list of objects
+    if isinstance(composition, str):
+        comp_str = composition
+    elif isinstance(composition, list):
+        comp_str = ", ".join([f"{c.get('percentage', 0)}% {c.get('material', '')}" for c in composition if isinstance(c, dict) and c.get('material') and c.get('percentage', 0) > 0])
+    else:
+        comp_str = ""
+    
     gsm = fabric.get('gsm')
     ounce = fabric.get('ounce', '')
     weight = f"{gsm} GSM" if gsm else f"{ounce} oz" if ounce else ""
