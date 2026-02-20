@@ -160,18 +160,40 @@ const FabricDetailPage = () => {
   };
 
   const openOrderModal = (type) => {
-    // For sample/bulk orders, navigate to checkout page
-    if (type === "sample" || type === "bulk") {
-      const qty = type === "sample" ? 1 : 6; // Default quantities
-      navigate(`/checkout?fabric_id=${fabric.id}&type=${type}&qty=${qty}`);
-      return;
-    }
-    // For enquiry, show modal (though enquiry uses showEnquiryForm, not orderModalType)
+    // Show quantity selection modal for sample/bulk orders
     setOrderModalType(type);
     setSampleQty(1);
-    setBulkQty("");
+    setBulkQty(fabric?.moq || "10"); // Default to MOQ or 10
     setOrderForm({ name: "", email: "", phone: "", company: "", message: "" });
   };
+
+  const closeOrderModal = () => {
+    setOrderModalType(null);
+  };
+
+  const proceedToCheckout = () => {
+    if (!fabric) return;
+    const qty = orderModalType === "sample" ? sampleQty : bulkQty;
+    if (orderModalType === "bulk" && (!bulkQty || parseInt(bulkQty) <= 0)) {
+      toast.error("Please enter a valid quantity");
+      return;
+    }
+    navigate(`/checkout?fabric_id=${fabric.id}&type=${orderModalType}&qty=${qty}`);
+    closeOrderModal();
+  };
+
+  // Calculate cart value for modal
+  const cartValue = useMemo(() => {
+    if (!fabric || !orderModalType) return null;
+    
+    if (orderModalType === "sample") {
+      const samplePrice = fabric.sample_price || fabric.rate_per_meter || 0;
+      return { pricePerMeter: samplePrice, quantity: sampleQty, totalPrice: samplePrice * sampleQty, label: "Sample" };
+    } else if (orderModalType === "bulk") {
+      return calculateBulkPrice(bulkQty);
+    }
+    return null;
+  }, [fabric, orderModalType, sampleQty, bulkQty]);
 
   const getAvailabilityBadge = (avail) => {
     switch (avail) {
