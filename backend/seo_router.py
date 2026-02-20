@@ -429,7 +429,7 @@ async def generate_ai_why_fabric(fabric: Dict) -> List[str]:
     name = fabric.get('name', '')
     category = fabric.get('category_name', '')
     composition = fabric.get('composition', [])
-    comp_str = ", ".join([f"{c.get('percentage', 0)}% {c.get('material', '')}" for c in composition if c.get('material') and c.get('percentage', 0) > 0])
+    comp_str = parse_composition(composition)
     gsm = fabric.get('gsm')
     ounce = fabric.get('ounce', '')
     finish = fabric.get('finish', '')
