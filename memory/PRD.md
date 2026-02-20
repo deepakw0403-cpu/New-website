@@ -497,6 +497,16 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - `PUT /api/orders/{id}/status` - Update order status
 - `POST /api/orders/webhook/razorpay` - Razorpay webhook handler
 
+### Vendor API
+- `POST /api/vendor/login` - Vendor login (returns JWT token)
+- `GET /api/vendor/me` - Get current vendor profile
+- `GET /api/vendor/fabrics` - List vendor's fabrics
+- `POST /api/vendor/fabrics` - Create fabric (vendor scoped)
+- `PUT /api/vendor/fabrics/{id}` - Update fabric (vendor scoped)
+- `DELETE /api/vendor/fabrics/{id}` - Delete fabric (vendor scoped)
+- `GET /api/vendor/orders` - List orders for vendor's fabrics
+- `GET /api/vendor/stats` - Vendor dashboard statistics
+
 ### Email API
 - `POST /api/email/send` - Send custom email
 - `POST /api/email/order-confirmation/{id}` - Send order confirmation
