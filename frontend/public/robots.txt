@@ -2,11 +2,13 @@ User-agent: *
 Allow: /
 
 # Sitemaps
-Sitemap: https://locofast.com/sitemap.xml
+Sitemap: https://locofast.com/api/sitemap.xml
 
-# Disallow admin pages
+# Disallow admin and vendor portals
 Disallow: /admin/
 Disallow: /admin/*
+Disallow: /vendor/
+Disallow: /vendor/*
 
 # Allow CSS and JS
 Allow: /static/css/
