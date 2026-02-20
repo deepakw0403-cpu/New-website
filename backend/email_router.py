@@ -454,3 +454,102 @@ async def send_test_email(recipient: EmailStr):
     except Exception as e:
         logger.error(f"Failed to send test email: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+@router.post("/enquiry-notification")
+async def send_enquiry_notification(enquiry: dict):
+    """Send enquiry notification to admin and confirmation to customer"""
+    results = {"admin_sent": False, "customer_sent": False}
+    
+    if not RESEND_API_KEY:
+        logger.warning("Email service not configured - skipping enquiry notification")
+        return {"success": False, "message": "Email service not configured", **results}
+    
+    customer_email = enquiry.get('email')
+    enquiry_type = enquiry.get('enquiry_type', 'general')
+    fabric_name = enquiry.get('fabric_name', 'Fabric')
+    
+    type_label = {
+        'general': 'Enquiry',
+        'sample_order': 'Sample Order Request',
+        'bulk_order': 'Bulk Order Request'
+    }.get(enquiry_type, 'Enquiry')
+    
+    # Send admin notification
+    try:
+        admin_params = {
+            "from": SENDER_EMAIL,
+            "to": [ADMIN_NOTIFICATION_EMAIL],
+            "subject": f"New {type_label} - {fabric_name} | Locofast",
+            "html": get_enquiry_notification_email(enquiry)
+        }
+        await asyncio.to_thread(resend.Emails.send, admin_params)
+        results["admin_sent"] = True
+        logger.info(f"Enquiry notification sent to {ADMIN_NOTIFICATION_EMAIL}")
+    except Exception as e:
+        logger.error(f"Failed to send admin notification: {str(e)}")
+    
+    # Send customer confirmation
+    if customer_email:
+        try:
+            customer_params = {
+                "from": SENDER_EMAIL,
+                "to": [customer_email],
+                "subject": f"We've Received Your {type_label} | Locofast",
+                "html": get_customer_enquiry_confirmation_email(enquiry)
+            }
+            await asyncio.to_thread(resend.Emails.send, customer_params)
+            results["customer_sent"] = True
+            logger.info(f"Enquiry confirmation sent to {customer_email}")
+        except Exception as e:
+            logger.error(f"Failed to send customer confirmation: {str(e)}")
+    
+    return {
+        "success": results["admin_sent"] or results["customer_sent"],
+        "message": f"Admin: {'sent' if results['admin_sent'] else 'failed'}, Customer: {'sent' if results['customer_sent'] else 'failed'}",
+        **results
+    }
+
+async def send_enquiry_emails(enquiry: dict):
+    """Helper function to send enquiry emails - can be called from other modules"""
+    if not RESEND_API_KEY:
+        logger.warning("Email service not configured - skipping enquiry emails")
+        return False
+    
+    customer_email = enquiry.get('email')
+    enquiry_type = enquiry.get('enquiry_type', 'general')
+    fabric_name = enquiry.get('fabric_name', 'Fabric')
+    
+    type_label = {
+        'general': 'Enquiry',
+        'sample_order': 'Sample Order Request',
+        'bulk_order': 'Bulk Order Request'
+    }.get(enquiry_type, 'Enquiry')
+    
+    # Send admin notification
+    try:
+        admin_params = {
+            "from": SENDER_EMAIL,
+            "to": [ADMIN_NOTIFICATION_EMAIL],
+            "subject": f"New {type_label} - {fabric_name} | Locofast",
+            "html": get_enquiry_notification_email(enquiry)
+        }
+        await asyncio.to_thread(resend.Emails.send, admin_params)
+        logger.info(f"Enquiry notification sent to {ADMIN_NOTIFICATION_EMAIL}")
+    except Exception as e:
+        logger.error(f"Failed to send admin notification: {str(e)}")
+    
+    # Send customer confirmation
+    if customer_email:
+        try:
+            customer_params = {
+                "from": SENDER_EMAIL,
+                "to": [customer_email],
+                "subject": f"We've Received Your {type_label} | Locofast",
+                "html": get_customer_enquiry_confirmation_email(enquiry)
+            }
+            await asyncio.to_thread(resend.Emails.send, customer_params)
+            logger.info(f"Enquiry confirmation sent to {customer_email}")
+        except Exception as e:
+            logger.error(f"Failed to send customer confirmation: {str(e)}")
+    
+    return True
