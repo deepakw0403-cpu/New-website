@@ -112,8 +112,8 @@ async def generate_order_number() -> str:
 def calculate_totals(items: List[OrderItem]) -> dict:
     """Calculate order totals"""
     subtotal = sum(item.quantity * item.price_per_meter for item in items)
-    # GST 18% for fabrics
-    tax = round(subtotal * 0.18, 2)
+    # GST 5% for fabrics
+    tax = round(subtotal * 0.05, 2)
     total = round(subtotal + tax, 2)
     return {
         "subtotal": round(subtotal, 2),
