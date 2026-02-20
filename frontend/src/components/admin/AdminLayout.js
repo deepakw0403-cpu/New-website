@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Layers, FolderOpen, Building2, Package, MessageSquare, LogOut, ArrowLeft, Palette, Search, FileText } from "lucide-react";
+import { LayoutDashboard, Layers, FolderOpen, Building2, Package, MessageSquare, LogOut, ArrowLeft, Palette, Search, FileText, ShoppingCart } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 const AdminLayout = ({ children }) => {
@@ -9,6 +9,7 @@ const AdminLayout = ({ children }) => {
 
   const navItems = [
     { path: "/admin", label: "Dashboard", icon: LayoutDashboard },
+    { path: "/admin/orders", label: "Orders", icon: ShoppingCart },
     { path: "/admin/fabrics", label: "Fabrics", icon: Layers },
     { path: "/admin/articles", label: "Articles", icon: Palette },
     { path: "/admin/categories", label: "Categories", icon: FolderOpen },
