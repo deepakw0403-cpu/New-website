@@ -1184,6 +1184,15 @@ async def create_enquiry(data: EnquiryCreate):
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     await db.enquiries.insert_one(enquiry_doc)
+    
+    # Send email notifications (best effort - don't block on failure)
+    try:
+        from email_router import send_enquiry_emails
+        import asyncio
+        asyncio.create_task(send_enquiry_emails(enquiry_doc))
+    except Exception as e:
+        logging.warning(f"Failed to queue enquiry emails: {str(e)}")
+    
     return Enquiry(**enquiry_doc)
 
 @api_router.get("/enquiries", response_model=List[Enquiry])
