@@ -908,9 +908,9 @@ const FabricDetailPage = () => {
           </div>
         )}
 
-        {/* Order Modal (Sample/Bulk) */}
+        {/* Order Modal (Sample/Bulk) - Quantity Selection */}
         {orderModalType && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setOrderModalType(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={closeOrderModal}>
             <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl" onClick={(e) => e.stopPropagation()}>
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
@@ -920,19 +920,19 @@ const FabricDetailPage = () => {
                     </h2>
                     <p className="text-sm text-gray-500 mt-1">{fabric.name}</p>
                   </div>
-                  <button onClick={() => setOrderModalType(null)} className="p-2 hover:bg-gray-100 rounded-full">
+                  <button onClick={closeOrderModal} className="p-2 hover:bg-gray-100 rounded-full">
                     <X size={20} />
                   </button>
                 </div>
               </div>
 
-              <form onSubmit={handleOrderSubmit} className="p-6 space-y-5">
+              <div className="p-6 space-y-5">
                 {/* Fabric Summary */}
                 <div className="bg-gray-50 rounded-lg p-4 flex gap-4">
                   <img
                     src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
                     alt={fabric.name}
-                    className="w-16 h-16 object-cover rounded"
+                    className="w-20 h-20 object-cover rounded"
                   />
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{fabric.name}</p>
@@ -940,151 +940,98 @@ const FabricDetailPage = () => {
                     {fabric.seller_company && (
                       <p className="text-xs text-gray-500">by {fabric.seller_company}</p>
                     )}
-                    {fabric.quantity_available > 0 && orderModalType === "bulk" && (
-                      <p className="text-xs text-emerald-600 mt-1">{fabric.quantity_available?.toLocaleString()}m in stock</p>
+                    {orderModalType === "bulk" && fabric.quantity_available > 0 && (
+                      <p className="text-xs text-emerald-600 mt-1 font-medium">
+                        {fabric.quantity_available?.toLocaleString()} meters available
+                      </p>
                     )}
                   </div>
                 </div>
 
-                {/* Sample Order Options */}
-                {orderModalType === "sample" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Sample Quantity (1-5 meters)</label>
+                {/* Quantity Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {orderModalType === "sample" ? "Sample Quantity" : "Bulk Quantity (meters)"}
+                  </label>
+                  {orderModalType === "sample" ? (
                     <select
                       value={sampleQty}
                       onChange={(e) => setSampleQty(parseInt(e.target.value))}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none bg-white"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
                       data-testid="detail-sample-qty"
                     >
-                      {[1, 2, 3, 4, 5].map(qty => (
-                        <option key={qty} value={qty}>{qty} meter{qty > 1 ? 's' : ''}</option>
+                      {[1, 2, 3, 4, 5].map((qty) => (
+                        <option key={qty} value={qty}>{qty} meter{qty > 1 ? "s" : ""}</option>
                       ))}
                     </select>
-                  </div>
-                )}
-
-                {/* Bulk Order Options */}
-                {orderModalType === "bulk" && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Quantity (meters)</label>
-                      <input
-                        type="number"
-                        min="6"
-                        value={bulkQty}
-                        onChange={(e) => setBulkQty(e.target.value)}
-                        placeholder="Enter quantity (min 6 meters)"
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none"
-                        data-testid="detail-bulk-qty"
-                      />
-                    </div>
-                    
-                    {/* Pricing Tiers */}
-                    {fabric.pricing_tiers?.length > 0 && (
-                      <div className="bg-blue-50 rounded-lg p-4">
-                        <p className="text-sm font-medium text-blue-800 mb-2">Bulk Pricing Tiers</p>
-                        <div className="space-y-1">
-                          {fabric.pricing_tiers.map((tier, idx) => (
-                            <div key={idx} className="flex justify-between text-sm">
-                              <span className="text-blue-700">{tier.min_qty} - {tier.max_qty} meters</span>
-                              <span className="font-medium text-blue-900">₹{tier.price_per_meter?.toLocaleString()}/m</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Cart Value */}
-                {cartValue && (
-                  <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm text-emerald-700">Order Summary</p>
-                        <p className="text-xs text-emerald-600">{cartValue.quantity} meters × ₹{cartValue.pricePerMeter?.toLocaleString()}/m</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-emerald-600">Total Value</p>
-                        <p className="text-2xl font-bold text-emerald-700">₹{cartValue.totalPrice?.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Contact Details */}
-                <div className="pt-4 border-t border-gray-100">
-                  <p className="text-sm font-medium text-gray-700 mb-3">Contact Details</p>
-                  <div className="grid grid-cols-2 gap-3">
+                  ) : (
                     <input
-                      type="text"
-                      required
-                      value={orderForm.name}
-                      onChange={(e) => setOrderForm({ ...orderForm, name: e.target.value })}
-                      placeholder="Your Name *"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
-                      data-testid="order-name"
+                      type="number"
+                      min="1"
+                      max={fabric.quantity_available || 10000}
+                      value={bulkQty}
+                      onChange={(e) => setBulkQty(e.target.value)}
+                      placeholder="Enter quantity in meters"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
+                      data-testid="detail-bulk-qty"
                     />
-                    <input
-                      type="text"
-                      value={orderForm.company}
-                      onChange={(e) => setOrderForm({ ...orderForm, company: e.target.value })}
-                      placeholder="Company"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
-                      data-testid="order-company"
-                    />
-                    <input
-                      type="email"
-                      required
-                      value={orderForm.email}
-                      onChange={(e) => setOrderForm({ ...orderForm, email: e.target.value })}
-                      placeholder="Email *"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
-                      data-testid="order-email"
-                    />
-                    <input
-                      type="tel"
-                      required
-                      value={orderForm.phone}
-                      onChange={(e) => setOrderForm({ ...orderForm, phone: e.target.value })}
-                      placeholder="Phone *"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
-                      data-testid="order-phone"
-                    />
-                  </div>
-                  <div className="mt-3">
-                    <textarea
-                      value={orderForm.message}
-                      onChange={(e) => setOrderForm({ ...orderForm, message: e.target.value })}
-                      rows={2}
-                      placeholder="Additional notes (optional)"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-none text-sm"
-                      data-testid="order-message"
-                    />
-                  </div>
+                  )}
                 </div>
 
-                {/* Submit */}
+                {/* Pricing Tiers for Bulk */}
+                {orderModalType === "bulk" && fabric.pricing_tiers && fabric.pricing_tiers.length > 0 && (
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm font-medium text-blue-800 mb-2">Bulk Pricing Tiers</p>
+                    <div className="space-y-1">
+                      {fabric.pricing_tiers.map((tier, idx) => (
+                        <div key={idx} className="flex justify-between text-sm">
+                          <span className="text-blue-700">{tier.min_qty} - {tier.max_qty} meters</span>
+                          <span className="font-medium text-blue-900">₹{tier.price_per_meter}/m</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Price Summary */}
+                {cartValue && (
+                  <div className="bg-gray-900 text-white rounded-lg p-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sm text-gray-300">
+                          {orderModalType === "sample" ? `${sampleQty} meter${sampleQty > 1 ? "s" : ""}` : `${bulkQty} meters`}
+                          {cartValue.tierLabel && <span className="ml-1">({cartValue.tierLabel})</span>}
+                        </p>
+                        <p className="text-xs text-gray-400">@ ₹{cartValue.pricePerMeter?.toLocaleString()}/m</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold">₹{cartValue.totalPrice?.toLocaleString()}</p>
+                        <p className="text-xs text-gray-400">+ 5% GST</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => setOrderModalType(null)}
-                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                    onClick={closeOrderModal}
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
                   >
                     Cancel
                   </button>
                   <button
-                    type="submit"
-                    disabled={submitting || (orderModalType === "bulk" && !cartValue)}
-                    className={`flex-1 py-2.5 rounded-lg font-medium disabled:opacity-50 ${
-                      orderModalType === "sample" ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-emerald-600 text-white hover:bg-emerald-700"
-                    }`}
-                    data-testid="submit-order-btn"
+                    type="button"
+                    onClick={proceedToCheckout}
+                    disabled={orderModalType === "bulk" && (!bulkQty || parseInt(bulkQty) <= 0)}
+                    className="flex-1 py-3 rounded-lg font-medium disabled:opacity-50 bg-emerald-600 text-white hover:bg-emerald-700"
+                    data-testid="proceed-checkout-btn"
                   >
-                    {submitting ? "Submitting..." : orderModalType === "sample" ? "Book Sample" : "Place Bulk Order"}
+                    Proceed to Checkout
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         )}
