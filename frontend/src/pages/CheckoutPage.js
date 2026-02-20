@@ -187,13 +187,21 @@ const CheckoutPage = () => {
           fabric_code: fabric.fabric_code || "",
           category_name: fabric.category_name || "",
           seller_company: fabric.seller_company || "",
+          seller_id: fabric.seller_id || "",
           quantity: quantity,
           price_per_meter: pricePerMeter,
           order_type: orderType,
           image_url: fabric.images?.[0] || ""
         }],
         customer: customer,
-        notes: notes
+        notes: notes,
+        shipping: selectedShipping ? {
+          courier_id: selectedShipping.courier_id,
+          courier_name: selectedShipping.courier_name,
+          rate: selectedShipping.rate,
+          estimated_delivery_days: selectedShipping.estimated_delivery_days
+        } : null,
+        shipping_cost: shippingCost
       };
 
       const response = await createOrder(orderData);
