@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union
 import os
 import re
 import uuid
@@ -18,6 +18,33 @@ if db_name and db_name.startswith('"') and db_name.endswith('"'):
     db_name = db_name[1:-1]
 client = AsyncIOMotorClient(mongo_url)
 db = client[db_name]
+
+# ==================== HELPER FUNCTIONS ====================
+
+def parse_composition(composition: Union[str, List, None]) -> str:
+    """Convert composition to string format, handling both string and list of dicts"""
+    if not composition:
+        return ""
+    if isinstance(composition, str):
+        return composition
+    if isinstance(composition, list):
+        parts = []
+        for c in composition:
+            if isinstance(c, dict) and c.get('material') and c.get('percentage', 0) > 0:
+                parts.append(f"{c.get('percentage', 0)}% {c.get('material', '')}")
+        return ", ".join(parts)
+    return ""
+
+def get_composition_materials(composition: Union[str, List, None]) -> List[str]:
+    """Get list of material names from composition"""
+    if not composition:
+        return []
+    if isinstance(composition, str):
+        # Try to extract materials from string format like "100% Cotton" or "60% Cotton, 40% Polyester"
+        return [m.strip() for m in re.findall(r'\d+%\s*(\w+)', composition)]
+    if isinstance(composition, list):
+        return [c.get('material', '').lower() for c in composition if isinstance(c, dict) and c.get('material')]
+    return []
 
 # ==================== MODELS ====================
 
