@@ -719,6 +719,8 @@ async def get_fabrics(
     max_gsm: Optional[int] = Query(None),
     bookable_only: Optional[bool] = Query(None),
     sample_available: Optional[bool] = Query(None),
+    instant_bookable: Optional[bool] = Query(None),
+    enquiry_only: Optional[bool] = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=1000)  # Increased max limit for admin dropdown
 ):
@@ -740,6 +742,25 @@ async def get_fabrics(
             {'sample_price': {'$gt': 0}},
             {'rate_per_meter': {'$gt': 0}}
         ]}
+    if instant_bookable:
+        # Fabrics that can be booked instantly (sample or bulk)
+        query['is_bookable'] = True
+        if '$or' not in query:
+            query['$or'] = [
+                {'sample_price': {'$gt': 0}},
+                {'rate_per_meter': {'$gt': 0}},
+                {'quantity_available': {'$gt': 0}}
+            ]
+    if enquiry_only:
+        # Fabrics that can only be enquired about (not bookable or no stock/pricing)
+        query['$or'] = [
+            {'is_bookable': {'$ne': True}},
+            {'$and': [
+                {'sample_price': {'$in': [None, 0]}},
+                {'rate_per_meter': {'$in': [None, 0]}},
+                {'quantity_available': {'$in': [None, 0]}}
+            ]}
+        ]
     if min_gsm is not None or max_gsm is not None:
         query['gsm'] = {}
         if min_gsm is not None:
