@@ -37,6 +37,17 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 20, 2026 - Sitemap XML Fix
+- **Fixed**: `/sitemap.xml` was returning HTML (frontend's index.html) instead of XML
+- **Root Cause**: Sitemap endpoint was at `/api/sitemap.xml` but robots.txt pointed to `/sitemap.xml`
+- **Solution**: 
+  - Updated `robots.txt` to point to `/api/sitemap.xml` (correct backend endpoint)
+  - Fixed datetime handling - dates stored as ISO strings, not datetime objects
+  - Added `parse_date_string()` helper to extract YYYY-MM-DD from ISO strings
+- **Files Updated**: `backend/server.py`, `frontend/public/robots.txt`
+- **Verification**: `curl /api/sitemap.xml` now returns proper `application/xml` content
+- **Status**: COMPLETED
+
 ### Feb 20, 2026 - Shiprocket Shipping Integration
 - **Shiprocket API Integration**: Full shipping solution integrated
   - Rate calculator endpoint: `/api/shipping/rates`
