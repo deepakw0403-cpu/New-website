@@ -1486,6 +1486,7 @@ app.include_router(seo_router)
 app.include_router(blog_router)
 app.include_router(orders_router.router)
 app.include_router(email_router.router)
+app.include_router(vendor_router.router)
 
 # Serve uploaded files
 app.mount("/api/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
