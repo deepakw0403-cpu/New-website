@@ -206,19 +206,19 @@ const FabricsPage = () => {
     <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
       <Navbar />
       <main className="flex-grow pt-20" data-testid="fabrics-page">
-        <div className="container-main py-8">
+        <div className="container-main py-6 sm:py-8">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
             <div>
-              <h1 className="text-3xl font-semibold mb-1">Fabric Catalog</h1>
-              <p className="text-gray-500">
+              <h1 className="text-2xl sm:text-3xl font-semibold mb-1">Fabric Catalog</h1>
+              <p className="text-sm sm:text-base text-gray-500">
                 {loading ? "Loading..." : `${totalCount} fabrics available`}
               </p>
             </div>
           </div>
 
           {/* Search and Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
             <div className="relative flex-1">
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -226,7 +226,7 @@ const FabricsPage = () => {
                 placeholder="Search fabrics by name, type, composition..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none"
+                className="w-full pl-12 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm sm:text-base"
                 data-testid="fabrics-search"
               />
             </div>
