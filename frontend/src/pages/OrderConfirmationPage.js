@@ -98,13 +98,27 @@ const OrderConfirmationPage = () => {
                     <p className="text-sm text-gray-500">Order Number</p>
                     <p className="text-2xl font-semibold text-blue-600">{order.order_number}</p>
                   </div>
-                  <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                    isPaid 
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-yellow-100 text-yellow-700"
-                  }`}>
-                    {isPaid ? "Paid" : "Payment Pending"}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    {isPaid && (
+                      <a
+                        href={downloadInvoice(order.order_number)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                        data-testid="download-invoice-btn"
+                      >
+                        <FileText size={16} />
+                        Download Invoice
+                      </a>
+                    )}
+                    <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                      isPaid 
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-yellow-100 text-yellow-700"
+                    }`}>
+                      {isPaid ? "Paid" : "Payment Pending"}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="border-t border-gray-100 pt-6">
