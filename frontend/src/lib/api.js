@@ -183,6 +183,10 @@ export const getOrderByRazorpayId = (razorpayOrderId) => api.get(`/orders/by-raz
 export const listOrders = (params) => api.get("/orders", { params });
 export const updateOrderStatus = (id, status) => api.put(`/orders/${id}/status?status=${status}`);
 export const getOrderStats = () => api.get("/orders/stats/summary");
+export const downloadInvoice = (orderId) => {
+  const API_URL = process.env.REACT_APP_BACKEND_URL;
+  return `${API_URL}/api/orders/${orderId}/invoice`;
+};
 
 // Email
 export const sendOrderConfirmation = (orderId) => api.post(`/email/order-confirmation/${orderId}`);
