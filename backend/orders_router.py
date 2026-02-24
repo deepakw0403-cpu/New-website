@@ -544,3 +544,365 @@ async def razorpay_webhook(request: Request):
     except Exception as e:
         logger.error(f"Webhook processing error: {str(e)}")
         return JSONResponse(status_code=200, content={"status": "error", "message": str(e)})
+
+# ==================== INVOICE GENERATION ====================
+
+def number_to_words(num: float) -> str:
+    """Convert number to words (Indian format)"""
+    ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+            'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
+    tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+    
+    if num == 0:
+        return 'Zero'
+    
+    num = int(round(num))
+    
+    def words_under_100(n):
+        if n < 20:
+            return ones[n]
+        return tens[n // 10] + ('' if n % 10 == 0 else ' ' + ones[n % 10])
+    
+    def words_under_1000(n):
+        if n < 100:
+            return words_under_100(n)
+        return ones[n // 100] + ' Hundred' + ('' if n % 100 == 0 else ' and ' + words_under_100(n % 100))
+    
+    # Indian numbering: Crores, Lakhs, Thousands, Hundreds
+    if num >= 10000000:  # Crores
+        crores = num // 10000000
+        remainder = num % 10000000
+        result = words_under_100(crores) + ' Crore'
+        if remainder:
+            result += ' ' + number_to_words(remainder)
+        return result
+    elif num >= 100000:  # Lakhs
+        lakhs = num // 100000
+        remainder = num % 100000
+        result = words_under_100(lakhs) + ' Lakh'
+        if remainder:
+            result += ' ' + number_to_words(remainder)
+        return result
+    elif num >= 1000:  # Thousands
+        thousands = num // 1000
+        remainder = num % 1000
+        result = words_under_100(thousands) + ' Thousand'
+        if remainder:
+            result += ' ' + words_under_1000(remainder)
+        return result
+    else:
+        return words_under_1000(num)
+
+def generate_invoice_pdf(order: dict) -> io.BytesIO:
+    """Generate a GST-compliant invoice PDF"""
+    buffer = io.BytesIO()
+    
+    # Create PDF document
+    doc = SimpleDocTemplate(
+        buffer, 
+        pagesize=A4,
+        rightMargin=15*mm,
+        leftMargin=15*mm,
+        topMargin=15*mm,
+        bottomMargin=15*mm
+    )
+    
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    title_style = ParagraphStyle(
+        'Title',
+        parent=styles['Heading1'],
+        fontSize=18,
+        alignment=TA_CENTER,
+        spaceAfter=5*mm,
+        textColor=colors.HexColor('#1e40af')
+    )
+    
+    heading_style = ParagraphStyle(
+        'Heading',
+        parent=styles['Heading2'],
+        fontSize=11,
+        spaceBefore=3*mm,
+        spaceAfter=2*mm,
+        textColor=colors.HexColor('#1e40af')
+    )
+    
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=12
+    )
+    
+    small_style = ParagraphStyle(
+        'Small',
+        parent=styles['Normal'],
+        fontSize=8,
+        leading=10
+    )
+    
+    bold_style = ParagraphStyle(
+        'Bold',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=12,
+        fontName='Helvetica-Bold'
+    )
+    
+    # Header - Company Name
+    elements.append(Paragraph("LOCOFAST", title_style))
+    elements.append(Paragraph("B2B Fabric Sourcing Platform", ParagraphStyle(
+        'Subtitle', parent=styles['Normal'], fontSize=10, alignment=TA_CENTER, textColor=colors.grey
+    )))
+    elements.append(Spacer(1, 5*mm))
+    
+    # Tax Invoice Title
+    elements.append(Paragraph("TAX INVOICE", ParagraphStyle(
+        'InvoiceTitle', parent=styles['Heading1'], fontSize=14, alignment=TA_CENTER, 
+        textColor=colors.white, backColor=colors.HexColor('#1e40af'), 
+        borderPadding=5, spaceBefore=2*mm, spaceAfter=5*mm
+    )))
+    
+    # Invoice Details Table
+    customer = order.get('customer', {})
+    invoice_date = order.get('paid_at') or order.get('created_at', '')
+    if invoice_date:
+        try:
+            invoice_date = invoice_date[:10]  # Extract YYYY-MM-DD
+        except:
+            invoice_date = datetime.now().strftime('%Y-%m-%d')
+    
+    invoice_details = [
+        ['Invoice No:', order.get('order_number', 'N/A'), 'Invoice Date:', invoice_date],
+        ['Order ID:', order.get('id', 'N/A')[:8] + '...', 'Payment Status:', order.get('payment_status', 'N/A').upper()],
+    ]
+    
+    invoice_table = Table(invoice_details, colWidths=[25*mm, 55*mm, 30*mm, 50*mm])
+    invoice_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#1e40af')),
+        ('TEXTCOLOR', (2, 0), (2, -1), colors.HexColor('#1e40af')),
+    ]))
+    elements.append(invoice_table)
+    elements.append(Spacer(1, 5*mm))
+    
+    # Seller and Buyer Details Side by Side
+    seller_info = """<b>Sold By:</b><br/>
+    Locofast Private Limited<br/>
+    B2B Fabric Sourcing<br/>
+    Gurgaon, Haryana - 122001<br/>
+    India<br/>
+    <b>GSTIN:</b> 06XXXXXXXXXXXZ (to be updated)<br/>
+    <b>Email:</b> b2c@locofast.com"""
+    
+    buyer_info = f"""<b>Bill To:</b><br/>
+    {customer.get('name', 'N/A')}<br/>
+    {customer.get('company', '') + '<br/>' if customer.get('company') else ''}
+    {customer.get('address', 'N/A')}<br/>
+    {customer.get('city', '')}, {customer.get('state', '')}<br/>
+    PIN: {customer.get('pincode', 'N/A')}<br/>
+    <b>Phone:</b> {customer.get('phone', 'N/A')}<br/>
+    <b>Email:</b> {customer.get('email', 'N/A')}"""
+    
+    address_table = Table([
+        [Paragraph(seller_info, small_style), Paragraph(buyer_info, small_style)]
+    ], colWidths=[90*mm, 90*mm])
+    address_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (0, 0), 0.5, colors.HexColor('#e5e7eb')),
+        ('BOX', (1, 0), (1, 0), 0.5, colors.HexColor('#e5e7eb')),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f9fafb')),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    elements.append(address_table)
+    elements.append(Spacer(1, 5*mm))
+    
+    # Items Table
+    elements.append(Paragraph("Order Items", heading_style))
+    
+    # Table Header
+    items_data = [
+        ['#', 'Description', 'HSN', 'Qty (m)', 'Rate (₹/m)', 'Amount (₹)']
+    ]
+    
+    # Table Rows
+    items = order.get('items', [])
+    for idx, item in enumerate(items, 1):
+        qty = item.get('quantity', 0)
+        rate = item.get('price_per_meter', 0)
+        amount = qty * rate
+        
+        description = f"{item.get('fabric_name', 'Fabric')}"
+        if item.get('fabric_code'):
+            description += f"\nCode: {item.get('fabric_code')}"
+        if item.get('order_type'):
+            description += f"\nType: {item.get('order_type', '').title()}"
+        
+        items_data.append([
+            str(idx),
+            Paragraph(description, small_style),
+            '5407',  # HSN code for fabrics
+            str(qty),
+            f"₹{rate:,.2f}",
+            f"₹{amount:,.2f}"
+        ])
+    
+    items_table = Table(items_data, colWidths=[10*mm, 70*mm, 18*mm, 20*mm, 28*mm, 30*mm])
+    items_table.setStyle(TableStyle([
+        # Header
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e40af')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        # Body
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+        ('ALIGN', (2, 1), (-1, -1), 'CENTER'),
+        ('ALIGN', (4, 1), (-1, -1), 'RIGHT'),
+        ('ALIGN', (5, 1), (-1, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        # Grid
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e5e7eb')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(items_table)
+    elements.append(Spacer(1, 5*mm))
+    
+    # Totals Table
+    subtotal = order.get('subtotal', 0)
+    tax = order.get('tax', 0)
+    shipping = order.get('shipping_cost', 0)
+    total = order.get('total', 0)
+    
+    # GST split (CGST + SGST for intra-state, IGST for inter-state)
+    cgst = tax / 2
+    sgst = tax / 2
+    
+    totals_data = [
+        ['Subtotal:', f"₹{subtotal:,.2f}"],
+        ['CGST (2.5%):', f"₹{cgst:,.2f}"],
+        ['SGST (2.5%):', f"₹{sgst:,.2f}"],
+    ]
+    
+    if shipping > 0:
+        totals_data.append(['Shipping:', f"₹{shipping:,.2f}"])
+    
+    totals_data.append(['TOTAL:', f"₹{total:,.2f}"])
+    
+    totals_table = Table(totals_data, colWidths=[130*mm, 46*mm])
+    totals_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#1e40af')),
+        ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#1e40af')),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(totals_table)
+    elements.append(Spacer(1, 3*mm))
+    
+    # Amount in Words
+    amount_words = number_to_words(total)
+    elements.append(Paragraph(
+        f"<b>Amount in Words:</b> {amount_words} Rupees Only",
+        ParagraphStyle('AmountWords', parent=styles['Normal'], fontSize=9, 
+                      backColor=colors.HexColor('#f0f9ff'), borderPadding=5)
+    ))
+    elements.append(Spacer(1, 5*mm))
+    
+    # Shipping Info (if available)
+    shipping_info = order.get('shipping', {})
+    if shipping_info:
+        elements.append(Paragraph("Shipping Details", heading_style))
+        ship_data = []
+        if shipping_info.get('courier_name'):
+            ship_data.append(['Courier:', shipping_info.get('courier_name', 'N/A')])
+        if shipping_info.get('estimated_delivery_days'):
+            ship_data.append(['Est. Delivery:', f"{shipping_info.get('estimated_delivery_days', 'N/A')} days"])
+        if order.get('awb_code'):
+            ship_data.append(['AWB/Tracking:', order.get('awb_code', 'N/A')])
+        
+        if ship_data:
+            ship_table = Table(ship_data, colWidths=[40*mm, 136*mm])
+            ship_table.setStyle(TableStyle([
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ]))
+            elements.append(ship_table)
+            elements.append(Spacer(1, 5*mm))
+    
+    # Terms and Conditions
+    elements.append(Paragraph("Terms & Conditions", heading_style))
+    terms = """
+    1. Goods once sold will not be taken back or exchanged.<br/>
+    2. All disputes are subject to Gurgaon jurisdiction only.<br/>
+    3. E&OE (Errors and Omissions Excepted).<br/>
+    4. This is a computer-generated invoice and does not require a physical signature.
+    """
+    elements.append(Paragraph(terms, ParagraphStyle(
+        'Terms', parent=styles['Normal'], fontSize=7, textColor=colors.grey, leading=10
+    )))
+    
+    elements.append(Spacer(1, 10*mm))
+    
+    # Footer
+    elements.append(Paragraph(
+        "Thank you for your business! | www.locofast.com | b2c@locofast.com",
+        ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, alignment=TA_CENTER, textColor=colors.grey)
+    ))
+    
+    # Build PDF
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+@router.get("/{order_id}/invoice")
+async def get_invoice(order_id: str):
+    """Generate and download invoice PDF for an order"""
+    # Find order
+    order = await db.orders.find_one(
+        {"$or": [{"id": order_id}, {"order_number": order_id}]},
+        {"_id": 0}
+    )
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Only allow invoice for paid orders
+    if order.get('payment_status') != 'paid':
+        raise HTTPException(status_code=400, detail="Invoice available only for paid orders")
+    
+    # Generate PDF
+    try:
+        pdf_buffer = generate_invoice_pdf(order)
+        
+        # Return as downloadable file
+        filename = f"Invoice_{order.get('order_number', order_id)}.pdf"
+        
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Type": "application/pdf"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to generate invoice: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate invoice: {str(e)}")
