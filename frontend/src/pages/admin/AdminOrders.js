@@ -254,6 +254,17 @@ const AdminOrders = () => {
                           >
                             <Eye size={18} />
                           </button>
+                          {order.payment_status === 'paid' && (
+                            <a
+                              href={downloadInvoice(order.order_number)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 rounded"
+                              title="Download Invoice"
+                            >
+                              <FileText size={18} />
+                            </a>
+                          )}
                           <div className="relative group">
                             <button className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded">
                               <ChevronDown size={18} />
