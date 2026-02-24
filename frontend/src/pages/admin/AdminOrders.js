@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Package, Clock, CheckCircle, Truck, XCircle, Search, RefreshCw, ChevronDown, Mail, Phone, MapPin, DollarSign, Eye } from "lucide-react";
+import { Package, Clock, CheckCircle, Truck, XCircle, Search, RefreshCw, ChevronDown, Mail, Phone, MapPin, DollarSign, Eye, FileText } from "lucide-react";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { listOrders, updateOrderStatus, getOrderStats, sendOrderConfirmation } from "../../lib/api";
+import { listOrders, updateOrderStatus, getOrderStats, sendOrderConfirmation, downloadInvoice } from "../../lib/api";
 import { toast } from "sonner";
 
 const statusConfig = {
