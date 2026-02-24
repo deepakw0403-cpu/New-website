@@ -93,12 +93,12 @@ const OrderConfirmationPage = () => {
             <div className="lg:col-span-2 space-y-6">
               {/* Order Info Card */}
               <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <div>
                     <p className="text-sm text-gray-500">Order Number</p>
                     <p className="text-2xl font-semibold text-blue-600">{order.order_number}</p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     {isPaid && (
                       <a
                         href={downloadInvoice(order.order_number)}
