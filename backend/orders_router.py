@@ -3,7 +3,7 @@ Orders Router - Handles order creation, payment, and management
 Phase 1: Razorpay Integration + Order Management
 """
 from fastapi import APIRouter, HTTPException, Depends, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -15,8 +15,17 @@ import uuid
 import os
 import asyncio
 import logging
+import io
 
 from shiprocket_service import shiprocket_service
+
+# PDF Generation imports
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm, inch
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 
 # Configure logging
 logger = logging.getLogger(__name__)
