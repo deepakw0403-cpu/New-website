@@ -37,6 +37,30 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 24, 2026 - Invoice Generation Feature
+- **GST-Compliant PDF Invoice**: Complete invoice generation system implemented
+- **Features**:
+  - Professional PDF layout with Locofast branding
+  - GST breakdown (CGST 2.5% + SGST 2.5%)
+  - Amount in words (Indian numbering: Lakhs, Crores)
+  - HSN code for fabrics (5407)
+  - Customer and seller details
+  - Order items with quantity and rate
+  - Shipping details (if available)
+  - Terms and conditions
+- **Access Points**:
+  - Customer: Order Confirmation page - "Download Invoice" button (visible only for paid orders)
+  - Admin: Orders panel - Invoice icon in table + "Download Invoice" in order detail modal
+- **Backend**: `GET /api/orders/{order_id}/invoice` - Returns PDF with proper headers
+- **Library**: reportlab (Python PDF generation)
+- **Files Updated**:
+  - `backend/orders_router.py` - Invoice generation endpoint
+  - `frontend/src/pages/OrderConfirmationPage.js` - Customer download button
+  - `frontend/src/pages/admin/AdminOrders.js` - Admin download button
+  - `frontend/src/lib/api.js` - downloadInvoice helper
+  - `frontend/src/index.css` - Fixed CSS selector hiding API links
+- **Status**: COMPLETED
+
 ### Feb 20, 2026 - Sitemap XML Fix
 - **Fixed**: `/sitemap.xml` was returning HTML (frontend's index.html) instead of XML
 - **Root Cause**: Sitemap endpoint was at `/api/sitemap.xml` but robots.txt pointed to `/sitemap.xml`
