@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { CheckCircle, Package, Truck, Mail, Phone, MapPin, ArrowRight, Loader2, AlertCircle, Download } from "lucide-react";
+import { CheckCircle, Package, Truck, Mail, Phone, MapPin, ArrowRight, Loader2, AlertCircle, Download, FileText } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getOrder } from "../lib/api";
+import { getOrder, downloadInvoice } from "../lib/api";
 
 const OrderConfirmationPage = () => {
   const { orderNumber } = useParams();
