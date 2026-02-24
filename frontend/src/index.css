@@ -238,7 +238,7 @@ a {
 /* Hide Emergent badge */
 [class*="emergent"], 
 [id*="emergent"],
-a[href*="emergentagent.com"]:not([href*="customer-assets"]),
+a[href*="emergentagent.com"]:not([href*="customer-assets"]):not([href*="/api/"]),
 div[style*="position: fixed"][style*="bottom"]:has(a[href*="emergent"]) {
   display: none !important;
 }
