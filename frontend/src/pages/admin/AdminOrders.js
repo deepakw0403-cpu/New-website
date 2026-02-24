@@ -392,13 +392,27 @@ const AdminOrders = () => {
 
               {/* Actions */}
               <div className="p-6 border-t border-gray-100 flex justify-between">
-                <button
-                  onClick={() => handleResendConfirmation(selectedOrder.id)}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                >
-                  <Mail size={18} />
-                  Resend Confirmation
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleResendConfirmation(selectedOrder.id)}
+                    className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                  >
+                    <Mail size={18} />
+                    Resend Confirmation
+                  </button>
+                  {selectedOrder.payment_status === 'paid' && (
+                    <a
+                      href={downloadInvoice(selectedOrder.order_number)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                      data-testid="admin-download-invoice-btn"
+                    >
+                      <FileText size={18} />
+                      Download Invoice
+                    </a>
+                  )}
+                </div>
                 <button
                   onClick={() => setSelectedOrder(null)}
                   className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
