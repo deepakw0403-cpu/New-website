@@ -85,12 +85,18 @@ class ShippingInfo(BaseModel):
     rate: Optional[float] = None
     estimated_delivery_days: Optional[str] = None
 
+class CouponInfo(BaseModel):
+    code: str = ""
+    discount_type: str = ""
+    discount_value: float = 0
+    discount_amount: float = 0
+
 class OrderCreate(BaseModel):
     items: List[OrderItem]
     customer: CustomerInfo
     notes: str = ""
-    shipping: Optional[ShippingInfo] = None
-    shipping_cost: float = 0
+    coupon: Optional[CouponInfo] = None
+    discount: float = 0
 
 class Order(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -100,8 +106,8 @@ class Order(BaseModel):
     customer: CustomerInfo
     subtotal: float
     tax: float = 0
-    shipping_cost: float = 0
-    shipping: Optional[dict] = None
+    discount: float = 0
+    coupon: Optional[dict] = None
     total: float
     currency: str = "INR"
     status: str = "pending"  # pending, payment_pending, paid, confirmed, processing, shipped, delivered, cancelled
@@ -109,9 +115,6 @@ class Order(BaseModel):
     razorpay_order_id: str = ""
     razorpay_payment_id: str = ""
     razorpay_signature: str = ""
-    shiprocket_order_id: Optional[int] = None
-    shiprocket_shipment_id: Optional[int] = None
-    awb_code: Optional[str] = None
     notes: str = ""
     created_at: str
     updated_at: str = ""
