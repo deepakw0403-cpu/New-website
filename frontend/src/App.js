@@ -3,6 +3,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 import { VendorAuthProvider } from "./context/VendorAuthContext";
+import WhatsAppChat from "./components/WhatsAppChat";
 
 // Public pages
 import HomePage from "./pages/HomePage";
