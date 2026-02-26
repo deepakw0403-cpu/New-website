@@ -187,6 +187,7 @@ function App() {
           <Route path="/vendor/inventory" element={<VendorProtectedRoute><VendorInventory /></VendorProtectedRoute>} />
           <Route path="/vendor/orders" element={<VendorProtectedRoute><VendorOrders /></VendorProtectedRoute>} />
         </Routes>
+        <WhatsAppChat />
       </BrowserRouter>
     </AuthProvider>
     </VendorAuthProvider>
