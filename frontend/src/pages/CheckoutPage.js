@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Truck, CreditCard, CheckCircle2, AlertCircle, Loader2, Package } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Truck, CreditCard, CheckCircle2, AlertCircle, Loader2, Package, Tag } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getFabric, createOrder, verifyPayment, sendOrderConfirmation } from "../lib/api";
+import { getFabric, createOrder, verifyPayment, sendOrderConfirmation, validateCoupon } from "../lib/api";
 import { toast } from "sonner";
-import axios from "axios";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -36,17 +35,17 @@ const CheckoutPage = () => {
   });
   const [notes, setNotes] = useState("");
   
-  // Shipping
-  const [shippingRates, setShippingRates] = useState([]);
-  const [selectedShipping, setSelectedShipping] = useState(null);
-  const [loadingShipping, setLoadingShipping] = useState(false);
-  const [shippingError, setShippingError] = useState(null);
+  // Coupon
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
   
   // Pricing
   const [pricePerMeter, setPricePerMeter] = useState(0);
   const [subtotal, setSubtotal] = useState(0);
   const [tax, setTax] = useState(0);
-  const [shippingCost, setShippingCost] = useState(0);
+  const [discount, setDiscount] = useState(0);
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
