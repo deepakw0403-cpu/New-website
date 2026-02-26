@@ -694,12 +694,13 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     
     # Seller and Buyer Details Side by Side
     seller_info = """<b>Sold By:</b><br/>
-    Locofast Private Limited<br/>
-    B2B Fabric Sourcing<br/>
-    Gurgaon, Haryana - 122001<br/>
-    India<br/>
-    <b>GSTIN:</b> 06XXXXXXXXXXXZ (to be updated)<br/>
-    <b>Email:</b> b2c@locofast.com"""
+    LOCOFAST ONLINE SERVICES PRIVATE LIMITED<br/>
+    First Floor, Khasra No 385, Deskconnect<br/>
+    100 Feet Road, Opp. Corporation Bank<br/>
+    Ghitorni, New Delhi - 110030<br/>
+    <b>GSTIN:</b> 07AADCL8794N1ZM<br/>
+    <b>Email:</b> mail@locofast.com<br/>
+    <b>Phone:</b> +91-8920392418"""
     
     buyer_info = f"""<b>Bill To:</b><br/>
     {customer.get('name', 'N/A')}<br/>
