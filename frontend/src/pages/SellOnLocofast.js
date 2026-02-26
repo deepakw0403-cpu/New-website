@@ -489,56 +489,59 @@ const SellOnLocofast = () => {
               {[
                 {
                   title: "From Random Calls to Real Orders",
-                  thumbnail: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400&h=225&fit=crop",
-                  videoUrl: "", // Add video URL when available
+                  videoUrl: `${process.env.REACT_APP_BACKEND_URL}/api/uploads/video_afe387b7-3b77-46d4-8c06-8610db50c186.mp4`,
                   supplier: "Textile Mill Owner",
-                  location: "Ahmedabad"
+                  location: "Ahmedabad",
+                  hasVideo: true
                 },
                 {
                   title: "How I Closed 5 Orders in Month 1",
-                  thumbnail: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&h=225&fit=crop",
-                  videoUrl: "", // Add video URL when available
+                  videoUrl: "",
                   supplier: "Denim Manufacturer",
-                  location: "Surat"
+                  location: "Surat",
+                  hasVideo: false
                 },
                 {
                   title: "Direct Buyers Changed Everything",
-                  thumbnail: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=225&fit=crop",
-                  videoUrl: "", // Add video URL when available
+                  videoUrl: "",
                   supplier: "Fabric Trader",
-                  location: "Erode"
+                  location: "Erode",
+                  hasVideo: false
                 }
               ].map((video, i) => (
                 <div 
                   key={i}
-                  className="group bg-white rounded-xl overflow-hidden border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all cursor-pointer"
-                  onClick={() => {
-                    if (video.videoUrl) {
-                      window.open(video.videoUrl, '_blank');
-                    }
-                  }}
+                  className="group bg-white rounded-xl overflow-hidden border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all"
                 >
-                  <div className="relative aspect-video bg-slate-100">
-                    <img 
-                      src={video.thumbnail} 
-                      alt={video.title}
-                      className="w-full h-full object-cover"
-                    />
-                    {/* Play Button Overlay */}
-                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                      <div className="w-16 h-16 bg-white/90 group-hover:bg-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                        <svg className="w-7 h-7 text-slate-900 ml-1" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
-                      </div>
-                    </div>
-                    {/* Duration Badge */}
-                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                      0:30
-                    </div>
+                  <div className="relative aspect-video bg-slate-900">
+                    {video.hasVideo ? (
+                      <video 
+                        className="w-full h-full object-cover"
+                        controls
+                        preload="metadata"
+                        poster=""
+                      >
+                        <source src={video.videoUrl} type="video/mp4" />
+                        Your browser does not support the video tag.
+                      </video>
+                    ) : (
+                      <>
+                        <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
+                          <span className="text-slate-500 text-sm">Coming Soon</span>
+                        </div>
+                        {/* Play Button Overlay */}
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                            <svg className="w-7 h-7 text-white/50 ml-1" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                   <div className="p-4">
-                    <h3 className="font-semibold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
+                    <h3 className="font-semibold text-slate-900 mb-2">
                       {video.title}
                     </h3>
                     <div className="flex items-center gap-2 text-sm text-slate-500">
@@ -551,7 +554,7 @@ const SellOnLocofast = () => {
             </div>
             
             <p className="text-center text-slate-500 mt-8 text-sm">
-              Videos coming soon. Want to share your story? <a href="https://wa.me/918920392418?text=I want to share my supplier experience" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Contact us</a>
+              Want to share your story? <a href="https://wa.me/918920392418?text=I want to share my supplier experience" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Contact us</a>
             </p>
           </div>
         </section>
