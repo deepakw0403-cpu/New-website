@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, X, Upload, Check, Video, Package, DollarSign } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Upload, Check, Video, Package, DollarSign, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { getFabrics, getCategories, getSellers, getArticles, createFabric, updateFabric, deleteFabric, uploadImage, uploadVideo } from "../../lib/api";
 
 const AdminFabrics = () => {
   const [fabrics, setFabrics] = useState([]);
+  const [filteredFabrics, setFilteredFabrics] = useState([]);
   const [categories, setCategories] = useState([]);
   const [sellers, setSellers] = useState([]);
   const [articles, setArticles] = useState([]);
@@ -16,6 +17,12 @@ const AdminFabrics = () => {
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState("");
+  
+  // Search & Filter States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterSeller, setFilterSeller] = useState("");
+  const [filterAvailability, setFilterAvailability] = useState("");
 
   const emptyComposition = [
     { material: "", percentage: 0 },
