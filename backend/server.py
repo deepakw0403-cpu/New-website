@@ -1322,6 +1322,14 @@ async def update_enquiry_status(enquiry_id: str, status: str = Query(...), admin
         raise HTTPException(status_code=404, detail='Enquiry not found')
     return {'message': 'Status updated'}
 
+@api_router.delete("/enquiries/{enquiry_id}")
+async def delete_enquiry(enquiry_id: str, admin=Depends(get_current_admin)):
+    """Delete an enquiry"""
+    result = await db.enquiries.delete_one({'id': enquiry_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail='Enquiry not found')
+    return {'message': 'Enquiry deleted'}
+
 # ==================== COLLECTION ROUTES ====================
 
 @api_router.get("/collections", response_model=List[Collection])
