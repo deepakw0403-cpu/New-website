@@ -116,7 +116,8 @@ function App() {
           <Route path="/privacy" element={<><Navbar /><PrivacyPage /><Footer /></>} />
           <Route path="/terms" element={<><Navbar /><TermsPage /><Footer /></>} />
           <Route path="/customers" element={<><Navbar /><CustomersPage /><Footer /></>} />
-          <Route path="/suppliers" element={<><Navbar /><SuppliersPage /><Footer /></>} />
+          <Route path="/suppliers" element={<SellOnLocofast />} />
+          <Route path="/sell" element={<SellOnLocofast />} />
           <Route path="/media" element={<><Navbar /><MediaPage /><Footer /></>} />
           <Route path="/careers" element={<><Navbar /><CareersPage /><Footer /></>} />
           <Route path="/assisted-sourcing" element={<AssistedSourcingPage />} />
