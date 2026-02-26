@@ -37,6 +37,21 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 26, 2026 - Admin Fabric Search & Filters
+- **Feature**: Added comprehensive search and filter functionality to Admin Fabrics page
+- **Search Fields**: Name, composition, color, seller company, category, SKU, fabric code, tags
+- **Filter Options**:
+  - Category dropdown
+  - Seller dropdown
+  - Availability (Sample/Bulk/On Request)
+- **UI Elements**:
+  - Search input with magnifying glass icon
+  - Filter dropdowns in a row
+  - "Clear all" button when filters active
+  - Results count indicator (e.g., "Showing 13 of 191 fabrics")
+- **Files Updated**: `frontend/src/pages/admin/AdminFabrics.js`
+- **Status**: COMPLETED
+
 ### Feb 24, 2026 - Invoice Generation Feature
 - **GST-Compliant PDF Invoice**: Complete invoice generation system implemented
 - **Features**:
