@@ -557,10 +557,19 @@ const AdminFabrics = () => {
               </div>
             ))}
           </div>
-        ) : fabrics.length === 0 ? (
+        ) : filteredFabrics.length === 0 ? (
           <div className="text-center py-20 bg-white border border-gray-100 rounded">
-            <p className="text-gray-500 mb-4">No fabrics yet</p>
-            <button onClick={openCreateModal} className="btn-primary">Add First Fabric</button>
+            {fabrics.length === 0 ? (
+              <>
+                <p className="text-gray-500 mb-4">No fabrics yet</p>
+                <button onClick={openCreateModal} className="btn-primary">Add First Fabric</button>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-500 mb-4">No fabrics match your search criteria</p>
+                <button onClick={clearFilters} className="btn-secondary">Clear Filters</button>
+              </>
+            )}
           </div>
         ) : (
           <div className="bg-white border border-gray-100 overflow-hidden rounded" data-testid="fabrics-table">
@@ -576,7 +585,7 @@ const AdminFabrics = () => {
                 </tr>
               </thead>
               <tbody>
-                {fabrics.map((fabric) => (
+                {filteredFabrics.map((fabric) => (
                   <tr key={fabric.id} className="border-b border-gray-100 last:border-0" data-testid={`fabric-row-${fabric.id}`}>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
