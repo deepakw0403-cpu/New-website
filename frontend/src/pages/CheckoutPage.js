@@ -180,17 +180,18 @@ const CheckoutPage = () => {
           quantity: quantity,
           price_per_meter: pricePerMeter,
           order_type: orderType,
-          image_url: fabric.images?.[0] || ""
+          image_url: fabric.images?.[0] || "",
+          dispatch_timeline: fabric.dispatch_timeline || (orderType === 'bulk' ? '15-20 days' : 'Ready Stock')
         }],
         customer: customer,
         notes: notes,
-        shipping: selectedShipping ? {
-          courier_id: selectedShipping.courier_id,
-          courier_name: selectedShipping.courier_name,
-          rate: selectedShipping.rate,
-          estimated_delivery_days: selectedShipping.estimated_delivery_days
+        coupon: appliedCoupon ? {
+          code: appliedCoupon.code,
+          discount_type: appliedCoupon.discount_type,
+          discount_value: appliedCoupon.discount_value,
+          discount_amount: discount
         } : null,
-        shipping_cost: shippingCost
+        discount: discount
       };
 
       const response = await createOrder(orderData);
