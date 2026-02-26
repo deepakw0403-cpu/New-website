@@ -436,41 +436,79 @@ const CheckoutPage = () => {
                   </div>
                 </div>
 
-                {/* Shipping Options - Auto-selected cheapest */}
-                {customer.pincode && customer.pincode.length === 6 && (
-                  <div className="bg-white rounded-xl p-6 border border-gray-200">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Package size={20} />
-                      Shipping
-                    </h2>
-                    
-                    {loadingShipping ? (
-                      <div className="flex items-center gap-3 py-4">
-                        <Loader2 className="animate-spin text-blue-600" size={20} />
-                        <span className="text-gray-600">Calculating shipping...</span>
+                {/* Logistics - Free */}
+                <div className="bg-white rounded-xl p-6 border border-gray-200">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Truck size={20} />
+                    Logistics
+                  </h2>
+                  <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="text-emerald-600" size={20} />
+                      <div>
+                        <p className="font-medium text-gray-900">Free Delivery</p>
+                        <p className="text-sm text-gray-600">
+                          Logistics charges included in the price
+                        </p>
                       </div>
-                    ) : shippingError ? (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-600">
-                        {shippingError}
-                      </div>
-                    ) : selectedShipping ? (
-                      <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <CheckCircle2 className="text-emerald-600" size={20} />
-                          <div>
-                            <p className="font-medium text-gray-900">Standard Delivery</p>
-                            <p className="text-sm text-gray-600">
-                              Estimated delivery in {selectedShipping.estimated_delivery_days || "5-7"} business days
-                            </p>
-                          </div>
-                        </div>
-                        <span className="font-semibold text-gray-900">₹{selectedShipping.rate}</span>
-                      </div>
-                    ) : (
-                      <p className="text-gray-500 py-4">Enter your pincode to calculate shipping</p>
-                    )}
+                    </div>
+                    <span className="font-semibold text-emerald-600">FREE</span>
                   </div>
-                )}
+                </div>
+
+                {/* Coupon Code */}
+                <div className="bg-white rounded-xl p-6 border border-gray-200">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Tag size={20} />
+                    Have a Coupon?
+                  </h2>
+                  
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle2 className="text-emerald-600" size={20} />
+                        <div>
+                          <p className="font-medium text-gray-900">{appliedCoupon.code}</p>
+                          <p className="text-sm text-emerald-600">
+                            You saved ₹{discount.toLocaleString()}!
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeCoupon}
+                        className="text-sm text-red-600 hover:text-red-700 font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          placeholder="Enter coupon code"
+                          className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none uppercase"
+                          data-testid="coupon-input"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyCoupon}
+                          disabled={couponLoading}
+                          className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+                          data-testid="apply-coupon-btn"
+                        >
+                          {couponLoading ? <Loader2 className="animate-spin" size={18} /> : "Apply"}
+                        </button>
+                      </div>
+                      {couponError && (
+                        <p className="mt-2 text-sm text-red-600">{couponError}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {/* Additional Notes */}
                 <div className="bg-white rounded-xl p-6 border border-gray-200">
