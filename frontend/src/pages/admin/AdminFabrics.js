@@ -882,54 +882,101 @@ const AdminFabrics = () => {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      EPI {!form.ppi && <span className="text-red-500">*</span>}
-                    </label>
-                    <select
-                      value={form.epi}
-                      onChange={(e) => setForm({ ...form, epi: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
-                      data-testid="fabric-epi-select"
-                    >
-                      <option value="">-- Select EPI --</option>
-                      {countOptions.map((n) => (
-                        <option key={n} value={n}>{n}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      PPI {!form.epi && <span className="text-red-500">*</span>}
-                    </label>
-                    <select
-                      value={form.ppi}
-                      onChange={(e) => setForm({ ...form, ppi: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
-                      data-testid="fabric-ppi-select"
-                    >
-                      <option value="">-- Select PPI --</option>
-                      {countOptions.map((n) => (
-                        <option key={n} value={n}>{n}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Count (Yarn)</label>
-                    <select
-                      value={form.yarn_count}
-                      onChange={(e) => setForm({ ...form, yarn_count: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
-                      data-testid="fabric-yarn-count-select"
-                    >
-                      <option value="">-- Select --</option>
-                      {countOptions.map((n) => (
-                        <option key={n} value={n}>{n}</option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
-                <p className="text-xs text-gray-500 -mt-3">At least one of EPI (Ends Per Inch) or PPI (Picks Per Inch) is required. Count refers to yarn count.</p>
+
+                {/* Count Fields - Conditional based on composition */}
+                {!isPolyester() ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Warp Count (Ply/Count) */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Warp Count {!form.weft_count && <span className="text-red-500">*</span>}
+                        </label>
+                        <div className="flex gap-2">
+                          <select
+                            value={form.warp_ply}
+                            onChange={(e) => setForm({ ...form, warp_ply: e.target.value })}
+                            className="w-20 px-3 py-2 border border-neutral-200 rounded-sm bg-white"
+                            data-testid="fabric-warp-ply"
+                          >
+                            {plyOptions.map((n) => (
+                              <option key={n} value={n}>{n} ply</option>
+                            ))}
+                          </select>
+                          <span className="flex items-center text-gray-400">/</span>
+                          <select
+                            value={form.warp_count}
+                            onChange={(e) => setForm({ ...form, warp_count: e.target.value })}
+                            className="flex-1 px-3 py-2 border border-neutral-200 rounded-sm bg-white"
+                            data-testid="fabric-warp-count"
+                          >
+                            <option value="">-- Count --</option>
+                            {yarnCountOptions.map((n) => (
+                              <option key={n} value={n}>{n}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      
+                      {/* Weft Count (Ply/Count) */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Weft Count {!form.warp_count && <span className="text-red-500">*</span>}
+                        </label>
+                        <div className="flex gap-2">
+                          <select
+                            value={form.weft_ply}
+                            onChange={(e) => setForm({ ...form, weft_ply: e.target.value })}
+                            className="w-20 px-3 py-2 border border-neutral-200 rounded-sm bg-white"
+                            data-testid="fabric-weft-ply"
+                          >
+                            {plyOptions.map((n) => (
+                              <option key={n} value={n}>{n} ply</option>
+                            ))}
+                          </select>
+                          <span className="flex items-center text-gray-400">/</span>
+                          <select
+                            value={form.weft_count}
+                            onChange={(e) => setForm({ ...form, weft_count: e.target.value })}
+                            className="flex-1 px-3 py-2 border border-neutral-200 rounded-sm bg-white"
+                            data-testid="fabric-weft-count"
+                          >
+                            <option value="">-- Count --</option>
+                            {yarnCountOptions.map((n) => (
+                              <option key={n} value={n}>{n}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 -mt-3">
+                      Format: Ply/Count (e.g., 2/40 means 2-ply, 40 count). At least one of Warp or Weft count is required.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Denier <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={form.denier}
+                          onChange={(e) => setForm({ ...form, denier: e.target.value })}
+                          className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                          data-testid="fabric-denier"
+                        >
+                          <option value="">-- Select Denier --</option>
+                          {denierOptions.map((n) => (
+                            <option key={n} value={n}>{n}D</option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">Denier value for polyester fabrics (1-100)</p>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Shrinkage & Stretch Fields - Available for all fabrics */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
