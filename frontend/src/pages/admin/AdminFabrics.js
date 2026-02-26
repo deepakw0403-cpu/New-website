@@ -154,6 +154,56 @@ const AdminFabrics = () => {
     fetchData();
   }, []);
 
+  // Filter fabrics when search or filters change
+  useEffect(() => {
+    let result = [...fabrics];
+    
+    // Text search - search in name, composition, tags, seller company, category
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(fabric => {
+        const nameMatch = fabric.name?.toLowerCase().includes(query);
+        const compositionMatch = Array.isArray(fabric.composition) 
+          ? fabric.composition.some(c => c.material?.toLowerCase().includes(query))
+          : fabric.composition?.toLowerCase().includes(query);
+        const tagsMatch = Array.isArray(fabric.tags) && fabric.tags.some(t => t.toLowerCase().includes(query));
+        const sellerMatch = fabric.seller_company?.toLowerCase().includes(query);
+        const categoryMatch = fabric.category_name?.toLowerCase().includes(query);
+        const colorMatch = fabric.color?.toLowerCase().includes(query);
+        const skuMatch = fabric.seller_sku?.toLowerCase().includes(query);
+        const codeMatch = fabric.fabric_code?.toLowerCase().includes(query);
+        
+        return nameMatch || compositionMatch || tagsMatch || sellerMatch || categoryMatch || colorMatch || skuMatch || codeMatch;
+      });
+    }
+    
+    // Category filter
+    if (filterCategory) {
+      result = result.filter(fabric => fabric.category_id === filterCategory);
+    }
+    
+    // Seller filter
+    if (filterSeller) {
+      result = result.filter(fabric => fabric.seller_id === filterSeller);
+    }
+    
+    // Availability filter
+    if (filterAvailability) {
+      result = result.filter(fabric => 
+        Array.isArray(fabric.availability) && fabric.availability.includes(filterAvailability)
+      );
+    }
+    
+    setFilteredFabrics(result);
+  }, [fabrics, searchQuery, filterCategory, filterSeller, filterAvailability]);
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterCategory("");
+    setFilterSeller("");
+    setFilterAvailability("");
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
