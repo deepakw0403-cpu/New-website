@@ -458,12 +458,91 @@ const AdminFabrics = () => {
   return (
     <AdminLayout>
       <div data-testid="admin-fabrics-page">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-semibold">Fabrics</h1>
           <button onClick={openCreateModal} className="btn-primary inline-flex items-center gap-2" data-testid="add-fabric-btn">
             <Plus size={18} />
             Add Fabric
           </button>
+        </div>
+
+        {/* Search & Filters */}
+        <div className="bg-white border border-gray-100 rounded-lg p-4 mb-6" data-testid="fabric-search-filters">
+          {/* Search Input */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search fabrics by name, composition, color, seller, SKU..."
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              data-testid="fabric-search-input"
+            />
+          </div>
+
+          {/* Filter Row */}
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="flex items-center gap-2 text-gray-500">
+              <Filter size={16} />
+              <span className="text-sm font-medium">Filters:</span>
+            </div>
+
+            {/* Category Filter */}
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500"
+              data-testid="filter-category"
+            >
+              <option value="">All Categories</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+
+            {/* Seller Filter */}
+            <select
+              value={filterSeller}
+              onChange={(e) => setFilterSeller(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500"
+              data-testid="filter-seller"
+            >
+              <option value="">All Sellers</option>
+              {sellers.map((seller) => (
+                <option key={seller.id} value={seller.id}>{seller.company_name}</option>
+              ))}
+            </select>
+
+            {/* Availability Filter */}
+            <select
+              value={filterAvailability}
+              onChange={(e) => setFilterAvailability(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500"
+              data-testid="filter-availability"
+            >
+              <option value="">All Availability</option>
+              <option value="Sample">Sample Available</option>
+              <option value="Bulk">Bulk Available</option>
+              <option value="On Request">On Request</option>
+            </select>
+
+            {/* Clear Filters Button */}
+            {(searchQuery || filterCategory || filterSeller || filterAvailability) && (
+              <button
+                onClick={clearFilters}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                data-testid="clear-filters-btn"
+              >
+                Clear all
+              </button>
+            )}
+
+            {/* Results Count */}
+            <div className="ml-auto text-sm text-gray-500">
+              Showing {filteredFabrics.length} of {fabrics.length} fabrics
+            </div>
+          </div>
         </div>
 
         {loading ? (
