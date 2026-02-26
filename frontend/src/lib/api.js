@@ -193,6 +193,14 @@ export const sendOrderConfirmation = (orderId) => api.post(`/email/order-confirm
 export const sendEnquiryNotification = (enquiry) => api.post("/email/enquiry-notification", enquiry);
 export const sendTestEmail = (email) => api.post(`/email/test?recipient=${email}`);
 
+// Coupons
+export const validateCoupon = (code, subtotal) => api.post("/coupons/validate", { code, subtotal });
+export const getCoupons = () => api.get("/coupons");
+export const getCoupon = (id) => api.get(`/coupons/${id}`);
+export const createCoupon = (data) => api.post("/coupons", data);
+export const updateCoupon = (id, data) => api.put(`/coupons/${id}`, data);
+export const deleteCoupon = (id) => api.delete(`/coupons/${id}`);
+
 // Vendor Portal
 export const vendorLogin = (data) => api.post("/vendor/login", data);
 export const getVendorProfile = () => api.get("/vendor/me");
