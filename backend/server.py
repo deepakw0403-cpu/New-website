@@ -194,6 +194,7 @@ class FabricUpdate(BaseModel):
     warp_count: Optional[str] = None
     weft_count: Optional[str] = None
     yarn_count: Optional[str] = None
+    denier: Optional[int] = None
     color: Optional[str] = None
     finish: Optional[str] = None
     moq: Optional[str] = None
