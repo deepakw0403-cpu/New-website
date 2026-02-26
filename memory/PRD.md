@@ -37,6 +37,26 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 26, 2026 - Additional Features
+- **WhatsApp Live Chat**: Floating WhatsApp button on all pages (bottom-right corner)
+  - Opens WhatsApp with pre-filled message to +91-8920392418
+  - Shows "Chat with us" on hover
+  - File: `frontend/src/components/WhatsAppChat.js`
+  
+- **Greige Category**: New fabric category added with full SEO metadata
+  - Name: Greige (raw unfinished fabrics)
+  - SEO optimized description and keywords
+  
+- **Count Fields Update**:
+  - For non-polyester fabrics: Warp Count and Weft Count in Ply/Count format
+    - Ply: 1 or 2
+    - Count: 1-100
+    - Format: "2/40" means 2-ply, 40 count
+  - For polyester fabrics: Denier field (1-100)
+  - Backend schema updated with `denier` field
+  - Admin form shows conditional fields based on composition
+  - Files: `backend/server.py`, `frontend/src/pages/admin/AdminFabrics.js`
+
 ### Feb 26, 2026 - v1.0 Release Ready: Logistics & Coupon Engine
 - **Simplified Logistics**: Removed Shiprocket integration, showing "Free Delivery - Logistics included in price"
 - **Coupon Engine**: Complete discount code system
