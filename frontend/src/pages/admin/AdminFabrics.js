@@ -115,6 +115,13 @@ const AdminFabrics = () => {
     { value: "On Request", label: "On Request", color: "bg-amber-50 text-amber-700 border-amber-200" },
   ];
 
+  // Check if composition contains polyester
+  const isPolyester = () => {
+    return form.composition.some(comp => 
+      comp.material && comp.material.toLowerCase().includes('polyester')
+    );
+  };
+
   const toggleAvailability = (value) => {
     if (form.availability.includes(value)) {
       setForm({ ...form, availability: form.availability.filter(v => v !== value) });
