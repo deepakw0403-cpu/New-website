@@ -129,6 +129,9 @@ function App() {
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmationPage />} />
           
+          {/* Seller Acquisition Landing Page */}
+          <Route path="/sell" element={<SellOnLocofast />} />
+          
           {/* Tools routes - SEO friendly individual pages */}
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/tools/gst-calculator" element={<GSTCalculator />} />
