@@ -467,6 +467,95 @@ const SellOnLocofast = () => {
           </div>
         </section>
 
+        {/* Video Testimonials Section */}
+        <section className="py-16 md:py-24 bg-white">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 rounded-full px-4 py-1.5 text-sm font-medium mb-4">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+                Supplier Stories
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+                Hear From Our Suppliers
+              </h2>
+              <p className="text-xl text-slate-600">
+                Real suppliers. Real results. No scripts.
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              {[
+                {
+                  title: "From Random Calls to Real Orders",
+                  thumbnail: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400&h=225&fit=crop",
+                  videoUrl: "", // Add video URL when available
+                  supplier: "Textile Mill Owner",
+                  location: "Ahmedabad"
+                },
+                {
+                  title: "How I Closed 5 Orders in Month 1",
+                  thumbnail: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&h=225&fit=crop",
+                  videoUrl: "", // Add video URL when available
+                  supplier: "Denim Manufacturer",
+                  location: "Surat"
+                },
+                {
+                  title: "Direct Buyers Changed Everything",
+                  thumbnail: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=225&fit=crop",
+                  videoUrl: "", // Add video URL when available
+                  supplier: "Fabric Trader",
+                  location: "Erode"
+                }
+              ].map((video, i) => (
+                <div 
+                  key={i}
+                  className="group bg-white rounded-xl overflow-hidden border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all cursor-pointer"
+                  onClick={() => {
+                    if (video.videoUrl) {
+                      window.open(video.videoUrl, '_blank');
+                    }
+                  }}
+                >
+                  <div className="relative aspect-video bg-slate-100">
+                    <img 
+                      src={video.thumbnail} 
+                      alt={video.title}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Play Button Overlay */}
+                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                      <div className="w-16 h-16 bg-white/90 group-hover:bg-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                        <svg className="w-7 h-7 text-slate-900 ml-1" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      </div>
+                    </div>
+                    {/* Duration Badge */}
+                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                      0:30
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
+                      {video.title}
+                    </h3>
+                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                      <Building2 size={14} />
+                      <span>{video.supplier}, {video.location}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <p className="text-center text-slate-500 mt-8 text-sm">
+              Videos coming soon. Want to share your story? <a href="https://wa.me/918920392418?text=I want to share my supplier experience" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Contact us</a>
+            </p>
+          </div>
+        </section>
+
         {/* Social Proof Section */}
         <section className="py-16 md:py-24 bg-slate-50">
           <div className="max-w-6xl mx-auto px-4">
