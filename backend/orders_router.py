@@ -796,7 +796,20 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
     elements.append(items_table)
-    elements.append(Spacer(1, 5*mm))
+    elements.append(Spacer(1, 3*mm))
+    
+    # Add bulk production note if there are bulk items
+    if has_bulk_items:
+        bulk_note = """<b>Note:</b> Lead time for bulk production items is estimated from the date of order confirmation 
+        and payment. Actual delivery may vary based on production schedules and material availability. 
+        You will receive tracking details once the order is dispatched."""
+        elements.append(Paragraph(bulk_note, ParagraphStyle(
+            'BulkNote', parent=styles['Normal'], fontSize=7, textColor=colors.HexColor('#b45309'),
+            backColor=colors.HexColor('#fef3c7'), borderPadding=5, leading=9
+        )))
+        elements.append(Spacer(1, 3*mm))
+    
+    elements.append(Spacer(1, 2*mm))
     
     # Totals Table
     subtotal = order.get('subtotal', 0)
