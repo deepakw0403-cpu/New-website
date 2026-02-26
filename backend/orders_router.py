@@ -173,10 +173,10 @@ async def create_order(order_data: OrderCreate):
     if not razorpay_client:
         raise HTTPException(status_code=503, detail="Payment service not configured")
     
-    # Calculate totals (including shipping)
+    # Calculate totals
     totals = calculate_totals(order_data.items)
-    shipping_cost = order_data.shipping_cost or 0
-    total_with_shipping = totals["total"] + shipping_cost
+    discount = order_data.discount or 0
+    final_total = max(0, totals["total"] - discount)
     
     # Generate order ID and number
     order_id = str(uuid.uuid4())
@@ -185,7 +185,7 @@ async def create_order(order_data: OrderCreate):
     # Create Razorpay order
     try:
         razorpay_order = razorpay_client.order.create({
-            "amount": int(total_with_shipping * 100),  # Amount in paise
+            "amount": int(final_total * 100),  # Amount in paise
             "currency": "INR",
             "receipt": order_number,
             "notes": {
@@ -207,17 +207,15 @@ async def create_order(order_data: OrderCreate):
         "customer": order_data.customer.model_dump(),
         "subtotal": totals["subtotal"],
         "tax": totals["tax"],
-        "shipping_cost": shipping_cost,
-        "shipping": order_data.shipping.model_dump() if order_data.shipping else None,
-        "total": total_with_shipping,
+        "discount": discount,
+        "coupon": order_data.coupon.model_dump() if order_data.coupon else None,
+        "total": final_total,
         "currency": "INR",
         "status": "payment_pending",
         "payment_status": "initiated",
         "razorpay_order_id": razorpay_order["id"],
         "razorpay_payment_id": "",
         "razorpay_signature": "",
-        "shiprocket_order_id": None,
-        "shiprocket_shipment_id": None,
         "awb_code": None,
         "notes": order_data.notes,
         "created_at": now,
