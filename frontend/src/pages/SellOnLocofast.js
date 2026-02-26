@@ -489,24 +489,24 @@ const SellOnLocofast = () => {
               {[
                 {
                   title: "From Random Calls to Real Orders",
-                  videoUrl: `${process.env.REACT_APP_BACKEND_URL}/api/uploads/video_afe387b7-3b77-46d4-8c06-8610db50c186.mp4`,
+                  videoUrl: `${process.env.REACT_APP_BACKEND_URL}/api/uploads/video_43a5cdc1-0c2c-459c-ba41-d2382aaf7084.mp4`,
                   supplier: "Textile Mill Owner",
                   location: "Ahmedabad",
                   hasVideo: true
                 },
                 {
                   title: "How I Closed 5 Orders in Month 1",
-                  videoUrl: "",
+                  videoUrl: `${process.env.REACT_APP_BACKEND_URL}/api/uploads/video_3793a790-275c-4cbf-8b4c-1c7cbd76615b.mp4`,
                   supplier: "Denim Manufacturer",
                   location: "Surat",
-                  hasVideo: false
+                  hasVideo: true
                 },
                 {
                   title: "Direct Buyers Changed Everything",
-                  videoUrl: "",
+                  videoUrl: `${process.env.REACT_APP_BACKEND_URL}/api/uploads/video_7d90f8a3-de34-4819-90d1-e046c70d6341.mp4`,
                   supplier: "Fabric Trader",
                   location: "Erode",
-                  hasVideo: false
+                  hasVideo: true
                 }
               ].map((video, i) => (
                 <div 
