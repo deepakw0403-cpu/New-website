@@ -62,22 +62,85 @@ const CheckoutPage = () => {
     if (fabric) {
       calculatePricing();
     }
-  }, [fabric, quantity, orderType, shippingCost]);
+  }, [fabric, quantity, orderType, discount]);
 
-  // Fetch shipping rates when pincode changes
-  useEffect(() => {
-    if (customer.pincode && customer.pincode.length === 6) {
-      fetchShippingRates();
-    } else {
-      setShippingRates([]);
-      setSelectedShipping(null);
-      setShippingCost(0);
+  const fetchFabric = async () => {
+    try {
+      const res = await getFabric(fabricId);
+      setFabric(res.data);
+    } catch (err) {
+      toast.error("Failed to load fabric details");
+      navigate("/fabrics");
     }
-  }, [customer.pincode]);
+    setLoading(false);
+  };
 
-  const fetchShippingRates = async () => {
-    setLoadingShipping(true);
-    setShippingError(null);
+  const calculatePricing = () => {
+    if (!fabric) return;
+    
+    let price = 0;
+    
+    if (orderType === "sample") {
+      price = fabric.sample_price || fabric.rate_per_meter || 0;
+    } else {
+      // Find applicable tier
+      const tiers = fabric.pricing_tiers || [];
+      for (const tier of tiers) {
+        if (quantity >= tier.min_qty && quantity <= tier.max_qty) {
+          price = tier.price_per_meter;
+          break;
+        }
+      }
+      if (!price) {
+        price = fabric.rate_per_meter || 0;
+      }
+    }
+    
+    const sub = price * quantity;
+    const taxAmount = sub * 0.05; // 5% GST
+    const finalTotal = sub + taxAmount - discount;
+    
+    setPricePerMeter(price);
+    setSubtotal(sub);
+    setTax(taxAmount);
+    setTotal(Math.max(0, finalTotal));
+  };
+
+  // Apply coupon
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError("Please enter a coupon code");
+      return;
+    }
+    
+    setCouponLoading(true);
+    setCouponError("");
+    
+    try {
+      const response = await validateCoupon(couponCode, subtotal);
+      if (response.data.valid) {
+        setAppliedCoupon(response.data.coupon);
+        setDiscount(response.data.discount_amount);
+        toast.success(`Coupon applied! You saved ₹${response.data.discount_amount.toLocaleString()}`);
+      } else {
+        setCouponError(response.data.message || "Invalid coupon");
+        setAppliedCoupon(null);
+        setDiscount(0);
+      }
+    } catch (err) {
+      setCouponError(err.response?.data?.detail || "Failed to validate coupon");
+      setAppliedCoupon(null);
+      setDiscount(0);
+    }
+    setCouponLoading(false);
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscount(0);
+    setCouponCode("");
+    setCouponError("");
+  };
     
     try {
       // Calculate weight based on quantity (assume 0.3kg per meter)
