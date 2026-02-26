@@ -404,21 +404,38 @@ const AdminFabrics = () => {
       return;
     }
 
-    // Validate EPI/PPI - at least one required
-    if (!form.epi && !form.ppi) {
-      toast.error("Please enter at least EPI or PPI");
-      return;
-    }
-
     // Filter out empty composition entries
     const cleanComposition = form.composition.filter(c => c.material && c.percentage > 0);
+    
+    // Check if polyester composition
+    const hasPolyester = cleanComposition.some(comp => 
+      comp.material && comp.material.toLowerCase().includes('polyester')
+    );
+
+    // Validate count fields
+    if (hasPolyester) {
+      if (!form.denier) {
+        toast.error("Please enter Denier value for polyester fabric");
+        return;
+      }
+    } else {
+      if (!form.warp_count && !form.weft_count) {
+        toast.error("Please enter at least Warp Count or Weft Count");
+        return;
+      }
+    }
+
+    // Build warp_count and weft_count in ply/count format
+    const warpCountFormatted = form.warp_count ? `${form.warp_ply}/${form.warp_count}` : "";
+    const weftCountFormatted = form.weft_count ? `${form.weft_ply}/${form.weft_count}` : "";
 
     const payload = {
       ...form,
       gsm: form.gsm ? parseInt(form.gsm) : null,
-      warp_count: form.epi,  // Map to backend field names
-      weft_count: form.ppi,  // Map to backend field names
+      warp_count: warpCountFormatted,
+      weft_count: weftCountFormatted,
       yarn_count: form.yarn_count,
+      denier: hasPolyester && form.denier ? parseInt(form.denier) : null,
       composition: cleanComposition,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
       videos: form.videos || [],
@@ -444,8 +461,8 @@ const AdminFabrics = () => {
     };
     
     // Remove frontend-only fields
-    delete payload.epi;
-    delete payload.ppi;
+    delete payload.warp_ply;
+    delete payload.weft_ply;
 
     try {
       if (editingFabric) {
