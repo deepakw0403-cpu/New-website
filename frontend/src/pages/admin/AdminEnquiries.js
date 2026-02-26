@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { getEnquiries, updateEnquiryStatus } from "../../lib/api";
+import { getEnquiries, updateEnquiryStatus, deleteEnquiry } from "../../lib/api";
 
 const AdminEnquiries = () => {
   const [enquiries, setEnquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+  const [deleting, setDeleting] = useState(null);
 
   const statusOptions = ["new", "contacted", "in_progress", "completed", "closed"];
 
