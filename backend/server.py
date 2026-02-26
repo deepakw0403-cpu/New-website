@@ -152,9 +152,10 @@ class FabricCreate(BaseModel):
     ounce: Optional[str] = ""  # Ounce value (alternative to GSM)
     weight_unit: str = "gsm"  # "gsm" or "ounce"
     width: str
-    warp_count: Optional[str] = ""  # EPI - Ends per inch
-    weft_count: Optional[str] = ""  # PPI - Picks per inch
+    warp_count: Optional[str] = ""  # For non-polyester: ply/count format (e.g., "2/40")
+    weft_count: Optional[str] = ""  # For non-polyester: ply/count format (e.g., "1/30")
     yarn_count: Optional[str] = ""  # Yarn count (e.g., 40s, 60s, 2/40)
+    denier: Optional[int] = None  # For polyester: denier value (1-100)
     color: str
     finish: Optional[str] = ""  # Bio, Double bio, Silicon, etc.
     moq: str
