@@ -730,23 +730,39 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     # Items Table
     elements.append(Paragraph("Order Items", heading_style))
     
-    # Table Header
+    # Table Header - Added Lead Time column
     items_data = [
-        ['#', 'Description', 'HSN', 'Qty (m)', 'Rate (₹/m)', 'Amount (₹)']
+        ['#', 'Description', 'HSN', 'Qty (m)', 'Rate (₹/m)', 'Lead Time', 'Amount (₹)']
     ]
     
     # Table Rows
     items = order.get('items', [])
+    has_bulk_items = False
+    
     for idx, item in enumerate(items, 1):
         qty = item.get('quantity', 0)
         rate = item.get('price_per_meter', 0)
         amount = qty * rate
+        order_type = item.get('order_type', '').lower()
         
         description = f"{item.get('fabric_name', 'Fabric')}"
         if item.get('fabric_code'):
             description += f"\nCode: {item.get('fabric_code')}"
-        if item.get('order_type'):
-            description += f"\nType: {item.get('order_type', '').title()}"
+        if order_type:
+            description += f"\nType: {order_type.title()}"
+        
+        # Determine lead time based on order type
+        if order_type == 'sample':
+            lead_time = "Ready Stock"
+        else:
+            # Bulk order - check for dispatch_timeline or use default
+            has_bulk_items = True
+            dispatch_timeline = item.get('dispatch_timeline')
+            if dispatch_timeline:
+                lead_time = dispatch_timeline
+            else:
+                # Default lead time for bulk production
+                lead_time = "15-20 days"
         
         items_data.append([
             str(idx),
@@ -754,10 +770,11 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
             '5407',  # HSN code for fabrics
             str(qty),
             f"₹{rate:,.2f}",
+            lead_time,
             f"₹{amount:,.2f}"
         ])
     
-    items_table = Table(items_data, colWidths=[10*mm, 70*mm, 18*mm, 20*mm, 28*mm, 30*mm])
+    items_table = Table(items_data, colWidths=[8*mm, 58*mm, 15*mm, 18*mm, 24*mm, 25*mm, 28*mm])
     items_table.setStyle(TableStyle([
         # Header
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e40af')),
