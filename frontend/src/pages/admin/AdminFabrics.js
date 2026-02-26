@@ -42,9 +42,14 @@ const AdminFabrics = () => {
     ounce: "",
     weight_unit: "gsm",
     width: "",
-    epi: "",
-    ppi: "",
+    // Count fields for non-polyester (ply/count format)
+    warp_ply: "1",
+    warp_count: "",
+    weft_ply: "1",
+    weft_count: "",
     yarn_count: "",
+    // Denier for polyester
+    denier: "",
     color: "",
     finish: "",
     moq: "",
