@@ -38,6 +38,24 @@ const AdminEnquiries = () => {
     }
   };
 
+  const handleDelete = async (enquiryId, e) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this enquiry?")) return;
+    
+    setDeleting(enquiryId);
+    try {
+      await deleteEnquiry(enquiryId);
+      toast.success("Enquiry deleted");
+      if (selectedEnquiry?.id === enquiryId) {
+        setSelectedEnquiry(null);
+      }
+      fetchEnquiries();
+    } catch (err) {
+      toast.error("Failed to delete enquiry");
+    }
+    setDeleting(null);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case "new":
