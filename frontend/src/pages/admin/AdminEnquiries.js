@@ -147,6 +147,17 @@ const AdminEnquiries = () => {
                           ))}
                         </select>
                       </td>
+                      <td className="p-4 text-right">
+                        <button
+                          onClick={(e) => handleDelete(enquiry.id, e)}
+                          disabled={deleting === enquiry.id}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                          title="Delete enquiry"
+                          data-testid={`delete-enquiry-${enquiry.id}`}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
