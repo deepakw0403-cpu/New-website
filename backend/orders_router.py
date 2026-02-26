@@ -780,14 +780,16 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e40af')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
         # Body
         ('FONTSIZE', (0, 1), (-1, -1), 8),
-        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
-        ('ALIGN', (2, 1), (-1, -1), 'CENTER'),
-        ('ALIGN', (4, 1), (-1, -1), 'RIGHT'),
-        ('ALIGN', (5, 1), (-1, -1), 'RIGHT'),
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # #
+        ('ALIGN', (2, 1), (2, -1), 'CENTER'),  # HSN
+        ('ALIGN', (3, 1), (3, -1), 'CENTER'),  # Qty
+        ('ALIGN', (4, 1), (4, -1), 'RIGHT'),   # Rate
+        ('ALIGN', (5, 1), (5, -1), 'CENTER'),  # Lead Time
+        ('ALIGN', (6, 1), (6, -1), 'RIGHT'),   # Amount
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         # Grid
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e5e7eb')),
