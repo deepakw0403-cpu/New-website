@@ -972,7 +972,7 @@ const AdminFabrics = () => {
                             <option key={n} value={n}>{n}D</option>
                           ))}
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">Denier value for polyester fabrics (1-100)</p>
+                        <p className="text-xs text-gray-500 mt-1">Denier value for polyester fabrics (1-200)</p>
                       </div>
                     </div>
                   </>
