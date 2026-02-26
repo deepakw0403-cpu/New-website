@@ -37,6 +37,18 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 26, 2026 - v1.0 Release Ready: Logistics & Coupon Engine
+- **Simplified Logistics**: Removed Shiprocket integration, showing "Free Delivery - Logistics included in price"
+- **Coupon Engine**: Complete discount code system
+  - Admin panel: Create, edit, delete coupons at `/admin/coupons`
+  - Coupon types: Percentage or fixed amount discount
+  - Validations: Min order value, max discount cap, usage limits, validity dates
+  - Checkout: Apply coupon with real-time discount calculation
+- **Backend**: `POST /api/coupons/validate`, CRUD endpoints for coupon management
+- **Files Added**: `backend/coupon_router.py`, `frontend/src/pages/admin/AdminCoupons.js`
+- **Files Updated**: `CheckoutPage.js`, `orders_router.py`, `AdminLayout.js`, `App.js`, `api.js`
+- **Status**: COMPLETED
+
 ### Feb 26, 2026 - Admin Fabric Search & Filters
 - **Feature**: Added comprehensive search and filter functionality to Admin Fabrics page
 - **Search Fields**: Name, composition, color, seller company, category, SKU, fabric code, tags
