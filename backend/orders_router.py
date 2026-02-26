@@ -817,7 +817,7 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     # Totals Table
     subtotal = order.get('subtotal', 0)
     tax = order.get('tax', 0)
-    shipping = order.get('shipping_cost', 0)
+    discount = order.get('discount', 0)
     total = order.get('total', 0)
     
     # GST split (CGST + SGST for intra-state, IGST for inter-state)
@@ -828,10 +828,13 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
         ['Subtotal:', f"₹{subtotal:,.2f}"],
         ['CGST (2.5%):', f"₹{cgst:,.2f}"],
         ['SGST (2.5%):', f"₹{sgst:,.2f}"],
+        ['Logistics:', 'FREE (Included)'],
     ]
     
-    if shipping > 0:
-        totals_data.append(['Shipping:', f"₹{shipping:,.2f}"])
+    if discount > 0:
+        coupon = order.get('coupon', {})
+        coupon_code = coupon.get('code', 'DISCOUNT') if coupon else 'DISCOUNT'
+        totals_data.append([f'Coupon ({coupon_code}):', f"-₹{discount:,.2f}"])
     
     totals_data.append(['TOTAL:', f"₹{total:,.2f}"])
     
