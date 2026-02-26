@@ -825,36 +825,17 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     ))
     elements.append(Spacer(1, 5*mm))
     
-    # Shipping Info (if available)
-    shipping_info = order.get('shipping', {})
-    if shipping_info:
-        elements.append(Paragraph("Shipping Details", heading_style))
-        ship_data = []
-        if shipping_info.get('courier_name'):
-            ship_data.append(['Courier:', shipping_info.get('courier_name', 'N/A')])
-        if shipping_info.get('estimated_delivery_days'):
-            ship_data.append(['Est. Delivery:', f"{shipping_info.get('estimated_delivery_days', 'N/A')} days"])
-        if order.get('awb_code'):
-            ship_data.append(['AWB/Tracking:', order.get('awb_code', 'N/A')])
-        
-        if ship_data:
-            ship_table = Table(ship_data, colWidths=[40*mm, 136*mm])
-            ship_table.setStyle(TableStyle([
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                ('TOPPADDING', (0, 0), (-1, -1), 3),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-            ]))
-            elements.append(ship_table)
-            elements.append(Spacer(1, 5*mm))
-    
     # Terms and Conditions
     elements.append(Paragraph("Terms & Conditions", heading_style))
     terms = """
     1. Goods once sold will not be taken back or exchanged.<br/>
-    2. All disputes are subject to Gurgaon jurisdiction only.<br/>
-    3. E&OE (Errors and Omissions Excepted).<br/>
-    4. This is a computer-generated invoice and does not require a physical signature.
+    2. All disputes are subject to Delhi jurisdiction only.<br/>
+    3. Payment must be made in full before dispatch of goods.<br/>
+    4. Delivery timelines are estimates and may vary based on availability.<br/>
+    5. E&OE (Errors and Omissions Excepted).<br/>
+    6. This is a computer-generated invoice and does not require a physical signature.<br/><br/>
+    <b>For any queries, contact us at:</b><br/>
+    Email: mail@locofast.com | Phone: +91-8920392418
     """
     elements.append(Paragraph(terms, ParagraphStyle(
         'Terms', parent=styles['Normal'], fontSize=7, textColor=colors.grey, leading=10
@@ -864,7 +845,7 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     
     # Footer
     elements.append(Paragraph(
-        "Thank you for your business! | www.locofast.com | b2c@locofast.com",
+        "Thank you for your business! | www.locofast.com | mail@locofast.com | +91-8920392418",
         ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, alignment=TA_CENTER, textColor=colors.grey)
     ))
     
