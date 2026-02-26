@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Layers, FolderOpen, Building2, Package, MessageSquare, LogOut, ArrowLeft, Palette, Search, FileText, ShoppingCart } from "lucide-react";
+import { LayoutDashboard, Layers, FolderOpen, Building2, Package, MessageSquare, LogOut, ArrowLeft, Palette, Search, FileText, ShoppingCart, Tag } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 const AdminLayout = ({ children }) => {
@@ -15,6 +15,7 @@ const AdminLayout = ({ children }) => {
     { path: "/admin/categories", label: "Categories", icon: FolderOpen },
     { path: "/admin/sellers", label: "Sellers", icon: Building2 },
     { path: "/admin/collections", label: "Collections", icon: Package },
+    { path: "/admin/coupons", label: "Coupons", icon: Tag },
     { path: "/admin/enquiries", label: "Enquiries", icon: MessageSquare },
     { path: "/admin/blog", label: "Blog", icon: FileText },
     { path: "/admin/seo", label: "SEO Content", icon: Search },
