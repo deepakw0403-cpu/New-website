@@ -100,6 +100,7 @@ export const deleteArticle = (id) => api.delete(`/articles/${id}`);
 export const createEnquiry = (data) => api.post("/enquiries", data);
 export const getEnquiries = () => api.get("/enquiries");
 export const updateEnquiryStatus = (id, status) => api.put(`/enquiries/${id}/status?status=${status}`);
+export const deleteEnquiry = (id) => api.delete(`/enquiries/${id}`);
 
 // Collections
 export const getCollections = () => api.get("/collections");
