@@ -239,6 +239,7 @@ class Fabric(BaseModel):
     warp_count: str = ""
     weft_count: str = ""
     yarn_count: str = ""
+    denier: Optional[int] = None
     color: str
     finish: str = ""
     moq: str
