@@ -149,12 +149,12 @@ const FabricDetailPage = () => {
 
       if (orderModalType === "sample") {
         enquiryData.enquiry_type = "sample_order";
-        enquiryData.quantity_required = `${sampleQty} meters (sample)`;
-        enquiryData.message = `Sample Order: ${sampleQty}m × ₹${cartValue?.pricePerMeter?.toLocaleString()}/m = ₹${cartValue?.totalPrice?.toLocaleString()}\n\n${orderForm.message || ""}`;
+        enquiryData.quantity_required = `${sampleQty} ${unit.plural} (sample)`;
+        enquiryData.message = `Sample Order: ${sampleQty}${unit.short} × ₹${cartValue?.pricePerMeter?.toLocaleString()}${unit.priceLabel} = ₹${cartValue?.totalPrice?.toLocaleString()}\n\n${orderForm.message || ""}`;
       } else if (orderModalType === "bulk") {
         enquiryData.enquiry_type = "bulk_order";
-        enquiryData.quantity_required = `${bulkQty} meters`;
-        enquiryData.message = `Bulk Order: ${bulkQty}m × ₹${cartValue?.pricePerMeter?.toLocaleString()}/m = ₹${cartValue?.totalPrice?.toLocaleString()}\n\n${orderForm.message || ""}`;
+        enquiryData.quantity_required = `${bulkQty} ${unit.plural}`;
+        enquiryData.message = `Bulk Order: ${bulkQty}${unit.short} × ₹${cartValue?.pricePerMeter?.toLocaleString()}${unit.priceLabel} = ₹${cartValue?.totalPrice?.toLocaleString()}\n\n${orderForm.message || ""}`;
       }
 
       await createEnquiry(enquiryData);
