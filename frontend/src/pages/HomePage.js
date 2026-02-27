@@ -384,34 +384,34 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* ========== ABOUT / TRUST BLOCK ========== */}
+        {/* ========== ABOUT / PLATFORM BLOCK ========== */}
         <section className="py-20 lg:py-28 bg-gradient-to-b from-blue-50 to-white" data-testid="about-section">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="max-w-3xl mx-auto text-center">
-              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Who We Are</p>
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">The Platform</p>
               <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900 mb-6">
-                We're a Team of Sourcing Architects
+                India's Most Intelligent B2B Fabric Marketplace
               </h2>
               <div className="space-y-4 text-neutral-600 leading-relaxed text-lg">
                 <p>
-                  Built by sourcing, operations, and tech professionals — not random sellers. We understand the challenges brands and manufacturers face because we've lived them.
+                  Locofast is a powerful platform that accurately connects your fabric requirements to the best-suited sellers from our verified network of 500+ textile partners across India.
                 </p>
                 <p>
-                  We manage your end-to-end requirements so you get clarity and confidence, not chaos. Every fabric option is vetted, every timeline is realistic, and every price is transparent.
+                  Our <span className="font-semibold text-[#2563EB]">Money Safety Guarantee</span> ensures buyers have complete peace of mind — your payments are protected until you're satisfied with your order.
                 </p>
               </div>
               <div className="flex flex-wrap justify-center gap-8 mt-12">
                 <div className="text-center">
                   <p className="text-4xl font-bold text-[#2563EB]">500+</p>
-                  <p className="text-neutral-600 text-sm">Brands Served</p>
+                  <p className="text-neutral-600 text-sm">Seller Partners</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-4xl font-bold text-[#2563EB]">200+</p>
-                  <p className="text-neutral-600 text-sm">Verified Mills</p>
+                  <p className="text-4xl font-bold text-[#2563EB]">10K+</p>
+                  <p className="text-neutral-600 text-sm">Fabric Varieties</p>
                 </div>
                 <div className="text-center">
                   <p className="text-4xl font-bold text-[#2563EB]">50K+</p>
-                  <p className="text-neutral-600 text-sm">Orders Fulfilled</p>
+                  <p className="text-neutral-600 text-sm">Orders Delivered</p>
                 </div>
               </div>
               <Link
