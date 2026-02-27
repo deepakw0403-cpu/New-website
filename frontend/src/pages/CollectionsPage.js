@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Package, ArrowRight, ArrowLeft } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -24,6 +25,13 @@ const CollectionsPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+      <Helmet>
+        <title>Fabric Collections - Curated Selections for Fashion | Locofast</title>
+        <meta name="description" content="Explore curated fabric collections organized by occasion, season, and application. Premium textiles for fashion brands, designers, and manufacturers. Sample orders available." />
+        <meta property="og:title" content="Fabric Collections - Curated Selections for Fashion | Locofast" />
+        <meta property="og:description" content="Explore curated fabric collections organized by occasion, season, and application. Premium textiles for fashion brands." />
+        <link rel="canonical" href={`${window.location.origin}/collections`} />
+      </Helmet>
       <Navbar />
       <main className="flex-grow pt-20">
         {/* Header */}
