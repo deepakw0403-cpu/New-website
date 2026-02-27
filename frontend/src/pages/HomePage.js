@@ -162,24 +162,24 @@ const HomePage = () => {
             <div className="max-w-3xl mx-auto text-center">
               <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white/90 px-4 py-2 rounded-full text-sm mb-8">
                 <Sparkles size={16} />
-                Trusted by 500+ brands & manufacturers across India
+                Trusted by 500+ across India & the globe
               </div>
               
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white leading-tight mb-6" data-testid="hero-headline">
-                Reliable Fabric Sourcing for Brands & Manufacturers
+                Buy Fabrics from India's Largest B2B Textile Platform
               </h1>
               
               <p className="text-lg md:text-xl text-white/80 leading-relaxed mb-10 max-w-2xl mx-auto">
-                We simplify your sourcing process with verified suppliers, clear timelines, and curated options — so you can focus on production, not logistics.
+                Connect directly with 500+ verified seller partners. Get instant access to quality fabrics with transparent pricing, clear MOQs, and secure payments.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
-                  to="/assisted-sourcing"
+                  to="/fabrics"
                   className="inline-flex items-center justify-center gap-2 bg-white text-[#2563EB] px-8 py-4 rounded-lg font-medium hover:bg-blue-50 transition-all hover:gap-3 shadow-lg shadow-blue-900/20"
                   data-testid="hero-cta-primary"
                 >
-                  Get Curated Options
+                  Browse Fabrics
                   <ArrowRight size={18} />
                 </Link>
                 <Link
@@ -188,7 +188,7 @@ const HomePage = () => {
                   data-testid="hero-cta-secondary"
                 >
                   <MessageCircle size={18} />
-                  Talk to a Fabric Expert
+                  Talk to Us
                 </Link>
               </div>
 
