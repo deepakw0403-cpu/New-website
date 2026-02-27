@@ -209,20 +209,20 @@ const HomePage = () => {
         <section className="py-20 lg:py-28 bg-white" data-testid="audience-section">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Who We Serve</p>
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Who Uses Locofast</p>
               <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
-                Built for Brands & Manufacturers
+                Built for Brands, Manufacturers & Sourcing Professionals
               </h2>
             </div>
             
-            <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               {audiences.map((audience, index) => (
-                <div key={index} className="text-center p-8">
-                  <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <audience.icon size={32} className="text-[#2563EB]" />
+                <div key={index} className="text-center p-6">
+                  <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                    <audience.icon size={28} className="text-[#2563EB]" />
                   </div>
-                  <h3 className="text-xl font-semibold text-neutral-900 mb-3">{audience.title}</h3>
-                  <p className="text-neutral-600 leading-relaxed">{audience.description}</p>
+                  <h3 className="text-lg font-semibold text-neutral-900 mb-2">{audience.title}</h3>
+                  <p className="text-neutral-600 text-sm leading-relaxed">{audience.description}</p>
                 </div>
               ))}
             </div>
