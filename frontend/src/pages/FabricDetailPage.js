@@ -941,7 +941,7 @@ const FabricDetailPage = () => {
                     )}
                     {orderModalType === "bulk" && fabric.quantity_available > 0 && (
                       <p className="text-xs text-emerald-600 mt-1 font-medium">
-                        {fabric.quantity_available?.toLocaleString()} meters available
+                        {fabric.quantity_available?.toLocaleString()} {unit.plural} available
                       </p>
                     )}
                   </div>
@@ -950,7 +950,7 @@ const FabricDetailPage = () => {
                 {/* Quantity Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {orderModalType === "sample" ? "Sample Quantity" : "Bulk Quantity (meters)"}
+                    {orderModalType === "sample" ? "Sample Quantity" : `Bulk Quantity (${unit.plural})`}
                   </label>
                   {orderModalType === "sample" ? (
                     <select
@@ -960,7 +960,7 @@ const FabricDetailPage = () => {
                       data-testid="detail-sample-qty"
                     >
                       {[1, 2, 3, 4, 5].map((qty) => (
-                        <option key={qty} value={qty}>{qty} meter{qty > 1 ? "s" : ""}</option>
+                        <option key={qty} value={qty}>{qty} {unit.singular}{qty > 1 && unit.singular !== 'kg' ? "s" : ""}</option>
                       ))}
                     </select>
                   ) : (
@@ -970,7 +970,7 @@ const FabricDetailPage = () => {
                       max={fabric.quantity_available || 10000}
                       value={bulkQty}
                       onChange={(e) => setBulkQty(e.target.value)}
-                      placeholder="Enter quantity in meters"
+                      placeholder={`Enter quantity in ${unit.plural}`}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
                       data-testid="detail-bulk-qty"
                     />
@@ -984,8 +984,8 @@ const FabricDetailPage = () => {
                     <div className="space-y-1">
                       {fabric.pricing_tiers.map((tier, idx) => (
                         <div key={idx} className="flex justify-between text-sm">
-                          <span className="text-blue-700">{tier.min_qty} - {tier.max_qty} meters</span>
-                          <span className="font-medium text-blue-900">₹{tier.price_per_meter}/m</span>
+                          <span className="text-blue-700">{tier.min_qty} - {tier.max_qty} {unit.plural}</span>
+                          <span className="font-medium text-blue-900">₹{tier.price_per_meter}{unit.priceLabel}</span>
                         </div>
                       ))}
                     </div>
@@ -998,10 +998,10 @@ const FabricDetailPage = () => {
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="text-sm text-gray-300">
-                          {orderModalType === "sample" ? `${sampleQty} meter${sampleQty > 1 ? "s" : ""}` : `${bulkQty} meters`}
+                          {orderModalType === "sample" ? `${sampleQty} ${unit.singular}${sampleQty > 1 && unit.singular !== 'kg' ? "s" : ""}` : `${bulkQty} ${unit.plural}`}
                           {cartValue.tierLabel && <span className="ml-1">({cartValue.tierLabel})</span>}
                         </p>
-                        <p className="text-xs text-gray-400">@ ₹{cartValue.pricePerMeter?.toLocaleString()}/m</p>
+                        <p className="text-xs text-gray-400">@ ₹{cartValue.pricePerMeter?.toLocaleString()}{unit.priceLabel}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold">₹{cartValue.totalPrice?.toLocaleString()}</p>
