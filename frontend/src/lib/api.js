@@ -41,7 +41,10 @@ api.interceptors.response.use(
         '/sellers',
         '/collections',
         '/articles',
-        '/seo/'
+        '/seo/',
+        '/upload',
+        '/coupons',
+        '/orders'
       ];
       
       // Check if this was an auth-required endpoint
