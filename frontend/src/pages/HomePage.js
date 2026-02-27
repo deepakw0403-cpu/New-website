@@ -63,31 +63,23 @@ const HomePage = () => {
   const testimonials = [
     {
       quote: "Locofast has transformed how we source fabrics. The platform connects us directly with verified sellers — no middlemen, no delays.",
-      author: "Rahul Verma",
-      role: "Production Head",
-      company: "Excel Garments",
-      location: "Delhi"
+      author: "Garment Manufacturer",
+      location: "Bangladesh"
     },
     {
       quote: "Finally, a platform that understands B2B fabric sourcing. The money safety guarantee gives us peace of mind on every order.",
-      author: "Sneha Patel",
-      role: "Founder",
-      company: "Urban Thread",
-      location: "Bangalore"
+      author: "Fashion Brand",
+      location: "Delhi"
     },
     {
       quote: "The clarity on MOQ and pricing saved us weeks of back-and-forth. Our sourcing time has reduced by 60%.",
-      author: "Amit Shah",
-      role: "Supply Chain Manager",
-      company: "Fashion Forward Exports",
-      location: "Mumbai"
+      author: "Export Manufacturer",
+      location: "Sri Lanka"
     },
     {
-      quote: "As a buying house, we need reliable suppliers fast. Locofast's platform delivers quality matches within hours.",
-      author: "Priya Sharma",
-      role: "Sourcing Director",
-      company: "Global Buying Solutions",
-      location: "Gurugram"
+      quote: "As a private label business, we need reliable suppliers fast. Locofast's platform delivers quality matches within hours.",
+      author: "Private Label",
+      location: "Mumbai"
     }
   ];
 
