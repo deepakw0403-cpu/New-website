@@ -245,25 +245,61 @@ const FabricDetailPage = () => {
     };
     schemas.push(breadcrumbSchema);
     
-    // Product Schema
+    // Product Schema - Enhanced for rich snippets
     const productSchema = {
       "@context": "https://schema.org",
       "@type": "Product",
       "name": fabric.name,
-      "description": seoContent?.seo_intro || fabric.description,
+      "description": seoContent?.seo_intro || fabric.description || `${fabric.name} - ${fabric.composition?.map(c => `${c.percentage}% ${c.material}`).join(', ') || ''} fabric available for bulk and sample orders.`,
       "category": fabric.category_name,
       "brand": {
         "@type": "Brand",
         "name": fabric.seller_company || "Locofast"
-      }
+      },
+      "manufacturer": {
+        "@type": "Organization",
+        "name": fabric.seller_company || "Locofast"
+      },
+      "material": fabric.composition?.map(c => c.material).join(', ') || undefined,
+      "color": fabric.color || undefined,
+      "weight": fabric.gsm ? `${fabric.gsm} GSM` : (fabric.ounce ? `${fabric.ounce} oz` : undefined),
+      "width": fabric.width ? `${fabric.width} inches` : undefined
     };
     
     if (fabric.images?.length > 0) {
-      productSchema.image = fabric.images;
+      productSchema.image = fabric.images.map(img => 
+        img.startsWith('http') ? img : `${window.location.origin}${img}`
+      );
     }
     
     if (fabric.fabric_code) {
       productSchema.sku = fabric.fabric_code;
+    }
+
+    // Add offers/pricing if available
+    if (fabric.sample_price || fabric.rate_per_meter) {
+      productSchema.offers = {
+        "@type": "Offer",
+        "priceCurrency": "INR",
+        "price": fabric.sample_price || fabric.rate_per_meter,
+        "priceValidUntil": new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        "availability": fabric.is_bookable && fabric.quantity_available > 0 
+          ? "https://schema.org/InStock" 
+          : "https://schema.org/PreOrder",
+        "seller": {
+          "@type": "Organization",
+          "name": fabric.seller_company || "Locofast"
+        }
+      };
+    }
+
+    // Add aggregate rating placeholder (can be populated if reviews exist)
+    if (fabric.rating) {
+      productSchema.aggregateRating = {
+        "@type": "AggregateRating",
+        "ratingValue": fabric.rating,
+        "reviewCount": fabric.review_count || 1
+      };
     }
     
     schemas.push(productSchema);
