@@ -225,6 +225,11 @@ const Footer = () => {
             <h4 className="subheading text-neutral-500 mb-4">Resources</h4>
             <ul className="space-y-3">
               <li>
+                <Link to="/rfq" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-rfq">
+                  Request for Quote
+                </Link>
+              </li>
+              <li>
                 <Link to="/blog" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-blog">
                   Blog
                 </Link>
