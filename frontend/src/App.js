@@ -122,6 +122,8 @@ function App() {
           <Route path="/media" element={<><Navbar /><MediaPage /><Footer /></>} />
           <Route path="/careers" element={<><Navbar /><CareersPage /><Footer /></>} />
           <Route path="/assisted-sourcing" element={<AssistedSourcingPage />} />
+          <Route path="/rfq" element={<RFQPage />} />
+          <Route path="/request-quote" element={<RFQPage />} />
           
           {/* Blog routes */}
           <Route path="/blog" element={<BlogPage />} />
