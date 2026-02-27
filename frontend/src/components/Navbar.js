@@ -83,7 +83,11 @@ const Navbar = () => {
                 to={link.path}
                 onClick={() => setMobileOpen(false)}
                 className={`block text-lg font-medium ${
-                  isActive(link.path) ? "text-[#2563EB]" : "text-gray-600"
+                  link.highlight 
+                    ? "text-[#2563EB]" 
+                    : isActive(link.path) 
+                      ? "text-[#2563EB]" 
+                      : "text-gray-600"
                 }`}
               >
                 {link.label}
