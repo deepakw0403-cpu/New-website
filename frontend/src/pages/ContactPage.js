@@ -211,6 +211,7 @@ const ContactPage = () => {
         </div>
       </section>
     </main>
+    </>
   );
 };
 
