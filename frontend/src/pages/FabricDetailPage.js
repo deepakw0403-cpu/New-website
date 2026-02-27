@@ -570,12 +570,12 @@ const FabricDetailPage = () => {
                   <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
                     <div>
                       <p className="text-sm text-gray-500">Sample Price</p>
-                      <p className="text-2xl font-bold text-emerald-600">₹{actions.samplePrice?.toLocaleString()}<span className="text-sm font-normal text-gray-500">/m</span></p>
+                      <p className="text-2xl font-bold text-emerald-600">₹{actions.samplePrice?.toLocaleString()}<span className="text-sm font-normal text-gray-500">{unit.priceLabel}</span></p>
                     </div>
                     {fabric.quantity_available > 0 && (
                       <div className="text-right">
                         <p className="text-sm text-gray-500">Total Available</p>
-                        <p className="text-lg font-semibold text-gray-900">{fabric.quantity_available?.toLocaleString()}m</p>
+                        <p className="text-lg font-semibold text-gray-900">{fabric.quantity_available?.toLocaleString()}{unit.short}</p>
                       </div>
                     )}
                   </div>
@@ -587,7 +587,7 @@ const FabricDetailPage = () => {
                     <div className="flex flex-wrap gap-2">
                       {fabric.pricing_tiers?.slice(0, 3).map((tier, idx) => (
                         <span key={idx} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
-                          {tier.min_qty}-{tier.max_qty}m: ₹{tier.price_per_meter}/m
+                          {tier.min_qty}-{tier.max_qty}{unit.short}: ₹{tier.price_per_meter}{unit.priceLabel}
                         </span>
                       ))}
                       {fabric.pricing_tiers?.length > 3 && (
