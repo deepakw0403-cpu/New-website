@@ -497,10 +497,10 @@ const HomePage = () => {
       {/* ========== STICKY CTA BAR (Mobile) ========== */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 z-40 md:hidden" data-testid="sticky-cta">
         <Link
-          to="/assisted-sourcing"
+          to="/fabrics"
           className="flex items-center justify-center gap-2 bg-[#2563EB] text-white w-full py-3 rounded-lg font-medium"
         >
-          Get Curated Options
+          Browse Fabrics
           <ArrowRight size={18} />
         </Link>
       </div>
