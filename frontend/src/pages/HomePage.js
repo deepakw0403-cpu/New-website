@@ -233,9 +233,9 @@ const HomePage = () => {
         <section className="py-20 lg:py-28 bg-gradient-to-b from-blue-50 to-white" data-testid="value-section">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Why Choose Us</p>
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Why Locofast</p>
               <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
-                Why Brands & Manufacturers Trust Us
+                The Platform Advantage
               </h2>
             </div>
             
