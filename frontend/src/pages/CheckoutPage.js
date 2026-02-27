@@ -8,6 +8,16 @@ import { toast } from "sonner";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Helper function to get unit based on fabric type
+const getUnit = (fabric) => {
+  if (!fabric) return { singular: 'meter', plural: 'meters', short: 'm', priceLabel: '/m' };
+  // Knitted fabrics use kg for bulk
+  if (fabric.fabric_type === 'knitted') {
+    return { singular: 'kg', plural: 'kg', short: 'kg', priceLabel: '/kg' };
+  }
+  return { singular: 'meter', plural: 'meters', short: 'm', priceLabel: '/m' };
+};
+
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -326,7 +336,7 @@ const CheckoutPage = () => {
                         }`}>
                           {orderType === "sample" ? "Sample Order" : "Bulk Order"}
                         </span>
-                        <span className="text-gray-600">{quantity} meters</span>
+                        <span className="text-gray-600">{quantity} {getUnit(fabric).plural}</span>
                       </div>
                     </div>
                   </div>
@@ -567,12 +577,12 @@ const CheckoutPage = () => {
 
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Price per meter</span>
+                    <span className="text-gray-600">Price per {getUnit(fabric).singular}</span>
                     <span>₹{pricePerMeter.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Quantity</span>
-                    <span>{quantity} meters</span>
+                    <span>{quantity} {getUnit(fabric).plural}</span>
                   </div>
                   <div className="flex justify-between pt-3 border-t border-gray-100">
                     <span className="text-gray-600">Subtotal</span>
