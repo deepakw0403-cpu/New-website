@@ -466,18 +466,18 @@ const HomePage = () => {
         <section className="py-20 lg:py-28 bg-gradient-to-r from-[#1e3a8a] via-[#2563EB] to-[#3b82f6]" data-testid="cta-section">
           <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white mb-6">
-              Ready to Source the Right Fabric?
+              Ready to Source from India's Largest Fabric Network?
             </h2>
             <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
-              Join 500+ brands and manufacturers who source with clarity and confidence.
+              Join thousands of brands and manufacturers sourcing with clarity, confidence, and our Money Safety Guarantee.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                to="/assisted-sourcing"
+                to="/fabrics"
                 className="inline-flex items-center justify-center gap-2 bg-white text-[#2563EB] px-8 py-4 rounded-lg font-medium hover:bg-blue-50 transition-colors shadow-lg"
                 data-testid="final-cta-primary"
               >
-                Get Curated Options
+                Browse Fabrics
                 <ArrowRight size={18} />
               </Link>
               <Link
@@ -486,7 +486,7 @@ const HomePage = () => {
                 data-testid="final-cta-secondary"
               >
                 <MessageCircle size={18} />
-                Talk to an Expert
+                Contact Us
               </Link>
             </div>
           </div>
