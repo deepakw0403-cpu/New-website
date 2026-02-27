@@ -286,7 +286,14 @@ const AdminFabrics = () => {
       setForm({ ...form, videos: [...form.videos, result.data.url] });
       toast.success("Video uploaded successfully!");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to upload video");
+      console.error("Video upload error:", err);
+      if (err.response?.status === 401) {
+        toast.error("Session expired. Please log in again.");
+        // Redirect to login
+        window.location.href = "/admin/login";
+      } else {
+        toast.error(err.response?.data?.detail || "Failed to upload video");
+      }
     }
     setUploadingVideo(false);
     setVideoUploadProgress(0);
