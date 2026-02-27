@@ -92,6 +92,18 @@ const FabricDetailPage = () => {
 
   const actions = getAvailableActions();
 
+  // Helper function to get unit based on fabric type
+  const getUnit = () => {
+    if (!fabric) return { singular: 'meter', plural: 'meters', short: 'm', priceLabel: '/m' };
+    // Knitted fabrics use kg for bulk
+    if (fabric.fabric_type === 'knitted') {
+      return { singular: 'kg', plural: 'kg', short: 'kg', priceLabel: '/kg' };
+    }
+    return { singular: 'meter', plural: 'meters', short: 'm', priceLabel: '/m' };
+  };
+
+  const unit = getUnit();
+
   // Calculate bulk price based on tiers
   const calculateBulkPrice = (quantity) => {
     if (!fabric || !quantity || quantity <= 0) return null;
@@ -100,7 +112,7 @@ const FabricDetailPage = () => {
     
     for (const tier of tiers) {
       if (qty >= tier.min_qty && qty <= tier.max_qty) {
-        return { pricePerMeter: tier.price_per_meter, totalPrice: tier.price_per_meter * qty, tierLabel: `${tier.min_qty}-${tier.max_qty}m` };
+        return { pricePerMeter: tier.price_per_meter, totalPrice: tier.price_per_meter * qty, tierLabel: `${tier.min_qty}-${tier.max_qty}${unit.short}` };
       }
     }
     if (fabric.rate_per_meter) {
