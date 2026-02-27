@@ -41,6 +41,16 @@ const FabricsPage = () => {
   const fabricTypes = ["woven", "knitted", "non-woven"];
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
+  // Helper function to get unit based on fabric type
+  const getUnit = (fabric) => {
+    if (!fabric) return { singular: 'meter', plural: 'meters', short: 'm', priceLabel: '/m' };
+    // Knitted fabrics use kg for bulk
+    if (fabric.fabric_type === 'knitted') {
+      return { singular: 'kg', plural: 'kg', short: 'kg', priceLabel: '/kg' };
+    }
+    return { singular: 'meter', plural: 'meters', short: 'm', priceLabel: '/m' };
+  };
+
   useEffect(() => {
     getCategories().then(res => setCategories(res.data)).catch(console.error);
   }, []);
