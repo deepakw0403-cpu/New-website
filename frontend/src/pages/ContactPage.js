@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { MapPin, Mail, Phone, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { createEnquiry } from "../lib/api";
@@ -33,6 +34,14 @@ const ContactPage = () => {
   };
 
   return (
+    <>
+      <Helmet>
+        <title>Contact Locofast - Get in Touch for Fabric Sourcing | B2B Inquiries</title>
+        <meta name="description" content="Contact Locofast for B2B fabric sourcing inquiries. Get matched with verified textile suppliers within 48 hours. Offices in Delhi, Noida, Gurugram, Jaipur, Ahmedabad." />
+        <meta property="og:title" content="Contact Locofast - Get in Touch for Fabric Sourcing" />
+        <meta property="og:description" content="Contact Locofast for B2B fabric sourcing inquiries. Get matched with verified textile suppliers within 48 hours." />
+        <link rel="canonical" href={`${window.location.origin}/contact`} />
+      </Helmet>
     <main className="pt-20" data-testid="contact-page">
       {/* Hero */}
       <section className="py-24 lg:py-32 bg-neutral-50">
