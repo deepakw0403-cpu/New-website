@@ -28,6 +28,7 @@ import InventoryPage from "./pages/InventoryPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import SellOnLocofast from "./pages/SellOnLocofast";
+import RFQPage from "./pages/RFQPage";
 
 // Vendor pages
 import VendorLogin from "./pages/vendor/VendorLogin";
