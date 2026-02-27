@@ -155,10 +155,11 @@ const FabricsPage = () => {
     if (!quantity || quantity <= 0) return null;
     const qty = parseInt(quantity);
     const tiers = fabric.pricing_tiers || [];
+    const unit = getUnit(fabric);
     
     for (const tier of tiers) {
       if (qty >= tier.min_qty && qty <= tier.max_qty) {
-        return { pricePerMeter: tier.price_per_meter, totalPrice: tier.price_per_meter * qty, tierLabel: `${tier.min_qty}-${tier.max_qty}m` };
+        return { pricePerMeter: tier.price_per_meter, totalPrice: tier.price_per_meter * qty, tierLabel: `${tier.min_qty}-${tier.max_qty}${unit.short}` };
       }
     }
     if (fabric.rate_per_meter) {
