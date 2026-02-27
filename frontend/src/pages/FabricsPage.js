@@ -458,8 +458,9 @@ const FabricsPage = () => {
                       <div className="aspect-[3/4] overflow-hidden bg-gray-100 relative">
                         <img
                           src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600"}
-                          alt={fabric.name}
+                          alt={`${fabric.name} - ${fabric.composition?.map(c => c.material).join(', ') || fabric.category_name} fabric${fabric.color ? ` in ${fabric.color}` : ''}`}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
                         />
                         <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col gap-1">
                           {fabric.is_bookable && fabric.quantity_available > 0 && (
