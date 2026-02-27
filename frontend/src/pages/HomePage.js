@@ -257,9 +257,9 @@ const HomePage = () => {
         <section className="py-20 lg:py-28 bg-white" data-testid="how-it-works-section">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Simple Process</p>
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">How It Works</p>
               <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
-                How It Works
+                Source Fabrics in 3 Simple Steps
               </h2>
             </div>
 
@@ -275,7 +275,7 @@ const HomePage = () => {
                       <h3 className="text-xl font-semibold text-neutral-900 mb-3 pr-12">{step.title}</h3>
                       <p className="text-neutral-600 leading-relaxed mb-6">{step.description}</p>
                       <Link
-                        to="/assisted-sourcing"
+                        to="/fabrics"
                         className="inline-flex items-center gap-1 text-[#2563EB] font-medium text-sm hover:gap-2 transition-all"
                       >
                         {step.cta} <ArrowRight size={14} />
