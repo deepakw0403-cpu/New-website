@@ -476,6 +476,45 @@ const FabricDetailPage = () => {
                   ))}
                 </div>
               )}
+
+              {/* Videos Section */}
+              {fabric.videos && fabric.videos.length > 0 && (
+                <div className="mt-6" data-testid="fabric-videos">
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Product Videos</h3>
+                  <div className="space-y-4">
+                    {fabric.videos.map((videoUrl, idx) => (
+                      <div key={idx} className="rounded-lg overflow-hidden bg-black aspect-video">
+                        {videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be') ? (
+                          <iframe
+                            src={videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                            title={`${fabric.name} video ${idx + 1}`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        ) : videoUrl.includes('vimeo.com') ? (
+                          <iframe
+                            src={videoUrl.replace('vimeo.com/', 'player.vimeo.com/video/')}
+                            title={`${fabric.name} video ${idx + 1}`}
+                            className="w-full h-full"
+                            allow="autoplay; fullscreen; picture-in-picture"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <video
+                            src={videoUrl}
+                            controls
+                            className="w-full h-full"
+                            preload="metadata"
+                          >
+                            Your browser does not support the video tag.
+                          </video>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Details */}
