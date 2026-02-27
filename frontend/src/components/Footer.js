@@ -48,8 +48,8 @@ const Footer = () => {
     },
     {
       icon: CreditCard,
-      title: "3% Commission Only",
-      description: "Pay only when transactions complete"
+      title: "Instant Settlements",
+      description: "Quick payments once orders are confirmed"
     }
   ];
 
