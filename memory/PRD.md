@@ -50,6 +50,14 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
   - Links to `/suppliers` seller acquisition page
   - Works on both desktop and mobile menus
   - File: `frontend/src/components/Navbar.js`
+- **Footer Duplication Fix**: Removed duplicate footer from HomePage
+  - Homepage was rendering Footer twice (in App.js and HomePage.js)
+  - Removed redundant `<Footer />` from HomePage.js
+  - Now only one footer displays correctly
+- **Fabric Video Display**: Added video support to FabricDetailPage
+  - Videos section displays below image thumbnails when available
+  - Supports YouTube, Vimeo embeds and direct video files
+  - Responsive aspect-video containers
 - **Status**: COMPLETED
 
 ### Feb 26, 2026 - Additional Features
