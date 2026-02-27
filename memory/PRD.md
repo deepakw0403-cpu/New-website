@@ -37,6 +37,27 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 27, 2026 - SEO Improvements
+- **Dynamic Meta Tags**: Added Helmet with dynamic title/description to:
+  - FabricsPage: Title changes based on filters (category, type, search)
+  - FabricDetailPage: Shows fabric name, weight, composition
+  - CollectionsPage: Dedicated SEO meta tags
+  - AboutPage: Company story meta tags
+  - ContactPage: Contact-specific SEO
+- **Enhanced Product Schema**: Added comprehensive schema.org Product markup:
+  - Price and currency (INR)
+  - Availability status (InStock/PreOrder)
+  - SKU from fabric code
+  - Material, color, weight, width
+  - Manufacturer/brand information
+  - Price validity dates
+- **Image Alt Tags**: Descriptive alt text for all fabric images
+  - Format: "[Fabric Name] - [Materials] fabric in [Color], [GSM] GSM"
+  - Thumbnails include position indicators
+- **Lazy Loading**: Added `loading="lazy"` to fabric catalog images
+- **ARIA Attributes**: Added accessibility labels to image navigation buttons
+- **Status**: COMPLETED
+
 ### Feb 27, 2026 - Unit System & Navigation Update
 - **Knitted Fabrics Unit (kg)**: Updated measuring unit system for knitted fabrics
   - Knitted fabrics now display "kg" instead of "meters" throughout the platform
