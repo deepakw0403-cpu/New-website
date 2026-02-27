@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Check } from "lucide-react";
 
 const AboutPage = () => {
@@ -11,6 +12,13 @@ const AboutPage = () => {
 
   return (
     <main className="bg-[#FAFAFA]" data-testid="about-page">
+      <Helmet>
+        <title>About Locofast - B2B Fabric Sourcing Platform | Our Story</title>
+        <meta name="description" content="Locofast is India's leading B2B fabric sourcing platform, built by operators who understand supplier relationships and production challenges. Connecting fashion brands with verified textile mills." />
+        <meta property="og:title" content="About Locofast - B2B Fabric Sourcing Platform" />
+        <meta property="og:description" content="Built by operators who understand supplier relationships and production challenges. Connecting fashion brands with verified textile mills." />
+        <link rel="canonical" href={`${window.location.origin}/about`} />
+      </Helmet>
       {/* Section 1: Hero */}
       <section className="relative h-[85vh] min-h-[600px]" data-testid="hero-section">
         <div className="absolute inset-0">
