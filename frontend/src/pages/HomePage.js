@@ -292,9 +292,9 @@ const HomePage = () => {
         <section className="py-20 lg:py-28 bg-[#1e3a8a]" data-testid="testimonials-section">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <p className="text-sm tracking-widest text-blue-300 uppercase mb-4">Social Proof</p>
+              <p className="text-sm tracking-widest text-blue-300 uppercase mb-4">Success Stories</p>
               <h2 className="text-3xl md:text-4xl font-semibold text-white">
-                What Our Clients Say
+                Trusted by Brands & Manufacturers
               </h2>
             </div>
 
@@ -306,7 +306,14 @@ const HomePage = () => {
                   </p>
                   <div>
                     <p className="font-medium text-white">{testimonial.author}</p>
-                    <p className="text-blue-300 text-sm">{testimonial.role}, {testimonial.location}</p>
+                    <p className="text-blue-300 text-sm">{testimonial.role}</p>
+                    <p className="text-blue-400 text-xs mt-1">{testimonial.company}, {testimonial.location}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
                   </div>
                 </div>
               ))}
