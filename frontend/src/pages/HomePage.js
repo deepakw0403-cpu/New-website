@@ -298,8 +298,7 @@ const HomePage = () => {
                   </p>
                   <div>
                     <p className="font-medium text-white">{testimonial.author}</p>
-                    <p className="text-blue-300 text-sm">{testimonial.role}</p>
-                    <p className="text-blue-400 text-xs mt-1">{testimonial.company}, {testimonial.location}</p>
+                    <p className="text-blue-300 text-sm">{testimonial.location}</p>
                   </div>
                 </div>
               ))}
