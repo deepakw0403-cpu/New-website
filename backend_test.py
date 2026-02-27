@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 
 class FabricCMSAPITester:
-    def __init__(self, base_url="https://locofast-v2.preview.emergentagent.com"):
+    def __init__(self, base_url="https://supplier-hub-build.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.tests_run = 0
@@ -304,7 +304,7 @@ class FabricCMSAPITester:
 
 def main():
     print("🚀 Starting Locofast CMS API Tests")
-    print(f"Backend URL: https://locofast-v2.preview.emergentagent.com")
+    print(f"Backend URL: https://supplier-hub-build.preview.emergentagent.com")
     
     tester = FabricCMSAPITester()
     
