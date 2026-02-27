@@ -118,8 +118,15 @@ export const getStats = () => api.get("/stats");
 export const uploadImage = (file) => {
   const formData = new FormData();
   formData.append("file", file);
+  
+  // Explicitly get the token and include it
+  const token = localStorage.getItem("locofast_token");
+  
   return api.post("/upload", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+    headers: { 
+      "Content-Type": "multipart/form-data",
+      ...(token && { Authorization: `Bearer ${token}` })
+    },
   });
 };
 
