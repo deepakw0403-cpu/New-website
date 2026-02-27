@@ -476,8 +476,6 @@ const HomePage = () => {
         </section>
 
       </main>
-
-      <Footer />
       
       {/* ========== STICKY CTA BAR (Mobile) ========== */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 z-40 md:hidden" data-testid="sticky-cta">
