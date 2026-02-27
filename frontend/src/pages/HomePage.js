@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle, MessageCircle, Shield, Clock, Users, ChevronDown, ChevronUp, Sparkles, Factory, Store, Layers } from "lucide-react";
+import { ArrowRight, CheckCircle, MessageCircle, Shield, Clock, Users, ChevronDown, ChevronUp, Sparkles, Factory, Store, Layers, Building2, ShieldCheck } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { getCollections } from "../lib/api";
 
@@ -24,66 +24,70 @@ const HomePage = () => {
   const valueProps = [
     {
       icon: Shield,
-      title: "Verified Network of Suppliers",
-      description: "Every supplier in our network goes through quality checks and verification before onboarding."
+      title: "500+ Verified Seller Partners",
+      description: "Access a curated network of verified textile sellers across India. Every partner is vetted for quality and reliability."
     },
     {
       icon: CheckCircle,
       title: "Transparent MOQ & Pricing",
-      description: "No hidden costs. Clear minimum order quantities and pricing shared upfront."
+      description: "No hidden costs. Clear minimum order quantities and pricing displayed upfront on every fabric listing."
     },
     {
-      icon: Clock,
-      title: "Fast Curated Options",
-      description: "Get matched with relevant fabric options within 24-48 hours of your requirement."
+      icon: ShieldCheck,
+      title: "Money Safety Guarantee",
+      description: "Locofast's secure payment system ensures your money is protected. Pay with confidence knowing your transactions are safeguarded."
     }
   ];
 
   const steps = [
     {
       number: "01",
-      title: "Tell Us Your Requirements",
-      description: "Share your fabric needs — type, quantity, budget, and timeline. We listen first.",
-      cta: "Submit Requirement"
+      title: "Browse or Submit Your Requirement",
+      description: "Explore our catalog of fabrics or share your specific needs — type, quantity, budget, and timeline.",
+      cta: "Browse Fabrics"
     },
     {
       number: "02",
-      title: "We Match Curated Options",
-      description: "Our team handpicks options from verified mills that fit your exact specifications.",
-      cta: "How We Select"
+      title: "Get Matched Instantly",
+      description: "Our platform intelligently connects your requirements with the best-suited seller partners from our verified network.",
+      cta: "How Matching Works"
     },
     {
       number: "03",
-      title: "Review, Select & Get Delivery Clarity",
-      description: "Compare options, request samples, and get clear delivery timelines before you commit.",
+      title: "Order with Confidence",
+      description: "Compare options, request samples, and place orders with complete transparency on pricing and delivery timelines.",
       cta: "Start Now"
     }
   ];
 
   const testimonials = [
     {
-      quote: "Delivered quality swatches before I even paid — fast and transparent. This is how sourcing should work.",
-      author: "Priya Sharma",
-      role: "Boutique Owner",
-      location: "Jaipur"
+      quote: "Locofast has transformed how we source fabrics. The platform connects us directly with verified sellers — no middlemen, no delays.",
+      author: "Rahul Verma",
+      role: "Production Head",
+      company: "Excel Garments",
+      location: "Delhi"
     },
     {
-      quote: "Finally found a sourcing partner who understands what small brands need. No more chasing suppliers.",
-      author: "Arjun Mehta",
-      role: "Fashion Designer",
-      location: "Mumbai"
-    },
-    {
-      quote: "The clarity on MOQ and pricing saved us weeks of back-and-forth. Highly recommended.",
+      quote: "Finally, a platform that understands B2B fabric sourcing. The money safety guarantee gives us peace of mind on every order.",
       author: "Sneha Patel",
-      role: "D2C Brand Founder",
+      role: "Founder",
+      company: "Urban Thread",
       location: "Bangalore"
     },
     {
-      quote: "Their curated approach means I only see fabrics that actually match my requirements. Game changer.",
-      author: "Rahul Verma",
-      role: "Export Manufacturer",
-      location: "Delhi"
+      quote: "The clarity on MOQ and pricing saved us weeks of back-and-forth. Our sourcing time has reduced by 60%.",
+      author: "Amit Shah",
+      role: "Supply Chain Manager",
+      company: "Fashion Forward Exports",
+      location: "Mumbai"
+    },
+    {
+      quote: "As a buying house, we need reliable suppliers fast. Locofast's platform delivers quality matches within hours.",
+      author: "Priya Sharma",
+      role: "Sourcing Director",
+      company: "Global Buying Solutions",
+      location: "Gurugram"
     }
   ];
 
@@ -91,47 +95,52 @@ const HomePage = () => {
     {
       icon: Store,
       title: "Fashion Brands",
-      description: "D2C labels, boutique brands, and fashion houses looking for reliable fabric partners."
+      description: "D2C labels, boutique brands, and fashion houses looking for reliable fabric sourcing partners."
     },
     {
       icon: Factory,
-      title: "Manufacturers",
-      description: "Garment manufacturers and export houses needing consistent quality at scale."
+      title: "Garment Manufacturers",
+      description: "Garment manufacturers and export houses needing consistent quality fabrics at scale."
+    },
+    {
+      icon: Building2,
+      title: "Buying Houses",
+      description: "Sourcing agencies and buying houses connecting international brands with Indian textiles."
     },
     {
       icon: Layers,
-      title: "Designers",
-      description: "Independent designers and studios seeking unique fabrics for their collections."
+      title: "Private Label",
+      description: "Private label businesses and white-label manufacturers seeking quality fabric suppliers."
     }
   ];
 
   const faqs = [
     {
       question: "Can I get samples before placing a bulk order?",
-      answer: "Yes, absolutely. We encourage sampling before bulk orders. Sample costs vary by fabric type and are typically adjusted against your final order."
+      answer: "Yes, absolutely. Most seller partners on our platform offer sampling. Sample costs vary by fabric type and seller, and are typically adjusted against your final order."
     },
     {
       question: "What is the minimum order quantity (MOQ)?",
-      answer: "MOQ varies by supplier and fabric type, typically ranging from 300-1500 meters. We always share this upfront so there are no surprises."
+      answer: "MOQ varies by seller partner and fabric type, typically ranging from 300-1500 meters. Every listing clearly shows MOQ upfront so there are no surprises."
+    },
+    {
+      question: "How does the Money Safety Guarantee work?",
+      answer: "Your payments are held securely until you confirm receipt and satisfaction with your order. This ensures sellers are incentivized to deliver quality, and buyers have peace of mind."
     },
     {
       question: "How fast is delivery?",
-      answer: "Standard lead times range from 15-45 days depending on the fabric and customization required. We provide clear timelines before you commit."
+      answer: "Lead times range from 15-45 days depending on the fabric and seller location. Each listing shows estimated delivery timelines before you order."
     },
     {
       question: "How does pricing work?",
-      answer: "Pricing is transparent and shared per meter/kg based on the fabric. We don't add hidden margins — what you see is what you pay."
-    },
-    {
-      question: "Do you handle logistics and shipping?",
-      answer: "Yes, we can manage end-to-end logistics including quality checks, packaging, and delivery to your location across India."
+      answer: "Pricing is set by seller partners and displayed transparently per meter/kg. What you see is what you pay — no hidden platform fees for buyers."
     }
   ];
 
   const trustBadges = [
-    { label: "100+ Quality Checks", icon: CheckCircle },
-    { label: "Verified Mills", icon: Shield },
-    { label: "500+ Brands Served", icon: Users }
+    { label: "500+ Seller Partners", icon: Users },
+    { label: "Verified Suppliers", icon: Shield },
+    { label: "Money Safety Guarantee", icon: ShieldCheck }
   ];
 
   return (
