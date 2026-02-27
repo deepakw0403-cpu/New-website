@@ -38,9 +38,11 @@ const Navbar = () => {
                 to={link.path}
                 data-testid={`nav-link-${link.label.toLowerCase().replace(/\s/g, '-')}`}
                 className={`text-sm font-medium transition-colors duration-200 ${
-                  isActive(link.path)
-                    ? "text-[#2563EB]"
-                    : "text-gray-600 hover:text-[#2563EB]"
+                  link.highlight
+                    ? "text-[#2563EB] hover:text-blue-700"
+                    : isActive(link.path)
+                      ? "text-[#2563EB]"
+                      : "text-gray-600 hover:text-[#2563EB]"
                 }`}
               >
                 {link.label}
