@@ -220,8 +220,50 @@ const FabricsPage = () => {
     return actions;
   };
 
+  // Generate dynamic page title and description based on filters
+  const getPageMeta = () => {
+    let title = "Fabric Catalog";
+    let description = "Browse our extensive collection of quality fabrics from verified Indian mills.";
+    
+    const categoryName = categories.find(c => c.id === selectedCategory)?.name;
+    
+    if (categoryName) {
+      title = `${categoryName} Fabrics`;
+      description = `Explore premium ${categoryName.toLowerCase()} fabrics. Source quality textiles from verified suppliers with transparent pricing and fast delivery.`;
+    }
+    
+    if (selectedType) {
+      const typeName = selectedType.charAt(0).toUpperCase() + selectedType.slice(1);
+      title = categoryName ? `${typeName} ${categoryName} Fabrics` : `${typeName} Fabrics`;
+      description = `Browse ${typeName.toLowerCase()} fabrics${categoryName ? ` in ${categoryName.toLowerCase()} category` : ''}. High-quality textiles for fashion brands and manufacturers.`;
+    }
+    
+    if (search) {
+      title = `Search: "${search}" - Fabrics`;
+      description = `Search results for "${search}" in our fabric catalog. Find the perfect textile for your needs.`;
+    }
+    
+    if (currentPage > 1) {
+      title += ` - Page ${currentPage}`;
+    }
+    
+    return {
+      title: `${title} | Locofast - B2B Textile Marketplace`,
+      description: description + " MOQ clarity, sample orders available. Get matched within 48 hours."
+    };
+  };
+
+  const pageMeta = getPageMeta();
+
   return (
     <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+      <Helmet>
+        <title>{pageMeta.title}</title>
+        <meta name="description" content={pageMeta.description} />
+        <meta property="og:title" content={pageMeta.title} />
+        <meta property="og:description" content={pageMeta.description} />
+        <link rel="canonical" href={`${window.location.origin}/fabrics${selectedCategory ? `?category=${selectedCategory}` : ''}`} />
+      </Helmet>
       <Navbar />
       <main className="flex-grow pt-20" data-testid="fabrics-page">
         <div className="container-main py-6 sm:py-8">
