@@ -98,7 +98,7 @@ const Navbar = () => {
               onClick={() => setMobileOpen(false)}
               className="btn-primary inline-block mt-4"
             >
-              Browse Fabrics
+              Buy Fabrics
             </Link>
           </div>
         </div>
