@@ -421,7 +421,7 @@ const FabricsPage = () => {
                         <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col gap-1">
                           {fabric.is_bookable && fabric.quantity_available > 0 && (
                             <span className="badge bg-emerald-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
-                              {fabric.quantity_available.toLocaleString()}m Available
+                              {fabric.quantity_available.toLocaleString()}{getUnit(fabric).short} Available
                             </span>
                           )}
                         </div>
