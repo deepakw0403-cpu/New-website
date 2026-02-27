@@ -314,12 +314,6 @@ const HomePage = () => {
             </div>
           </div>
         </section>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
 
         {/* ========== COLLECTION SHOWCASE ========== */}
         <section className="py-20 lg:py-28 bg-white" data-testid="collections-section">
@@ -339,10 +333,12 @@ const HomePage = () => {
                     to={`/collections/${collection.id}`}
                     className="group relative bg-gradient-to-br from-[#2563EB] to-[#1e3a8a] rounded-2xl overflow-hidden aspect-[4/5] hover:shadow-xl transition-all"
                   >
-                    {collection.image && (
-                      <img src={collection.image} alt={collection.name} className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity" />
+                    {collection.image ? (
+                      <img src={collection.image} alt={collection.name} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity" />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800" />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6">
                       <h3 className="text-xl font-semibold text-white mb-1">{collection.name}</h3>
                       <p className="text-white/70 text-sm mb-3 line-clamp-2">{collection.description}</p>
@@ -353,15 +349,21 @@ const HomePage = () => {
                   </Link>
                 ))
               ) : (
-                ["Summer Weaves", "Signature Essentials", "Print Studio", "Premium Blends"].map((name, index) => (
+                [
+                  { name: "Summer Weaves", img: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400" },
+                  { name: "Signature Essentials", img: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400" },
+                  { name: "Print Studio", img: "https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=400" },
+                  { name: "Premium Blends", img: "https://images.unsplash.com/photo-1606722590583-6951b5ea92ad?w=400" }
+                ].map((item, index) => (
                   <Link
                     key={index}
                     to="/collections"
                     className="group relative bg-gradient-to-br from-[#2563EB] to-[#1e3a8a] rounded-2xl overflow-hidden aspect-[4/5] hover:shadow-xl transition-all"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    <img src={item.img} alt={item.name} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity" loading="lazy" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <h3 className="text-xl font-semibold text-white mb-2">{name}</h3>
+                      <h3 className="text-xl font-semibold text-white mb-2">{item.name}</h3>
                       <span className="inline-flex items-center gap-1 text-white text-sm font-medium group-hover:gap-2 transition-all">
                         View Options <ArrowRight size={14} />
                       </span>
