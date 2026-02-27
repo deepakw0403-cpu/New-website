@@ -37,6 +37,21 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Feb 27, 2026 - Unit System & Navigation Update
+- **Knitted Fabrics Unit (kg)**: Updated measuring unit system for knitted fabrics
+  - Knitted fabrics now display "kg" instead of "meters" throughout the platform
+  - Affects: FabricsPage, FabricDetailPage, CheckoutPage
+  - Pricing tiers show "100-500kg: ₹150/kg" for knits vs "100-500m: ₹150/m" for woven
+  - Helper function `getUnit(fabric)` determines unit based on `fabric.fabric_type`
+  - Woven and non-woven fabrics continue using meters
+- **Sellers Sign Up Header Link**: Added navigation link to attract suppliers
+  - "Sellers sign up" link in main header navigation
+  - Highlighted in blue (#2563EB) to stand out
+  - Links to `/suppliers` seller acquisition page
+  - Works on both desktop and mobile menus
+  - File: `frontend/src/components/Navbar.js`
+- **Status**: COMPLETED
+
 ### Feb 26, 2026 - Additional Features
 - **WhatsApp Live Chat**: Floating WhatsApp button on all pages (bottom-right corner)
   - Opens WhatsApp with pre-filled message to +91-8920392418
