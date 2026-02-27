@@ -566,7 +566,7 @@ const FabricsPage = () => {
                     )}
                     {modalType === "bulk" && selectedFabric.quantity_available && (
                       <p className="text-xs text-emerald-600 mt-1 font-medium">
-                        {selectedFabric.quantity_available.toLocaleString()} meters available
+                        {selectedFabric.quantity_available.toLocaleString()} {getUnit(selectedFabric).plural} available
                       </p>
                     )}
                   </div>
@@ -575,7 +575,7 @@ const FabricsPage = () => {
                 {/* Quantity Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {modalType === "sample" ? "Sample Quantity" : "Bulk Quantity (meters)"}
+                    {modalType === "sample" ? "Sample Quantity" : `Bulk Quantity (${getUnit(selectedFabric).plural})`}
                   </label>
                   {modalType === "sample" ? (
                     <select
@@ -585,7 +585,7 @@ const FabricsPage = () => {
                       data-testid="sample-qty-select"
                     >
                       {[1, 2, 3, 4, 5].map((qty) => (
-                        <option key={qty} value={qty}>{qty} meter{qty > 1 ? "s" : ""}</option>
+                        <option key={qty} value={qty}>{qty} {getUnit(selectedFabric).singular}{qty > 1 && getUnit(selectedFabric).singular !== 'kg' ? "s" : ""}</option>
                       ))}
                     </select>
                   ) : (
@@ -595,7 +595,7 @@ const FabricsPage = () => {
                       max={selectedFabric.quantity_available || 10000}
                       value={bulkQty}
                       onChange={(e) => setBulkQty(e.target.value)}
-                      placeholder="Enter quantity in meters"
+                      placeholder={`Enter quantity in ${getUnit(selectedFabric).plural}`}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
                       data-testid="bulk-qty-input"
                     />
@@ -609,8 +609,8 @@ const FabricsPage = () => {
                     <div className="space-y-1">
                       {selectedFabric.pricing_tiers.map((tier, idx) => (
                         <div key={idx} className="flex justify-between text-sm">
-                          <span className="text-blue-700">{tier.min_qty} - {tier.max_qty} meters</span>
-                          <span className="font-medium text-blue-900">₹{tier.price_per_meter}/m</span>
+                          <span className="text-blue-700">{tier.min_qty} - {tier.max_qty} {getUnit(selectedFabric).plural}</span>
+                          <span className="font-medium text-blue-900">₹{tier.price_per_meter}{getUnit(selectedFabric).priceLabel}</span>
                         </div>
                       ))}
                     </div>
@@ -623,10 +623,10 @@ const FabricsPage = () => {
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="text-sm text-gray-300">
-                          {modalType === "sample" ? `${sampleQty} meter${sampleQty > 1 ? "s" : ""}` : `${bulkQty} meters`}
+                          {modalType === "sample" ? `${sampleQty} ${getUnit(selectedFabric).singular}${sampleQty > 1 && getUnit(selectedFabric).singular !== 'kg' ? "s" : ""}` : `${bulkQty} ${getUnit(selectedFabric).plural}`}
                           {cartValue.tierLabel && <span className="ml-1">({cartValue.tierLabel})</span>}
                         </p>
-                        <p className="text-xs text-gray-400">@ ₹{cartValue.pricePerMeter?.toLocaleString()}/m</p>
+                        <p className="text-xs text-gray-400">@ ₹{cartValue.pricePerMeter?.toLocaleString()}{getUnit(selectedFabric).priceLabel}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold">₹{cartValue.totalPrice?.toLocaleString()}</p>
