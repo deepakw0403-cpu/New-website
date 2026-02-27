@@ -57,7 +57,7 @@ const Navbar = () => {
               className="btn-primary inline-block"
               data-testid="nav-browse-btn"
             >
-              Browse Fabrics
+              Buy Fabrics
             </Link>
           </div>
 
