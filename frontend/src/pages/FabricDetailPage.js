@@ -464,7 +464,7 @@ const FabricDetailPage = () => {
               >
                 <img
                   src={images[currentImage]}
-                  alt={fabric.name}
+                  alt={`${fabric.name} - ${fabric.composition?.map(c => c.material).join(', ') || fabric.category_name} fabric${fabric.color ? ` in ${fabric.color}` : ''}${fabric.gsm ? `, ${fabric.gsm} GSM` : ''}`}
                   className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   data-testid="main-image"
                 />
@@ -506,8 +506,14 @@ const FabricDetailPage = () => {
                       className={`w-20 h-20 overflow-hidden border-2 transition-colors ${
                         currentImage === idx ? "border-neutral-900" : "border-transparent hover:border-neutral-300"
                       }`}
+                      aria-label={`View image ${idx + 1} of ${images.length}`}
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <img 
+                        src={img} 
+                        alt={`${fabric.name} thumbnail ${idx + 1}`} 
+                        className="w-full h-full object-cover" 
+                        loading="lazy"
+                      />
                     </button>
                   ))}
                 </div>
