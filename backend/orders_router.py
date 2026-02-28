@@ -231,8 +231,8 @@ async def create_order(order_data: OrderCreate):
         "order_number": order_number,
         "razorpay_order_id": razorpay_order["id"],
         "razorpay_key_id": os.environ.get('RAZORPAY_KEY_ID'),
-        "amount": total_with_shipping,
-        "amount_paise": int(total_with_shipping * 100),
+        "amount": final_total,
+        "amount_paise": int(final_total * 100),
         "currency": "INR",
         "customer": order_data.customer.model_dump()
     }
