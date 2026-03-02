@@ -182,8 +182,8 @@ const OrderConfirmationPage = () => {
                       <p className="font-medium text-gray-900">Estimated Delivery Timeline</p>
                       <p className="text-sm text-gray-600 mt-1">
                         {items[0]?.order_type === "sample" 
-                          ? items[0]?.dispatch_timeline || "Ready Stock - Dispatch within 1-2 business days"
-                          : items[0]?.dispatch_timeline || "15-20 working days from order confirmation"
+                          ? (items[0]?.sample_delivery_days ? `${items[0].sample_delivery_days} days` : "1-3 days for samples")
+                          : (items[0]?.bulk_delivery_days ? `${items[0].bulk_delivery_days} days` : "15-20 days for bulk orders")
                         }
                       </p>
                       <p className="text-xs text-gray-500 mt-2">
