@@ -537,13 +537,15 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - [ ] Invoice generation after payment
 
 ### P2 (Future)
-- [ ] Cloudinary integration for images
-- [ ] Email notifications for enquiries (SendGrid/Resend)
+- [ ] Customer Accounts & Order History
+- [ ] SEO-friendly URLs (slugs instead of UUIDs)
+- [ ] Order status emails (Shipped/Delivered notifications)
+- [ ] Wishlist/Favorites feature
 - [ ] Seller profiles public page
 - [ ] Price visibility controls
-- [ ] Buyer login/accounts
 - [ ] RFQ workflows
 - [ ] Sample request tracking
+- [ ] Advanced analytics dashboard
 
 ## Technical Stack
 - Frontend: React 19, Tailwind CSS, React Router, Sonner
