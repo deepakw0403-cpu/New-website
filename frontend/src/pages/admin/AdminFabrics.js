@@ -371,6 +371,8 @@ const AdminFabrics = () => {
       quantity_available: fabric.quantity_available ? fabric.quantity_available.toString() : "",
       rate_per_meter: fabric.rate_per_meter ? fabric.rate_per_meter.toString() : "",
       dispatch_timeline: fabric.dispatch_timeline || "",
+      sample_delivery_days: fabric.sample_delivery_days || "",
+      bulk_delivery_days: fabric.bulk_delivery_days || "",
       is_bookable: fabric.is_bookable || false,
       // Pricing fields
       sample_price: fabric.sample_price ? fabric.sample_price.toString() : "",
