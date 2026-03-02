@@ -347,7 +347,12 @@ const CheckoutPage = () => {
                       <Truck size={16} className="text-emerald-600" />
                       <span className="text-gray-600">Estimated Dispatch:</span>
                       <span className="font-medium text-gray-900">
-                        {fabric.dispatch_timeline || (orderType === 'sample' ? 'Ready Stock (1-2 days)' : '15-20 working days')}
+                        {fabric.dispatch_timeline 
+                          ? (fabric.dispatch_timeline.match(/^\d+$/) 
+                              ? `${fabric.dispatch_timeline} days` 
+                              : fabric.dispatch_timeline)
+                          : (orderType === 'sample' ? 'Ready Stock (1-2 days)' : '15-20 working days')
+                        }
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 mt-1 ml-6">
