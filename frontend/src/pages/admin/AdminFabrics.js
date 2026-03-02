@@ -1131,16 +1131,53 @@ const AdminFabrics = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Dispatch Timeline</label>
+                      <label className="block text-sm font-medium mb-2">Dispatch Timeline (Legacy)</label>
                       <input
                         type="text"
                         value={form.dispatch_timeline}
                         onChange={(e) => setForm({ ...form, dispatch_timeline: e.target.value })}
-                        className="w-full px-4 py-2 border border-emerald-200 rounded bg-white"
+                        className="w-full px-4 py-2 border border-gray-200 rounded bg-gray-50 text-gray-500"
                         placeholder="e.g., 7-10 days"
                         data-testid="fabric-dispatch-input"
                       />
+                      <p className="text-xs text-gray-400 mt-1">Legacy field - use Sample/Bulk delivery below instead</p>
                     </div>
+                  </div>
+
+                  {/* Estimated Delivery Time */}
+                  <div className="bg-blue-50 rounded p-4 mb-4 border border-blue-200">
+                    <h4 className="font-medium text-blue-900 mb-3">Estimated Delivery Time (in days)</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-blue-800 mb-2">Sample Orders</label>
+                        <select
+                          value={form.sample_delivery_days}
+                          onChange={(e) => setForm({ ...form, sample_delivery_days: e.target.value })}
+                          className="w-full px-4 py-2 border border-blue-300 rounded bg-white text-gray-900"
+                          data-testid="fabric-sample-delivery-select"
+                        >
+                          <option value="">Select days range</option>
+                          {deliveryDaysOptions.map((opt) => (
+                            <option key={opt} value={opt}>{opt} days</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-blue-800 mb-2">Bulk Orders</label>
+                        <select
+                          value={form.bulk_delivery_days}
+                          onChange={(e) => setForm({ ...form, bulk_delivery_days: e.target.value })}
+                          className="w-full px-4 py-2 border border-blue-300 rounded bg-white text-gray-900"
+                          data-testid="fabric-bulk-delivery-select"
+                        >
+                          <option value="">Select days range</option>
+                          {deliveryDaysOptions.map((opt) => (
+                            <option key={opt} value={opt}>{opt} days</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-2">Set estimated delivery timeline for sample and bulk orders</p>
                   </div>
 
                   {/* Sample Pricing */}
