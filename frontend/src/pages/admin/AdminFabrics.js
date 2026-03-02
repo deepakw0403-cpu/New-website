@@ -243,12 +243,13 @@ const AdminFabrics = () => {
 
     setUploading(true);
     try {
-      const uploadPromises = files.map((file) => uploadImage(file));
+      const uploadPromises = files.map((file) => uploadToCloudinary(file, "fabrics"));
       const results = await Promise.all(uploadPromises);
       const urls = results.map((res) => res.data.url);
       setForm({ ...form, images: [...form.images, ...urls] });
-      toast.success("Images uploaded");
+      toast.success("Images uploaded to cloud storage");
     } catch (err) {
+      console.error("Image upload error:", err);
       toast.error("Failed to upload images");
     }
     setUploading(false);
