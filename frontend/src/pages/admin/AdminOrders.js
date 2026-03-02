@@ -196,6 +196,7 @@ const AdminOrders = () => {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Items</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
@@ -211,10 +212,23 @@ const AdminOrders = () => {
                   const paymentInfo = paymentStatusConfig[order.payment_status] || paymentStatusConfig.pending;
                   const StatusIcon = statusInfo.icon;
                   
+                  // Determine order type from items
+                  const orderType = order.items?.[0]?.order_type || 'bulk';
+                  const isSample = orderType === 'sample';
+                  
                   return (
                     <tr key={order.id} className="hover:bg-gray-50">
                       <td className="px-4 py-4">
                         <p className="font-medium text-blue-600">{order.order_number}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                          isSample 
+                            ? 'bg-amber-100 text-amber-700' 
+                            : 'bg-emerald-100 text-emerald-700'
+                        }`}>
+                          {isSample ? 'SAMPLE' : 'BULK'}
+                        </span>
                       </td>
                       <td className="px-4 py-4">
                         <p className="font-medium text-gray-900">{order.customer?.name}</p>
@@ -225,7 +239,7 @@ const AdminOrders = () => {
                           {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}m total
+                          {order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}{isSample ? 'm' : 'm'} total
                         </p>
                       </td>
                       <td className="px-4 py-4">
