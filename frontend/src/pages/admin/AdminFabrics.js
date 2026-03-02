@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2, X, Upload, Check, Video, Package, DollarSign, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { getFabrics, getCategories, getSellers, getArticles, createFabric, updateFabric, deleteFabric, uploadImage, uploadVideo } from "../../lib/api";
+import { getFabrics, getCategories, getSellers, getArticles, createFabric, updateFabric, deleteFabric, uploadToCloudinary, uploadVideoToCloudinary } from "../../lib/api";
 
 const AdminFabrics = () => {
   const [fabrics, setFabrics] = useState([]);
