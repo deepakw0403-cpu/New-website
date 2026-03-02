@@ -281,19 +281,18 @@ const AdminFabrics = () => {
     setVideoUploadProgress(0);
     
     try {
-      const result = await uploadVideo(file, (progress) => {
+      const result = await uploadVideoToCloudinary(file, "fabrics", (progress) => {
         setVideoUploadProgress(progress);
       });
       setForm({ ...form, videos: [...form.videos, result.data.url] });
-      toast.success("Video uploaded successfully!");
+      toast.success("Video uploaded to cloud storage!");
     } catch (err) {
       console.error("Video upload error:", err);
       if (err.response?.status === 401) {
         toast.error("Session expired. Please log in again.");
-        // Redirect to login
         window.location.href = "/admin/login";
       } else {
-        toast.error(err.response?.data?.detail || "Failed to upload video");
+        toast.error(err.message || "Failed to upload video");
       }
     }
     setUploadingVideo(false);
