@@ -710,14 +710,17 @@ const FabricDetailPage = () => {
                         </div>
                         <p>
                           <span className="font-medium">Samples:</span>{' '}
-                          {fabric.dispatch_timeline 
-                            ? (fabric.dispatch_timeline.match(/^\d+$/) 
-                                ? `${fabric.dispatch_timeline} days` 
-                                : fabric.dispatch_timeline)
-                            : (fabric.stock_type === 'made_to_order' ? '7-10 days (after production)' : 'Ready Stock (1-2 days dispatch)')}
+                          {fabric.sample_delivery_days 
+                            ? `${fabric.sample_delivery_days} days`
+                            : (fabric.stock_type === 'made_to_order' ? '7-10 days' : '1-3 days')}
                         </p>
                         {actions.canBookBulk && (
-                          <p><span className="font-medium">Bulk Orders:</span> {seoContent?.seo_bulk_details?.lead_time || (fabric.stock_type === 'made_to_order' ? '15-25 working days' : '15-20 working days')}</p>
+                          <p>
+                            <span className="font-medium">Bulk Orders:</span>{' '}
+                            {fabric.bulk_delivery_days 
+                              ? `${fabric.bulk_delivery_days} days`
+                              : (fabric.stock_type === 'made_to_order' ? '15-25 days' : '15-20 days')}
+                          </p>
                         )}
                       </div>
                     </div>
