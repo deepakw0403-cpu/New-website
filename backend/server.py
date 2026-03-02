@@ -163,6 +163,7 @@ class FabricCreate(BaseModel):
     moq: str
     starting_price: Optional[str] = ""
     availability: List[str] = []  # Sample, Bulk, On Request
+    stock_type: str = "ready_stock"  # ready_stock or made_to_order
     description: str
     tags: List[str] = []
     images: List[str] = []
