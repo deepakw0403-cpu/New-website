@@ -691,6 +691,22 @@ const FabricDetailPage = () => {
                   </div>
                 )}
 
+                {/* Delivery Timeline */}
+                <div className="mb-4 pb-4 border-b border-gray-200">
+                  <div className="flex items-start gap-3">
+                    <Truck size={18} className="text-emerald-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Estimated Delivery</p>
+                      <div className="text-sm text-gray-600 mt-1 space-y-1">
+                        <p><span className="font-medium">Samples:</span> {fabric.dispatch_timeline || 'Ready Stock (1-2 days dispatch)'}</p>
+                        {actions.canBookBulk && (
+                          <p><span className="font-medium">Bulk Orders:</span> {seoContent?.seo_bulk_details?.lead_time || '15-20 working days'}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <p className="font-medium mb-2 text-gray-900">Interested in this fabric?</p>
                 <p className="text-sm text-gray-500 mb-4">
                   {actions.canBookBulk ? "Order samples or bulk quantities directly" : "Get pricing, samples, and availability information"}
