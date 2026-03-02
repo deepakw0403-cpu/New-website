@@ -55,6 +55,7 @@ const AdminFabrics = () => {
     moq: "",
     starting_price: "",
     availability: [],
+    stock_type: "ready_stock", // ready_stock or made_to_order
     description: "",
     tags: "",
     images: [],
