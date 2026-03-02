@@ -171,7 +171,9 @@ class FabricCreate(BaseModel):
     # Inventory fields
     quantity_available: Optional[int] = None
     rate_per_meter: Optional[float] = None
-    dispatch_timeline: Optional[str] = ""  # e.g., "7-10 days"
+    dispatch_timeline: Optional[str] = ""  # Legacy field
+    sample_delivery_days: Optional[str] = ""  # e.g., "1-3", "3-5", etc.
+    bulk_delivery_days: Optional[str] = ""  # e.g., "15-17", "17-19", etc.
     is_bookable: bool = False  # Whether this fabric can be directly ordered
     # Pricing fields
     sample_price: Optional[float] = None  # Price per meter for samples (1-5m)
