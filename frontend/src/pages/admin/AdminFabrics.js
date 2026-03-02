@@ -355,6 +355,7 @@ const AdminFabrics = () => {
       color: fabric.color || "",
       finish: fabric.finish || "",
       availability: Array.isArray(fabric.availability) ? fabric.availability : [],
+      stock_type: fabric.stock_type || "ready_stock",
       tags: Array.isArray(fabric.tags) ? fabric.tags.join(", ") : "",
       videos: Array.isArray(fabric.videos) ? fabric.videos : [],
       // Inventory fields
