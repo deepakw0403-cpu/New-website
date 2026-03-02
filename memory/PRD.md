@@ -37,6 +37,30 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Mar 2, 2026 - Query Source & Order Type + Cloudinary Integration
+- **Query Origination (Source) Field**: All enquiries now track their source
+  - Sources: `homepage`, `rfq_page`, `supplier_signup_page`, `contact_page`, `fabric_detail_page`
+  - Backend model updated with `source` field (line 276 server.py)
+  - Frontend forms send source: FabricDetailPage, RFQPage, ContactPage, SellOnLocofast
+  - Admin Enquiries shows Source column with colored badges:
+    - Purple: Supplier Signup
+    - Blue: RFQ
+    - Gray: Contact
+    - Green: Fabric Page
+    - Default: Website
+- **Order Type Badges**: Admin orders panel now shows Sample/Bulk distinction
+  - Type column displays SAMPLE (amber) or BULK (emerald) badges
+  - Derived from `order.items[0].order_type` field
+  - Visible in both orders table and detail modal
+- **Cloudinary Integration**: Cloud image storage for persistence across deployments
+  - Backend: `cloudinary_router.py` with signed upload endpoints
+  - Endpoints: GET `/api/cloudinary/signature`, GET `/api/cloudinary/config`, DELETE `/api/cloudinary/delete`
+  - Frontend: `uploadToCloudinary()` and `uploadVideoToCloudinary()` functions in api.js
+  - AdminFabrics updated to use Cloudinary for image/video uploads
+  - Cloud name: `dqmk2qiy`
+  - Images now persist in Cloudinary CDN instead of local storage
+- **Status**: COMPLETED (tested with 100% pass rate)
+
 ### Feb 27, 2026 - SEO Improvements
 - **Dynamic Meta Tags**: Added Helmet with dynamic title/description to:
   - FabricsPage: Title changes based on filters (category, type, search)
