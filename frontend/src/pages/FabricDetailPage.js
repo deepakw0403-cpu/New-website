@@ -69,6 +69,9 @@ const FabricDetailPage = () => {
         ...enquiryForm,
         fabric_id: fabric.id,
         fabric_name: fabric.name,
+        fabric_code: fabric.fabric_code,
+        enquiry_type: "general",
+        source: "fabric_detail_page"
       });
       toast.success("Enquiry submitted. Our team will respond within 24 hours.");
       setShowEnquiryForm(false);
