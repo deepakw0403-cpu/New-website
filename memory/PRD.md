@@ -59,6 +59,14 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
   - AdminFabrics updated to use Cloudinary for image/video uploads
   - Cloud name: `dqmk2qiy`
   - Images now persist in Cloudinary CDN instead of local storage
+- **RFQ Backend Logic**: New dedicated RFQ router with category-specific fields
+  - Backend: `rfq_router.py` with endpoints `/api/rfq/submit`, `/api/rfq/list`, `/api/rfq/{id}`
+  - Stores category-specific data: fabric_requirement_type, knit_quality, denim_specification
+  - Quantity fields: quantity_meters (cotton/denim/viscose), quantity_kg (knits)
+  - Generates unique RFQ numbers (e.g., RFQ-VUX3N9)
+  - Auto-creates enquiry record for unified admin tracking
+  - Email notification to admin on new RFQ submission
+- **Email Flow Verified**: Test email sent successfully via Resend (mail@locofast.com)
 - **Status**: COMPLETED (tested with 100% pass rate)
 
 ### Feb 27, 2026 - SEO Improvements
