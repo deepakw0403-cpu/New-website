@@ -118,6 +118,13 @@ const AdminFabrics = () => {
     { value: "On Request", label: "On Request", color: "bg-amber-50 text-amber-700 border-amber-200" },
   ];
 
+  // Delivery days options: 1-3, 3-5, 5-7, ... up to 49-51
+  const deliveryDaysOptions = [
+    "1-3", "3-5", "5-7", "7-9", "9-11", "11-13", "13-15", "15-17", "17-19", "19-21",
+    "21-23", "23-25", "25-27", "27-29", "29-31", "31-33", "33-35", "35-37", "37-39", "39-41",
+    "41-43", "43-45", "45-47", "47-49", "49-51"
+  ];
+
   // Check if composition contains polyester
   const isPolyester = () => {
     return form.composition.some(comp => 
