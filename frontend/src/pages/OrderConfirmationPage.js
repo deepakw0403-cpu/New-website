@@ -173,6 +173,25 @@ const OrderConfirmationPage = () => {
                     </div>
                   </div>
                 </div>
+                
+                {/* Estimated Delivery */}
+                <div className="border-t border-gray-100 pt-6 mt-6">
+                  <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg">
+                    <Truck size={20} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-gray-900">Estimated Delivery Timeline</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {items[0]?.order_type === "sample" 
+                          ? items[0]?.dispatch_timeline || "Ready Stock - Dispatch within 1-2 business days"
+                          : items[0]?.dispatch_timeline || "15-20 working days from order confirmation"
+                        }
+                      </p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Our team will confirm exact delivery date within 24 hours
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Shipping Address */}
