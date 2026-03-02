@@ -517,6 +517,10 @@ const FabricDetailPage = () => {
                         alt={`${fabric.name} thumbnail ${idx + 1}`} 
                         className="w-full h-full object-cover" 
                         loading="lazy"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600";
+                        }}
                       />
                     </button>
                   ))}
