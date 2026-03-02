@@ -117,7 +117,7 @@ export const deleteCollection = (id) => api.delete(`/collections/${id}`);
 // Stats
 export const getStats = () => api.get("/stats");
 
-// Upload
+// Upload - Local storage (legacy fallback)
 export const uploadImage = (file) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -153,6 +153,112 @@ export const uploadVideo = (file, onProgress) => {
       }
     },
   });
+};
+
+// Cloudinary Upload - Cloud storage (preferred)
+export const getCloudinarySignature = (resourceType = "image", folder = "fabrics") => {
+  return api.get(`/cloudinary/signature?resource_type=${resourceType}&folder=${folder}`);
+};
+
+export const uploadToCloudinary = async (file, folder = "fabrics", onProgress = null) => {
+  try {
+    // Get signature from backend
+    const sigResponse = await getCloudinarySignature("image", folder);
+    const sig = sigResponse.data;
+    
+    // Create form data for Cloudinary
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("api_key", sig.api_key);
+    formData.append("timestamp", sig.timestamp);
+    formData.append("signature", sig.signature);
+    formData.append("folder", sig.folder);
+    
+    // Upload directly to Cloudinary
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload`,
+      { method: "POST", body: formData }
+    );
+    
+    const result = await response.json();
+    
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+    
+    return {
+      data: {
+        url: result.secure_url,
+        public_id: result.public_id,
+        format: result.format,
+        width: result.width,
+        height: result.height
+      }
+    };
+  } catch (error) {
+    console.error("Cloudinary upload failed:", error);
+    throw error;
+  }
+};
+
+export const uploadVideoToCloudinary = async (file, folder = "fabrics", onProgress = null) => {
+  try {
+    // Get signature from backend
+    const sigResponse = await getCloudinarySignature("video", folder);
+    const sig = sigResponse.data;
+    
+    // Create form data for Cloudinary
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("api_key", sig.api_key);
+    formData.append("timestamp", sig.timestamp);
+    formData.append("signature", sig.signature);
+    formData.append("folder", sig.folder);
+    
+    // Use XMLHttpRequest for progress tracking
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      
+      if (onProgress) {
+        xhr.upload.addEventListener("progress", (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            onProgress(percentComplete);
+          }
+        });
+      }
+      
+      xhr.addEventListener("load", () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const result = JSON.parse(xhr.responseText);
+          if (result.error) {
+            reject(new Error(result.error.message));
+          } else {
+            resolve({
+              data: {
+                url: result.secure_url,
+                public_id: result.public_id,
+                format: result.format,
+                width: result.width,
+                height: result.height,
+                duration: result.duration
+              }
+            });
+          }
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      });
+      
+      xhr.addEventListener("error", () => reject(new Error("Upload failed")));
+      
+      xhr.open("POST", `https://api.cloudinary.com/v1_1/${sig.cloud_name}/video/upload`);
+      xhr.send(formData);
+    });
+  } catch (error) {
+    console.error("Cloudinary video upload failed:", error);
+    throw error;
+  }
 };
 
 // SEO
