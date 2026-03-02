@@ -1604,6 +1604,8 @@ async def get_sitemap():
 orders_router.set_db(db)
 orders_router.init_razorpay()
 email_router.set_db(db)
+cloudinary_router.set_db(db)
+cloudinary_router.init_cloudinary()
 
 app.include_router(api_router)
 app.include_router(tools_router)
@@ -1613,6 +1615,7 @@ app.include_router(orders_router.router)
 app.include_router(email_router.router)
 app.include_router(vendor_router.router)
 app.include_router(coupon_router.router, prefix="/api")
+app.include_router(cloudinary_router.router)
 
 # Serve uploaded files
 app.mount("/api/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
