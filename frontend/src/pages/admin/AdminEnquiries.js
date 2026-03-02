@@ -98,6 +98,7 @@ const AdminEnquiries = () => {
                 <thead className="bg-neutral-50 border-b border-neutral-100">
                   <tr>
                     <th className="text-left p-4 font-medium text-sm">Contact</th>
+                    <th className="text-left p-4 font-medium text-sm">Source</th>
                     <th className="text-left p-4 font-medium text-sm">Fabric</th>
                     <th className="text-left p-4 font-medium text-sm">Message</th>
                     <th className="text-left p-4 font-medium text-sm">Date</th>
@@ -118,6 +119,35 @@ const AdminEnquiries = () => {
                         <p className="text-sm text-neutral-500">{enquiry.email}</p>
                         {enquiry.company && (
                           <p className="text-sm text-neutral-400">{enquiry.company}</p>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                          enquiry.source === 'supplier_signup_page' ? 'bg-purple-100 text-purple-700' :
+                          enquiry.source === 'rfq_page' ? 'bg-blue-100 text-blue-700' :
+                          enquiry.source === 'contact_page' ? 'bg-gray-100 text-gray-700' :
+                          enquiry.source === 'fabric_detail_page' ? 'bg-emerald-100 text-emerald-700' :
+                          'bg-neutral-100 text-neutral-600'
+                        }`}>
+                          {enquiry.source === 'supplier_signup_page' ? 'Supplier Signup' :
+                           enquiry.source === 'rfq_page' ? 'RFQ' :
+                           enquiry.source === 'contact_page' ? 'Contact' :
+                           enquiry.source === 'fabric_detail_page' ? 'Fabric Page' :
+                           enquiry.source || 'Website'}
+                        </span>
+                        {enquiry.enquiry_type && enquiry.enquiry_type !== 'general' && (
+                          <span className={`ml-1 text-xs px-2 py-1 rounded-full font-medium ${
+                            enquiry.enquiry_type === 'sample_order' ? 'bg-amber-100 text-amber-700' :
+                            enquiry.enquiry_type === 'bulk_order' ? 'bg-green-100 text-green-700' :
+                            enquiry.enquiry_type === 'rfq' ? 'bg-blue-100 text-blue-700' :
+                            'bg-neutral-100 text-neutral-600'
+                          }`}>
+                            {enquiry.enquiry_type === 'sample_order' ? 'Sample' :
+                             enquiry.enquiry_type === 'bulk_order' ? 'Bulk' :
+                             enquiry.enquiry_type === 'rfq' ? 'RFQ' :
+                             enquiry.enquiry_type === 'supplier_signup' ? 'Supplier' :
+                             enquiry.enquiry_type}
+                          </span>
                         )}
                       </td>
                       <td className="p-4 text-neutral-600">
