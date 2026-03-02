@@ -249,6 +249,7 @@ class Fabric(BaseModel):
     moq: str
     starting_price: str = ""
     availability: List[str] = []
+    stock_type: str = "ready_stock"  # ready_stock or made_to_order
     description: str
     tags: List[str] = []
     images: List[str] = []
