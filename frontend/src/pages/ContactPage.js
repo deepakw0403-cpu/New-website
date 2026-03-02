@@ -24,7 +24,11 @@ const ContactPage = () => {
 
     setSubmitting(true);
     try {
-      await createEnquiry(form);
+      await createEnquiry({
+        ...form,
+        source: "contact_page",
+        enquiry_type: "general"
+      });
       toast.success("Message submitted. Our team will respond within 24 hours.");
       setForm({ name: "", email: "", phone: "", company: "", message: "" });
     } catch (err) {
