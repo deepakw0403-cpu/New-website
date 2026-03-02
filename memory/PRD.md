@@ -66,6 +66,12 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
   - Generates unique RFQ numbers (e.g., RFQ-VUX3N9)
   - Auto-creates enquiry record for unified admin tracking
   - Email notification to admin on new RFQ submission
+- **Admin RFQ Management Page**: Full-featured RFQ dashboard at `/admin/rfq`
+  - Stats cards: New, Contacted, Quoted, Won, Lost counts
+  - Table with: RFQ #, Category (colored badges), Requirements (category-specific), Contact, Date, Status, Actions
+  - Filters: By category (Cotton, Knits, Denim, Viscose) and status
+  - Detail modal: Full requirement details, contact info, status update dropdown
+  - Status workflow: New → Contacted → Quoted → Won/Lost/Closed
 - **Email Flow Verified**: Test email sent successfully via Resend (mail@locofast.com)
 - **Status**: COMPLETED (tested with 100% pass rate)
 
