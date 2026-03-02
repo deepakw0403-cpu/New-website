@@ -156,31 +156,38 @@ const RFQPage = () => {
 
     setSubmitting(true);
     try {
-      // Build the enquiry data
-      const enquiryData = {
-        name: form.full_name,
+      // Build the RFQ data with category-specific fields
+      const rfqData = {
+        category: form.category,
+        fabric_requirement_type: form.fabric_requirement_type,
+        quantity_meters: form.quantity_meters,
+        quantity_kg: form.quantity_kg,
+        knit_quality: form.knit_quality,
+        denim_specification: form.denim_specification,
+        full_name: form.full_name,
         email: form.email,
         phone: form.phone,
-        company: form.website || "",
-        enquiry_type: "rfq",
-        source: "rfq_page",
-        message: buildMessage()
+        gst_number: form.gst_number,
+        website: form.website,
+        message: form.message
       };
 
-      const response = await fetch(`${API_URL}/api/enquiries`, {
+      const response = await fetch(`${API_URL}/api/rfq/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(enquiryData)
+        body: JSON.stringify(rfqData)
       });
 
       if (response.ok) {
+        const result = await response.json();
         setSubmitted(true);
-        toast.success("RFQ submitted successfully!");
+        toast.success(`RFQ ${result.rfq_number} submitted successfully!`);
       } else {
-        throw new Error("Failed to submit");
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to submit");
       }
     } catch (err) {
-      toast.error("Failed to submit RFQ. Please try again.");
+      toast.error(err.message || "Failed to submit RFQ. Please try again.");
     }
     setSubmitting(false);
   };
