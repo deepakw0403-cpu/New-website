@@ -1266,6 +1266,40 @@ const AdminFabrics = () => {
                   <p className="text-xs text-gray-500 mt-2">Select all that apply</p>
                 </div>
 
+                {/* Stock Type - Ready Stock vs Made to Order */}
+                <div>
+                  <label className="block text-sm font-medium mb-3">Stock Type</label>
+                  <div className="flex gap-4" data-testid="fabric-stock-type">
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, stock_type: "ready_stock" })}
+                      className={`flex-1 px-4 py-3 rounded border-2 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                        form.stock_type === "ready_stock"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-400"
+                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      {form.stock_type === "ready_stock" && <Check size={16} />}
+                      Ready Stock
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, stock_type: "made_to_order" })}
+                      className={`flex-1 px-4 py-3 rounded border-2 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                        form.stock_type === "made_to_order"
+                          ? "bg-amber-50 text-amber-700 border-amber-400"
+                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      {form.stock_type === "made_to_order" && <Check size={16} />}
+                      Made to Order
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Ready Stock: Available immediately | Made to Order: Production starts after order
+                  </p>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Description</label>
                   <textarea
