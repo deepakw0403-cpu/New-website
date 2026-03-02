@@ -698,16 +698,26 @@ const FabricDetailPage = () => {
                     <div>
                       <p className="text-sm font-medium text-gray-900">Estimated Delivery</p>
                       <div className="text-sm text-gray-600 mt-1 space-y-1">
+                        {/* Stock Type Badge */}
+                        <div className="mb-2">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                            fabric.stock_type === 'made_to_order' 
+                              ? 'bg-amber-100 text-amber-800' 
+                              : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {fabric.stock_type === 'made_to_order' ? 'Made to Order' : 'Ready Stock'}
+                          </span>
+                        </div>
                         <p>
                           <span className="font-medium">Samples:</span>{' '}
                           {fabric.dispatch_timeline 
                             ? (fabric.dispatch_timeline.match(/^\d+$/) 
                                 ? `${fabric.dispatch_timeline} days` 
                                 : fabric.dispatch_timeline)
-                            : 'Ready Stock (1-2 days dispatch)'}
+                            : (fabric.stock_type === 'made_to_order' ? '7-10 days (after production)' : 'Ready Stock (1-2 days dispatch)')}
                         </p>
                         {actions.canBookBulk && (
-                          <p><span className="font-medium">Bulk Orders:</span> {seoContent?.seo_bulk_details?.lead_time || '15-20 working days'}</p>
+                          <p><span className="font-medium">Bulk Orders:</span> {seoContent?.seo_bulk_details?.lead_time || (fabric.stock_type === 'made_to_order' ? '15-25 working days' : '15-20 working days')}</p>
                         )}
                       </div>
                     </div>
