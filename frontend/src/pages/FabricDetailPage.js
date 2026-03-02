@@ -147,6 +147,8 @@ const FabricDetailPage = () => {
       let enquiryData = {
         fabric_id: fabric.id,
         fabric_name: fabric.name,
+        fabric_code: fabric.fabric_code,
+        source: "fabric_detail_page",
         ...orderForm,
       };
 
