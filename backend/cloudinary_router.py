@@ -57,7 +57,7 @@ async def verify_admin(credentials: HTTPAuthorizationCredentials = Depends(secur
     try:
         payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         admin_id = payload.get('sub')
-        if db:
+        if db is not None:
             admin = await db.admins.find_one({'id': admin_id}, {'_id': 0})
             if not admin:
                 raise HTTPException(status_code=401, detail='Invalid token')
