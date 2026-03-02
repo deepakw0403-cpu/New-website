@@ -64,6 +64,8 @@ const AdminFabrics = () => {
     quantity_available: "",
     rate_per_meter: "",
     dispatch_timeline: "",
+    sample_delivery_days: "", // New: 1-3, 3-5, 5-7, etc.
+    bulk_delivery_days: "",   // New: 1-3, 3-5, 5-7, etc.
     is_bookable: false,
     // Pricing fields
     sample_price: "",
