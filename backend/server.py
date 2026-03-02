@@ -214,6 +214,8 @@ class FabricUpdate(BaseModel):
     quantity_available: Optional[int] = None
     rate_per_meter: Optional[float] = None
     dispatch_timeline: Optional[str] = None
+    sample_delivery_days: Optional[str] = None
+    bulk_delivery_days: Optional[str] = None
     is_bookable: Optional[bool] = None
     # Pricing fields
     sample_price: Optional[float] = None
