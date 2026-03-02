@@ -347,7 +347,7 @@ const CheckoutPage = () => {
                       <Truck size={16} className="text-emerald-600 mt-0.5" />
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-gray-600">Estimated Dispatch:</span>
+                          <span className="text-gray-600">Estimated Delivery:</span>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                             fabric.stock_type === 'made_to_order' 
                               ? 'bg-amber-100 text-amber-800' 
@@ -357,13 +357,9 @@ const CheckoutPage = () => {
                           </span>
                         </div>
                         <span className="font-medium text-gray-900">
-                          {fabric.dispatch_timeline 
-                            ? (fabric.dispatch_timeline.match(/^\d+$/) 
-                                ? `${fabric.dispatch_timeline} days` 
-                                : fabric.dispatch_timeline)
-                            : (orderType === 'sample' 
-                                ? (fabric.stock_type === 'made_to_order' ? '7-10 days' : '1-2 days') 
-                                : (fabric.stock_type === 'made_to_order' ? '15-25 working days' : '15-20 working days'))
+                          {orderType === 'sample' 
+                            ? (fabric.sample_delivery_days ? `${fabric.sample_delivery_days} days` : (fabric.stock_type === 'made_to_order' ? '7-10 days' : '1-3 days'))
+                            : (fabric.bulk_delivery_days ? `${fabric.bulk_delivery_days} days` : (fabric.stock_type === 'made_to_order' ? '15-25 days' : '15-20 days'))
                           }
                         </span>
                         <p className="text-xs text-gray-500 mt-1">
