@@ -262,6 +262,8 @@ class Fabric(BaseModel):
     quantity_available: Optional[int] = None
     rate_per_meter: Optional[float] = None
     dispatch_timeline: str = ""
+    sample_delivery_days: str = ""
+    bulk_delivery_days: str = ""
     is_bookable: bool = False
     # Pricing fields
     sample_price: Optional[float] = None
