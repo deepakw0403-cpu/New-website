@@ -343,21 +343,36 @@ const CheckoutPage = () => {
                   
                   {/* Estimated Delivery Timeline */}
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Truck size={16} className="text-emerald-600" />
-                      <span className="text-gray-600">Estimated Dispatch:</span>
-                      <span className="font-medium text-gray-900">
-                        {fabric.dispatch_timeline 
-                          ? (fabric.dispatch_timeline.match(/^\d+$/) 
-                              ? `${fabric.dispatch_timeline} days` 
-                              : fabric.dispatch_timeline)
-                          : (orderType === 'sample' ? 'Ready Stock (1-2 days)' : '15-20 working days')
-                        }
-                      </span>
+                    <div className="flex items-start gap-2 text-sm">
+                      <Truck size={16} className="text-emerald-600 mt-0.5" />
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-gray-600">Estimated Dispatch:</span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            fabric.stock_type === 'made_to_order' 
+                              ? 'bg-amber-100 text-amber-800' 
+                              : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {fabric.stock_type === 'made_to_order' ? 'Made to Order' : 'Ready Stock'}
+                          </span>
+                        </div>
+                        <span className="font-medium text-gray-900">
+                          {fabric.dispatch_timeline 
+                            ? (fabric.dispatch_timeline.match(/^\d+$/) 
+                                ? `${fabric.dispatch_timeline} days` 
+                                : fabric.dispatch_timeline)
+                            : (orderType === 'sample' 
+                                ? (fabric.stock_type === 'made_to_order' ? '7-10 days' : '1-2 days') 
+                                : (fabric.stock_type === 'made_to_order' ? '15-25 working days' : '15-20 working days'))
+                          }
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {fabric.stock_type === 'made_to_order' 
+                            ? 'Production starts after order confirmation. Our team will share exact timeline.'
+                            : 'Delivery time depends on your location. Our team will confirm exact timeline post order.'}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1 ml-6">
-                      Delivery time depends on your location. Our team will confirm exact timeline post order.
-                    </p>
                   </div>
                 </div>
 
