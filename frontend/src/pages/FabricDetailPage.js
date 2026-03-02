@@ -698,7 +698,14 @@ const FabricDetailPage = () => {
                     <div>
                       <p className="text-sm font-medium text-gray-900">Estimated Delivery</p>
                       <div className="text-sm text-gray-600 mt-1 space-y-1">
-                        <p><span className="font-medium">Samples:</span> {fabric.dispatch_timeline || 'Ready Stock (1-2 days dispatch)'}</p>
+                        <p>
+                          <span className="font-medium">Samples:</span>{' '}
+                          {fabric.dispatch_timeline 
+                            ? (fabric.dispatch_timeline.match(/^\d+$/) 
+                                ? `${fabric.dispatch_timeline} days` 
+                                : fabric.dispatch_timeline)
+                            : 'Ready Stock (1-2 days dispatch)'}
+                        </p>
                         {actions.canBookBulk && (
                           <p><span className="font-medium">Bulk Orders:</span> {seoContent?.seo_bulk_details?.lead_time || '15-20 working days'}</p>
                         )}
