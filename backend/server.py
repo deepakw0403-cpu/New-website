@@ -203,6 +203,7 @@ class FabricUpdate(BaseModel):
     moq: Optional[str] = None
     starting_price: Optional[str] = None
     availability: Optional[List[str]] = None
+    stock_type: Optional[str] = None  # ready_stock or made_to_order
     description: Optional[str] = None
     tags: Optional[List[str]] = None
     images: Optional[List[str]] = None
