@@ -463,6 +463,8 @@ const AdminFabrics = () => {
       quantity_available: form.quantity_available ? parseInt(form.quantity_available) : null,
       rate_per_meter: form.rate_per_meter ? parseFloat(form.rate_per_meter) : null,
       dispatch_timeline: form.dispatch_timeline,
+      sample_delivery_days: form.sample_delivery_days,
+      bulk_delivery_days: form.bulk_delivery_days,
       is_bookable: form.is_bookable,
       // Pricing fields
       sample_price: form.sample_price ? parseFloat(form.sample_price) : null,
