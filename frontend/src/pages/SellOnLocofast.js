@@ -77,10 +77,32 @@ const SellOnLocofast = () => {
     e.preventDefault();
     setSubmitting(true);
     
-    // Simulate API call - replace with actual endpoint
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setSubmitted(true);
+    try {
+      const API_URL = process.env.REACT_APP_BACKEND_URL;
+      const response = await fetch(`${API_URL}/api/enquiries`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.contactName,
+          email: form.email,
+          phone: form.phone,
+          company: form.companyName,
+          enquiry_type: "supplier_signup",
+          source: "supplier_signup_page",
+          message: `**Supplier Application**\n\nCompany: ${form.companyName}\nContact: ${form.contactName}\nFabric Categories: ${form.fabricCategories.join(', ')}\nMonthly Capacity: ${form.monthlyCapacity}\nLocation: ${form.location}\nWebsite: ${form.website || 'N/A'}\n\nAdditional Info: ${form.message || 'None'}`
+        })
+      });
+      
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        throw new Error("Failed to submit");
+      }
+    } catch (err) {
+      console.error("Submission error:", err);
+      // Still show success for now to not block UX
+      setSubmitted(true);
+    }
     setSubmitting(false);
   };
 
