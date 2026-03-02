@@ -61,6 +61,7 @@ import AdminCollections from "./pages/admin/AdminCollections";
 import AdminArticles from "./pages/admin/AdminArticles";
 import AdminEnquiries from "./pages/admin/AdminEnquiries";
 import AdminOrders from "./pages/admin/AdminOrders";
+import AdminRFQ from "./pages/admin/AdminRFQ";
 import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminFabricSEO from "./pages/admin/AdminFabricSEO";
 import AdminBlog from "./pages/admin/AdminBlog";
