@@ -354,6 +354,7 @@ const CheckoutPage = () => {
                       Delivery time depends on your location. Our team will confirm exact timeline post order.
                     </p>
                   </div>
+                </div>
 
                 {/* Shipping Details */}
                 <div className="bg-white rounded-xl p-6 border border-gray-200">
