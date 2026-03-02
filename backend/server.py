@@ -271,9 +271,9 @@ class EnquiryCreate(BaseModel):
     message: str
     fabric_id: Optional[str] = None
     fabric_name: Optional[str] = None
-    fabric_code: Optional[str] = None  # Add fabric code to enquiry
-    fabric_id: Optional[str] = None
-    fabric_name: Optional[str] = None
+    fabric_code: Optional[str] = None
+    enquiry_type: Optional[str] = "general"  # general, rfq, sample_order, bulk_order, supplier_signup
+    source: Optional[str] = "website"  # homepage, supplier_signup, rfq, contact, fabric_detail, assisted_sourcing
 
 class Enquiry(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -286,6 +286,8 @@ class Enquiry(BaseModel):
     fabric_id: Optional[str] = None
     fabric_name: Optional[str] = None
     fabric_code: Optional[str] = None
+    enquiry_type: Optional[str] = "general"
+    source: Optional[str] = "website"
     status: str = "new"
     created_at: str
 
