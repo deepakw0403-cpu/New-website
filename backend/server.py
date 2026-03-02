@@ -28,6 +28,7 @@ import email_router
 import vendor_router
 import coupon_router
 import cloudinary_router
+import rfq_router
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
