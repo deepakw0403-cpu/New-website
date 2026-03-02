@@ -163,6 +163,7 @@ const RFQPage = () => {
         phone: form.phone,
         company: form.website || "",
         enquiry_type: "rfq",
+        source: "rfq_page",
         message: buildMessage()
       };
 
