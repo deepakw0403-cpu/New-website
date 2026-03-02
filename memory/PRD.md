@@ -23,7 +23,7 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 ## User Choices
 - Authentication: JWT email/password
 - Enquiry: Store in DB (email integration deferred)
-- Image Storage: Local uploads (Cloudinary integration deferred)
+- Image Storage: Cloudinary (cloud_name: dqmk2qiy) - LIVE
 - Branding: Locofast brand colors (#2563EB blue) and logo
 - Demo Data: Seeded with 8 fabrics, 6 categories
 
