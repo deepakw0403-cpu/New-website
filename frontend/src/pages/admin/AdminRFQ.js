@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Eye, Filter, Phone, Mail, Globe, FileText, CheckCircle, Clock, XCircle } from "lucide-react";
-import AdminLayout from "../../components/AdminLayout";
+import AdminLayout from "../../components/admin/AdminLayout";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import {
