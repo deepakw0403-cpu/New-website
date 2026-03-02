@@ -467,6 +467,10 @@ const FabricDetailPage = () => {
                   alt={`${fabric.name} - ${fabric.composition?.map(c => c.material).join(', ') || fabric.category_name} fabric${fabric.color ? ` in ${fabric.color}` : ''}${fabric.gsm ? `, ${fabric.gsm} GSM` : ''}`}
                   className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   data-testid="main-image"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600";
+                  }}
                 />
                 
                 {/* Zoom indicator */}
