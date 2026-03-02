@@ -695,3 +695,92 @@ async def send_enquiry_emails(enquiry: dict):
             logger.error(f"Failed to send customer confirmation: {str(e)}")
     
     return True
+
+
+
+# ==================== RFQ EMAIL NOTIFICATION ====================
+
+def get_rfq_notification_email(rfq: dict) -> str:
+    """Generate RFQ notification email for admin"""
+    category = rfq.get('category', '').upper()
+    
+    # Build details based on category
+    details_html = f"<p><strong>Category:</strong> {category}</p>"
+    
+    if rfq.get('category') in ['cotton', 'viscose']:
+        if rfq.get('fabric_requirement_type'):
+            details_html += f"<p><strong>Fabric Type:</strong> {rfq.get('fabric_requirement_type')}</p>"
+        if rfq.get('quantity_meters'):
+            details_html += f"<p><strong>Quantity:</strong> {rfq.get('quantity_meters').replace('_', ' - ').replace('plus', '+')} meters</p>"
+    elif rfq.get('category') == 'knits':
+        if rfq.get('knit_quality'):
+            details_html += f"<p><strong>Quality:</strong> {rfq.get('knit_quality')}</p>"
+        if rfq.get('quantity_kg'):
+            details_html += f"<p><strong>Quantity:</strong> {rfq.get('quantity_kg').replace('_', ' - ').replace('plus', '+')} kg</p>"
+    elif rfq.get('category') == 'denim':
+        if rfq.get('denim_specification'):
+            details_html += f"<p><strong>Specification:</strong> {rfq.get('denim_specification')}</p>"
+        if rfq.get('quantity_meters'):
+            details_html += f"<p><strong>Quantity:</strong> {rfq.get('quantity_meters').replace('_', ' - ').replace('plus', '+')} meters</p>"
+    
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: linear-gradient(135deg, #2563EB 0%, #1d4ed8 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
+            .content {{ background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; }}
+            .rfq-number {{ font-size: 24px; font-weight: bold; margin: 10px 0; }}
+            .category-badge {{ display: inline-block; background: #dbeafe; color: #1d4ed8; padding: 5px 12px; border-radius: 20px; font-weight: bold; }}
+            .details {{ background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; }}
+            .contact {{ margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2>New RFQ Received</h2>
+                <div class="rfq-number">{rfq.get('rfq_number', 'N/A')}</div>
+                <div class="category-badge">{category}</div>
+            </div>
+            <div class="content">
+                <div class="details">
+                    <h3>Requirement Details</h3>
+                    {details_html}
+                    {f"<p><strong>GST Number:</strong> {rfq.get('gst_number')}</p>" if rfq.get('gst_number') else ""}
+                    {f"<p><strong>Additional Notes:</strong> {rfq.get('message')}</p>" if rfq.get('message') else ""}
+                </div>
+                <div class="contact">
+                    <h3>Contact Information</h3>
+                    <p><strong>Name:</strong> {rfq.get('full_name', 'N/A')}</p>
+                    <p><strong>Email:</strong> <a href="mailto:{rfq.get('email')}">{rfq.get('email', 'N/A')}</a></p>
+                    <p><strong>Phone:</strong> <a href="tel:{rfq.get('phone')}">{rfq.get('phone', 'N/A')}</a></p>
+                    {f"<p><strong>Website:</strong> <a href='{rfq.get('website')}'>{rfq.get('website')}</a></p>" if rfq.get('website') else ""}
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+async def send_rfq_notification(rfq: dict):
+    """Send RFQ notification email to admin"""
+    if not RESEND_API_KEY:
+        logger.warning("Resend not configured - skipping RFQ notification")
+        return False
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [ADMIN_NOTIFICATION_EMAIL],
+            "subject": f"New RFQ: {rfq.get('rfq_number')} - {rfq.get('category', '').upper()} | Locofast",
+            "html": get_rfq_notification_email(rfq)
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"RFQ notification sent: {rfq.get('rfq_number')}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send RFQ notification: {str(e)}")
+        return False
