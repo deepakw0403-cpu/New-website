@@ -165,18 +165,39 @@ def verify_razorpay_signature(order_id: str, payment_id: str, signature: str) ->
     
     return hmac.compare_digest(expected_signature, signature)
 
+
+@router.get("/payment-status")
+async def get_payment_status():
+    """Check if payment service is configured (for debugging)"""
+    key_id = os.environ.get('RAZORPAY_KEY_ID', '')
+    has_secret = bool(os.environ.get('RAZORPAY_KEY_SECRET', ''))
+    
+    return {
+        "razorpay_configured": razorpay_client is not None,
+        "key_id_present": bool(key_id),
+        "key_id_prefix": key_id[:10] + "..." if len(key_id) > 10 else key_id,
+        "secret_present": has_secret
+    }
+
 # ==================== ORDER ENDPOINTS ====================
 
 @router.post("/create", response_model=dict)
 async def create_order(order_data: OrderCreate):
     """Create a new order and initiate Razorpay payment"""
     if not razorpay_client:
-        raise HTTPException(status_code=503, detail="Payment service not configured")
+        logger.error("Razorpay client not initialized - check RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET env vars")
+        raise HTTPException(status_code=503, detail="Payment service not configured. Please contact support.")
+    
+    if not order_data.items or len(order_data.items) == 0:
+        raise HTTPException(status_code=400, detail="No items in order")
     
     # Calculate totals
     totals = calculate_totals(order_data.items)
     discount = order_data.discount or 0
     final_total = max(0, totals["total"] - discount)
+    
+    if final_total <= 0:
+        raise HTTPException(status_code=400, detail="Order total must be greater than zero")
     
     # Generate order ID and number
     order_id = str(uuid.uuid4())

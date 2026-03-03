@@ -270,8 +270,13 @@ const CheckoutPage = () => {
 
     } catch (err) {
       console.error("Checkout error:", err);
-      setPaymentError(err.response?.data?.detail || "Failed to initiate payment");
-      toast.error("Failed to initiate payment");
+      // Show more detailed error message
+      const errorMessage = err.response?.data?.detail 
+        || err.response?.data?.message 
+        || err.message 
+        || "Failed to initiate payment";
+      setPaymentError(errorMessage);
+      toast.error(errorMessage);
       setSubmitting(false);
     }
   };
