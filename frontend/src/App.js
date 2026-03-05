@@ -1,9 +1,21 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 import { VendorAuthProvider } from "./context/VendorAuthContext";
 import WhatsAppChat from "./components/WhatsAppChat";
+import { useEffect } from "react";
+
+// Scroll to top on route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  
+  return null;
+}
 
 // Public pages
 import HomePage from "./pages/HomePage";
@@ -103,6 +115,7 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Toaster position="top-right" richColors />
+          <ScrollToTop />
           <Routes>
           {/* Public routes */}
           <Route path="/" element={<><Navbar /><HomePage /><Footer /></>} />
