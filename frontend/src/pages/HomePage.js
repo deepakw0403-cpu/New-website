@@ -1,207 +1,195 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
-import { 
-  ArrowRight, 
-  Users, 
-  Building2, 
-  MapPin, 
-  CheckCircle,
-  Search,
-  MessageSquare,
-  Shield,
-  Layers,
-  TrendingUp,
-  Globe,
-  Clock,
-  Phone,
-  Star,
-  ChevronDown,
-  ChevronUp,
-  Package,
-  Zap,
-  Target,
-  Award
-} from "lucide-react";
+import { ArrowRight, CheckCircle, MessageCircle, Shield, Clock, Users, ChevronDown, ChevronUp, Sparkles, Factory, Store, Layers, Building2, ShieldCheck } from "lucide-react";
 import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import { getCollections } from "../lib/api";
 
 const HomePage = () => {
+  const [collections, setCollections] = useState([]);
   const [openFaq, setOpenFaq] = useState(null);
 
-  // Trust indicators
-  const trustStats = [
-    { icon: Users, value: "5000+", label: "Buyers" },
-    { icon: Building2, value: "300+", label: "Suppliers" },
-    { icon: MapPin, value: "50+", label: "Cities" },
-  ];
+  useEffect(() => {
+    fetchCollections();
+  }, []);
 
-  // Fabric categories
-  const fabricCategories = [
-    { name: "Denim Fabric", description: "Premium denim fabrics for jeans and apparel manufacturing.", image: "https://images.unsplash.com/photo-1565084888279-aca607ecce0c?w=400&h=300&fit=crop" },
-    { name: "Cotton Fabric", description: "High-quality cotton fabrics for garments and home textiles.", image: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400&h=300&fit=crop" },
-    { name: "Polyester Knit", description: "Durable polyester knit fabrics for sportswear and activewear.", image: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400&h=300&fit=crop" },
-    { name: "Greige Fabric", description: "Unfinished grey fabrics ready for dyeing and processing.", image: "https://images.unsplash.com/photo-1606513542745-97629752a13b?w=400&h=300&fit=crop" },
-    { name: "Rayon Fabric", description: "Soft rayon fabrics for comfortable everyday wear.", image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=300&fit=crop" },
-    { name: "Viscose Fabric", description: "Smooth viscose fabrics with excellent drape.", image: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400&h=300&fit=crop" },
-    { name: "Printed Fabric", description: "Vibrant printed fabrics for fashion and home decor.", image: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400&h=300&fit=crop" },
-    { name: "Suiting Fabric", description: "Premium suiting fabrics for formal and corporate wear.", image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=300&fit=crop" },
-    { name: "Shirting Fabric", description: "Quality shirting fabrics for dress and casual shirts.", image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=300&fit=crop" },
-    { name: "Kurti Fabric", description: "Ethnic kurti fabrics for traditional Indian wear.", image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=300&fit=crop" },
-  ];
-
-  // How it works steps
-  const howItWorks = [
-    { step: 1, title: "Register Your Business", description: "Sign up with your GST and business details", icon: Building2 },
-    { step: 2, title: "List Your Fabrics", description: "Add photos, GSM, composition and MOQ", icon: Layers },
-    { step: 3, title: "Receive Enquiries", description: "Get enquiries from buyers across India", icon: MessageSquare },
-    { step: 4, title: "Close Orders", description: "Discuss pricing and complete the deal", icon: CheckCircle },
-  ];
-
-  // Supplier benefits
-  const supplierBenefits = [
-    { icon: Globe, title: "Access Buyers Across India", description: "Connect with garment manufacturers, brands, and traders nationwide" },
-    { icon: MessageSquare, title: "Receive Inbound Enquiries", description: "Get quality leads from serious buyers looking for fabrics" },
-    { icon: TrendingUp, title: "Expand Beyond Local Markets", description: "Grow your business without geographical limitations" },
-    { icon: Layers, title: "Showcase Inventory Online", description: "Digital catalog to display your complete fabric range" },
-    { icon: Users, title: "Build Long-term Relationships", description: "Connect with repeat buyers for consistent business" },
-  ];
-
-  // Buyer benefits
-  const buyerBenefits = [
-    { icon: Search, title: "Find Reliable Suppliers", description: "Access verified fabric suppliers from across India" },
-    { icon: Target, title: "Compare Multiple Suppliers", description: "Get quotes from multiple suppliers to find the best deal" },
-    { icon: Package, title: "Access Large Variety", description: "Browse thousands of fabric listings in one place" },
-    { icon: Clock, title: "Save Sourcing Time", description: "Find the right fabric faster with smart search" },
-    { icon: Phone, title: "Direct Communication", description: "Connect directly with suppliers without middlemen" },
-  ];
-
-  // Marketplace features
-  const features = [
-    { icon: Search, title: "Smart Fabric Search", description: "Search fabrics by GSM, composition, weave and application." },
-    { icon: MessageSquare, title: "Direct Buyer Enquiries", description: "Buyers can contact suppliers directly through the platform." },
-    { icon: Shield, title: "Verified Supplier Profiles", description: "All suppliers are verified businesses with GST registration." },
-    { icon: Layers, title: "Digital Fabric Catalog", description: "Suppliers can showcase their complete inventory online." },
-  ];
-
-  // Featured fabrics
-  const featuredFabrics = [
-    { name: "Indigo Denim 12oz", gsm: "340 GSM", composition: "100% Cotton", location: "Ahmedabad", image: "https://images.unsplash.com/photo-1565084888279-aca607ecce0c?w=300&h=200&fit=crop" },
-    { name: "Cotton Cambric", gsm: "90 GSM", composition: "100% Cotton", location: "Surat", image: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=300&h=200&fit=crop" },
-    { name: "Polyester Interlock", gsm: "220 GSM", composition: "100% Polyester", location: "Ludhiana", image: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=300&h=200&fit=crop" },
-    { name: "Rayon Printed", gsm: "120 GSM", composition: "100% Rayon", location: "Mumbai", image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=300&h=200&fit=crop" },
-  ];
-
-  // Featured suppliers
-  const featuredSuppliers = [
-    { name: "ABC Denim Mills", location: "Ahmedabad", specialty: "Premium stretch denim fabrics", rating: 4.8 },
-    { name: "Surat Polyknit Traders", location: "Surat", specialty: "Polyester knit fabrics", rating: 4.7 },
-    { name: "Krishna Textiles", location: "Mumbai", specialty: "Cotton shirting fabrics", rating: 4.9 },
-    { name: "Rajesh Fabrics", location: "Delhi", specialty: "Suiting and formal fabrics", rating: 4.6 },
-  ];
-
-  // Comparison data
-  const comparisonData = {
-    traditional: [
-      "Limited local suppliers",
-      "Cold calling and manual outreach",
-      "Paper catalogs and samples",
-      "No transparency in pricing",
-      "Slow communication",
-    ],
-    marketplace: [
-      "Pan-India supplier network",
-      "Instant digital enquiries",
-      "Online catalogs with specs",
-      "Compare multiple quotes",
-      "Direct chat with suppliers",
-    ],
+  const fetchCollections = async () => {
+    try {
+      const res = await getCollections();
+      setCollections(res.data.slice(0, 4));
+    } catch (err) {
+      console.error("Failed to fetch collections");
+    }
   };
 
-  // FAQ data
-  const faqs = [
-    { q: "Who can join the platform?", a: "Any fabric manufacturer, trader, or supplier with a valid GST registration can join as a supplier. Buyers include garment manufacturers, brands, exporters, and traders." },
-    { q: "Is there a joining fee?", a: "Basic listing is free. We offer premium plans with enhanced visibility and features for suppliers who want to grow faster." },
-    { q: "How do buyers contact suppliers?", a: "Buyers can send enquiries directly through the platform. Suppliers receive notifications and can respond with quotes and details." },
-    { q: "Do you guarantee orders?", a: "We connect buyers and suppliers. The actual transaction and order fulfillment happens directly between the parties. We facilitate the connection, not the transaction." },
-    { q: "How do suppliers receive enquiries?", a: "Suppliers receive enquiries via email and in their dashboard. They can respond, negotiate, and close deals through the platform." },
+  const valueProps = [
+    {
+      icon: Shield,
+      title: "500+ Verified Seller Partners",
+      description: "Access a curated network of verified textile sellers across India. Every partner is vetted for quality and reliability."
+    },
+    {
+      icon: CheckCircle,
+      title: "Transparent MOQ & Pricing",
+      description: "No hidden costs. Clear minimum order quantities and pricing displayed upfront on every fabric listing."
+    },
+    {
+      icon: ShieldCheck,
+      title: "Money Safety Guarantee",
+      description: "Locofast's secure payment system ensures your money is protected. Pay with confidence knowing your transactions are safeguarded."
+    }
   ];
 
-  // Stats
-  const stats = [
-    { value: "1000+", label: "Fabric Listings" },
-    { value: "300+", label: "Verified Suppliers" },
-    { value: "5000+", label: "Active Buyers" },
-    { value: "50+", label: "Cities Covered" },
+  const steps = [
+    {
+      number: "01",
+      title: "Browse or Submit Your Requirement",
+      description: "Explore our catalog of fabrics or share your specific needs — type, quantity, budget, and timeline.",
+      cta: "Instant Booking"
+    },
+    {
+      number: "02",
+      title: "Get Matched Instantly",
+      description: "Our platform intelligently connects your requirements with the best-suited seller partners from our verified network.",
+      cta: "How Matching Works"
+    },
+    {
+      number: "03",
+      title: "Order with Confidence",
+      description: "Compare options, request samples, and place orders with complete transparency on pricing and delivery timelines.",
+      cta: "Start Now"
+    }
+  ];
+
+  const testimonials = [
+    {
+      quote: "Locofast has transformed how we source fabrics. The platform connects us directly with verified sellers — no middlemen, no delays.",
+      author: "Garment Manufacturer",
+      location: "Bangladesh"
+    },
+    {
+      quote: "Finally, a platform that understands B2B fabric sourcing. The money safety guarantee gives us peace of mind on every order.",
+      author: "Fashion Brand",
+      location: "Delhi"
+    },
+    {
+      quote: "The clarity on MOQ and pricing saved us weeks of back-and-forth. Our sourcing time has reduced by 60%.",
+      author: "Export Manufacturer",
+      location: "Sri Lanka"
+    },
+    {
+      quote: "As a private label business, we need reliable suppliers fast. Locofast's platform delivers quality matches within hours.",
+      author: "Private Label",
+      location: "Mumbai"
+    }
+  ];
+
+  const audiences = [
+    {
+      icon: Store,
+      title: "Fashion Brands",
+      description: "D2C labels, boutique brands, and fashion houses looking for reliable fabric sourcing partners."
+    },
+    {
+      icon: Factory,
+      title: "Garment Manufacturers",
+      description: "Garment manufacturers and export houses needing consistent quality fabrics at scale."
+    },
+    {
+      icon: Building2,
+      title: "Buying Houses",
+      description: "Sourcing agencies and buying houses connecting international brands with Indian textiles."
+    },
+    {
+      icon: Layers,
+      title: "Private Label",
+      description: "Private label businesses and white-label manufacturers seeking quality fabric suppliers."
+    }
+  ];
+
+  const faqs = [
+    {
+      question: "Can I get samples before placing a bulk order?",
+      answer: "Yes, absolutely. Most seller partners on our platform offer sampling. Sample costs vary by fabric type and seller, and are typically adjusted against your final order."
+    },
+    {
+      question: "What is the minimum order quantity (MOQ)?",
+      answer: "MOQ varies by seller partner and fabric type, typically ranging from 300-1500 meters. Every listing clearly shows MOQ upfront so there are no surprises."
+    },
+    {
+      question: "How does the Money Safety Guarantee work?",
+      answer: "Your payments are held securely until you confirm receipt and satisfaction with your order. This ensures sellers are incentivized to deliver quality, and buyers have peace of mind."
+    },
+    {
+      question: "How fast is delivery?",
+      answer: "Lead times range from 15-45 days depending on the fabric and seller location. Each listing shows estimated delivery timelines before you order."
+    },
+    {
+      question: "How does pricing work?",
+      answer: "Pricing is set by seller partners and displayed transparently per meter/kg. What you see is what you pay — no hidden platform fees for buyers."
+    }
+  ];
+
+  const trustBadges = [
+    { label: "500+ Seller Partners", icon: Users },
+    { label: "Verified Suppliers", icon: Shield },
+    { label: "Money Safety Guarantee", icon: ShieldCheck }
   ];
 
   return (
     <>
-      <Helmet>
-        <title>Fabric Marketplace India | Connect with Fabric Suppliers & Buyers | Locofast</title>
-        <meta name="description" content="India's largest B2B fabric marketplace. Connect with verified fabric suppliers across India. Denim, cotton, polyester knit, and more. Join 5000+ buyers and 300+ suppliers." />
-        <meta name="keywords" content="fabric marketplace India, fabric suppliers India, denim fabric suppliers, cotton fabric wholesalers, polyester knit fabric suppliers, B2B fabric platform" />
-      </Helmet>
-
       <Navbar />
-
-      <main className="pt-20">
+      
+      <main className="bg-white" data-testid="home-page">
+        
         {/* ========== HERO SECTION ========== */}
-        <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 text-white py-20 lg:py-28 overflow-hidden">
-          {/* Background pattern */}
+        <section className="relative min-h-[90vh] flex items-center bg-gradient-to-br from-[#1e3a8a] via-[#2563EB] to-[#3b82f6]" data-testid="hero-section">
+          {/* Abstract pattern overlay */}
           <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.4"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
+            <div className="absolute top-20 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
+            <div className="absolute bottom-20 right-10 w-96 h-96 bg-white rounded-full blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white rounded-full blur-3xl opacity-5" />
           </div>
           
-          <div className="container-main relative z-10">
-            <div className="max-w-4xl mx-auto text-center">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-8">
-                <Zap size={16} className="text-yellow-400" />
-                <span className="text-sm font-medium">India's Fastest Growing Fabric Marketplace</span>
+          <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-20 w-full">
+            <div className="max-w-3xl mx-auto text-center">
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white/90 px-4 py-2 rounded-full text-sm mb-8">
+                <Sparkles size={16} />
+                Trusted by 500+ across India & the globe
               </div>
-
-              {/* Headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-                Grow Your Fabric Business<br />
-                <span className="text-blue-200">Without Upfront Investment</span>
+              
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white leading-tight mb-6" data-testid="hero-headline">
+                Buy Fabrics from India's Largest B2B Textile Platform
               </h1>
-
-              {/* Subheading */}
-              <p className="text-lg sm:text-xl text-blue-100 max-w-2xl mx-auto mb-10">
-                List your fabrics, showcase your inventory and start receiving enquiries from garment manufacturers, brands and traders across India.
+              
+              <p className="text-lg md:text-xl text-white/80 leading-relaxed mb-10 max-w-2xl mx-auto">
+                Connect directly with 500+ verified seller partners. Get instant access to quality fabrics with transparent pricing, clear MOQs, and secure payments.
               </p>
-
-              {/* CTAs */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
-                  to="/suppliers"
-                  className="inline-flex items-center justify-center gap-2 bg-white text-blue-700 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition-colors shadow-lg"
+                  to="/fabrics"
+                  className="inline-flex items-center justify-center gap-2 bg-white text-[#2563EB] px-8 py-4 rounded-lg font-medium hover:bg-blue-50 transition-all hover:gap-3 shadow-lg shadow-blue-900/20"
                   data-testid="hero-cta-primary"
                 >
-                  Join as Supplier
+                  Instant Booking
                   <ArrowRight size={18} />
                 </Link>
                 <Link
-                  to="/fabrics"
-                  className="inline-flex items-center justify-center gap-2 bg-blue-500/30 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-500/40 transition-colors border border-white/20"
+                  to="/rfq"
+                  className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-medium hover:bg-white/20 transition-colors border border-white/20"
                   data-testid="hero-cta-secondary"
                 >
-                  Instant Booking
+                  <MessageCircle size={18} />
+                  Request a Quote
                 </Link>
               </div>
 
               {/* Trust indicators */}
-              <div className="flex flex-wrap justify-center gap-8 pt-8 border-t border-white/20">
-                {trustStats.map((stat, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-                      <stat.icon size={22} className="text-blue-200" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-2xl font-bold">{stat.value}</p>
-                      <p className="text-sm text-blue-200">{stat.label}</p>
-                    </div>
+              <div className="flex flex-wrap justify-center gap-8 mt-16 pt-8 border-t border-white/10">
+                {trustBadges.map((badge, index) => (
+                  <div key={index} className="flex items-center gap-2 text-white/80">
+                    <badge.icon size={18} className="text-blue-200" />
+                    <span className="text-sm font-medium">{badge.label}</span>
                   </div>
                 ))}
               </div>
@@ -209,313 +197,83 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* ========== FABRIC CATEGORIES ========== */}
-        <section className="py-20 bg-gray-50">
-          <div className="container-main">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-                Explore Fabric Categories
+        {/* ========== WHO WE SERVE ========== */}
+        <section className="py-20 lg:py-28 bg-white" data-testid="audience-section">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Who Uses Locofast</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
+                Built for Brands, Manufacturers & Sourcing Professionals
               </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Browse fabrics by category. Find the perfect material for your manufacturing needs.
-              </p>
             </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6">
-              {fabricCategories.map((category, index) => (
-                <Link
-                  key={index}
-                  to={`/fabrics?category=${encodeURIComponent(category.name)}`}
-                  className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
-                  data-testid={`category-${index}`}
-                >
-                  <div className="aspect-[4/3] overflow-hidden">
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {audiences.map((audience, index) => (
+                <div key={index} className="text-center p-6">
+                  <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                    <audience.icon size={28} className="text-[#2563EB]" />
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
-                      {category.name}
-                    </h3>
-                    <p className="text-sm text-gray-500 line-clamp-2">{category.description}</p>
-                  </div>
-                </Link>
+                  <h3 className="text-lg font-semibold text-neutral-900 mb-2">{audience.title}</h3>
+                  <p className="text-neutral-600 text-sm leading-relaxed">{audience.description}</p>
+                </div>
               ))}
             </div>
+          </div>
+        </section>
 
-            {/* CTA */}
-            <div className="text-center mt-10">
-              <Link
-                to="/fabrics"
-                className="inline-flex items-center gap-2 text-blue-600 font-semibold hover:text-blue-700"
-              >
-                View All Fabrics
-                <ArrowRight size={18} />
-              </Link>
+        {/* ========== VALUE PROPOSITION ========== */}
+        <section className="py-20 lg:py-28 bg-gradient-to-b from-blue-50 to-white" data-testid="value-section">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Why Locofast</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
+                The Platform Advantage
+              </h2>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+              {valueProps.map((prop, index) => (
+                <div key={index} className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-lg transition-shadow border border-blue-100">
+                  <div className="w-14 h-14 bg-[#2563EB] rounded-xl flex items-center justify-center mb-6">
+                    <prop.icon size={28} className="text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-neutral-900 mb-3">{prop.title}</h3>
+                  <p className="text-neutral-600 leading-relaxed">{prop.description}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
         {/* ========== HOW IT WORKS ========== */}
-        <section className="py-20 bg-white">
-          <div className="container-main">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-                How the Marketplace Works
+        <section className="py-20 lg:py-28 bg-white" data-testid="how-it-works-section">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">How It Works</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
+                Source Fabrics in 3 Simple Steps
               </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Join thousands of suppliers growing their business online
-              </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {howItWorks.map((item, index) => (
-                <div key={index} className="text-center relative">
-                  {/* Connector line */}
-                  {index < howItWorks.length - 1 && (
-                    <div className="hidden lg:block absolute top-10 left-[60%] w-[80%] h-0.5 bg-blue-100" />
+            <div className="grid md:grid-cols-3 gap-8">
+              {steps.map((step, index) => (
+                <div key={index} className="relative">
+                  {index < steps.length - 1 && (
+                    <div className="hidden md:block absolute top-16 left-full w-full h-px bg-blue-200 -translate-x-1/2 z-0" />
                   )}
-                  
-                  <div className="relative z-10">
-                    <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
-                      <item.icon size={32} className="text-blue-600" />
-                    </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold mx-auto" style={{ left: '50%', transform: 'translateX(20px)' }}>
-                      {item.step}
-                    </div>
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{item.title}</h3>
-                  <p className="text-gray-600 text-sm">{item.description}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* CTA */}
-            <div className="text-center mt-12">
-              <Link
-                to="/suppliers"
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Start Listing Fabrics
-                <ArrowRight size={18} />
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ========== WHY SUPPLIERS JOIN ========== */}
-        <section className="py-20 bg-blue-600 text-white">
-          <div className="container-main">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Why Suppliers Join the Platform
-              </h2>
-              <p className="text-lg text-blue-100 max-w-2xl mx-auto">
-                Grow your fabric business without geographical limitations
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-              {supplierBenefits.map((benefit, index) => (
-                <div key={index} className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center">
-                  <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4">
-                    <benefit.icon size={28} className="text-white" />
-                  </div>
-                  <h3 className="font-semibold mb-2">{benefit.title}</h3>
-                  <p className="text-sm text-blue-100">{benefit.description}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* CTA */}
-            <div className="text-center mt-10">
-              <Link
-                to="/suppliers"
-                className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
-              >
-                Join as Supplier
-                <ArrowRight size={18} />
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ========== WHY BUYERS USE ========== */}
-        <section className="py-20 bg-gray-50">
-          <div className="container-main">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-                Why Buyers Use the Marketplace
-              </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Find the right fabric supplier faster
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-              {buyerBenefits.map((benefit, index) => (
-                <div key={index} className="bg-white rounded-xl p-6 text-center shadow-sm border border-gray-100">
-                  <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
-                    <benefit.icon size={28} className="text-blue-600" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{benefit.title}</h3>
-                  <p className="text-sm text-gray-600">{benefit.description}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* CTA */}
-            <div className="text-center mt-10">
-              <Link
-                to="/fabrics"
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Instant Booking
-                <ArrowRight size={18} />
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ========== MARKETPLACE FEATURES ========== */}
-        <section className="py-20 bg-white">
-          <div className="container-main">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-                Marketplace Features
-              </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Powerful tools to connect buyers and suppliers
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {features.map((feature, index) => (
-                <div key={index} className="bg-gray-50 rounded-xl p-6 border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all">
-                  <div className="w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center mb-4">
-                    <feature.icon size={24} className="text-white" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                  <p className="text-sm text-gray-600">{feature.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ========== FEATURED FABRICS ========== */}
-        <section className="py-20 bg-gray-50">
-          <div className="container-main">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-                Featured Fabrics
-              </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Popular fabric listings from verified suppliers
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredFabrics.map((fabric, index) => (
-                <div key={index} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-lg transition-all group">
-                  <div className="aspect-[3/2] overflow-hidden">
-                    <img
-                      src={fabric.image}
-                      alt={fabric.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2">{fabric.name}</h3>
-                    <div className="space-y-1 text-sm text-gray-600 mb-4">
-                      <p><span className="font-medium">GSM:</span> {fabric.gsm}</p>
-                      <p><span className="font-medium">Composition:</span> {fabric.composition}</p>
-                      <p className="flex items-center gap-1">
-                        <MapPin size={14} />
-                        {fabric.location}
-                      </p>
-                    </div>
-                    <Link
-                      to="/rfq"
-                      className="w-full inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      Enquire Now
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* CTA */}
-            <div className="text-center mt-10">
-              <Link
-                to="/fabrics"
-                className="inline-flex items-center gap-2 text-blue-600 font-semibold hover:text-blue-700"
-              >
-                View All Fabrics
-                <ArrowRight size={18} />
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ========== FEATURED SUPPLIERS ========== */}
-        <section className="py-20 bg-white">
-          <div className="container-main">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-                Featured Suppliers
-              </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Connect with verified fabric suppliers across India
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredSuppliers.map((supplier, index) => (
-                <div key={index} className="bg-gray-50 rounded-xl p-6 border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                      <Building2 size={24} className="text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{supplier.name}</h3>
-                      <p className="text-sm text-gray-500 flex items-center gap-1">
-                        <MapPin size={12} />
-                        {supplier.location}
-                      </p>
+                  <div className="relative bg-white p-8 rounded-2xl border-2 border-blue-100 hover:border-[#2563EB] transition-colors">
+                    <span className="text-6xl font-bold text-blue-100 absolute top-4 right-6">{step.number}</span>
+                    <div className="relative">
+                      <h3 className="text-xl font-semibold text-neutral-900 mb-3 pr-12">{step.title}</h3>
+                      <p className="text-neutral-600 leading-relaxed mb-6">{step.description}</p>
+                      <Link
+                        to="/fabrics"
+                        className="inline-flex items-center gap-1 text-[#2563EB] font-medium text-sm hover:gap-2 transition-all"
+                      >
+                        {step.cta} <ArrowRight size={14} />
+                      </Link>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 mb-4">{supplier.specialty}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <Star size={16} className="text-yellow-500 fill-yellow-500" />
-                      <span className="text-sm font-medium">{supplier.rating}</span>
-                    </div>
-                    <Link
-                      to="/rfq"
-                      className="text-sm text-blue-600 font-medium hover:text-blue-700"
-                    >
-                      Contact Supplier
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ========== STATS SECTION ========== */}
-        <section className="py-16 bg-blue-600 text-white">
-          <div className="container-main">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-              {stats.map((stat, index) => (
-                <div key={index}>
-                  <p className="text-4xl sm:text-5xl font-bold mb-2">{stat.value}</p>
-                  <p className="text-blue-200">{stat.label}</p>
                 </div>
               ))}
             </div>
@@ -523,162 +281,170 @@ const HomePage = () => {
         </section>
 
         {/* ========== TESTIMONIALS ========== */}
-        <section className="py-20 bg-gray-50">
-          <div className="container-main">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-                Supplier Success Stories
+        <section className="py-20 lg:py-28 bg-[#1e3a8a]" data-testid="testimonials-section">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <p className="text-sm tracking-widest text-blue-300 uppercase mb-4">Success Stories</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-white">
+                Trusted by Brands & Manufacturers
               </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Hear from suppliers who grew their business with us
-              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={18} className="text-yellow-500 fill-yellow-500" />
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-4 italic">
-                  "Within two months of joining the platform, we connected with multiple garment manufacturers across India. Our enquiries increased 3x."
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Building2 size={20} className="text-blue-600" />
-                  </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {testimonials.map((testimonial, index) => (
+                <div key={index} className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/10">
+                  <p className="text-blue-100 leading-relaxed mb-6 text-sm">
+                    "{testimonial.quote}"
+                  </p>
                   <div>
-                    <p className="font-semibold text-gray-900">Denim Supplier</p>
-                    <p className="text-sm text-gray-500">Surat, Gujarat</p>
+                    <p className="font-medium text-white">{testimonial.author}</p>
+                    <p className="text-blue-300 text-sm">{testimonial.location}</p>
                   </div>
                 </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={18} className="text-yellow-500 fill-yellow-500" />
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-4 italic">
-                  "The platform helped us reach buyers in cities we never thought of. We've established long-term relationships with 15+ new clients."
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Building2 size={20} className="text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Knit Fabric Trader</p>
-                    <p className="text-sm text-gray-500">Tirupur, Tamil Nadu</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={18} className="text-yellow-500 fill-yellow-500" />
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-4 italic">
-                  "As a small manufacturer, getting visibility was always a challenge. Now buyers find us online and we focus on production."
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Building2 size={20} className="text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Cotton Mills</p>
-                    <p className="text-sm text-gray-500">Ahmedabad, Gujarat</p>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* ========== COMPARISON SECTION ========== */}
-        <section className="py-20 bg-white">
-          <div className="container-main">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-                Traditional vs Marketplace Sourcing
+        {/* ========== COLLECTION SHOWCASE ========== */}
+        <section className="py-20 lg:py-28 bg-white" data-testid="collections-section">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">Curated For You</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
+                Explore Curated Fabric Groups
               </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Why more suppliers and buyers are switching to digital
-              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              {/* Traditional */}
-              <div className="bg-gray-100 rounded-xl p-6">
-                <h3 className="font-semibold text-gray-900 mb-4 text-lg">Traditional Sourcing</h3>
-                <ul className="space-y-3">
-                  {comparisonData.traditional.map((item, index) => (
-                    <li key={index} className="flex items-center gap-3 text-gray-600">
-                      <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span className="text-xs">✕</span>
-                      </div>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {collections.length > 0 ? (
+                collections.map((collection) => (
+                  <Link
+                    key={collection.id}
+                    to={`/collections/${collection.id}`}
+                    className="group relative bg-gradient-to-br from-[#2563EB] to-[#1e3a8a] rounded-2xl overflow-hidden aspect-[4/5] hover:shadow-xl transition-all"
+                  >
+                    {collection.image ? (
+                      <img src={collection.image} alt={collection.name} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity" />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-6">
+                      <h3 className="text-xl font-semibold text-white mb-1">{collection.name}</h3>
+                      <p className="text-white/70 text-sm mb-3 line-clamp-2">{collection.description}</p>
+                      <span className="inline-flex items-center gap-1 text-white text-sm font-medium group-hover:gap-2 transition-all">
+                        View Options <ArrowRight size={14} />
+                      </span>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                [
+                  { name: "Summer Weaves", img: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400" },
+                  { name: "Signature Essentials", img: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400" },
+                  { name: "Print Studio", img: "https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=400" },
+                  { name: "Premium Blends", img: "https://images.unsplash.com/photo-1606722590583-6951b5ea92ad?w=400" }
+                ].map((item, index) => (
+                  <Link
+                    key={index}
+                    to="/collections"
+                    className="group relative bg-gradient-to-br from-[#2563EB] to-[#1e3a8a] rounded-2xl overflow-hidden aspect-[4/5] hover:shadow-xl transition-all"
+                  >
+                    <img src={item.img} alt={item.name} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity" loading="lazy" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-6">
+                      <h3 className="text-xl font-semibold text-white mb-2">{item.name}</h3>
+                      <span className="inline-flex items-center gap-1 text-white text-sm font-medium group-hover:gap-2 transition-all">
+                        View Options <ArrowRight size={14} />
+                      </span>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
 
-              {/* Marketplace */}
-              <div className="bg-blue-50 rounded-xl p-6 border-2 border-blue-200">
-                <h3 className="font-semibold text-blue-900 mb-4 text-lg flex items-center gap-2">
-                  <Award size={20} className="text-blue-600" />
-                  Locofast Marketplace
-                </h3>
-                <ul className="space-y-3">
-                  {comparisonData.marketplace.map((item, index) => (
-                    <li key={index} className="flex items-center gap-3 text-gray-700">
-                      <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
-                        <CheckCircle size={14} className="text-white" />
-                      </div>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
+            <div className="text-center mt-12">
+              <Link
+                to="/collections"
+                className="inline-flex items-center gap-2 text-[#2563EB] font-medium hover:gap-3 transition-all"
+              >
+                View All Collections <ArrowRight size={18} />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ========== ABOUT / PLATFORM BLOCK ========== */}
+        <section className="py-20 lg:py-28 bg-gradient-to-b from-blue-50 to-white" data-testid="about-section">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="max-w-3xl mx-auto text-center">
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">The Platform</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900 mb-6">
+                India's Most Intelligent B2B Fabric Marketplace
+              </h2>
+              <div className="space-y-4 text-neutral-600 leading-relaxed text-lg">
+                <p>
+                  Locofast is a powerful platform that accurately connects your fabric requirements to the best-suited sellers from our verified network of 500+ textile partners across India.
+                </p>
+                <p>
+                  Our <span className="font-semibold text-[#2563EB]">Money Safety Guarantee</span> ensures buyers have complete peace of mind — your payments are protected until you're satisfied with your order.
+                </p>
               </div>
+              <div className="flex flex-wrap justify-center gap-8 mt-12">
+                <div className="text-center">
+                  <p className="text-4xl font-bold text-[#2563EB]">500+</p>
+                  <p className="text-neutral-600 text-sm">Seller Partners</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-4xl font-bold text-[#2563EB]">10K+</p>
+                  <p className="text-neutral-600 text-sm">Fabric Varieties</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-4xl font-bold text-[#2563EB]">50K+</p>
+                  <p className="text-neutral-600 text-sm">Orders Delivered</p>
+                </div>
+              </div>
+              <Link
+                to="/about"
+                className="inline-flex items-center gap-2 bg-[#2563EB] text-white px-8 py-4 rounded-lg font-medium mt-10 hover:bg-blue-600 transition-colors"
+              >
+                Learn More About Us <ArrowRight size={18} />
+              </Link>
             </div>
           </div>
         </section>
 
         {/* ========== FAQ SECTION ========== */}
-        <section className="py-20 bg-gray-50">
-          <div className="container-main">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-                Frequently Asked Questions
+        <section className="py-20 lg:py-28 bg-white" data-testid="faq-section">
+          <div className="max-w-3xl mx-auto px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">FAQs</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900">
+                Common Questions
               </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Everything you need to know about the marketplace
-              </p>
             </div>
 
-            <div className="max-w-3xl mx-auto space-y-4">
+            <div className="space-y-4">
               {faqs.map((faq, index) => (
                 <div
                   key={index}
-                  className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+                  className="border-2 border-blue-100 rounded-xl overflow-hidden hover:border-blue-200 transition-colors"
                 >
                   <button
                     onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                    className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center justify-between p-6 text-left hover:bg-blue-50/50 transition-colors"
                   >
-                    <span className="font-medium text-gray-900">{faq.q}</span>
+                    <span className="font-medium text-neutral-900 pr-4">{faq.question}</span>
                     {openFaq === index ? (
-                      <ChevronUp size={20} className="text-gray-500" />
+                      <ChevronUp size={20} className="text-[#2563EB] flex-shrink-0" />
                     ) : (
-                      <ChevronDown size={20} className="text-gray-500" />
+                      <ChevronDown size={20} className="text-[#2563EB] flex-shrink-0" />
                     )}
                   </button>
                   {openFaq === index && (
-                    <div className="px-6 pb-4">
-                      <p className="text-gray-600">{faq.a}</p>
+                    <div className="px-6 pb-6 pt-0">
+                      <p className="text-neutral-600 leading-relaxed">{faq.answer}</p>
                     </div>
                   )}
                 </div>
@@ -687,35 +453,48 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* ========== FINAL CTA ========== */}
-        <section className="py-20 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 text-white">
-          <div className="container-main text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Start Receiving Fabric Enquiries Today
+        {/* ========== FINAL CTA BLOCK ========== */}
+        <section className="py-20 lg:py-28 bg-gradient-to-r from-[#1e3a8a] via-[#2563EB] to-[#3b82f6]" data-testid="cta-section">
+          <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white mb-6">
+              Ready to Source from India's Largest Fabric Network?
             </h2>
-            <p className="text-lg text-blue-100 max-w-2xl mx-auto mb-8">
-              Join hundreds of suppliers expanding their business online. List your fabrics and connect with buyers across India.
+            <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
+              Join thousands of brands and manufacturers sourcing with clarity, confidence, and our Money Safety Guarantee.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                to="/suppliers"
-                className="inline-flex items-center justify-center gap-2 bg-white text-blue-700 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition-colors shadow-lg"
+                to="/fabrics"
+                className="inline-flex items-center justify-center gap-2 bg-white text-[#2563EB] px-8 py-4 rounded-lg font-medium hover:bg-blue-50 transition-colors shadow-lg"
+                data-testid="final-cta-primary"
               >
-                Join the Marketplace
+                Instant Booking
                 <ArrowRight size={18} />
               </Link>
               <Link
                 to="/rfq"
-                className="inline-flex items-center justify-center gap-2 bg-blue-500/30 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-500/40 transition-colors border border-white/20"
+                className="inline-flex items-center justify-center gap-2 bg-transparent text-white px-8 py-4 rounded-lg font-medium border-2 border-white/30 hover:bg-white/10 transition-colors"
+                data-testid="final-cta-secondary"
               >
+                <MessageCircle size={18} />
                 Request a Quote
               </Link>
             </div>
           </div>
         </section>
-      </main>
 
-      <Footer />
+      </main>
+      
+      {/* ========== STICKY CTA BAR (Mobile) ========== */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 z-40 md:hidden" data-testid="sticky-cta">
+        <Link
+          to="/fabrics"
+          className="flex items-center justify-center gap-2 bg-[#2563EB] text-white w-full py-3 rounded-lg font-medium"
+        >
+          Instant Booking
+          <ArrowRight size={18} />
+        </Link>
+      </div>
     </>
   );
 };
