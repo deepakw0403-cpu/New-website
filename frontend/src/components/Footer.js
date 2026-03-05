@@ -302,8 +302,8 @@ const Footer = () => {
                 </a>
               </li>
               <li className="pt-2">
-                <Link to="/contact" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-contact">
-                  Contact Us
+                <Link to="/rfq" className="text-neutral-300 hover:text-white transition-colors text-sm" data-testid="footer-contact">
+                  Request a Quote
                 </Link>
               </li>
             </ul>

@@ -175,12 +175,12 @@ const HomePage = () => {
                   <ArrowRight size={18} />
                 </Link>
                 <Link
-                  to="/contact"
+                  to="/rfq"
                   className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-medium hover:bg-white/20 transition-colors border border-white/20"
                   data-testid="hero-cta-secondary"
                 >
                   <MessageCircle size={18} />
-                  Talk to Us
+                  Request a Quote
                 </Link>
               </div>
 
@@ -472,12 +472,12 @@ const HomePage = () => {
                 <ArrowRight size={18} />
               </Link>
               <Link
-                to="/contact"
+                to="/rfq"
                 className="inline-flex items-center justify-center gap-2 bg-transparent text-white px-8 py-4 rounded-lg font-medium border-2 border-white/30 hover:bg-white/10 transition-colors"
                 data-testid="final-cta-secondary"
               >
                 <MessageCircle size={18} />
-                Contact Us
+                Request a Quote
               </Link>
             </div>
           </div>

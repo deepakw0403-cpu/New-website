@@ -78,8 +78,8 @@ const FAQPage = () => {
               <p className="text-neutral-600 mb-6">
                 If you have questions not covered here, our team is available to help.
               </p>
-              <Link to="/contact" className="btn-primary inline-block" data-testid="faq-contact-btn">
-                Contact Us
+              <Link to="/rfq" className="btn-primary inline-block" data-testid="faq-contact-btn">
+                Request a Quote
               </Link>
             </div>
           </div>

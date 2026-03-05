@@ -158,14 +158,14 @@ const AboutPage = () => {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to="/contact"
+              to="/rfq"
               className="px-10 py-4 bg-neutral-900 text-white text-sm tracking-wide font-medium hover:bg-neutral-800 transition-colors"
               data-testid="cta-talk"
             >
-              Talk to Us
+              Request a Quote
             </Link>
             <Link
-              to="/assisted-sourcing"
+              to="/rfq"
               className="px-10 py-4 border border-neutral-900 text-neutral-900 text-sm tracking-wide font-medium hover:bg-neutral-50 transition-colors"
               data-testid="cta-submit"
             >

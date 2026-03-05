@@ -754,12 +754,12 @@ const FabricDetailPage = () => {
                     </button>
                   )}
                   <button
-                    onClick={() => setShowEnquiryForm(true)}
+                    onClick={() => navigate('/rfq')}
                     className="w-full border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors inline-flex items-center justify-center gap-2"
                     data-testid="enquiry-btn"
                   >
                     <MessageSquare size={18} />
-                    Send Enquiry
+                    Request a Quote
                   </button>
                 </div>
               </div>
@@ -925,11 +925,11 @@ const FabricDetailPage = () => {
               Get in touch with our sourcing team for pricing, samples, and availability. We respond within 24 hours.
             </p>
             <button
-              onClick={() => setShowEnquiryForm(true)}
+              onClick={() => navigate('/rfq')}
               className="btn-primary inline-flex items-center gap-2"
             >
               <Send size={18} />
-              Raise Your Requirement
+              Request a Quote
             </button>
           </div>
 
@@ -938,7 +938,7 @@ const FabricDetailPage = () => {
             <div className="flex flex-wrap gap-4 text-sm">
               <Link to="/fabrics" className="text-[#2563EB] hover:underline">← All Fabrics</Link>
               <Link to="/fabrics/" className="text-[#2563EB] hover:underline">Browse by Category</Link>
-              <Link to="/assisted-sourcing" className="text-[#2563EB] hover:underline">Assisted Sourcing</Link>
+              <Link to="/rfq" className="text-[#2563EB] hover:underline">Request a Quote</Link>
             </div>
           </div>
         </div>

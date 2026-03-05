@@ -11,7 +11,7 @@ const Navbar = () => {
     { path: "/fabrics", label: "Fabrics" },
     { path: "/collections", label: "Collections" },
     { path: "/about", label: "About" },
-    { path: "/contact", label: "Contact" },
+    { path: "/rfq", label: "Request Quote" },
     { path: "/suppliers", label: "Sellers sign up", highlight: true },
   ];
 
