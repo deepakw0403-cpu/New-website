@@ -44,7 +44,7 @@ const HomePage = () => {
       number: "01",
       title: "Browse or Submit Your Requirement",
       description: "Explore our catalog of fabrics or share your specific needs — type, quantity, budget, and timeline.",
-      cta: "Browse Fabrics"
+      cta: "Instant Booking"
     },
     {
       number: "02",
@@ -171,7 +171,7 @@ const HomePage = () => {
                   className="inline-flex items-center justify-center gap-2 bg-white text-[#2563EB] px-8 py-4 rounded-lg font-medium hover:bg-blue-50 transition-all hover:gap-3 shadow-lg shadow-blue-900/20"
                   data-testid="hero-cta-primary"
                 >
-                  Browse Fabrics
+                  Instant Booking
                   <ArrowRight size={18} />
                 </Link>
                 <Link
@@ -468,7 +468,7 @@ const HomePage = () => {
                 className="inline-flex items-center justify-center gap-2 bg-white text-[#2563EB] px-8 py-4 rounded-lg font-medium hover:bg-blue-50 transition-colors shadow-lg"
                 data-testid="final-cta-primary"
               >
-                Browse Fabrics
+                Instant Booking
                 <ArrowRight size={18} />
               </Link>
               <Link
@@ -491,7 +491,7 @@ const HomePage = () => {
           to="/fabrics"
           className="flex items-center justify-center gap-2 bg-[#2563EB] text-white w-full py-3 rounded-lg font-medium"
         >
-          Browse Fabrics
+          Instant Booking
           <ArrowRight size={18} />
         </Link>
       </div>

@@ -48,7 +48,7 @@ const OrderConfirmationPage = () => {
             <h1 className="text-2xl font-semibold text-gray-900 mb-2">Order Not Found</h1>
             <p className="text-gray-600 mb-6">We couldn't find the order you're looking for.</p>
             <Link to="/fabrics" className="btn-primary">
-              Browse Fabrics
+              Instant Booking
             </Link>
           </div>
         </main>

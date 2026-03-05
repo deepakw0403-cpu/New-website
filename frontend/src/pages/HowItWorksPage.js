@@ -162,10 +162,10 @@ const HowItWorksPage = () => {
             View the fabric catalog
           </h2>
           <p className="text-blue-100 mb-10 max-w-xl mx-auto">
-            Browse fabrics by category, review specifications, and submit enquiries.
+            Instant Booking by category, review specifications, and submit enquiries.
           </p>
           <Link to="/fabrics" className="bg-white text-[#2563EB] px-10 py-4 text-sm tracking-widest uppercase font-medium hover:bg-blue-50 transition-colors inline-block" data-testid="how-cta-btn">
-            Browse Fabrics
+            Instant Booking
           </Link>
         </div>
       </section>

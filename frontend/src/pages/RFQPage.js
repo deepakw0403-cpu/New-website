@@ -246,7 +246,7 @@ const RFQPage = () => {
                 to="/fabrics"
                 className="inline-flex items-center justify-center gap-2 bg-[#2563EB] text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors w-full"
               >
-                Browse Fabrics
+                Instant Booking
               </Link>
               <Link
                 to="/"

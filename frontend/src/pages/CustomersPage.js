@@ -90,7 +90,7 @@ const CustomersPage = () => {
             View available fabrics and submit enquiries for your requirements.
           </p>
           <Link to="/fabrics" className="bg-white text-[#2563EB] px-10 py-4 text-sm tracking-widest uppercase font-medium hover:bg-blue-50 transition-colors inline-flex items-center gap-2" data-testid="customers-cta-btn">
-            Browse Fabrics
+            Instant Booking
             <ArrowRight size={18} />
           </Link>
         </div>

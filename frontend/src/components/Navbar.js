@@ -57,7 +57,7 @@ const Navbar = () => {
               className="btn-primary inline-block"
               data-testid="nav-browse-btn"
             >
-              Buy Fabrics
+              Instant Booking
             </Link>
           </div>
 
@@ -98,7 +98,7 @@ const Navbar = () => {
               onClick={() => setMobileOpen(false)}
               className="btn-primary inline-block mt-4"
             >
-              Buy Fabrics
+              Instant Booking
             </Link>
           </div>
         </div>

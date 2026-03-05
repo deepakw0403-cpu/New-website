@@ -382,7 +382,7 @@ const BlogPage = () => {
                   to="/fabrics"
                   className="inline-block bg-white text-[#2563EB] px-4 py-2 rounded font-medium hover:bg-blue-50 transition-colors"
                 >
-                  Browse Fabrics
+                  Instant Booking
                 </Link>
               </div>
             </aside>
