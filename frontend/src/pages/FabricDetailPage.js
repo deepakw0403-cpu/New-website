@@ -27,13 +27,13 @@ const FabricDetailPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   
-  // Order modal states - only for enquiry now (sample/bulk go to checkout)
   const [orderModalType, setOrderModalType] = useState(null); // 'sample' | 'bulk' | null
   const [sampleQty, setSampleQty] = useState(1);
   const [bulkQty, setBulkQty] = useState("");
   const [orderForm, setOrderForm] = useState({
-    name: "", email: "", phone: "", company: "", message: ""
+    name: "", email: "", phone: "", gst_number: ""
   });
+  const [orderSubmitting, setOrderSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -177,26 +177,60 @@ const FabricDetailPage = () => {
   };
 
   const openOrderModal = (type) => {
-    // Show quantity selection modal for sample/bulk orders
     setOrderModalType(type);
     setSampleQty(1);
-    setBulkQty(fabric?.moq || "10"); // Default to MOQ or 10
-    setOrderForm({ name: "", email: "", phone: "", company: "", message: "" });
+    setBulkQty(fabric?.moq || "10");
+    setOrderForm({ name: "", email: "", phone: "", gst_number: "" });
   };
 
   const closeOrderModal = () => {
     setOrderModalType(null);
   };
 
-  const proceedToCheckout = () => {
+  const submitBookingEnquiry = async () => {
     if (!fabric) return;
+    
+    // Validate required fields
+    if (!orderForm.name || !orderForm.email || !orderForm.phone) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
     const qty = orderModalType === "sample" ? sampleQty : bulkQty;
     if (orderModalType === "bulk" && (!bulkQty || parseInt(bulkQty) <= 0)) {
       toast.error("Please enter a valid quantity");
       return;
     }
-    navigate(`/checkout?fabric_id=${fabric.id}&type=${orderModalType}&qty=${qty}`);
-    closeOrderModal();
+    
+    setOrderSubmitting(true);
+    try {
+      const enquiryData = {
+        name: orderForm.name,
+        email: orderForm.email,
+        phone: orderForm.phone,
+        company: orderForm.gst_number, // Store GST in company field
+        source: "instant_booking",
+        enquiry_type: orderModalType === "sample" ? "sample_booking" : "bulk_booking",
+        message: `**${orderModalType === "sample" ? "Sample" : "Bulk"} Booking Request**
+Product: ${fabric.name}
+Product ID: ${fabric.id}
+Fabric Code: ${fabric.fabric_code || "N/A"}
+Category: ${fabric.category_name || "N/A"}
+Quantity: ${qty} ${unit.plural}
+${cartValue ? `Price: ₹${cartValue.pricePerMeter?.toLocaleString()}${unit.priceLabel}` : ""}
+${cartValue ? `Total: ₹${cartValue.totalPrice?.toLocaleString()} + GST` : ""}
+GST Number: ${orderForm.gst_number || "Not provided"}`
+      };
+
+      await createEnquiry(enquiryData);
+      
+      toast.success(`${orderModalType === "sample" ? "Sample" : "Bulk"} booking enquiry submitted! We'll contact you shortly.`);
+      closeOrderModal();
+      setOrderForm({ name: "", email: "", phone: "", gst_number: "" });
+    } catch (err) {
+      toast.error("Failed to submit enquiry. Please try again.");
+    }
+    setOrderSubmitting(false);
   };
 
   const getAvailabilityBadge = (avail) => {
@@ -1037,7 +1071,7 @@ const FabricDetailPage = () => {
           </div>
         )}
 
-        {/* Order Modal (Sample/Bulk) - Quantity Selection */}
+        {/* Order Modal (Sample/Bulk) - Simple Enquiry Form */}
         {orderModalType && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={closeOrderModal}>
             <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl" onClick={(e) => e.stopPropagation()}>
@@ -1056,37 +1090,35 @@ const FabricDetailPage = () => {
               </div>
 
               <div className="p-6 space-y-5">
-                {/* Fabric Summary */}
-                <div className="bg-gray-50 rounded-lg p-4 flex gap-4">
-                  <img
-                    src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
-                    alt={fabric.name}
-                    className="w-20 h-20 object-cover rounded"
-                  />
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{fabric.name}</p>
-                    <p className="text-sm text-gray-600">{fabric.category_name}</p>
-                    {fabric.seller_company && (
-                      <p className="text-xs text-gray-500">by {fabric.seller_company}</p>
-                    )}
-                    {orderModalType === "bulk" && fabric.quantity_available > 0 && (
-                      <p className="text-xs text-emerald-600 mt-1 font-medium">
-                        {fabric.quantity_available?.toLocaleString()} {unit.plural} available
-                      </p>
-                    )}
+                {/* Product Summary */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex gap-4">
+                    <img
+                      src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
+                      alt={fabric.name}
+                      className="w-20 h-20 object-cover rounded"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{fabric.name}</p>
+                      <p className="text-sm text-gray-600">{fabric.category_name}</p>
+                      <p className="text-xs text-gray-500 mt-1">Product ID: {fabric.id.substring(0, 8)}...</p>
+                      {fabric.fabric_code && (
+                        <p className="text-xs text-gray-500">Code: {fabric.fabric_code}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Quantity Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {orderModalType === "sample" ? "Sample Quantity" : `Bulk Quantity (${unit.plural})`}
+                    Quantity *
                   </label>
                   {orderModalType === "sample" ? (
                     <select
                       value={sampleQty}
                       onChange={(e) => setSampleQty(parseInt(e.target.value))}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
                       data-testid="detail-sample-qty"
                     >
                       {[1, 2, 3, 4, 5].map((qty) => (
@@ -1097,52 +1129,91 @@ const FabricDetailPage = () => {
                     <input
                       type="number"
                       min="1"
-                      max={fabric.quantity_available || 10000}
                       value={bulkQty}
                       onChange={(e) => setBulkQty(e.target.value)}
                       placeholder={`Enter quantity in ${unit.plural}`}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
                       data-testid="detail-bulk-qty"
                     />
                   )}
                 </div>
 
-                {/* Pricing Tiers for Bulk */}
-                {orderModalType === "bulk" && fabric.pricing_tiers && fabric.pricing_tiers.length > 0 && (
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-blue-800 mb-2">Bulk Pricing Tiers</p>
-                    <div className="space-y-1">
-                      {fabric.pricing_tiers.map((tier, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <span className="text-blue-700">{tier.min_qty} - {tier.max_qty} {unit.plural}</span>
-                          <span className="font-medium text-blue-900">₹{tier.price_per_meter}{unit.priceLabel}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* Price Summary */}
                 {cartValue && (
-                  <div className="bg-gray-900 text-white rounded-lg p-4">
+                  <div className="bg-blue-50 rounded-lg p-4">
                     <div className="flex justify-between items-center">
                       <div>
-                        <p className="text-sm text-gray-300">
+                        <p className="text-sm text-blue-700">
                           {orderModalType === "sample" ? `${sampleQty} ${unit.singular}${sampleQty > 1 && unit.singular !== 'kg' ? "s" : ""}` : `${bulkQty} ${unit.plural}`}
-                          {cartValue.tierLabel && <span className="ml-1">({cartValue.tierLabel})</span>}
                         </p>
-                        <p className="text-xs text-gray-400">@ ₹{cartValue.pricePerMeter?.toLocaleString()}{unit.priceLabel}</p>
+                        <p className="text-xs text-blue-600">@ ₹{cartValue.pricePerMeter?.toLocaleString()}{unit.priceLabel}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold">₹{cartValue.totalPrice?.toLocaleString()}</p>
-                        <p className="text-xs text-gray-400">+ 5% GST</p>
+                        <p className="text-xl font-bold text-blue-900">₹{cartValue.totalPrice?.toLocaleString()}</p>
+                        <p className="text-xs text-blue-600">+ 5% GST</p>
                       </div>
                     </div>
                   </div>
                 )}
 
+                {/* Contact Form */}
+                <div className="space-y-4 pt-2">
+                  <p className="text-sm font-medium text-gray-700">Your Details</p>
+                  
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Name *</label>
+                    <input
+                      type="text"
+                      value={orderForm.name}
+                      onChange={(e) => setOrderForm({ ...orderForm, name: e.target.value })}
+                      placeholder="Your full name"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+                      required
+                      data-testid="booking-name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Email *</label>
+                    <input
+                      type="email"
+                      value={orderForm.email}
+                      onChange={(e) => setOrderForm({ ...orderForm, email: e.target.value })}
+                      placeholder="your@email.com"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+                      required
+                      data-testid="booking-email"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Phone Number *</label>
+                    <input
+                      type="tel"
+                      value={orderForm.phone}
+                      onChange={(e) => setOrderForm({ ...orderForm, phone: e.target.value })}
+                      placeholder="9876543210"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+                      required
+                      data-testid="booking-phone"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">GST Number (Optional)</label>
+                    <input
+                      type="text"
+                      value={orderForm.gst_number}
+                      onChange={(e) => setOrderForm({ ...orderForm, gst_number: e.target.value })}
+                      placeholder="22AAAAA0000A1Z5"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+                      data-testid="booking-gst"
+                    />
+                  </div>
+                </div>
+
                 {/* Actions */}
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-3 pt-4">
                   <button
                     type="button"
                     onClick={closeOrderModal}
@@ -1152,12 +1223,12 @@ const FabricDetailPage = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={proceedToCheckout}
-                    disabled={orderModalType === "bulk" && (!bulkQty || parseInt(bulkQty) <= 0)}
-                    className="flex-1 py-3 rounded-lg font-medium disabled:opacity-50 bg-emerald-600 text-white hover:bg-emerald-700"
-                    data-testid="proceed-checkout-btn"
+                    onClick={submitBookingEnquiry}
+                    disabled={orderSubmitting || !orderForm.name || !orderForm.email || !orderForm.phone}
+                    className="flex-1 py-3 rounded-lg font-medium disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700"
+                    data-testid="submit-booking-btn"
                   >
-                    Proceed to Checkout
+                    {orderSubmitting ? "Submitting..." : "Submit Enquiry"}
                   </button>
                 </div>
               </div>
