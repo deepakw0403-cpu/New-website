@@ -37,6 +37,18 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Mar 6, 2026 - Simplified Fabric Catalog Flow
+- **Removed "Send Enquiry" button** from fabric cards in FabricsPage.js
+  - Fabric cards now only show "Book Bulk Now" and "Book Sample" buttons
+  - Removed the "Enquiry" quick filter button from catalog
+  - Removed enquiry modal code (no longer accessible)
+  - Cleaned up unused MessageSquare import
+- **Streamlined User Flow**: Users can now:
+  1. Book samples/bulk directly via simplified forms
+  2. Use "Request Quote" page for custom requirements
+- **Files Modified**: `frontend/src/pages/FabricsPage.js`
+- **Status**: COMPLETED
+
 ### Mar 2, 2026 - Query Source & Order Type + Cloudinary Integration
 - **Query Origination (Source) Field**: All enquiries now track their source
   - Sources: `homepage`, `rfq_page`, `supplier_signup_page`, `contact_page`, `fabric_detail_page`
