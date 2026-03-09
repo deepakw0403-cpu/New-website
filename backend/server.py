@@ -1648,6 +1648,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup_create_default_admin():
+    """Create default admin if none exists"""
+    try:
+        admin_count = await db.admins.count_documents({})
+        if admin_count == 0:
+            admin_doc = {
+                'id': str(uuid.uuid4()),
+                'email': 'admin@locofast.com',
+                'password': hash_password('admin123'),
+                'name': 'Locofast Admin',
+                'created_at': datetime.now(timezone.utc).isoformat()
+            }
+            await db.admins.insert_one(admin_doc)
+            logger.info("Default admin created: admin@locofast.com / admin123")
+        else:
+            logger.info(f"Found {admin_count} existing admin(s)")
+    except Exception as e:
+        logger.error(f"Error creating default admin: {str(e)}")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
