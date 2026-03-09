@@ -260,7 +260,14 @@ const AdminFabrics = () => {
       toast.success("Images uploaded to cloud storage");
     } catch (err) {
       console.error("Image upload error:", err);
-      toast.error("Failed to upload images");
+      if (err.response?.status === 401 || err.message?.includes('401')) {
+        toast.error("Session expired. Please log in again.");
+        localStorage.removeItem("locofast_token");
+        localStorage.removeItem("locofast_admin");
+        window.location.href = "/admin/login";
+      } else {
+        toast.error(err.message || "Failed to upload images");
+      }
     }
     setUploading(false);
   };

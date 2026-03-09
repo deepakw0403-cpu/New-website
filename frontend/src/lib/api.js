@@ -44,7 +44,8 @@ api.interceptors.response.use(
         '/seo/',
         '/upload',
         '/coupons',
-        '/orders'
+        '/orders',
+        '/cloudinary'
       ];
       
       // Check if this was an auth-required endpoint
@@ -197,6 +198,12 @@ export const uploadToCloudinary = async (file, folder = "fabrics", onProgress = 
     };
   } catch (error) {
     console.error("Cloudinary upload failed:", error);
+    // Re-throw with status info if it's an axios error
+    if (error.response?.status === 401) {
+      const authError = new Error("Session expired. Please log in again.");
+      authError.response = { status: 401 };
+      throw authError;
+    }
     throw error;
   }
 };
@@ -257,6 +264,12 @@ export const uploadVideoToCloudinary = async (file, folder = "fabrics", onProgre
     });
   } catch (error) {
     console.error("Cloudinary video upload failed:", error);
+    // Re-throw with status info if it's an axios error
+    if (error.response?.status === 401) {
+      const authError = new Error("Session expired. Please log in again.");
+      authError.response = { status: 401 };
+      throw authError;
+    }
     throw error;
   }
 };
