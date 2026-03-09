@@ -87,7 +87,7 @@ const AdminLogin = () => {
           </form>
 
           <p className="text-center text-sm text-neutral-500 mt-6">
-            Default: admin@locofast.com / admin123
+            Credentials: admin@locofast.com / admin123
           </p>
         </div>
       </div>
