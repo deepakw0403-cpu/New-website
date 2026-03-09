@@ -1650,10 +1650,20 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_create_default_admin():
-    """Create default admin if none exists"""
+    """Create or reset default admin on startup"""
     try:
-        admin_count = await db.admins.count_documents({})
-        if admin_count == 0:
+        # Always ensure admin@locofast.com exists with password admin123
+        existing = await db.admins.find_one({'email': 'admin@locofast.com'})
+        
+        if existing:
+            # Reset password to admin123
+            await db.admins.update_one(
+                {'email': 'admin@locofast.com'},
+                {'$set': {'password': hash_password('admin123')}}
+            )
+            logger.info("Admin password reset to: admin123")
+        else:
+            # Create new admin
             admin_doc = {
                 'id': str(uuid.uuid4()),
                 'email': 'admin@locofast.com',
@@ -1663,10 +1673,8 @@ async def startup_create_default_admin():
             }
             await db.admins.insert_one(admin_doc)
             logger.info("Default admin created: admin@locofast.com / admin123")
-        else:
-            logger.info(f"Found {admin_count} existing admin(s)")
     except Exception as e:
-        logger.error(f"Error creating default admin: {str(e)}")
+        logger.error(f"Error with admin setup: {str(e)}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
