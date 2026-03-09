@@ -69,22 +69,18 @@ async def send_to_zapier(
 
 
 async def send_enquiry_to_zapier(enquiry: dict):
-    """Send enquiry lead to Zapier"""
+    """Send enquiry lead to Zapier - ONLY general enquiries, not bookings"""
     
     enquiry_type = enquiry.get("enquiry_type", "general")
     
-    # Map enquiry type to lead type
-    lead_type_map = {
-        "general": "enquiry",
-        "sample_order": "sample_booking",
-        "bulk_order": "bulk_booking",
-        "sample_booking": "sample_booking",
-        "bulk_booking": "bulk_booking"
-    }
-    lead_type = lead_type_map.get(enquiry_type, "enquiry")
+    # Only send general enquiries to Zapier (from Send Enquiry button)
+    # Skip sample_booking, bulk_booking, sample_order, bulk_order
+    if enquiry_type not in ["general"]:
+        logger.info(f"Skipping Zapier for enquiry type: {enquiry_type} (only 'general' enquiries are sent)")
+        return
     
     await send_to_zapier(
-        lead_type=lead_type,
+        lead_type="enquiry",
         source=enquiry.get("source", "website"),
         contact={
             "name": enquiry.get("name", ""),
