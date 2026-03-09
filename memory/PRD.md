@@ -37,6 +37,18 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Mar 6, 2026 - Zapier Webhook Integration
+- **Added Zapier webhook** to push all leads automatically
+- **Webhook URL**: `https://hooks.zapier.com/hooks/catch/5994632/uxd3tni/`
+- **Integrated into**:
+  - Enquiries (general, sample_booking, bulk_booking)
+  - RFQ submissions
+  - Order confirmations
+- **Payload includes**: `lead_type`, `source`, `contact`, `product`, `details`
+- **Files Created**: `backend/zapier_webhook.py`
+- **Files Modified**: `backend/server.py`, `backend/rfq_router.py`, `backend/orders_router.py`
+- **Status**: COMPLETED (tested successfully)
+
 ### Mar 6, 2026 - Simplified Send Enquiry Form
 - **Removed "Your Message" field** from Send Enquiry modal in FabricsPage.js
   - Modal now only shows: Product info, Name, Company, Email, Phone

@@ -335,6 +335,14 @@ async def verify_payment(verification: PaymentVerification):
         {"_id": 0}
     )
     
+    # Send to Zapier webhook (async, don't block)
+    try:
+        from zapier_webhook import send_order_to_zapier
+        import asyncio
+        asyncio.create_task(send_order_to_zapier(updated_order))
+    except Exception as e:
+        logger.warning(f"Failed to send order to Zapier: {str(e)}")
+    
     return {
         "success": True,
         "message": "Payment verified successfully",

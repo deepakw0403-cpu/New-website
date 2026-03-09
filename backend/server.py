@@ -1321,6 +1321,14 @@ async def create_enquiry(data: EnquiryCreate):
     except Exception as e:
         logging.warning(f"Failed to queue enquiry emails: {str(e)}")
     
+    # Send to Zapier webhook (best effort - don't block on failure)
+    try:
+        from zapier_webhook import send_enquiry_to_zapier
+        import asyncio
+        asyncio.create_task(send_enquiry_to_zapier(enquiry_doc))
+    except Exception as e:
+        logging.warning(f"Failed to send to Zapier: {str(e)}")
+    
     return Enquiry(**enquiry_doc)
 
 @api_router.get("/enquiries", response_model=List[Enquiry])

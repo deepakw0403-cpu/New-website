@@ -185,6 +185,34 @@ async def submit_rfq(data: RFQSubmission):
     except Exception as e:
         logger.warning(f"Failed to queue RFQ email: {str(e)}")
     
+    # Send to Zapier webhook (async, don't block)
+    try:
+        from zapier_webhook import send_rfq_to_zapier
+        import asyncio
+        # Prepare RFQ data for Zapier
+        zapier_rfq_data = {
+            'rfq_number': rfq_number,
+            'category': data.category,
+            'contact_details': {
+                'full_name': data.full_name,
+                'email': data.email,
+                'phone': data.phone,
+                'gst_number': data.gst_number or "",
+                'company_website': data.website or "",
+                'additional_message': data.message or ""
+            },
+            'requirements': {
+                'fabric_requirement_type': data.fabric_requirement_type or "",
+                'quantity_meters': data.quantity_meters or "",
+                'quantity_kg': data.quantity_kg or "",
+                'knit_quality': data.knit_quality or "",
+                'denim_specification': data.denim_specification or ""
+            }
+        }
+        asyncio.create_task(send_rfq_to_zapier(zapier_rfq_data))
+    except Exception as e:
+        logger.warning(f"Failed to send RFQ to Zapier: {str(e)}")
+    
     logger.info(f"New RFQ submitted: {rfq_number} for {data.category}")
     
     return RFQResponse(**rfq_doc)
