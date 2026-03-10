@@ -23,7 +23,7 @@ const FabricDetailPage = () => {
     email: "",
     phone: "",
     company: "",
-    message: "",
+    gst_number: "",
   });
   const [submitting, setSubmitting] = useState(false);
   
@@ -58,7 +58,7 @@ const FabricDetailPage = () => {
 
   const handleEnquirySubmit = async (e) => {
     e.preventDefault();
-    if (!enquiryForm.name || !enquiryForm.email || !enquiryForm.message) {
+    if (!enquiryForm.name || !enquiryForm.email || !enquiryForm.phone || !enquiryForm.company || !enquiryForm.gst_number) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -70,12 +70,14 @@ const FabricDetailPage = () => {
         fabric_id: fabric.id,
         fabric_name: fabric.name,
         fabric_code: fabric.fabric_code,
-        enquiry_type: "general",
-        source: "fabric_detail_page"
+        category_name: fabric.category_name,
+        enquiry_type: "product_enquiry",
+        source: "product_page",
+        message: `Product Enquiry for ${fabric.name}`
       });
-      toast.success("Enquiry submitted. Our team will respond within 24 hours.");
+      toast.success("Enquiry submitted successfully! Our team will contact you within 24 hours.");
       setShowEnquiryForm(false);
-      setEnquiryForm({ name: "", email: "", phone: "", company: "", message: "" });
+      setEnquiryForm({ name: "", email: "", phone: "", company: "", gst_number: "" });
     } catch (err) {
       toast.error("Failed to submit enquiry. Please try again.");
     }
@@ -788,7 +790,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                     </button>
                   )}
                   <button
-                    onClick={() => navigate('/rfq')}
+                    onClick={() => setShowEnquiryForm(true)}
                     className="w-full border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors inline-flex items-center justify-center gap-2"
                     data-testid="enquiry-btn"
                   >
@@ -977,18 +979,34 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
           </div>
         </div>
 
-        {/* Enquiry Modal */}
+        {/* Enquiry Modal - Simplified */}
         {showEnquiryForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" data-testid="enquiry-modal">
             <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto p-8 rounded-lg animate-slideUp">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-semibold">Submit Enquiry</h2>
-                  <p className="text-neutral-500">Regarding: {fabric.name}</p>
+                  <h2 className="text-2xl font-semibold">Product Enquiry</h2>
+                  <p className="text-neutral-500 text-sm mt-1">For: {fabric.name}</p>
                 </div>
                 <button onClick={() => setShowEnquiryForm(false)} className="p-2 hover:bg-gray-100 rounded-full">
                   <X size={20} />
                 </button>
+              </div>
+
+              {/* Product Info */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 flex gap-4">
+                <img
+                  src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
+                  alt={fabric.name}
+                  className="w-16 h-16 object-cover rounded"
+                />
+                <div>
+                  <p className="font-medium text-gray-900">{fabric.name}</p>
+                  <p className="text-sm text-gray-600">{fabric.category_name}</p>
+                  {fabric.fabric_code && (
+                    <p className="text-xs text-gray-500">Code: {fabric.fabric_code}</p>
+                  )}
+                </div>
               </div>
 
               <form onSubmit={handleEnquirySubmit} className="space-y-4">
@@ -998,7 +1016,8 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                     type="text"
                     value={enquiryForm.name}
                     onChange={(e) => setEnquiryForm({ ...enquiryForm, name: e.target.value })}
-                    className="w-full px-4 py-3 border border-neutral-200 rounded-lg"
+                    placeholder="Your full name"
+                    className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:border-blue-500 focus:outline-none"
                     required
                     data-testid="enquiry-name"
                   />
@@ -1009,42 +1028,46 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                     type="email"
                     value={enquiryForm.email}
                     onChange={(e) => setEnquiryForm({ ...enquiryForm, email: e.target.value })}
-                    className="w-full px-4 py-3 border border-neutral-200 rounded-lg"
+                    placeholder="your@email.com"
+                    className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:border-blue-500 focus:outline-none"
                     required
                     data-testid="enquiry-email"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Phone</label>
-                    <input
-                      type="tel"
-                      value={enquiryForm.phone}
-                      onChange={(e) => setEnquiryForm({ ...enquiryForm, phone: e.target.value })}
-                      className="w-full px-4 py-3 border border-neutral-200 rounded-lg"
-                      data-testid="enquiry-phone"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Company</label>
-                    <input
-                      type="text"
-                      value={enquiryForm.company}
-                      onChange={(e) => setEnquiryForm({ ...enquiryForm, company: e.target.value })}
-                      className="w-full px-4 py-3 border border-neutral-200 rounded-lg"
-                      data-testid="enquiry-company"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Phone Number *</label>
+                  <input
+                    type="tel"
+                    value={enquiryForm.phone}
+                    onChange={(e) => setEnquiryForm({ ...enquiryForm, phone: e.target.value })}
+                    placeholder="9876543210"
+                    className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:border-blue-500 focus:outline-none"
+                    required
+                    data-testid="enquiry-phone"
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Message *</label>
-                  <textarea
-                    value={enquiryForm.message}
-                    onChange={(e) => setEnquiryForm({ ...enquiryForm, message: e.target.value })}
-                    className="w-full px-4 py-3 border border-neutral-200 rounded-lg h-32 resize-none"
-                    placeholder="Describe your requirements: quantity needed, delivery timeline, specific questions."
+                  <label className="block text-sm font-medium mb-2">Company Name *</label>
+                  <input
+                    type="text"
+                    value={enquiryForm.company}
+                    onChange={(e) => setEnquiryForm({ ...enquiryForm, company: e.target.value })}
+                    placeholder="Your company name"
+                    className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:border-blue-500 focus:outline-none"
                     required
-                    data-testid="enquiry-message"
+                    data-testid="enquiry-company"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">GST Number *</label>
+                  <input
+                    type="text"
+                    value={enquiryForm.gst_number}
+                    onChange={(e) => setEnquiryForm({ ...enquiryForm, gst_number: e.target.value.toUpperCase() })}
+                    placeholder="22AAAAA0000A1Z5"
+                    className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:border-blue-500 focus:outline-none uppercase"
+                    required
+                    data-testid="enquiry-gst"
                   />
                 </div>
 
@@ -1052,7 +1075,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   <button
                     type="button"
                     onClick={() => setShowEnquiryForm(false)}
-                    className="btn-secondary flex-1"
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
                     data-testid="cancel-enquiry-btn"
                   >
                     Cancel
@@ -1060,7 +1083,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="btn-primary flex-1 disabled:opacity-50"
+                    className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
                     data-testid="submit-enquiry-btn"
                   >
                     {submitting ? "Submitting..." : "Submit Enquiry"}
