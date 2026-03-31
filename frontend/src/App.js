@@ -47,7 +47,6 @@ import VendorLogin from "./pages/vendor/VendorLogin";
 import VendorDashboard from "./pages/vendor/VendorDashboard";
 import VendorInventory from "./pages/vendor/VendorInventory";
 import VendorOrders from "./pages/vendor/VendorOrders";
-import VendorEnquiries from "./pages/vendor/VendorEnquiries";
 import VendorProtectedRoute from "./components/VendorProtectedRoute";
 
 // Tools pages
@@ -210,7 +209,6 @@ function App() {
           <Route path="/vendor" element={<VendorProtectedRoute><VendorDashboard /></VendorProtectedRoute>} />
           <Route path="/vendor/inventory" element={<VendorProtectedRoute><VendorInventory /></VendorProtectedRoute>} />
           <Route path="/vendor/orders" element={<VendorProtectedRoute><VendorOrders /></VendorProtectedRoute>} />
-          <Route path="/vendor/enquiries" element={<VendorProtectedRoute><VendorEnquiries /></VendorProtectedRoute>} />
         </Routes>
         <WhatsAppChat />
       </BrowserRouter>

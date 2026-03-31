@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Layers, Package, ShoppingCart, MessageSquare, LogOut, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Layers, Package, ShoppingCart, LogOut, ArrowLeft } from "lucide-react";
 import { useVendorAuth } from "../../context/VendorAuthContext";
 
 const VendorLayout = ({ children }) => {
@@ -10,7 +10,6 @@ const VendorLayout = ({ children }) => {
   const navItems = [
     { path: "/vendor", label: "Dashboard", icon: LayoutDashboard },
     { path: "/vendor/inventory", label: "My Inventory", icon: Layers },
-    { path: "/vendor/enquiries", label: "Enquiries", icon: MessageSquare },
     { path: "/vendor/orders", label: "Orders", icon: ShoppingCart },
   ];
 
