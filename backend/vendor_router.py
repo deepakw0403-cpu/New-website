@@ -122,7 +122,8 @@ async def vendor_login(data: VendorLogin):
     if not seller:
         raise HTTPException(status_code=401, detail='Invalid email or password')
     
-    password_hash = seller.get('password_hash', '')
+    # Check for password (can be stored as 'password_hash' or 'password')
+    password_hash = seller.get('password_hash') or seller.get('password', '')
     if not password_hash:
         raise HTTPException(status_code=401, detail='Vendor account not set up. Please contact admin.')
     
@@ -192,6 +193,7 @@ async def create_vendor_fabric(data: FabricCreate, vendor=Depends(get_current_ve
         'fabric_code': data.fabric_code,
         'seller_id': vendor['id'],
         'seller_company': vendor.get('company_name', ''),
+        'seller_name': vendor.get('name', ''),
         'category_id': data.category_id,
         'category_name': category_name,
         'description': data.description,
@@ -207,6 +209,13 @@ async def create_vendor_fabric(data: FabricCreate, vendor=Depends(get_current_ve
         'sample_price': data.sample_price,
         'moq': data.moq,
         'dispatch_timeline': data.dispatch_timeline,
+        'status': 'pending',  # pending, approved, rejected
+        'fabric_type': 'woven',
+        'pattern': 'Solid',
+        'color': '',
+        'availability': [],
+        'videos': [],
+        'pricing_tiers': [],
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     
@@ -263,7 +272,9 @@ async def get_vendor_orders(vendor=Depends(get_current_vendor)):
 async def get_vendor_stats(vendor=Depends(get_current_vendor)):
     """Get vendor statistics"""
     total_fabrics = await db.fabrics.count_documents({'seller_id': vendor['id']})
-    active_fabrics = await db.fabrics.count_documents({'seller_id': vendor['id'], 'is_bookable': True})
+    approved_fabrics = await db.fabrics.count_documents({'seller_id': vendor['id'], 'status': 'approved'})
+    pending_fabrics = await db.fabrics.count_documents({'seller_id': vendor['id'], 'status': 'pending'})
+    rejected_fabrics = await db.fabrics.count_documents({'seller_id': vendor['id'], 'status': 'rejected'})
     
     # Get vendor's fabric IDs
     vendor_fabric_ids = await db.fabrics.distinct('id', {'seller_id': vendor['id']})
@@ -271,10 +282,16 @@ async def get_vendor_stats(vendor=Depends(get_current_vendor)):
     # Count orders with vendor's fabrics
     total_orders = await db.orders.count_documents({'items.fabric_id': {'$in': vendor_fabric_ids}})
     
+    # Count enquiries
+    total_enquiries = await db.enquiries.count_documents({'fabric_id': {'$in': vendor_fabric_ids}})
+    
     return {
         'total_fabrics': total_fabrics,
-        'active_fabrics': active_fabrics,
+        'approved_fabrics': approved_fabrics,
+        'pending_fabrics': pending_fabrics,
+        'rejected_fabrics': rejected_fabrics,
         'total_orders': total_orders,
+        'total_enquiries': total_enquiries,
         'vendor_code': vendor.get('seller_code', '')
     }
 
@@ -283,3 +300,17 @@ async def get_categories_for_vendor():
     """Get all categories (for fabric creation dropdown)"""
     categories = await db.categories.find({}, {'_id': 0}).to_list(100)
     return categories
+
+@router.get("/enquiries")
+async def get_vendor_enquiries(vendor=Depends(get_current_vendor)):
+    """Get all enquiries for this vendor's fabrics"""
+    # Get vendor's fabric IDs
+    vendor_fabric_ids = await db.fabrics.distinct('id', {'seller_id': vendor['id']})
+    
+    # Get enquiries for these fabrics
+    enquiries = await db.enquiries.find(
+        {'fabric_id': {'$in': vendor_fabric_ids}},
+        {'_id': 0}
+    ).sort('created_at', -1).to_list(500)
+    
+    return enquiries

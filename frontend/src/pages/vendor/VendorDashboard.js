@@ -51,7 +51,7 @@ const VendorDashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
@@ -67,8 +67,8 @@ const VendorDashboard = () => {
           <div className="bg-white rounded-xl p-6 border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Active Listings</p>
-                <p className="text-3xl font-semibold mt-1 text-emerald-600">{stats?.active_fabrics || 0}</p>
+                <p className="text-sm text-gray-500">Approved (Live)</p>
+                <p className="text-3xl font-semibold mt-1 text-emerald-600">{stats?.approved_fabrics || 0}</p>
               </div>
               <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
                 <Package className="w-6 h-6 text-emerald-600" />
@@ -79,8 +79,20 @@ const VendorDashboard = () => {
           <div className="bg-white rounded-xl p-6 border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Total Orders</p>
-                <p className="text-3xl font-semibold mt-1">{stats?.total_orders || 0}</p>
+                <p className="text-sm text-gray-500">Pending Approval</p>
+                <p className="text-3xl font-semibold mt-1 text-yellow-600">{stats?.pending_fabrics || 0}</p>
+              </div>
+              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-yellow-600" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Total Enquiries</p>
+                <p className="text-3xl font-semibold mt-1">{stats?.total_enquiries || 0}</p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                 <ShoppingCart className="w-6 h-6 text-purple-600" />
@@ -129,9 +141,14 @@ const VendorDashboard = () => {
                       <p className="text-sm text-gray-500">{fabric.category_name}</p>
                     </div>
                     <span className={`px-2 py-1 text-xs rounded-full ${
-                      fabric.is_bookable ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"
+                      fabric.status === "approved" ? "bg-emerald-100 text-emerald-700" :
+                      fabric.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                      fabric.status === "rejected" ? "bg-red-100 text-red-700" :
+                      "bg-gray-100 text-gray-600"
                     }`}>
-                      {fabric.is_bookable ? "Active" : "Inactive"}
+                      {fabric.status === "approved" ? "Live" :
+                       fabric.status === "pending" ? "Pending" :
+                       fabric.status === "rejected" ? "Rejected" : "Draft"}
                     </span>
                   </div>
                 ))

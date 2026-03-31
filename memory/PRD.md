@@ -49,6 +49,29 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 - **Files Modified**: `backend/server.py`, `backend/rfq_router.py`, `backend/orders_router.py`
 - **Status**: COMPLETED (tested successfully)
 
+### Mar 10, 2026 - Vendor Portal for Sellers
+- **Built complete Vendor Portal** at `/vendor/login`
+  - Vendors can login with email/password (set by admin)
+  - Dashboard shows: Total Fabrics, Approved (Live), Pending Approval, Enquiries
+  - My Inventory: Add/Edit/Delete fabrics
+  - Enquiries: View enquiries for their products
+  - Orders: View orders for their products
+- **Approval Workflow**: Vendor uploads fabric → Status "Pending" → Admin approves → Goes live
+- **Admin Updates**: 
+  - Status filter in fabrics list (Pending, Approved, Rejected)
+  - Approve/Reject buttons for pending fabrics
+  - Status column in fabric table
+- **Test Vendor**: vendor@test.com / vendor123
+- **Status**: COMPLETED
+
+### Mar 10, 2026 - Simplified Product Enquiry Form
+- **Simplified enquiry form** on product page with mandatory fields:
+  - Name, Email, Phone, Company Name, GST Number (all required)
+- **"Request a Quote" button** now opens modal instead of navigating to RFQ page
+- **Enquiry pushed to admin** with product name and customer details
+- **Files Modified**: `frontend/src/pages/FabricDetailPage.js`
+- **Status**: COMPLETED
+
 ### Mar 6, 2026 - Simplified Send Enquiry Form
 - **Removed "Your Message" field** from Send Enquiry modal in FabricsPage.js
   - Modal now only shows: Product info, Name, Company, Email, Phone

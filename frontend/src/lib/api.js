@@ -91,6 +91,8 @@ export const getFabric = (id) => api.get(`/fabrics/${id}`);
 export const createFabric = (data) => api.post("/fabrics", data);
 export const updateFabric = (id, data) => api.put(`/fabrics/${id}`, data);
 export const deleteFabric = (id) => api.delete(`/fabrics/${id}`);
+export const approveFabric = (id) => api.put(`/fabrics/${id}`, { status: 'approved' });
+export const rejectFabric = (id) => api.put(`/fabrics/${id}`, { status: 'rejected' });
 
 // Articles (Color Variant Grouping)
 export const getArticles = (params) => api.get("/articles", { params });
@@ -349,5 +351,6 @@ export const deleteVendorFabric = (id) => api.delete(`/vendor/fabrics/${id}`);
 export const getVendorOrders = () => api.get("/vendor/orders");
 export const getVendorStats = () => api.get("/vendor/stats");
 export const getVendorCategories = () => api.get("/vendor/categories");
+export const getVendorEnquiries = () => api.get("/vendor/enquiries");
 
 export default api;

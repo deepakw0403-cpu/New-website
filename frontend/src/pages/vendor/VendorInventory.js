@@ -220,9 +220,14 @@ const VendorInventory = () => {
                     </td>
                     <td className="px-4 py-4">
                       <span className={`px-2 py-1 text-xs rounded-full ${
-                        fabric.is_bookable ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"
+                        fabric.status === "approved" ? "bg-emerald-100 text-emerald-700" :
+                        fabric.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                        fabric.status === "rejected" ? "bg-red-100 text-red-700" :
+                        "bg-gray-100 text-gray-600"
                       }`}>
-                        {fabric.is_bookable ? "Active" : "Inactive"}
+                        {fabric.status === "approved" ? "Live" :
+                         fabric.status === "pending" ? "Pending Approval" :
+                         fabric.status === "rejected" ? "Rejected" : "Draft"}
                       </span>
                     </td>
                     <td className="px-4 py-4">

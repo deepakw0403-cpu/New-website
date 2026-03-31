@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2, X, Upload, Check, Video, Package, DollarSign, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { getFabrics, getCategories, getSellers, getArticles, createFabric, updateFabric, deleteFabric, uploadToCloudinary, uploadVideoToCloudinary } from "../../lib/api";
+import { getFabrics, getCategories, getSellers, getArticles, createFabric, updateFabric, deleteFabric, uploadToCloudinary, uploadVideoToCloudinary, approveFabric, rejectFabric } from "../../lib/api";
 
 const AdminFabrics = () => {
   const [fabrics, setFabrics] = useState([]);
@@ -23,6 +23,7 @@ const AdminFabrics = () => {
   const [filterCategory, setFilterCategory] = useState("");
   const [filterSeller, setFilterSeller] = useState("");
   const [filterAvailability, setFilterAvailability] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
 
   const emptyComposition = [
     { material: "", percentage: 0 },
@@ -218,14 +219,20 @@ const AdminFabrics = () => {
       );
     }
     
+    // Status filter (for approval workflow)
+    if (filterStatus) {
+      result = result.filter(fabric => fabric.status === filterStatus);
+    }
+    
     setFilteredFabrics(result);
-  }, [fabrics, searchQuery, filterCategory, filterSeller, filterAvailability]);
+  }, [fabrics, searchQuery, filterCategory, filterSeller, filterAvailability, filterStatus]);
 
   const clearFilters = () => {
     setSearchQuery("");
     setFilterCategory("");
     setFilterSeller("");
     setFilterAvailability("");
+    setFilterStatus("");
   };
 
   const fetchData = async () => {
@@ -519,6 +526,27 @@ const AdminFabrics = () => {
     }
   };
 
+  const handleApprove = async (fabric) => {
+    try {
+      await approveFabric(fabric.id);
+      toast.success(`"${fabric.name}" is now live`);
+      fetchData();
+    } catch (err) {
+      toast.error("Failed to approve fabric");
+    }
+  };
+
+  const handleReject = async (fabric) => {
+    if (!window.confirm(`Reject "${fabric.name}"? The vendor will be notified.`)) return;
+    try {
+      await rejectFabric(fabric.id);
+      toast.success("Fabric rejected");
+      fetchData();
+    } catch (err) {
+      toast.error("Failed to reject fabric");
+    }
+  };
+
   return (
     <AdminLayout>
       <div data-testid="admin-fabrics-page">
@@ -591,8 +619,21 @@ const AdminFabrics = () => {
               <option value="On Request">On Request</option>
             </select>
 
+            {/* Status Filter */}
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500"
+              data-testid="filter-status"
+            >
+              <option value="">All Status</option>
+              <option value="pending">Pending Approval</option>
+              <option value="approved">Approved (Live)</option>
+              <option value="rejected">Rejected</option>
+            </select>
+
             {/* Clear Filters Button */}
-            {(searchQuery || filterCategory || filterSeller || filterAvailability) && (
+            {(searchQuery || filterCategory || filterSeller || filterAvailability || filterStatus) && (
               <button
                 onClick={clearFilters}
                 className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
@@ -644,6 +685,7 @@ const AdminFabrics = () => {
                   <th className="text-left p-4 font-medium text-sm hidden md:table-cell">Seller</th>
                   <th className="text-left p-4 font-medium text-sm hidden lg:table-cell">Category</th>
                   <th className="text-left p-4 font-medium text-sm hidden lg:table-cell">GSM</th>
+                  <th className="text-left p-4 font-medium text-sm">Availability</th>
                   <th className="text-left p-4 font-medium text-sm">Status</th>
                   <th className="text-right p-4 font-medium text-sm">Actions</th>
                 </tr>
@@ -695,7 +737,38 @@ const AdminFabrics = () => {
                         )}
                       </div>
                     </td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        fabric.status === "approved" ? "bg-emerald-100 text-emerald-700" :
+                        fabric.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                        fabric.status === "rejected" ? "bg-red-100 text-red-700" :
+                        "bg-gray-100 text-gray-600"
+                      }`}>
+                        {fabric.status === "approved" ? "Live" :
+                         fabric.status === "pending" ? "Pending" :
+                         fabric.status === "rejected" ? "Rejected" : "Draft"}
+                      </span>
+                    </td>
                     <td className="p-4 text-right">
+                      {/* Approve/Reject buttons for pending fabrics */}
+                      {fabric.status === "pending" && (
+                        <>
+                          <button
+                            onClick={() => handleApprove(fabric)}
+                            className="p-2 text-emerald-600 hover:text-emerald-800 transition-colors"
+                            title="Approve"
+                          >
+                            <Check size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleReject(fabric)}
+                            className="p-2 text-red-500 hover:text-red-700 transition-colors"
+                            title="Reject"
+                          >
+                            <X size={18} />
+                          </button>
+                        </>
+                      )}
                       <button
                         onClick={() => openEditModal(fabric)}
                         className="p-2 text-gray-500 hover:text-gray-900 transition-colors"
