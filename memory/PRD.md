@@ -33,6 +33,14 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Apr 1, 2026 - Supplier SEO Pages + Prerender
+- **Built dynamic supplier pages** at `/suppliers/:category/:state/:slug` (e.g., `/suppliers/weaving/tamil-nadu/vp-tex-pvt-ltd/id=1271/`)
+- **Backend API**: `/api/suppliers/lookup/{category}/{state}/{slug}` — matches sellers by slug, serves relevant fabrics even if seller not in DB
+- **Prerender endpoint**: `/api/suppliers/prerender/{category}/{state}/{path}` — serves complete HTML to Googlebot with proper meta tags, Schema.org, canonical URLs, 12 fabric cards, 21 internal links
+- **React page**: Full supplier profile with breadcrumbs, fabric grid, contact form, related suppliers, CTA section
+- **SEO elements**: `<title>`, `<meta description>`, `<link canonical>`, Open Graph, Schema.org LocalBusiness, robots index/follow
+- **Status**: COMPLETED
+
 ### Apr 1, 2026 - Bug Fixes (P0/P1)
 - **Fixed GET /api/fabrics 500 Error**: Vendor-created fabrics stored `tags` as string instead of list. Updated `normalize_fabric()` to handle string/null tags, missing status, stock_type, delivery fields.
 - **Fixed GET /api/sellers 500 Error**: Test vendor records lacked `created_at` field. Added defensive defaults for all seller fields.
@@ -81,7 +89,7 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 ## Prioritized Backlog
 
 ### P1 (Upcoming)
-- [ ] SEO Preservation Routes (`/suppliers/:category/:state/:slug`)
+- [ ] Production prerender middleware (nginx User-Agent detection → route bots to `/api/suppliers/prerender/`)
 - [ ] Customer Accounts & Order History
 - [ ] Test Email Flow (end-to-end order confirmation)
 

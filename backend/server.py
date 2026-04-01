@@ -23,6 +23,7 @@ load_dotenv(ROOT_DIR / '.env')
 from tools_router import router as tools_router
 from seo_router import router as seo_router
 from blog_router import router as blog_router
+from supplier_router import router as supplier_router
 import orders_router
 import email_router
 import vendor_router
@@ -1687,6 +1688,7 @@ app.include_router(api_router)
 app.include_router(tools_router)
 app.include_router(seo_router)
 app.include_router(blog_router)
+app.include_router(supplier_router)
 app.include_router(orders_router.router)
 app.include_router(email_router.router)
 app.include_router(vendor_router.router)
