@@ -239,7 +239,7 @@ const AdminFabrics = () => {
     setLoading(true);
     try {
       const [fabRes, catRes, selRes, artRes] = await Promise.all([
-        getFabrics({ limit: 1000 }), // Load all fabrics for admin
+        getFabrics({ limit: 1000, include_pending: true }), // Load all fabrics for admin
         getCategories(), 
         getSellers(true), 
         getArticles()

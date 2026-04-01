@@ -10,7 +10,7 @@ import os
 import uuid
 
 # Use environment variable for BASE_URL
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://rfq-system-2.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://vendor-approval-7.preview.emergentagent.com')
 
 
 class TestAdminAuth:

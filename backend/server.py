@@ -224,6 +224,7 @@ class FabricUpdate(BaseModel):
     weft_shrinkage: Optional[float] = None
     stretch_percentage: Optional[float] = None
     seller_sku: Optional[str] = None
+    status: Optional[str] = None  # pending, approved, rejected
 
 class Fabric(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -272,6 +273,7 @@ class Fabric(BaseModel):
     weft_shrinkage: Optional[float] = None
     stretch_percentage: Optional[float] = None
     seller_sku: str = ""
+    status: Optional[str] = None  # pending, approved, rejected (None for legacy/admin fabrics)
     created_at: str
 
 class EnquiryCreate(BaseModel):
@@ -493,16 +495,26 @@ async def get_sellers(include_inactive: bool = Query(False)):
         seller['category_names'] = [cat_map.get(cid, '') for cid in seller.get('category_ids', []) if cat_map.get(cid)]
         if 'category_ids' not in seller:
             seller['category_ids'] = []
-        # Handle legacy location field
         if 'city' not in seller:
             seller['city'] = seller.get('location', '')
         if 'state' not in seller:
             seller['state'] = ''
-        # Handle new fields
         if 'is_active' not in seller:
             seller['is_active'] = True
         if 'seller_code' not in seller:
             seller['seller_code'] = ''
+        if 'created_at' not in seller:
+            seller['created_at'] = datetime.now(timezone.utc).isoformat()
+        if 'description' not in seller:
+            seller['description'] = ''
+        if 'logo_url' not in seller:
+            seller['logo_url'] = ''
+        if 'contact_email' not in seller:
+            seller['contact_email'] = ''
+        if 'contact_phone' not in seller:
+            seller['contact_phone'] = ''
+        if 'company_name' not in seller:
+            seller['company_name'] = seller.get('name', '')
     
     return sellers
 
@@ -526,11 +538,22 @@ async def get_seller(seller_id: str):
         seller['city'] = seller.get('location', '')
     if 'state' not in seller:
         seller['state'] = ''
-    # Handle new fields
     if 'is_active' not in seller:
         seller['is_active'] = True
     if 'seller_code' not in seller:
         seller['seller_code'] = ''
+    if 'created_at' not in seller:
+        seller['created_at'] = datetime.now(timezone.utc).isoformat()
+    if 'description' not in seller:
+        seller['description'] = ''
+    if 'logo_url' not in seller:
+        seller['logo_url'] = ''
+    if 'contact_email' not in seller:
+        seller['contact_email'] = ''
+    if 'contact_phone' not in seller:
+        seller['contact_phone'] = ''
+    if 'company_name' not in seller:
+        seller['company_name'] = seller.get('name', '')
     
     return seller
 
@@ -602,11 +625,22 @@ async def update_seller(seller_id: str, data: SellerUpdate, admin=Depends(get_cu
         seller['city'] = seller.get('location', '')
     if 'state' not in seller:
         seller['state'] = ''
-    # Handle new fields
     if 'is_active' not in seller:
         seller['is_active'] = True
     if 'seller_code' not in seller:
         seller['seller_code'] = ''
+    if 'created_at' not in seller:
+        seller['created_at'] = datetime.now(timezone.utc).isoformat()
+    if 'description' not in seller:
+        seller['description'] = ''
+    if 'logo_url' not in seller:
+        seller['logo_url'] = ''
+    if 'contact_email' not in seller:
+        seller['contact_email'] = ''
+    if 'contact_phone' not in seller:
+        seller['contact_phone'] = ''
+    if 'company_name' not in seller:
+        seller['company_name'] = seller.get('name', '')
     
     return Seller(**seller)
 
@@ -625,27 +659,33 @@ def normalize_fabric(fabric: dict) -> dict:
     # Handle legacy string composition - convert to list format
     if isinstance(fabric.get('composition'), str):
         comp_str = fabric['composition']
-        # Parse legacy format like "100% Cotton" or "65% Polyester, 35% Cotton"
-        # Try to extract percentages and materials from the string
         parsed = []
-        # Match patterns like "100% Cotton" or "65% Polyester"
         matches = re.findall(r'(\d+)%\s*([^,]+)', comp_str)
         if matches:
             for percentage, material in matches:
                 parsed.append({'material': material.strip(), 'percentage': int(percentage)})
             fabric['composition'] = parsed
         else:
-            # No percentage found, assume 100% of the material name
-            fabric['composition'] = [{'material': comp_str, 'percentage': 100}]
+            fabric['composition'] = [{'material': comp_str, 'percentage': 100}] if comp_str else []
     elif not fabric.get('composition'):
         fabric['composition'] = []
     
+    # Handle tags - must be a list
+    if not isinstance(fabric.get('tags'), list):
+        raw = fabric.get('tags', '')
+        if isinstance(raw, str) and raw:
+            fabric['tags'] = [t.strip() for t in raw.split(',') if t.strip()]
+        else:
+            fabric['tags'] = []
+
     # Handle missing new fields
     if 'pattern' not in fabric:
         fabric['pattern'] = 'Solid'
     if 'starting_price' not in fabric:
         fabric['starting_price'] = ''
     if 'videos' not in fabric:
+        fabric['videos'] = []
+    elif not isinstance(fabric.get('videos'), list):
         fabric['videos'] = []
     if 'warp_count' not in fabric:
         fabric['warp_count'] = ''
@@ -690,6 +730,19 @@ def normalize_fabric(fabric: dict) -> dict:
         fabric['sample_price'] = None
     if 'pricing_tiers' not in fabric:
         fabric['pricing_tiers'] = []
+    # Stock type and delivery fields
+    if 'stock_type' not in fabric:
+        fabric['stock_type'] = 'ready_stock'
+    if 'sample_delivery_days' not in fabric:
+        fabric['sample_delivery_days'] = ''
+    if 'bulk_delivery_days' not in fabric:
+        fabric['bulk_delivery_days'] = ''
+    # Images must be a list
+    if not isinstance(fabric.get('images'), list):
+        fabric['images'] = []
+    # Status field (legacy fabrics don't have it)
+    if 'status' not in fabric or fabric.get('status') is None:
+        fabric['status'] = None
     
     return fabric
 
@@ -738,10 +791,27 @@ async def get_fabrics(
     sample_available: Optional[bool] = Query(None),
     instant_bookable: Optional[bool] = Query(None),
     enquiry_only: Optional[bool] = Query(None),
+    status: Optional[str] = Query(None),
+    include_pending: Optional[bool] = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=1000)  # Increased max limit for admin dropdown
 ):
+    # Build query using $and to avoid $or conflicts
+    and_conditions = []
     query = {}
+
+    # Status filter: public view only shows approved + legacy (no status) fabrics
+    if status:
+        and_conditions.append({'status': status})
+    elif include_pending:
+        pass  # Show all statuses
+    else:
+        and_conditions.append({'$or': [
+            {'status': 'approved'},
+            {'status': {'$exists': False}},
+            {'status': None}
+        ]})
+
     if category_id:
         query['category_id'] = category_id
     if seller_id:
@@ -755,77 +825,50 @@ async def get_fabrics(
         query['quantity_available'] = {'$gt': 0}
     if sample_available:
         query['is_bookable'] = True
-        query['sample_or_rate'] = {'$or': [
+        and_conditions.append({'$or': [
             {'sample_price': {'$gt': 0}},
             {'rate_per_meter': {'$gt': 0}}
-        ]}
+        ]})
     if instant_bookable:
-        # Fabrics that can be booked instantly (sample or bulk)
         query['is_bookable'] = True
-        if '$or' not in query:
-            query['$or'] = [
-                {'sample_price': {'$gt': 0}},
-                {'rate_per_meter': {'$gt': 0}},
-                {'quantity_available': {'$gt': 0}}
-            ]
+        and_conditions.append({'$or': [
+            {'sample_price': {'$gt': 0}},
+            {'rate_per_meter': {'$gt': 0}},
+            {'quantity_available': {'$gt': 0}}
+        ]})
     if enquiry_only:
-        # Fabrics that can only be enquired about (not bookable or no stock/pricing)
-        query['$or'] = [
+        and_conditions.append({'$or': [
             {'is_bookable': {'$ne': True}},
             {'$and': [
                 {'sample_price': {'$in': [None, 0]}},
                 {'rate_per_meter': {'$in': [None, 0]}},
                 {'quantity_available': {'$in': [None, 0]}}
             ]}
-        ]
-    if min_gsm is not None or max_gsm is not None:
-        query['gsm'] = {}
-        if min_gsm is not None:
-            query['gsm']['$gte'] = min_gsm
-        if max_gsm is not None:
-            query['gsm']['$lte'] = max_gsm
-        if not query['gsm']:
-            del query['gsm']
-    
-    # Build search conditions
-    search_conditions = []
-    if search:
-        search_conditions.append({
-            '$or': [
-                {'name': {'$regex': search, '$options': 'i'}},
-                {'tags': {'$regex': search, '$options': 'i'}},
-                {'composition': {'$regex': search, '$options': 'i'}},
-                {'color': {'$regex': search, '$options': 'i'}},
-                {'fabric_code': {'$regex': search, '$options': 'i'}},
-                {'seller_sku': {'$regex': search, '$options': 'i'}}
-            ]
-        })
-    
-    # Handle sample_available $or condition
-    if 'sample_or_rate' in query:
-        sample_cond = query.pop('sample_or_rate')
-        search_conditions.append(sample_cond['$or'][0])  # Just check if either exists
-        # Actually use $or for sample/rate check
-        if '$and' not in query:
-            query['$and'] = []
-        query['$and'].append({'$or': [
-            {'sample_price': {'$gt': 0}},
-            {'rate_per_meter': {'$gt': 0}}
         ]})
-    
-    if search_conditions and search:
-        if '$and' not in query:
-            query['$and'] = []
-        query['$and'].append({
+    if min_gsm is not None or max_gsm is not None:
+        gsm_q = {}
+        if min_gsm is not None:
+            gsm_q['$gte'] = min_gsm
+        if max_gsm is not None:
+            gsm_q['$lte'] = max_gsm
+        if gsm_q:
+            query['gsm'] = gsm_q
+
+    if search:
+        and_conditions.append({
             '$or': [
                 {'name': {'$regex': search, '$options': 'i'}},
                 {'tags': {'$regex': search, '$options': 'i'}},
-                {'composition': {'$regex': search, '$options': 'i'}},
                 {'color': {'$regex': search, '$options': 'i'}},
                 {'fabric_code': {'$regex': search, '$options': 'i'}},
-                {'seller_sku': {'$regex': search, '$options': 'i'}}
+                {'seller_sku': {'$regex': search, '$options': 'i'}},
+                {'description': {'$regex': search, '$options': 'i'}}
             ]
         })
+
+    # Combine all conditions
+    if and_conditions:
+        query['$and'] = and_conditions
     
     # Calculate skip for pagination
     skip = (page - 1) * limit
@@ -921,10 +964,25 @@ async def get_fabrics_count(
     bookable_only: Optional[bool] = Query(None),
     sample_available: Optional[bool] = Query(None),
     instant_bookable: Optional[bool] = Query(None),
-    enquiry_only: Optional[bool] = Query(None)
+    enquiry_only: Optional[bool] = Query(None),
+    status: Optional[str] = Query(None),
+    include_pending: Optional[bool] = Query(None)
 ):
     """Get total count of fabrics matching filters (for pagination)"""
+    and_conditions = []
     query = {}
+
+    if status:
+        and_conditions.append({'status': status})
+    elif include_pending:
+        pass
+    else:
+        and_conditions.append({'$or': [
+            {'status': 'approved'},
+            {'status': {'$exists': False}},
+            {'status': None}
+        ]})
+
     if category_id:
         query['category_id'] = category_id
     if seller_id:
@@ -938,49 +996,48 @@ async def get_fabrics_count(
         query['quantity_available'] = {'$gt': 0}
     if sample_available:
         query['is_bookable'] = True
-        if '$and' not in query:
-            query['$and'] = []
-        query['$and'].append({'$or': [
+        and_conditions.append({'$or': [
             {'sample_price': {'$gt': 0}},
             {'rate_per_meter': {'$gt': 0}}
         ]})
     if instant_bookable:
         query['is_bookable'] = True
-        query['$or'] = [
+        and_conditions.append({'$or': [
             {'sample_price': {'$gt': 0}},
             {'rate_per_meter': {'$gt': 0}},
             {'quantity_available': {'$gt': 0}}
-        ]
+        ]})
     if enquiry_only:
-        query['$or'] = [
+        and_conditions.append({'$or': [
             {'is_bookable': {'$ne': True}},
             {'$and': [
                 {'sample_price': {'$in': [None, 0]}},
                 {'rate_per_meter': {'$in': [None, 0]}},
                 {'quantity_available': {'$in': [None, 0]}}
             ]}
-        ]
+        ]})
     if min_gsm is not None or max_gsm is not None:
-        query['gsm'] = {}
+        gsm_q = {}
         if min_gsm is not None:
-            query['gsm']['$gte'] = min_gsm
+            gsm_q['$gte'] = min_gsm
         if max_gsm is not None:
-            query['gsm']['$lte'] = max_gsm
-        if not query['gsm']:
-            del query['gsm']
+            gsm_q['$lte'] = max_gsm
+        if gsm_q:
+            query['gsm'] = gsm_q
     if search:
-        if '$and' not in query:
-            query['$and'] = []
-        query['$and'].append({
+        and_conditions.append({
             '$or': [
                 {'name': {'$regex': search, '$options': 'i'}},
                 {'tags': {'$regex': search, '$options': 'i'}},
-                {'composition': {'$regex': search, '$options': 'i'}},
                 {'color': {'$regex': search, '$options': 'i'}},
                 {'fabric_code': {'$regex': search, '$options': 'i'}},
-                {'seller_sku': {'$regex': search, '$options': 'i'}}
+                {'seller_sku': {'$regex': search, '$options': 'i'}},
+                {'description': {'$regex': search, '$options': 'i'}}
             ]
         })
+
+    if and_conditions:
+        query['$and'] = and_conditions
     
     count = await db.fabrics.count_documents(query)
     return {'count': count}

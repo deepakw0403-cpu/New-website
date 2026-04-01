@@ -220,6 +220,9 @@ async def create_vendor_fabric(data: FabricCreate, vendor=Depends(get_current_ve
     }
     
     await db.fabrics.insert_one(fabric_doc)
+    
+    # Remove _id before returning
+    fabric_doc.pop('_id', None)
     return fabric_doc
 
 @router.put("/fabrics/{fabric_id}")
