@@ -33,6 +33,13 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Apr 6, 2026 - GST API Integration + Campaigns Push
+- **Sandbox.co.in GST API**: Integrated GSTIN verification at `POST /api/gst/verify`. 2-step auth flow (authenticate → search). Auto-populates company name from `trade_name || legal_name`.
+- **Campaigns Push**: All RFQ leads pushed to `campaigns.locofast.com/api/leads` with name, company, email, phone, GST info
+- **Email to marketing@locofast.com**: Rich HTML template with GST verification badge (legal name, status, address)
+- **Updated RFQ modal**: GST field with "Verify" button, green checkmark on success, auto-fill company name, error messages
+- **Status**: COMPLETED (19/19 tests pass)
+
 ### Apr 6, 2026 - Homepage RFQ Form Revamp
 - **Replaced "Request a Quote" link** with single-form modal on homepage (both hero + bottom CTA)
 - **Form fields**: Name, Phone (+91), GST Number, Company Name, Email, Fabric Type dropdown (Greige, Dyed, Printed, Yarn Dyed, Denim, Others)
