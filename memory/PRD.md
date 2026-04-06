@@ -33,6 +33,13 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Apr 6, 2026 - Homepage RFQ Form Revamp
+- **Replaced "Request a Quote" link** with single-form modal on homepage (both hero + bottom CTA)
+- **Form fields**: Name, Phone (+91), GST Number, Company Name, Email, Fabric Type dropdown (Greige, Dyed, Printed, Yarn Dyed, Denim, Others)
+- **Email to marketing@locofast.com** via Resend with styled HTML template
+- **Backend endpoint**: `POST /api/enquiries/rfq-lead` — saves to DB + sends email + pushes to Zapier
+- **Status**: COMPLETED
+
 ### Apr 6, 2026 - Vendor Inventory Fixes + Seller Assignment
 - **Added Ounce (oz) field** to vendor inventory table, form, and backend model
 - **GSM/Oz column** added to vendor inventory table

@@ -784,3 +784,56 @@ async def send_rfq_notification(rfq: dict):
     except Exception as e:
         logger.error(f"Failed to send RFQ notification: {str(e)}")
         return False
+
+
+async def send_rfq_lead_email(lead: dict):
+    """Send RFQ lead notification to marketing@locofast.com"""
+    if not RESEND_API_KEY:
+        logger.warning("Resend API key not configured - skipping RFQ lead email")
+        return False
+    
+    name = lead.get('name', '')
+    email = lead.get('email', '')
+    phone = lead.get('phone', '')
+    company = lead.get('company', '')
+    gst = lead.get('gst_number', '')
+    fabric_type = lead.get('fabric_type', '')
+    
+    html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a2e;">
+        <div style="background: linear-gradient(135deg, #2563EB, #1d4ed8); padding: 24px; border-radius: 12px 12px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 20px;">New Quote Request</h1>
+            <p style="color: #bfdbfe; margin: 8px 0 0; font-size: 14px;">From Homepage RFQ Form</p>
+        </div>
+        <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr><td style="padding: 10px 0; font-weight: bold; width: 140px; color: #64748b;">Name</td><td style="padding: 10px 0;">{name}</td></tr>
+                <tr style="background: #f8fafc;"><td style="padding: 10px 0; font-weight: bold; color: #64748b;">Email</td><td style="padding: 10px 0;"><a href="mailto:{email}" style="color: #2563EB;">{email}</a></td></tr>
+                <tr><td style="padding: 10px 0; font-weight: bold; color: #64748b;">Phone</td><td style="padding: 10px 0;"><a href="tel:+91{phone}" style="color: #2563EB;">+91 {phone}</a></td></tr>
+                <tr style="background: #f8fafc;"><td style="padding: 10px 0; font-weight: bold; color: #64748b;">Company</td><td style="padding: 10px 0;">{company}</td></tr>
+                <tr><td style="padding: 10px 0; font-weight: bold; color: #64748b;">GST Number</td><td style="padding: 10px 0; font-family: monospace;">{gst}</td></tr>
+                <tr style="background: #f8fafc;"><td style="padding: 10px 0; font-weight: bold; color: #64748b;">Fabric Type</td><td style="padding: 10px 0;"><strong style="color: #2563EB;">{fabric_type}</strong></td></tr>
+            </table>
+        </div>
+        <div style="text-align: center; padding: 16px; background: #f8fafc; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+            <p style="margin: 0; color: #94a3b8; font-size: 12px;">Locofast RFQ Lead System</p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": ["marketing@locofast.com"],
+            "subject": f"[RFQ Lead] {name} - {company} - {fabric_type}",
+            "html": html,
+            "reply_to": email
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"RFQ lead email sent to marketing@locofast.com for {name}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send RFQ lead email: {str(e)}")
+        return False

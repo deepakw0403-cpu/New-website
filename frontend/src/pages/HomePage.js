@@ -1,12 +1,29 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle, MessageCircle, Shield, Clock, Users, ChevronDown, ChevronUp, Sparkles, Factory, Store, Layers, Building2, ShieldCheck } from "lucide-react";
+import { ArrowRight, CheckCircle, MessageCircle, Shield, Clock, Users, ChevronDown, ChevronUp, Sparkles, Factory, Store, Layers, Building2, ShieldCheck, X } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { getCollections } from "../lib/api";
+import { toast } from "sonner";
+
+const API = process.env.REACT_APP_BACKEND_URL;
+
+const FABRIC_TYPES = [
+  "Greige Fabric",
+  "Dyed Fabric",
+  "Printed Fabric",
+  "Yarn Dyed Fabric",
+  "Denim Fabrics",
+  "Others"
+];
 
 const HomePage = () => {
   const [collections, setCollections] = useState([]);
   const [openFaq, setOpenFaq] = useState(null);
+  const [showRfqModal, setShowRfqModal] = useState(false);
+  const [rfqForm, setRfqForm] = useState({
+    name: "", phone: "", gst_number: "", company_name: "", email: "", fabric_type: ""
+  });
+  const [rfqSubmitting, setRfqSubmitting] = useState(false);
 
   useEffect(() => {
     fetchCollections();
@@ -18,6 +35,25 @@ const HomePage = () => {
       setCollections(res.data.slice(0, 4));
     } catch (err) {
       console.error("Failed to fetch collections");
+    }
+  };
+
+  const handleRfqSubmit = async (e) => {
+    e.preventDefault();
+    setRfqSubmitting(true);
+    try {
+      await fetch(`${API}/api/enquiries/rfq-lead`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(rfqForm)
+      });
+      toast.success("Your enquiry has been submitted! Our team will reach out within 24 hours.");
+      setShowRfqModal(false);
+      setRfqForm({ name: "", phone: "", gst_number: "", company_name: "", email: "", fabric_type: "" });
+    } catch (err) {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setRfqSubmitting(false);
     }
   };
 
@@ -174,14 +210,14 @@ const HomePage = () => {
                   Instant Booking
                   <ArrowRight size={18} />
                 </Link>
-                <Link
-                  to="/rfq"
+                <button
+                  onClick={() => setShowRfqModal(true)}
                   className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-medium hover:bg-white/20 transition-colors border border-white/20"
                   data-testid="hero-cta-secondary"
                 >
                   <MessageCircle size={18} />
                   Request a Quote
-                </Link>
+                </button>
               </div>
 
               {/* Trust indicators */}
@@ -471,14 +507,14 @@ const HomePage = () => {
                 Instant Booking
                 <ArrowRight size={18} />
               </Link>
-              <Link
-                to="/rfq"
+              <button
+                onClick={() => setShowRfqModal(true)}
                 className="inline-flex items-center justify-center gap-2 bg-transparent text-white px-8 py-4 rounded-lg font-medium border-2 border-white/30 hover:bg-white/10 transition-colors"
                 data-testid="final-cta-secondary"
               >
                 <MessageCircle size={18} />
                 Request a Quote
-              </Link>
+              </button>
             </div>
           </div>
         </section>
@@ -495,6 +531,123 @@ const HomePage = () => {
           <ArrowRight size={18} />
         </Link>
       </div>
+
+      {/* ========== RFQ MODAL ========== */}
+      {showRfqModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" data-testid="rfq-modal-overlay">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl relative overflow-hidden" data-testid="rfq-modal">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#2563EB] to-[#1d4ed8] px-6 py-5 text-white">
+              <button
+                onClick={() => setShowRfqModal(false)}
+                className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"
+                data-testid="rfq-modal-close"
+              >
+                <X size={20} />
+              </button>
+              <h3 className="text-lg font-semibold">Request a Quote</h3>
+              <p className="text-blue-100 text-sm mt-1">Fill in your details — our sourcing experts will reach out within 24 hours.</p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleRfqSubmit} className="p-6 space-y-4" data-testid="rfq-form">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500">*</span></label>
+                <input
+                  type="text" required
+                  value={rfqForm.name}
+                  onChange={(e) => setRfqForm(p => ({ ...p, name: e.target.value }))}
+                  placeholder="Your full name"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  data-testid="rfq-name"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
+                  <div className="flex">
+                    <span className="inline-flex items-center px-3 bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg text-sm text-gray-500">+91</span>
+                    <input
+                      type="tel" required
+                      value={rfqForm.phone}
+                      onChange={(e) => setRfqForm(p => ({ ...p, phone: e.target.value }))}
+                      placeholder="Phone number"
+                      pattern="[0-9]{10}"
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-r-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                      data-testid="rfq-phone"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">GST Number <span className="text-red-500">*</span></label>
+                  <input
+                    type="text" required
+                    value={rfqForm.gst_number}
+                    onChange={(e) => setRfqForm(p => ({ ...p, gst_number: e.target.value.toUpperCase() }))}
+                    placeholder="22AAAAA0000A1Z5"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    data-testid="rfq-gst"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Company Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text" required
+                    value={rfqForm.company_name}
+                    onChange={(e) => setRfqForm(p => ({ ...p, company_name: e.target.value }))}
+                    placeholder="Your company"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    data-testid="rfq-company"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email ID <span className="text-red-500">*</span></label>
+                  <input
+                    type="email" required
+                    value={rfqForm.email}
+                    onChange={(e) => setRfqForm(p => ({ ...p, email: e.target.value }))}
+                    placeholder="you@company.com"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    data-testid="rfq-email"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">What fabric type are you looking at? <span className="text-red-500">*</span></label>
+                <select
+                  required
+                  value={rfqForm.fabric_type}
+                  onChange={(e) => setRfqForm(p => ({ ...p, fabric_type: e.target.value }))}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+                  data-testid="rfq-fabric-type"
+                >
+                  <option value="">Select fabric type</option>
+                  {FABRIC_TYPES.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                disabled={rfqSubmitting}
+                className="w-full py-3 bg-[#2563EB] text-white font-medium rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                data-testid="rfq-submit"
+              >
+                {rfqSubmitting ? "Submitting..." : "Get Fabric Samples"}
+                {!rfqSubmitting && <ArrowRight size={16} />}
+              </button>
+
+              <p className="text-center text-xs text-gray-400">Free samples &middot; No commitment &middot; Expert sourcing support</p>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };

@@ -1466,6 +1466,55 @@ async def delete_enquiry(enquiry_id: str, admin=Depends(get_current_admin)):
         raise HTTPException(status_code=404, detail='Enquiry not found')
     return {'message': 'Enquiry deleted'}
 
+@api_router.post("/enquiries/rfq-lead")
+async def create_rfq_lead(data: dict):
+    """Handle RFQ form submission from homepage - sends email to marketing@locofast.com"""
+    name = data.get('name', '')
+    phone = data.get('phone', '')
+    gst_number = data.get('gst_number', '')
+    company_name = data.get('company_name', '')
+    email = data.get('email', '')
+    fabric_type = data.get('fabric_type', '')
+    
+    if not name or not email or not phone:
+        raise HTTPException(status_code=400, detail='Name, email, and phone are required')
+    
+    # Save as enquiry in DB
+    enquiry_id = str(uuid.uuid4())
+    enquiry_doc = {
+        'id': enquiry_id,
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'company': company_name,
+        'gst_number': gst_number,
+        'fabric_type': fabric_type,
+        'message': f"Fabric Type: {fabric_type}\nCompany: {company_name}\nGST: {gst_number}",
+        'type': 'rfq_lead',
+        'source': 'Homepage RFQ Form',
+        'status': 'new',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.enquiries.insert_one(enquiry_doc)
+    
+    # Send email to marketing@locofast.com
+    try:
+        from email_router import send_rfq_lead_email
+        import asyncio
+        asyncio.create_task(send_rfq_lead_email(enquiry_doc))
+    except Exception as e:
+        logging.warning(f"Failed to send RFQ lead email: {str(e)}")
+    
+    # Send to Zapier webhook
+    try:
+        from zapier_webhook import send_enquiry_to_zapier
+        import asyncio
+        asyncio.create_task(send_enquiry_to_zapier(enquiry_doc))
+    except Exception as e:
+        logging.warning(f"Failed to send to Zapier: {str(e)}")
+    
+    return {'message': 'Quote request submitted successfully', 'id': enquiry_id}
+
 # ==================== COLLECTION ROUTES ====================
 
 @api_router.get("/collections", response_model=List[Collection])
