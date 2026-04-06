@@ -1,108 +1,118 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, MessageCircle } from "lucide-react";
+import RFQModal from "./RFQModal";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showRfq, setShowRfq] = useState(false);
   const location = useLocation();
 
   const navLinks = [
     { path: "/", label: "Home" },
     { path: "/collections", label: "Collections" },
     { path: "/about", label: "About" },
-    { path: "/rfq", label: "Request Quote" },
     { path: "/suppliers", label: "Sellers sign up", highlight: true },
   ];
 
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100" data-testid="navbar">
-      <div className="container-main">
-        <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <Link to="/" className="flex items-center" data-testid="navbar-logo">
-            <img 
-              src="https://customer-assets.emergentagent.com/job_locofast-cms/artifacts/xkuf449w_Locofast%20-%20Medium.svg" 
-              alt="Locofast" 
-              className="h-8"
-            />
-          </Link>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-10">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                data-testid={`nav-link-${link.label.toLowerCase().replace(/\s/g, '-')}`}
-                className={`text-sm font-medium transition-colors duration-200 ${
-                  link.highlight
-                    ? "text-[#2563EB] hover:text-blue-700"
-                    : isActive(link.path)
-                      ? "text-[#2563EB]"
-                      : "text-gray-600 hover:text-[#2563EB]"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-
-          {/* CTA Button */}
-          <div className="hidden md:block">
-            <Link
-              to="/fabrics"
-              className="btn-primary inline-block"
-              data-testid="nav-browse-btn"
-            >
-              Instant Booking
+    <>
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100" data-testid="navbar">
+        <div className="container-main">
+          <div className="flex items-center justify-between h-20">
+            <Link to="/" className="flex items-center" data-testid="navbar-logo">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_locofast-cms/artifacts/xkuf449w_Locofast%20-%20Medium.svg" 
+                alt="Locofast" 
+                className="h-8"
+              />
             </Link>
+
+            <div className="hidden md:flex items-center gap-10">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  data-testid={`nav-link-${link.label.toLowerCase().replace(/\s/g, '-')}`}
+                  className={`text-sm font-medium transition-colors duration-200 ${
+                    link.highlight
+                      ? "text-[#2563EB] hover:text-blue-700"
+                      : isActive(link.path)
+                        ? "text-[#2563EB]"
+                        : "text-gray-600 hover:text-[#2563EB]"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <button
+                onClick={() => setShowRfq(true)}
+                className="text-sm font-medium text-gray-600 hover:text-[#2563EB] transition-colors duration-200 flex items-center gap-1.5"
+                data-testid="nav-link-request-quote"
+              >
+                <MessageCircle size={14} />
+                Request Quote
+              </button>
+            </div>
+
+            <div className="hidden md:block">
+              <Link to="/fabrics" className="btn-primary inline-block" data-testid="nav-browse-btn">
+                Instant Booking
+              </Link>
+            </div>
+
+            <button
+              className="md:hidden p-2 text-neutral-900"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              data-testid="mobile-menu-btn"
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 text-neutral-900"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            data-testid="mobile-menu-btn"
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
         </div>
-      </div>
 
-      {/* Mobile Menu */}
-      {mobileOpen && (
-        <div className="md:hidden bg-white border-t border-neutral-100 animate-slideDown" data-testid="mobile-menu">
-          <div className="container-main py-6 space-y-4">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                onClick={() => setMobileOpen(false)}
-                className={`block text-lg font-medium ${
-                  link.highlight 
-                    ? "text-[#2563EB]" 
-                    : isActive(link.path) 
+        {mobileOpen && (
+          <div className="md:hidden bg-white border-t border-neutral-100 animate-slideDown" data-testid="mobile-menu">
+            <div className="container-main py-6 space-y-4">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setMobileOpen(false)}
+                  className={`block text-lg font-medium ${
+                    link.highlight 
                       ? "text-[#2563EB]" 
-                      : "text-gray-600"
-                }`}
+                      : isActive(link.path) 
+                        ? "text-[#2563EB]" 
+                        : "text-gray-600"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <button
+                onClick={() => { setMobileOpen(false); setShowRfq(true); }}
+                className="block text-lg font-medium text-gray-600"
               >
-                {link.label}
+                Request Quote
+              </button>
+              <Link
+                to="/fabrics"
+                onClick={() => setMobileOpen(false)}
+                className="btn-primary inline-block mt-4"
+              >
+                Instant Booking
               </Link>
-            ))}
-            <Link
-              to="/fabrics"
-              onClick={() => setMobileOpen(false)}
-              className="btn-primary inline-block mt-4"
-            >
-              Instant Booking
-            </Link>
+            </div>
           </div>
-        </div>
-      )}
-    </nav>
+        )}
+      </nav>
+
+      <RFQModal open={showRfq} onClose={() => setShowRfq(false)} />
+    </>
   );
 };
 

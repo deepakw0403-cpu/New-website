@@ -144,7 +144,7 @@ const SellOnLocofast = () => {
 
       <main className="bg-white">
         {/* Hero Section */}
-        <section className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white overflow-hidden">
+        <section className="relative bg-gradient-to-br from-[#0f172a] via-[#1e3a5f] to-[#0f172a] text-white overflow-hidden">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
@@ -153,14 +153,14 @@ const SellOnLocofast = () => {
           
           <div className="max-w-6xl mx-auto px-4 py-20 md:py-28 relative">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 bg-emerald-500/20 border border-emerald-500/30 rounded-full px-4 py-1.5 text-emerald-400 text-sm font-medium mb-6">
+              <div className="inline-flex items-center gap-2 bg-[#2563EB]/20 border border-[#2563EB]/30 rounded-full px-4 py-1.5 text-blue-300 text-sm font-medium mb-6">
                 <TrendingUp size={16} />
                 Scaling B2B Fabric Sourcing in India
               </div>
               
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
                 Stop Chasing Random Inquiries.
-                <span className="block text-emerald-400 mt-2">Start Closing Real Orders.</span>
+                <span className="block text-[#60a5fa] mt-2">Start Closing Real Orders.</span>
               </h1>
               
               <p className="text-xl md:text-2xl text-slate-300 mb-8 leading-relaxed">
@@ -172,7 +172,7 @@ const SellOnLocofast = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <a 
                   href="#apply-form"
-                  className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all hover:scale-105"
+                  className="inline-flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all hover:scale-105"
                   data-testid="hero-cta-apply"
                 >
                   Apply as Supplier
@@ -192,15 +192,15 @@ const SellOnLocofast = () => {
               
               <div className="mt-10 flex flex-wrap items-center gap-6 text-sm text-slate-400">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-emerald-400" />
+                  <CheckCircle2 size={16} className="text-[#60a5fa]" />
                   MOQ 1000+ meters only
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-emerald-400" />
+                  <CheckCircle2 size={16} className="text-[#60a5fa]" />
                   Direct buyer contact
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-emerald-400" />
+                  <CheckCircle2 size={16} className="text-[#60a5fa]" />
                   No listing fees
                 </div>
               </div>
