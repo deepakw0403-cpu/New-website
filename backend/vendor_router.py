@@ -51,6 +51,7 @@ class FabricCreate(BaseModel):
     description: str = ""
     composition: str = ""
     gsm: Optional[int] = None
+    ounce: str = ""
     width: Optional[str] = ""
     finish: str = ""
     tags: str = ""
@@ -68,6 +69,7 @@ class FabricUpdate(BaseModel):
     description: Optional[str] = None
     composition: Optional[str] = None
     gsm: Optional[int] = None
+    ounce: Optional[str] = None
     width: Optional[str] = None
     finish: Optional[str] = None
     tags: Optional[str] = None
@@ -199,6 +201,7 @@ async def create_vendor_fabric(data: FabricCreate, vendor=Depends(get_current_ve
         'description': data.description,
         'composition': data.composition,
         'gsm': data.gsm,
+        'ounce': data.ounce,
         'width': data.width,
         'finish': data.finish,
         'tags': data.tags,

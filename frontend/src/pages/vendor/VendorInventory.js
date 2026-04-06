@@ -20,6 +20,7 @@ const VendorInventory = () => {
     description: "",
     composition: "",
     gsm: "",
+    ounce: "",
     width: "",
     finish: "",
     tags: "",
@@ -67,6 +68,7 @@ const VendorInventory = () => {
       description: fabric.description || "",
       composition: fabric.composition || "",
       gsm: fabric.gsm || "",
+      ounce: fabric.ounce || "",
       width: fabric.width || "",
       finish: fabric.finish || "",
       tags: fabric.tags || "",
@@ -89,6 +91,7 @@ const VendorInventory = () => {
       const data = {
         ...form,
         gsm: form.gsm ? parseInt(form.gsm) : null,
+        ounce: form.ounce || "",
         rate_per_meter: parseFloat(form.rate_per_meter) || 0,
         sample_price: parseFloat(form.sample_price) || null,
         quantity_available: parseInt(form.quantity_available) || 0
@@ -185,6 +188,7 @@ const VendorInventory = () => {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fabric</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">GSM / Oz</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bulk Price</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sample Price</th>
@@ -209,6 +213,9 @@ const VendorInventory = () => {
                       </div>
                     </td>
                     <td className="px-4 py-4 text-gray-600">{fabric.category_name || "-"}</td>
+                    <td className="px-4 py-4 text-gray-600">
+                      {fabric.gsm ? `${fabric.gsm} GSM` : fabric.ounce ? `${fabric.ounce} oz` : "-"}
+                    </td>
                     <td className="px-4 py-4">
                       <span className={`font-medium ${fabric.quantity_available > 0 ? "text-emerald-600" : "text-gray-400"}`}>
                         {fabric.quantity_available || 0}m
@@ -304,13 +311,23 @@ const VendorInventory = () => {
                 </div>
 
                 {/* Specs */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">GSM</label>
                     <input
                       type="number"
                       value={form.gsm}
                       onChange={(e) => setForm({ ...form, gsm: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ounce (oz)</label>
+                    <input
+                      type="text"
+                      value={form.ounce}
+                      onChange={(e) => setForm({ ...form, ounce: e.target.value })}
+                      placeholder="e.g. 10.5"
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none"
                     />
                   </div>
