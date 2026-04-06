@@ -798,6 +798,25 @@ async def send_rfq_lead_email(lead: dict):
     company = lead.get('company', '')
     gst = lead.get('gst_number', '')
     fabric_type = lead.get('fabric_type', '')
+    gst_legal = lead.get('gst_legal_name', '')
+    gst_status = lead.get('gst_status', '')
+    gst_city = lead.get('gst_city', '')
+    gst_state = lead.get('gst_state', '')
+    gst_address = lead.get('gst_address', '')
+    
+    # GST verification badge
+    gst_badge = ""
+    if gst_legal:
+        badge_color = "#16a34a" if gst_status == "Active" else "#dc2626"
+        gst_badge = f"""
+        <tr style="background: #f0fdf4; border-left: 3px solid {badge_color};">
+            <td colspan="2" style="padding: 12px;">
+                <strong style="color: {badge_color};">GST Verified</strong>
+                <br/><span style="font-size: 13px; color: #374151;">{gst_legal} | Status: {gst_status}</span>
+                <br/><span style="font-size: 12px; color: #6b7280;">{gst_city}, {gst_state}{' | ' + gst_address if gst_address else ''}</span>
+            </td>
+        </tr>
+        """
     
     html = f"""
     <html>
@@ -813,7 +832,8 @@ async def send_rfq_lead_email(lead: dict):
                 <tr><td style="padding: 10px 0; font-weight: bold; color: #64748b;">Phone</td><td style="padding: 10px 0;"><a href="tel:+91{phone}" style="color: #2563EB;">+91 {phone}</a></td></tr>
                 <tr style="background: #f8fafc;"><td style="padding: 10px 0; font-weight: bold; color: #64748b;">Company</td><td style="padding: 10px 0;">{company}</td></tr>
                 <tr><td style="padding: 10px 0; font-weight: bold; color: #64748b;">GST Number</td><td style="padding: 10px 0; font-family: monospace;">{gst}</td></tr>
-                <tr style="background: #f8fafc;"><td style="padding: 10px 0; font-weight: bold; color: #64748b;">Fabric Type</td><td style="padding: 10px 0;"><strong style="color: #2563EB;">{fabric_type}</strong></td></tr>
+                {gst_badge}
+                <tr style="background: #eff6ff;"><td style="padding: 10px 0; font-weight: bold; color: #64748b;">Fabric Type</td><td style="padding: 10px 0;"><strong style="color: #2563EB;">{fabric_type}</strong></td></tr>
             </table>
         </div>
         <div style="text-align: center; padding: 16px; background: #f8fafc; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">

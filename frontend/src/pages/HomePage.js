@@ -24,6 +24,9 @@ const HomePage = () => {
     name: "", phone: "", gst_number: "", company_name: "", email: "", fabric_type: ""
   });
   const [rfqSubmitting, setRfqSubmitting] = useState(false);
+  const [gstVerifying, setGstVerifying] = useState(false);
+  const [gstData, setGstData] = useState(null);
+  const [gstError, setGstError] = useState("");
 
   useEffect(() => {
     fetchCollections();
@@ -42,18 +45,63 @@ const HomePage = () => {
     e.preventDefault();
     setRfqSubmitting(true);
     try {
+      const payload = {
+        ...rfqForm,
+        gst_legal_name: gstData?.legal_name || "",
+        gst_trade_name: gstData?.trade_name || "",
+        gst_status: gstData?.gst_status || "",
+        gst_city: gstData?.city || "",
+        gst_state: gstData?.state || "",
+        gst_address: gstData?.address || "",
+      };
       await fetch(`${API}/api/enquiries/rfq-lead`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(rfqForm)
+        body: JSON.stringify(payload)
       });
       toast.success("Your enquiry has been submitted! Our team will reach out within 24 hours.");
       setShowRfqModal(false);
       setRfqForm({ name: "", phone: "", gst_number: "", company_name: "", email: "", fabric_type: "" });
+      setGstData(null);
+      setGstError("");
     } catch (err) {
       toast.error("Something went wrong. Please try again.");
     } finally {
       setRfqSubmitting(false);
+    }
+  };
+
+  const handleGstVerify = async () => {
+    const gstin = rfqForm.gst_number.trim().toUpperCase();
+    if (!gstin || gstin.length !== 15) {
+      setGstError("GST number must be 15 characters");
+      return;
+    }
+    setGstVerifying(true);
+    setGstError("");
+    setGstData(null);
+    try {
+      const res = await fetch(`${API}/api/gst/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gstin })
+      });
+      const result = await res.json();
+      if (result.valid) {
+        setGstData(result);
+        // Auto-populate company name from GST
+        const companyName = result.trade_name || result.legal_name || "";
+        if (companyName) {
+          setRfqForm(p => ({ ...p, company_name: companyName }));
+        }
+        toast.success("GST verified successfully!");
+      } else {
+        setGstError(result.message || "Invalid GST number");
+      }
+    } catch (err) {
+      setGstError("Verification failed. Please enter company name manually.");
+    } finally {
+      setGstVerifying(false);
     }
   };
 
@@ -581,26 +629,44 @@ const HomePage = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">GST Number <span className="text-red-500">*</span></label>
-                  <input
-                    type="text" required
-                    value={rfqForm.gst_number}
-                    onChange={(e) => setRfqForm(p => ({ ...p, gst_number: e.target.value.toUpperCase() }))}
-                    placeholder="22AAAAA0000A1Z5"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    data-testid="rfq-gst"
-                  />
+                  <div className="flex">
+                    <input
+                      type="text" required
+                      value={rfqForm.gst_number}
+                      onChange={(e) => {
+                        setRfqForm(p => ({ ...p, gst_number: e.target.value.toUpperCase() }));
+                        setGstData(null);
+                        setGstError("");
+                      }}
+                      placeholder="22AAAAA0000A1Z5"
+                      maxLength={15}
+                      className={`w-full px-3 py-2.5 border rounded-l-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${gstData ? 'border-green-400 bg-green-50' : gstError ? 'border-red-300' : 'border-gray-300'}`}
+                      data-testid="rfq-gst"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGstVerify}
+                      disabled={gstVerifying || rfqForm.gst_number.length !== 15}
+                      className="px-3 py-2.5 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-xs font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-40 transition-colors whitespace-nowrap"
+                      data-testid="rfq-gst-verify"
+                    >
+                      {gstVerifying ? "..." : gstData ? "\u2713" : "Verify"}
+                    </button>
+                  </div>
+                  {gstError && <p className="text-red-500 text-xs mt-1">{gstError}</p>}
+                  {gstData && <p className="text-green-600 text-xs mt-1">Verified: {gstData.legal_name}</p>}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Company Name <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Company Name <span className="text-red-500">*</span>{gstData && <span className="text-green-600 text-xs ml-1">(Auto-filled from GST)</span>}</label>
                   <input
                     type="text" required
                     value={rfqForm.company_name}
                     onChange={(e) => setRfqForm(p => ({ ...p, company_name: e.target.value }))}
                     placeholder="Your company"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${gstData ? 'border-green-400 bg-green-50' : 'border-gray-300'}`}
                     data-testid="rfq-company"
                   />
                 </div>

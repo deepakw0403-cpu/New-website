@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
@@ -1466,15 +1467,98 @@ async def delete_enquiry(enquiry_id: str, admin=Depends(get_current_admin)):
         raise HTTPException(status_code=404, detail='Enquiry not found')
     return {'message': 'Enquiry deleted'}
 
+# ==================== GST VERIFICATION ====================
+
+@api_router.post("/gst/verify")
+async def verify_gst(data: dict):
+    """Verify GST number using Sandbox.co.in API and return company details"""
+    import httpx
+    
+    gstin = (data.get('gstin') or '').strip().upper()
+    if not gstin or len(gstin) != 15:
+        raise HTTPException(status_code=400, detail='Invalid GSTIN - must be 15 characters')
+    
+    sandbox_key = os.environ.get('SANDBOX_API_KEY')
+    sandbox_secret = os.environ.get('SANDBOX_API_SECRET')
+    
+    if not sandbox_key or not sandbox_secret:
+        raise HTTPException(status_code=503, detail='GST verification service not configured')
+    
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            # Step 1: Authenticate
+            auth_resp = await client.post(
+                'https://api.sandbox.co.in/authenticate',
+                headers={
+                    'x-api-key': sandbox_key,
+                    'x-api-secret': sandbox_secret,
+                }
+            )
+            auth_data = auth_resp.json()
+            token = auth_data.get('access_token', '')
+            
+            if not token:
+                raise HTTPException(status_code=502, detail='Failed to authenticate with GST service')
+            
+            # Step 2: Search GSTIN
+            gst_resp = await client.post(
+                'https://api.sandbox.co.in/gst/compliance/public/gstin/search',
+                headers={
+                    'Authorization': token,
+                    'x-api-key': sandbox_key,
+                    'Content-Type': 'application/json'
+                },
+                json={'gstin': gstin}
+            )
+            gst_data = gst_resp.json()
+            
+            if gst_data.get('code') != 200:
+                return {
+                    'valid': False,
+                    'message': gst_data.get('message', 'GST verification failed'),
+                    'gstin': gstin
+                }
+            
+            info = gst_data.get('data', {}).get('data', {})
+            addr = info.get('pradr', {}).get('addr', {})
+            
+            return {
+                'valid': True,
+                'gstin': gstin,
+                'legal_name': info.get('lgnm', ''),
+                'trade_name': info.get('tradeNam', ''),
+                'business_type': info.get('ctb', ''),
+                'gst_status': info.get('sts', ''),
+                'registration_date': info.get('rgdt', ''),
+                'city': addr.get('dst', ''),
+                'state': addr.get('stcd', ''),
+                'pincode': addr.get('pncd', ''),
+                'address': f"{addr.get('bno', '')} {addr.get('flno', '')} {addr.get('st', '')} {addr.get('loc', '')}".strip(),
+            }
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail='GST verification timed out')
+    except Exception as e:
+        logging.error(f"GST verification error: {str(e)}")
+        raise HTTPException(status_code=500, detail='GST verification failed')
+
 @api_router.post("/enquiries/rfq-lead")
 async def create_rfq_lead(data: dict):
     """Handle RFQ form submission from homepage - sends email to marketing@locofast.com"""
+    import httpx
+    
     name = data.get('name', '')
     phone = data.get('phone', '')
     gst_number = data.get('gst_number', '')
     company_name = data.get('company_name', '')
     email = data.get('email', '')
     fabric_type = data.get('fabric_type', '')
+    # GST-verified fields (auto-populated from frontend)
+    gst_legal_name = data.get('gst_legal_name', '')
+    gst_trade_name = data.get('gst_trade_name', '')
+    gst_status = data.get('gst_status', '')
+    gst_city = data.get('gst_city', '')
+    gst_state = data.get('gst_state', '')
+    gst_address = data.get('gst_address', '')
     
     if not name or not email or not phone:
         raise HTTPException(status_code=400, detail='Name, email, and phone are required')
@@ -1488,8 +1572,14 @@ async def create_rfq_lead(data: dict):
         'phone': phone,
         'company': company_name,
         'gst_number': gst_number,
+        'gst_legal_name': gst_legal_name,
+        'gst_trade_name': gst_trade_name,
+        'gst_status': gst_status,
+        'gst_city': gst_city,
+        'gst_state': gst_state,
+        'gst_address': gst_address,
         'fabric_type': fabric_type,
-        'message': f"Fabric Type: {fabric_type}\nCompany: {company_name}\nGST: {gst_number}",
+        'message': f"Fabric Type: {fabric_type}\nCompany: {company_name}\nGST: {gst_number}\nGST Legal Name: {gst_legal_name}\nGST Status: {gst_status}",
         'type': 'rfq_lead',
         'source': 'Homepage RFQ Form',
         'status': 'new',
@@ -1500,7 +1590,6 @@ async def create_rfq_lead(data: dict):
     # Send email to marketing@locofast.com
     try:
         from email_router import send_rfq_lead_email
-        import asyncio
         asyncio.create_task(send_rfq_lead_email(enquiry_doc))
     except Exception as e:
         logging.warning(f"Failed to send RFQ lead email: {str(e)}")
@@ -1508,10 +1597,34 @@ async def create_rfq_lead(data: dict):
     # Send to Zapier webhook
     try:
         from zapier_webhook import send_enquiry_to_zapier
-        import asyncio
         asyncio.create_task(send_enquiry_to_zapier(enquiry_doc))
     except Exception as e:
         logging.warning(f"Failed to send to Zapier: {str(e)}")
+    
+    # Push to campaigns.locofast.com admin
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            await client.post('https://campaigns.locofast.com/api/leads', json={
+                'name': name,
+                'company': company_name,
+                'email': email,
+                'phone': phone,
+                'company_type': 'Others',
+                'gst_number': gst_number,
+                'gst_info': {
+                    'legal_name': gst_legal_name,
+                    'trade_name': gst_trade_name,
+                    'status': gst_status,
+                    'city': gst_city,
+                    'state': gst_state,
+                    'address': gst_address,
+                    'fabric_type': fabric_type,
+                } if gst_legal_name else None,
+                'campaign': 'locofast_rfq',
+            })
+            logging.info(f"RFQ lead pushed to campaigns admin: {name}")
+    except Exception as e:
+        logging.warning(f"Failed to push to campaigns: {str(e)}")
     
     return {'message': 'Quote request submitted successfully', 'id': enquiry_id}
 
