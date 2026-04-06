@@ -353,4 +353,8 @@ export const getVendorStats = () => api.get("/vendor/stats");
 export const getVendorCategories = () => api.get("/vendor/categories");
 export const getVendorEnquiries = () => api.get("/vendor/enquiries");
 
+// Fabric seller assignment
+export const bulkAssignSeller = (sellerId) => api.post("/fabrics/bulk-assign-seller", { seller_id: sellerId });
+export const reassignFabricSeller = (fabricIds, sellerId) => api.post("/fabrics/reassign-seller", { fabric_ids: fabricIds, seller_id: sellerId });
+
 export default api;

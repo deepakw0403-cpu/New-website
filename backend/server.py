@@ -1137,6 +1137,63 @@ async def delete_fabric(fabric_id: str, admin=Depends(get_current_admin)):
         raise HTTPException(status_code=404, detail='Fabric not found')
     return {'message': 'Fabric deleted'}
 
+@api_router.post("/fabrics/bulk-assign-seller")
+async def bulk_assign_seller(data: dict, admin=Depends(get_current_admin)):
+    """Assign all unallocated fabrics to a specific seller"""
+    seller_id = data.get('seller_id')
+    if not seller_id:
+        raise HTTPException(status_code=400, detail='seller_id is required')
+    
+    seller = await db.sellers.find_one({'id': seller_id}, {'_id': 0})
+    if not seller:
+        raise HTTPException(status_code=404, detail='Seller not found')
+    
+    # Find unallocated fabrics (no seller_id or empty seller_id)
+    result = await db.fabrics.update_many(
+        {'$or': [
+            {'seller_id': {'$exists': False}},
+            {'seller_id': None},
+            {'seller_id': ''}
+        ]},
+        {'$set': {
+            'seller_id': seller_id,
+            'seller_name': seller.get('name', ''),
+            'seller_company': seller.get('company_name', '')
+        }}
+    )
+    
+    return {
+        'message': f'Assigned {result.modified_count} fabrics to {seller.get("company_name", seller.get("name", ""))}',
+        'modified_count': result.modified_count
+    }
+
+@api_router.post("/fabrics/reassign-seller")
+async def reassign_fabric_seller(data: dict, admin=Depends(get_current_admin)):
+    """Reassign specific fabrics to a different seller"""
+    fabric_ids = data.get('fabric_ids', [])
+    seller_id = data.get('seller_id')
+    
+    if not fabric_ids or not seller_id:
+        raise HTTPException(status_code=400, detail='fabric_ids and seller_id are required')
+    
+    seller = await db.sellers.find_one({'id': seller_id}, {'_id': 0})
+    if not seller:
+        raise HTTPException(status_code=404, detail='Seller not found')
+    
+    result = await db.fabrics.update_many(
+        {'id': {'$in': fabric_ids}},
+        {'$set': {
+            'seller_id': seller_id,
+            'seller_name': seller.get('name', ''),
+            'seller_company': seller.get('company_name', '')
+        }}
+    )
+    
+    return {
+        'message': f'Reassigned {result.modified_count} fabrics to {seller.get("company_name", seller.get("name", ""))}',
+        'modified_count': result.modified_count
+    }
+
 # ==================== IMAGE UPLOAD ====================
 
 @api_router.post("/upload")

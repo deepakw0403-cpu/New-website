@@ -33,6 +33,14 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Apr 6, 2026 - Vendor Inventory Fixes + Seller Assignment
+- **Added Ounce (oz) field** to vendor inventory table, form, and backend model
+- **GSM/Oz column** added to vendor inventory table
+- **Bulk-assign seller endpoint**: `POST /api/fabrics/bulk-assign-seller` — assigned 135 unallocated fabrics to "Locofast Online Services Private Limited"
+- **Reassign seller endpoint**: `POST /api/fabrics/reassign-seller` — allows admin to move fabrics between sellers
+- **Created "Locofast Online Services Private Limited"** seller (ID: 532b7c34) as the default owner for admin-created fabrics
+- **Status**: COMPLETED
+
 ### Apr 1, 2026 - Supplier SEO Pages + Prerender
 - **Built dynamic supplier pages** at `/suppliers/:category/:state/:slug` (e.g., `/suppliers/weaving/tamil-nadu/vp-tex-pvt-ltd/id=1271/`)
 - **Backend API**: `/api/suppliers/lookup/{category}/{state}/{slug}` — matches sellers by slug, serves relevant fabrics even if seller not in DB
