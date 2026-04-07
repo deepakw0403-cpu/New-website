@@ -190,7 +190,26 @@ const SellOnLocofast = () => {
                 </a>
               </div>
               
-              <div className="mt-10 flex flex-wrap items-center gap-6 text-sm text-slate-400">
+              <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-6">
+                <div className="text-center">
+                  <p className="text-2xl md:text-3xl font-bold text-white">2,000+</p>
+                  <p className="text-sm text-slate-400">Brands on Platform</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl md:text-3xl font-bold text-white">50M+</p>
+                  <p className="text-sm text-slate-400">Metres Delivered</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl md:text-3xl font-bold text-white">95%</p>
+                  <p className="text-sm text-slate-400">On-Time Delivery</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl md:text-3xl font-bold text-white">500+</p>
+                  <p className="text-sm text-slate-400">Seller Partners</p>
+                </div>
+              </div>
+
+              <div className="mt-8 flex flex-wrap items-center gap-6 text-sm text-slate-400">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={16} className="text-[#60a5fa]" />
                   MOQ 1000+ meters only
@@ -274,23 +293,24 @@ const SellOnLocofast = () => {
                 How Locofast Works
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-                A Sourcing Engine, Not a Directory
+                A Marketplace That Works for Sellers
               </h2>
               <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-                We don't list you and hope. We route verified demand and track outcomes.
+                Locofast connects you directly with 2,000+ verified brands and manufacturers. No brokers. No agents. Just structured demand routed to you.
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8 mb-12">
               <div className="bg-gradient-to-br from-blue-50 to-sky-50 p-8 rounded-2xl border border-blue-100">
-                <h3 className="text-2xl font-bold text-slate-900 mb-6">What We Do</h3>
+                <h3 className="text-2xl font-bold text-slate-900 mb-6">What You Get</h3>
                 <ul className="space-y-4">
                   {[
-                    "Route verified buyer requirements with specs, quantity, and timeline",
-                    "Share buyer contact directly — you call them, not the other way",
-                    "Focus on MOQ 1000+ meters — serious bulk orders only",
-                    "Track every interaction — calls, samples, negotiations",
-                    "Provide conversion data so you know what's working"
+                    "Direct access to 2,000+ verified buyers — fashion brands, export houses, garment manufacturers",
+                    "Buyer contact shared directly — you call them, build the relationship",
+                    "MOQ 1000+ meters only — serious bulk orders, not retail enquiries",
+                    "Transparent requirements with specs, quantity, timeline and budget",
+                    "Payment protection on eligible orders through our Money Safety Guarantee",
+                    "Exposure to international markets — Sri Lanka, Vietnam, and growing"
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <CheckCircle2 className="text-blue-600 mt-0.5 flex-shrink-0" size={20} />
@@ -334,6 +354,84 @@ const SellOnLocofast = () => {
                     We give you at-bats. You hit the runs.
                   </p>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Before vs After - Middleman Problem (Seller Perspective) */}
+        <section className="py-16 md:py-24 bg-white">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="text-center mb-12">
+              <p className="text-sm tracking-widest text-[#2563EB] uppercase mb-4">The Locofast Advantage</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+                We Removed the Middleman. Your Margins Stay Yours.
+              </h2>
+              <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+                The traditional fabric supply chain has 2-3 intermediaries. Each one takes a cut. On Locofast, you sell direct.
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-8 items-start">
+              {/* Before */}
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-8">
+                <h3 className="text-xl font-bold text-red-800 mb-6 flex items-center gap-2">
+                  <XCircle size={24} className="text-red-500" />
+                  Before Locofast
+                </h3>
+                <div className="space-y-4">
+                  {[
+                    { step: "Your Mill / Factory", markup: "", color: "bg-slate-200 text-slate-700" },
+                    { step: "Mill Agent / Broker", markup: "+8% markup on your price", color: "bg-red-100 text-red-700" },
+                    { step: "Trading House", markup: "+10% markup added", color: "bg-red-200 text-red-800" },
+                    { step: "Buyer's Factory", markup: "Final price inflated 15-20%", color: "bg-red-300 text-red-900" }
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className={`${item.color} px-4 py-3 rounded-lg flex-1`}>
+                        <p className="font-semibold text-sm">{item.step}</p>
+                        {item.markup && <p className="text-xs mt-1 opacity-80">{item.markup}</p>}
+                      </div>
+                      {i < 3 && <ArrowRight size={16} className="text-red-400 flex-shrink-0" />}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-red-700 text-sm mt-6 font-medium">
+                  Result: Buyer pays 15-20% more. You don't see that money. Agents do.
+                </p>
+              </div>
+              
+              {/* After */}
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-8">
+                <h3 className="text-xl font-bold text-blue-800 mb-6 flex items-center gap-2">
+                  <CheckCircle2 size={24} className="text-[#2563EB]" />
+                  With Locofast
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-100 text-blue-800 px-4 py-3 rounded-lg flex-1">
+                      <p className="font-semibold text-sm">Your Mill / Factory</p>
+                    </div>
+                    <ArrowRight size={16} className="text-blue-400 flex-shrink-0" />
+                  </div>
+                  <div className="bg-[#2563EB] text-white px-6 py-5 rounded-xl">
+                    <p className="font-bold text-lg mb-2">Locofast Marketplace</p>
+                    <ul className="space-y-2 text-sm text-blue-100">
+                      <li className="flex items-center gap-2"><CheckCircle2 size={14} /> Direct connection — no agents</li>
+                      <li className="flex items-center gap-2"><CheckCircle2 size={14} /> Your pricing reaches the buyer directly</li>
+                      <li className="flex items-center gap-2"><CheckCircle2 size={14} /> Payment protection on eligible orders</li>
+                      <li className="flex items-center gap-2"><CheckCircle2 size={14} /> Dedicated account manager support</li>
+                    </ul>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg flex-1">
+                      <p className="font-semibold text-sm">Buyer's Factory</p>
+                      <p className="text-xs mt-1 opacity-80">Gets mill-direct pricing. Buys more from you.</p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-blue-700 text-sm mt-6 font-medium">
+                  Result: Better prices for buyers = more repeat orders for you. Everyone wins.
+                </p>
               </div>
             </div>
           </div>
@@ -587,47 +685,42 @@ const SellOnLocofast = () => {
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
                 Grow Your Business with Locofast
               </h2>
-              <p className="text-xl text-slate-600">
-                Our marketplace is designed to help sellers scale.
+              <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+                Our marketplace is designed to help sellers scale — from filling idle capacity to reaching international buyers.
               </p>
             </div>
             
-            {/* Value Props Grid */}
-            <div className="grid sm:grid-cols-3 gap-6 mb-12">
-              {[
-                { stat: "700+", label: "Verified Buyers", sub: "Brands & manufacturers across India" },
-                { stat: "500+", label: "Seller Partners", sub: "Growing network of verified suppliers" },
-                { stat: "5,000+", label: "Orders Executed", sub: "And counting every month" }
-              ].map((item, i) => (
-                <div key={i} className="bg-white p-8 rounded-xl border border-slate-200 text-center">
-                  <div className="text-4xl md:text-5xl font-bold text-[#2563EB] mb-2">{item.stat}</div>
-                  <div className="text-lg font-semibold text-slate-900">{item.label}</div>
-                  <div className="text-sm text-slate-500">{item.sub}</div>
-                </div>
-              ))}
-            </div>
-            
             {/* Seller Benefits */}
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-6 mb-12">
               {[
                 {
                   title: "Increase Capacity Utilisation",
-                  desc: "Fill idle looms and machines with consistent demand from verified buyers. No more waiting for seasonal orders or depending on a single buyer.",
+                  desc: "Fill idle looms and machines with consistent demand from 2,000+ verified buyers. No more waiting for seasonal orders or depending on a single buyer. Our sellers have delivered 50M+ metres through the platform.",
                   icon: "M13 10V3L4 14h7v7l9-11h-7z"
                 },
                 {
                   title: "Direct Access to Brand Buyers",
-                  desc: "No middlemen eating your margins. Connect directly with fashion brands, export houses, and manufacturers who need your fabrics.",
+                  desc: "No brokers taking 5-10% of your margins. Connect directly with fashion brands, export houses, D2C labels, and garment manufacturers. Your pricing reaches the buyer — not an inflated version through intermediaries.",
                   icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                 },
                 {
-                  title: "Payment Protection & Timely Settlements",
-                  desc: "All transactions are protected. Get paid on time, every time. No chasing payments or dealing with defaulters.",
+                  title: "Payment Protection & Money Safety",
+                  desc: "Locofast's Money Safety Guarantee protects eligible orders. Buyer payments are held securely and released upon quality approval. No chasing payments, no defaults — sell with confidence.",
                   icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                 },
                 {
-                  title: "Grow Your Seller Reputation",
-                  desc: "Build your brand on the platform. High ratings and on-time deliveries unlock priority access to bigger requirements and premium buyers.",
+                  title: "Reach International Markets",
+                  desc: "Locofast serves buyers beyond India — including Sri Lanka (2nd largest denim export market) and Vietnam (4th largest garment exporter). Your mill gets exposure to international demand without the hassle of export logistics.",
+                  icon: "M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                },
+                {
+                  title: "Dedicated Account Manager",
+                  desc: "Every seller gets a dedicated account manager who understands your capacity, pricing, and specialisation. They route the right requirements to you and help you close faster — reachable via WhatsApp, email, or phone.",
+                  icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                },
+                {
+                  title: "Build Your Seller Reputation",
+                  desc: "Maintain quality ratings and deliver on time. Top-performing sellers get priority access to high-volume requirements from premium buyers. With 95% OTIF delivery rate on the platform, the bar is high — and so are the rewards.",
                   icon: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
                 }
               ].map((item, i) => (
@@ -641,6 +734,26 @@ const SellOnLocofast = () => {
                   <p className="text-slate-600">{item.desc}</p>
                 </div>
               ))}
+            </div>
+
+            {/* Platform Values Strip */}
+            <div className="bg-gradient-to-r from-[#1e3a8a] to-[#2563EB] rounded-2xl p-8 md:p-10">
+              <h3 className="text-xl font-bold text-white mb-6 text-center">Our Promise to Sellers</h3>
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+                {[
+                  { title: "No Middlemen, Ever", desc: "The platform is built for direct deals. No agents, no brokers." },
+                  { title: "Transparency by Default", desc: "Buyer details, requirement specs, and pricing — all visible upfront." },
+                  { title: "100% Ownership", desc: "If something goes wrong, we take responsibility and resolve it." },
+                  { title: "Speed Without Shortcuts", desc: "Requirements routed fast, but never at the cost of quality or verification." },
+                  { title: "Technology + Human Touch", desc: "Smart matching powered by tech, supported by real account managers." },
+                  { title: "Your Money Moves Safe", desc: "Payment protection on eligible orders. No more chasing defaulters." }
+                ].map((item, i) => (
+                  <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-5">
+                    <h4 className="text-white font-semibold mb-1 text-sm">{item.title}</h4>
+                    <p className="text-blue-200 text-xs">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -695,8 +808,8 @@ const SellOnLocofast = () => {
             </div>
             
             {submitted ? (
-              <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-2xl p-12 text-center">
-                <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="bg-blue-900/30 border border-blue-500/30 rounded-2xl p-12 text-center">
+                <div className="w-16 h-16 bg-[#2563EB] rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle2 size={32} />
                 </div>
                 <h3 className="text-2xl font-bold text-blue-400 mb-4">Application Received</h3>
@@ -789,7 +902,7 @@ const SellOnLocofast = () => {
                     <select
                       value={formData.monthly_capacity}
                       onChange={(e) => setFormData({...formData, monthly_capacity: e.target.value})}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 bg-white"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 bg-white"
                     >
                       <option value="">Select capacity</option>
                       <option value="5000-10000">5,000 - 10,000 meters</option>
