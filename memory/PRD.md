@@ -33,6 +33,12 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Apr 7, 2026 - Header RFQ Modal + Supplier Page UI Revamp
+- **Header RFQ Modal**: Extracted `RFQModal.js` shared component and integrated into `Navbar.js`. "Request Quote" button in the header now opens the unified RFQ modal with GST verification on any page.
+- **Supplier Page Color Update**: Converted all green/emerald colors in `SellOnLocofast.js` to blue (#2563EB) to match the main shop.locofast.com homepage theme.
+- **Bug Fix**: Fixed `handleSubmit` in supplier form — was referencing `form.contactName` (undefined) instead of `formData.contact_name`.
+- **Status**: COMPLETED (12/12 frontend tests pass)
+
 ### Apr 6, 2026 - GST API Integration + Campaigns Push
 - **Sandbox.co.in GST API**: Integrated GSTIN verification at `POST /api/gst/verify`. 2-step auth flow (authenticate → search). Auto-populates company name from `trade_name || legal_name`.
 - **Campaigns Push**: All RFQ leads pushed to `campaigns.locofast.com/api/leads` with name, company, email, phone, GST info
