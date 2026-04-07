@@ -4,6 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, MessageSquare, Package, ShoppingCart, Clock } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import RFQModal from "../components/RFQModal";
 import { getFabrics, getFabricsCount, getCategories, createEnquiry } from "../lib/api";
 import { toast } from "sonner";
 
@@ -30,7 +31,7 @@ const FabricsPage = () => {
   });
 
   // Modal states
-  const [modalType, setModalType] = useState(null); // 'enquiry' | 'sample' | 'bulk'
+  const [modalType, setModalType] = useState(null); // 'sample' | 'bulk'
   const [selectedFabric, setSelectedFabric] = useState(null);
   const [sampleQty, setSampleQty] = useState(1);
   const [bulkQty, setBulkQty] = useState("");
@@ -38,6 +39,7 @@ const FabricsPage = () => {
     name: "", email: "", phone: "", company: "", message: ""
   });
   const [submitting, setSubmitting] = useState(false);
+  const [showRfqModal, setShowRfqModal] = useState(false);
 
   const fabricTypes = ["woven", "knitted", "non-woven"];
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
@@ -526,13 +528,13 @@ const FabricsPage = () => {
                           </button>
                         )}
                         <button
-                          onClick={(e) => { e.preventDefault(); openModal(fabric, 'enquiry'); }}
+                          onClick={(e) => { e.preventDefault(); setShowRfqModal(true); }}
                           className="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-xs sm:text-sm font-medium transition-colors"
                           data-testid={`enquiry-btn-${fabric.id}`}
                         >
                           <MessageSquare size={12} className="sm:w-[14px] sm:h-[14px]" />
-                          <span className="hidden sm:inline">Send Enquiry</span>
-                          <span className="sm:hidden">Enquiry</span>
+                          <span className="hidden sm:inline">Request a Quote</span>
+                          <span className="sm:hidden">Quote</span>
                         </button>
                       </div>
                     </div>
@@ -591,7 +593,7 @@ const FabricsPage = () => {
           <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100">
               <h2 className="text-xl font-semibold">
-                {modalType === "enquiry" ? "Send Enquiry" : modalType === "sample" ? "Book Sample" : "Book Bulk Order"}
+                {modalType === "sample" ? "Book Sample" : "Book Bulk Order"}
               </h2>
               <p className="text-sm text-gray-500 mt-1">{selectedFabric.name}</p>
             </div>
@@ -706,90 +708,13 @@ const FabricsPage = () => {
               </div>
             )}
 
-            {/* Enquiry Modal - Simplified without message field */}
-            {modalType === "enquiry" && (
-              <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                {/* Fabric Summary */}
-                <div className="bg-gray-50 rounded-lg p-4 flex gap-4">
-                  <img
-                    src={selectedFabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
-                    alt={selectedFabric.name}
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{selectedFabric.name}</p>
-                    <p className="text-sm text-gray-600">{selectedFabric.category_name}</p>
-                    {selectedFabric.seller_company && (
-                      <p className="text-xs text-gray-500">by {selectedFabric.seller_company}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Contact Details */}
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-3">Contact Details</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Your Name *"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
-                      data-testid="enquiry-name"
-                    />
-                    <input
-                      type="text"
-                      value={formData.company}
-                      onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                      placeholder="Company"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
-                      data-testid="enquiry-company"
-                    />
-                    <input
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="Email *"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
-                      data-testid="enquiry-email"
-                    />
-                    <input
-                      type="tel"
-                      required
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="Phone *"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
-                      data-testid="enquiry-phone"
-                    />
-                  </div>
-                </div>
-
-                {/* Submit */}
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex-1 py-2.5 rounded-lg font-medium disabled:opacity-50 bg-gray-900 text-white hover:bg-gray-800"
-                    data-testid="submit-enquiry-btn"
-                  >
-                    {submitting ? "Submitting..." : "Send Enquiry"}
-                  </button>
-                </div>
-              </form>
-            )}
+            {/* Enquiry replaced by unified RFQ Modal */}
           </div>
         </div>
       )}
+
+      {/* Unified RFQ Modal - Same flow as homepage and header */}
+      <RFQModal open={showRfqModal} onClose={() => setShowRfqModal(false)} />
     </div>
   );
 };
