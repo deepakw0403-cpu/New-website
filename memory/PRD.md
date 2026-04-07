@@ -33,6 +33,13 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Apr 7, 2026 - Order Email Notifications (Auto-Trigger)
+- **Auto-send emails on payment confirmation**: When Razorpay payment is verified, 3 emails fire automatically:
+  1. **Customer** — Order confirmation with items, totals, shipping details
+  2. **Admin** (mail@locofast.com + mohit@locofast.com) — Full order details with ALL customer info including phone, product links, financial breakdown
+  3. **Supplier** (registered email) — Order details with product URLs, rate/qty/amount, order type (Bulk/Sample), payment status, dispatch info — **NO customer phone number**
+- **Status**: COMPLETED (19/19 backend tests pass)
+
 ### Apr 7, 2026 - Header RFQ Modal + Supplier Page UI Revamp
 - **Header RFQ Modal**: Extracted `RFQModal.js` shared component and integrated into `Navbar.js`. "Request Quote" button in the header now opens the unified RFQ modal with GST verification on any page.
 - **Supplier Page Color Update**: Converted all green/emerald colors in `SellOnLocofast.js` to blue (#2563EB) to match the main shop.locofast.com homepage theme.
