@@ -18,6 +18,7 @@ import logging
 import io
 
 from shiprocket_service import shiprocket_service
+from email_router import send_order_notification_emails
 
 # PDF Generation imports
 from reportlab.lib.pagesizes import A4
@@ -334,6 +335,13 @@ async def verify_payment(verification: PaymentVerification):
         {"razorpay_order_id": verification.razorpay_order_id},
         {"_id": 0}
     )
+    
+    # Auto-send notification emails (best effort, non-blocking)
+    try:
+        email_results = await send_order_notification_emails(updated_order, order_db=db)
+        logger.info(f"Order {order['order_number']} email notifications: {email_results}")
+    except Exception as e:
+        logger.error(f"Failed to send order notification emails: {str(e)}")
     
     # Note: Orders are NOT sent to Zapier - only general enquiries are
     

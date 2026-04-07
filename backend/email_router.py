@@ -26,6 +26,8 @@ def set_db(database):
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 ADMIN_NOTIFICATION_EMAIL = "deepakw0403@gmail.com"
+ORDER_NOTIFICATION_EMAILS = ["mail@locofast.com", "mohit@locofast.com"]
+SITE_URL = os.environ.get('SITE_URL', 'https://shop.locofast.com')
 
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
@@ -175,87 +177,152 @@ def get_order_confirmation_email(order: dict) -> str:
     """
 
 def get_order_received_admin_email(order: dict) -> str:
-    """Generate admin notification email for new order"""
-    items_summary = "\n".join([
-        f"• {item.get('fabric_name')} - {item.get('quantity')}m @ ₹{item.get('price_per_meter')}/m"
-        for item in order.get("items", [])
-    ])
+    """Generate admin notification email for new order — includes ALL customer info"""
+    items_html = ""
+    for item in order.get("items", []):
+        qty = item.get('quantity', 0)
+        rate = item.get('price_per_meter', 0)
+        amount = qty * rate
+        order_type = item.get('order_type', 'bulk')
+        type_label = 'Sample' if order_type == 'sample' else 'Bulk'
+        fabric_url = f"{SITE_URL}/fabrics/{item.get('fabric_id', '')}"
+        
+        items_html += f"""
+        <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                <a href="{fabric_url}" style="color: #2563EB; font-weight: 600; text-decoration: none;">{item.get('fabric_name', 'Fabric')}</a><br>
+                <span style="color: #666; font-size: 12px;">Code: {item.get('fabric_code', 'N/A')} | Seller: {item.get('seller_company', 'N/A')}</span>
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">
+                <span style="background: {'#dbeafe' if order_type == 'sample' else '#d1fae5'}; color: {'#1e40af' if order_type == 'sample' else '#065f46'}; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">{type_label}</span>
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">{qty}m</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">₹{rate:,.2f}/m</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; font-weight: 600;">₹{amount:,.2f}</td>
+        </tr>
+        """
     
     customer = order.get("customer", {})
+    payment_status = order.get('payment_status', 'pending').upper()
     
     return f"""
     <!DOCTYPE html>
     <html>
-    <head>
-        <meta charset="utf-8">
-    </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; color: #333;">
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; color: #333; max-width: 640px; margin: 0 auto;">
         
-        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin-bottom: 20px;">
-            <strong style="color: #92400e;">New Order Received!</strong>
+        <div style="background: linear-gradient(135deg, #2563EB 0%, #1e3a8a 100%); padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 22px;">New Order Received!</h1>
+            <p style="color: #bfdbfe; margin: 8px 0 0; font-size: 14px;">Order {order.get('order_number', '')}</p>
         </div>
         
-        <h2 style="margin: 0 0 20px 0;">Order #{order.get('order_number', '')}</h2>
-        
-        <table style="width: 100%; margin-bottom: 20px;">
-            <tr>
-                <td style="padding: 8px 0;"><strong>Customer:</strong></td>
-                <td>{customer.get('name', '')} ({customer.get('company', 'N/A')})</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0;"><strong>Email:</strong></td>
-                <td>{customer.get('email', '')}</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0;"><strong>Phone:</strong></td>
-                <td>{customer.get('phone', '')}</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0;"><strong>Location:</strong></td>
-                <td>{customer.get('city', '')}, {customer.get('state', '')}</td>
-            </tr>
-        </table>
-        
-        <h3 style="margin: 20px 0 10px 0;">Order Items:</h3>
-        <pre style="background: #f1f5f9; padding: 15px; border-radius: 8px; white-space: pre-wrap;">{items_summary}</pre>
-        
-        <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; margin-top: 20px;">
-            <strong style="font-size: 18px; color: #059669;">Total: ₹{order.get('total', 0):,.2f}</strong>
-            <span style="color: #047857; margin-left: 10px;">(Payment: {order.get('payment_status', 'pending').upper()})</span>
+        <!-- Quick Summary -->
+        <div style="background: #eff6ff; padding: 20px; border: 1px solid #dbeafe;">
+            <table style="width: 100%;">
+                <tr>
+                    <td><strong style="color: #1e40af; font-size: 11px;">ORDER</strong><br><span style="font-size: 18px; font-weight: 700;">{order.get('order_number', '')}</span></td>
+                    <td style="text-align: center;"><strong style="color: #1e40af; font-size: 11px;">TOTAL</strong><br><span style="font-size: 18px; font-weight: 700; color: #059669;">₹{order.get('total', 0):,.2f}</span></td>
+                    <td style="text-align: right;"><strong style="color: #1e40af; font-size: 11px;">PAYMENT</strong><br><span style="font-size: 14px; font-weight: 700; color: {'#059669' if payment_status == 'PAID' else '#f59e0b'};">{payment_status}</span></td>
+                </tr>
+            </table>
         </div>
         
-        <p style="margin-top: 30px; color: #64748b; font-size: 13px;">
-            <a href="https://locofast.com/admin/orders" style="color: #2563EB;">View in Admin Panel →</a>
-        </p>
+        <!-- Customer Details (FULL info including phone) -->
+        <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-top: none;">
+            <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #475569;">Customer Details</h3>
+            <table style="width: 100%; font-size: 14px;">
+                <tr><td style="padding: 4px 0; color: #64748b; width: 120px;">Name:</td><td style="padding: 4px 0; font-weight: 500;">{customer.get('name', '')}</td></tr>
+                <tr><td style="padding: 4px 0; color: #64748b;">Company:</td><td style="padding: 4px 0;">{customer.get('company', 'N/A')}</td></tr>
+                <tr><td style="padding: 4px 0; color: #64748b;">Email:</td><td style="padding: 4px 0;"><a href="mailto:{customer.get('email', '')}" style="color: #2563EB;">{customer.get('email', '')}</a></td></tr>
+                <tr><td style="padding: 4px 0; color: #64748b;">Phone:</td><td style="padding: 4px 0; font-weight: 600;"><a href="tel:{customer.get('phone', '')}" style="color: #2563EB;">{customer.get('phone', '')}</a></td></tr>
+                <tr><td style="padding: 4px 0; color: #64748b;">Address:</td><td style="padding: 4px 0;">{customer.get('address', '')}, {customer.get('city', '')}, {customer.get('state', '')} {customer.get('pincode', '')}</td></tr>
+            </table>
+        </div>
+        
+        <!-- Order Items -->
+        <div style="background: white; padding: 20px; border: 1px solid #e2e8f0; border-top: none;">
+            <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #475569;">Order Items</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f1f5f9;">
+                        <th style="padding: 8px; text-align: left; font-size: 11px; color: #475569;">Product</th>
+                        <th style="padding: 8px; text-align: center; font-size: 11px; color: #475569;">Type</th>
+                        <th style="padding: 8px; text-align: center; font-size: 11px; color: #475569;">Qty</th>
+                        <th style="padding: 8px; text-align: right; font-size: 11px; color: #475569;">Rate</th>
+                        <th style="padding: 8px; text-align: right; font-size: 11px; color: #475569;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>{items_html}</tbody>
+            </table>
+            
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #e2e8f0;">
+                <table style="width: 100%; font-size: 14px;">
+                    <tr><td style="text-align: right; color: #64748b;">Subtotal:</td><td style="text-align: right; width: 100px;">₹{order.get('subtotal', 0):,.2f}</td></tr>
+                    <tr><td style="text-align: right; color: #64748b;">GST (5%):</td><td style="text-align: right;">₹{order.get('tax', 0):,.2f}</td></tr>
+                    {f'<tr><td style="text-align: right; color: #64748b;">Discount:</td><td style="text-align: right; color: #dc2626;">-₹{order.get("discount", 0):,.2f}</td></tr>' if order.get('discount', 0) > 0 else ''}
+                    <tr style="font-size: 18px; font-weight: 700;"><td style="text-align: right; padding-top: 10px; border-top: 1px solid #e2e8f0;">Total:</td><td style="text-align: right; padding-top: 10px; border-top: 1px solid #e2e8f0; color: #059669;">₹{order.get('total', 0):,.2f}</td></tr>
+                </table>
+            </div>
+        </div>
+        
+        <div style="text-align: center; padding: 20px; background: #f8fafc; border-radius: 0 0 12px 12px; border: 1px solid #e2e8f0; border-top: none;">
+            <a href="https://shop.locofast.com/admin/orders" style="background: #2563EB; color: white; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">View in Admin Panel</a>
+        </div>
         
     </body>
     </html>
     """
 
 def get_seller_order_notification_email(order: dict, items: list, seller: dict) -> str:
-    """Generate order notification email for seller/supplier"""
+    """Generate order notification email for seller/supplier - NO customer phone included"""
     items_html = ""
     total_quantity = 0
+    total_value = 0
     for item in items:
-        total_quantity += item.get('quantity', 0)
+        qty = item.get('quantity', 0)
+        rate = item.get('price_per_meter', 0)
+        amount = qty * rate
+        total_quantity += qty
+        total_value += amount
+        order_type = item.get('order_type', 'bulk')
+        type_label = 'Sample' if order_type == 'sample' else 'Bulk'
+        type_bg = '#dbeafe' if order_type == 'sample' else '#d1fae5'
+        type_color = '#1e40af' if order_type == 'sample' else '#065f46'
+        
+        fabric_url = f"{SITE_URL}/fabrics/{item.get('fabric_id', '')}"
+        image_url = item.get('image_url', '')
+        
         items_html += f"""
         <tr>
             <td style="padding: 12px; border-bottom: 1px solid #eee;">
-                <strong>{item.get('fabric_name', 'Fabric')}</strong><br>
-                <span style="color: #666; font-size: 14px;">{item.get('fabric_code', '')}</span>
+                <div style="display: flex; gap: 12px;">
+                    {f'<img src="{image_url}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;" />' if image_url else ''}
+                    <div>
+                        <a href="{fabric_url}" style="color: #2563EB; text-decoration: none; font-weight: 600;">{item.get('fabric_name', 'Fabric')}</a><br>
+                        <span style="color: #666; font-size: 12px;">Code: {item.get('fabric_code', 'N/A')} | {item.get('category_name', '')}</span>
+                    </div>
+                </div>
             </td>
             <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">
-                <span style="background: {'#dbeafe' if item.get('order_type') == 'sample' else '#d1fae5'}; color: {'#1e40af' if item.get('order_type') == 'sample' else '#065f46'}; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
-                    {'Sample' if item.get('order_type') == 'sample' else 'Bulk'}
+                <span style="background: {type_bg}; color: {type_color}; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;">
+                    {type_label}
                 </span>
             </td>
-            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">
-                {item.get('quantity', 0)} meters
+            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-weight: 600;">
+                {qty} meters
+            </td>
+            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">
+                ₹{rate:,.2f}/m
+            </td>
+            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right; font-weight: 600;">
+                ₹{amount:,.2f}
             </td>
         </tr>
         """
     
     customer = order.get('customer', {})
+    payment_status = order.get('payment_status', 'pending').upper()
+    payment_badge_color = '#059669' if payment_status == 'PAID' else '#f59e0b'
     
     return f"""
     <!DOCTYPE html>
@@ -264,25 +331,29 @@ def get_seller_order_notification_email(order: dict, items: list, seller: dict) 
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 640px; margin: 0 auto; padding: 20px;">
         
         <!-- Header -->
         <div style="text-align: center; padding: 30px 0; background: linear-gradient(135deg, #059669 0%, #047857 100%); border-radius: 12px 12px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">New Order Booking!</h1>
-            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Please prepare goods for pickup</p>
+            <h1 style="color: white; margin: 0; font-size: 24px;">New Order Received!</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Please prepare goods for dispatch</p>
         </div>
         
-        <!-- Order Info -->
+        <!-- Order Summary Bar -->
         <div style="background: #ecfdf5; padding: 20px; border-left: 1px solid #d1fae5; border-right: 1px solid #d1fae5;">
             <table style="width: 100%;">
                 <tr>
                     <td>
-                        <strong style="color: #065f46; font-size: 12px; text-transform: uppercase;">Order Number</strong><br>
+                        <strong style="color: #065f46; font-size: 11px; text-transform: uppercase;">Order Number</strong><br>
                         <span style="font-size: 20px; font-weight: 600; color: #059669;">{order.get('order_number', '')}</span>
                     </td>
-                    <td style="text-align: right;">
-                        <strong style="color: #065f46; font-size: 12px; text-transform: uppercase;">Total Quantity</strong><br>
+                    <td style="text-align: center;">
+                        <strong style="color: #065f46; font-size: 11px; text-transform: uppercase;">Total Quantity</strong><br>
                         <span style="font-size: 20px; font-weight: 600;">{total_quantity} meters</span>
+                    </td>
+                    <td style="text-align: right;">
+                        <strong style="color: #065f46; font-size: 11px; text-transform: uppercase;">Payment</strong><br>
+                        <span style="background: {payment_badge_color}; color: white; padding: 4px 12px; border-radius: 4px; font-size: 13px; font-weight: 600;">{payment_status}</span>
                     </td>
                 </tr>
             </table>
@@ -294,41 +365,69 @@ def get_seller_order_notification_email(order: dict, items: list, seller: dict) 
             <p style="margin: 5px 0 0 0; color: #78350f;">Please keep the following items ready for pickup. Our logistics partner will contact you for collection.</p>
         </div>
         
-        <!-- Items -->
+        <!-- Items Table -->
         <div style="background: white; padding: 20px; border: 1px solid #e2e8f0;">
             <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #1e293b;">Items to Prepare</h3>
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background: #f1f5f9;">
-                        <th style="padding: 12px; text-align: left; font-weight: 600; color: #475569; font-size: 13px;">Fabric</th>
-                        <th style="padding: 12px; text-align: center; font-weight: 600; color: #475569; font-size: 13px;">Type</th>
-                        <th style="padding: 12px; text-align: center; font-weight: 600; color: #475569; font-size: 13px;">Quantity</th>
+                        <th style="padding: 10px; text-align: left; font-weight: 600; color: #475569; font-size: 12px;">Product</th>
+                        <th style="padding: 10px; text-align: center; font-weight: 600; color: #475569; font-size: 12px;">Type</th>
+                        <th style="padding: 10px; text-align: center; font-weight: 600; color: #475569; font-size: 12px;">Qty</th>
+                        <th style="padding: 10px; text-align: right; font-weight: 600; color: #475569; font-size: 12px;">Rate</th>
+                        <th style="padding: 10px; text-align: right; font-weight: 600; color: #475569; font-size: 12px;">Amount</th>
                     </tr>
                 </thead>
                 <tbody>
                     {items_html}
                 </tbody>
             </table>
+            
+            <!-- Order Value -->
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #e2e8f0; text-align: right;">
+                <span style="color: #64748b; font-size: 14px;">Order Value: </span>
+                <span style="font-size: 20px; font-weight: 700; color: #059669;">₹{total_value:,.2f}</span>
+            </div>
         </div>
         
-        <!-- Shipping To -->
+        <!-- Dispatch Info -->
+        <div style="background: #eff6ff; padding: 20px; border: 1px solid #dbeafe; border-top: none;">
+            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #1e40af;">Dispatch Details</h3>
+            <table style="width: 100%; font-size: 14px;">
+                <tr>
+                    <td style="padding: 4px 0; color: #64748b; width: 140px;">Order Date:</td>
+                    <td style="padding: 4px 0; font-weight: 500;">{order.get('created_at', '')[:10]}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 4px 0; color: #64748b;">Payment Amount:</td>
+                    <td style="padding: 4px 0; font-weight: 500;">₹{order.get('total', 0):,.2f} (incl. GST)</td>
+                </tr>
+                <tr>
+                    <td style="padding: 4px 0; color: #64748b;">Payment Status:</td>
+                    <td style="padding: 4px 0; font-weight: 500; color: {payment_badge_color};">{payment_status}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Shipping To (NO phone number) -->
         <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
-            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #475569;">Shipping To</h3>
+            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #475569;">Ship To</h3>
             <p style="margin: 0; color: #1e293b;">
                 <strong>{customer.get('name', '')}</strong><br>
-                {customer.get('company', '')}<br>
+                {f"{customer.get('company', '')}<br>" if customer.get('company') else ''}
                 {customer.get('address', '')}<br>
                 {customer.get('city', '')}, {customer.get('state', '')} {customer.get('pincode', '')}<br>
                 <br>
-                <strong>Phone:</strong> {customer.get('phone', '')}
+                <strong>Email:</strong> {customer.get('email', '')}
             </p>
         </div>
         
         <!-- Footer -->
         <div style="text-align: center; padding: 30px 0; color: #64748b; font-size: 13px;">
-            <p style="margin: 0 0 10px 0;">Questions about this order?</p>
+            <p style="margin: 0 0 10px 0;">For order queries, contact the Locofast operations team:</p>
             <p style="margin: 0;">
-                <a href="mailto:b2c@locofast.com" style="color: #059669; text-decoration: none;">b2c@locofast.com</a>
+                <a href="mailto:mail@locofast.com" style="color: #059669; text-decoration: none;">mail@locofast.com</a> |
+                <a href="tel:+918920392418" style="color: #059669; text-decoration: none;">+91 8920 392 418</a>
             </p>
             <p style="margin: 20px 0 0 0; color: #94a3b8;">
                 Locofast - Reliable Fabric Sourcing for Brands & Manufacturers
@@ -857,3 +956,97 @@ async def send_rfq_lead_email(lead: dict):
     except Exception as e:
         logger.error(f"Failed to send RFQ lead email: {str(e)}")
         return False
+
+
+
+async def send_order_notification_emails(order: dict, order_db=None):
+    """
+    Auto-send order notification emails after payment confirmation.
+    Sends to: 1) Customer  2) mail@locofast.com + mohit@locofast.com  3) Each supplier
+    """
+    if not RESEND_API_KEY:
+        logger.warning("Resend not configured - skipping order notification emails")
+        return {"customer_sent": False, "admin_sent": False, "sellers_notified": []}
+    
+    use_db = order_db or db
+    results = {"customer_sent": False, "admin_sent": False, "sellers_notified": []}
+    
+    customer_email = order.get("customer", {}).get("email")
+    order_number = order.get("order_number", "")
+    
+    # 1. Send customer confirmation email
+    if customer_email:
+        try:
+            params = {
+                "from": SENDER_EMAIL,
+                "to": [customer_email],
+                "subject": f"Order Confirmed - {order_number} | Locofast",
+                "html": get_order_confirmation_email(order)
+            }
+            await asyncio.to_thread(resend.Emails.send, params)
+            results["customer_sent"] = True
+            logger.info(f"Order confirmation email sent to customer: {customer_email}")
+        except Exception as e:
+            logger.error(f"Failed to send customer order email: {str(e)}")
+    
+    # 2. Send admin notification to mail@locofast.com AND mohit@locofast.com
+    try:
+        admin_params = {
+            "from": SENDER_EMAIL,
+            "to": ORDER_NOTIFICATION_EMAILS,
+            "subject": f"New Order - {order_number} | ₹{order.get('total', 0):,.0f} | Locofast",
+            "html": get_order_received_admin_email(order)
+        }
+        await asyncio.to_thread(resend.Emails.send, admin_params)
+        results["admin_sent"] = True
+        logger.info(f"Admin order notification sent to {ORDER_NOTIFICATION_EMAILS}")
+    except Exception as e:
+        logger.error(f"Failed to send admin order notification: {str(e)}")
+    
+    # 3. Send supplier notification emails (grouped by seller)
+    items = order.get("items", [])
+    seller_items = {}  # Group items by seller_id
+    
+    for item in items:
+        fabric_id = item.get("fabric_id")
+        seller_id = item.get("seller_id", "")
+        
+        # If seller_id not in item, look up from fabric
+        if not seller_id and fabric_id and use_db:
+            fabric = await use_db.fabrics.find_one({"id": fabric_id}, {"_id": 0, "seller_id": 1})
+            if fabric:
+                seller_id = fabric.get("seller_id", "")
+        
+        if seller_id:
+            if seller_id not in seller_items:
+                seller_items[seller_id] = []
+            seller_items[seller_id].append(item)
+    
+    for seller_id, seller_order_items in seller_items.items():
+        try:
+            if not use_db:
+                continue
+            seller = await use_db.sellers.find_one({"id": seller_id}, {"_id": 0})
+            if not seller:
+                logger.warning(f"Seller {seller_id} not found in DB — skipping email")
+                continue
+            
+            seller_email = seller.get("contact_email")
+            if not seller_email:
+                logger.warning(f"Seller {seller_id} has no contact_email — skipping")
+                continue
+            
+            seller_params = {
+                "from": SENDER_EMAIL,
+                "to": [seller_email],
+                "subject": f"New Order Booking - {order_number} | Prepare for Dispatch | Locofast",
+                "html": get_seller_order_notification_email(order, seller_order_items, seller)
+            }
+            await asyncio.to_thread(resend.Emails.send, seller_params)
+            results["sellers_notified"].append(seller_email)
+            logger.info(f"Supplier notification sent to {seller_email} for order {order_number}")
+        except Exception as e:
+            logger.error(f"Failed to send supplier notification to seller {seller_id}: {str(e)}")
+    
+    logger.info(f"Order {order_number} email results: customer={results['customer_sent']}, admin={results['admin_sent']}, sellers={results['sellers_notified']}")
+    return results
