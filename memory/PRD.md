@@ -33,6 +33,11 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Apr 7, 2026 - SKU-Level RFQ Button Unified
+- **Fabric Detail Page**: Replaced the old custom enquiry modal on "Request a Quote" button with the unified `RFQModal` component (same flow as homepage and header)
+- Both the sidebar button and the bottom "Final CTA" button now open the same RFQ modal
+- **Status**: COMPLETED
+
 ### Apr 7, 2026 - Order Email Notifications (Auto-Trigger)
 - **Auto-send emails on payment confirmation**: When Razorpay payment is verified, 3 emails fire automatically:
   1. **Customer** — Order confirmation with items, totals, shipping details
