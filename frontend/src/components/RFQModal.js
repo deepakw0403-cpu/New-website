@@ -13,7 +13,7 @@ const FABRIC_TYPES = [
   "Others"
 ];
 
-export default function RFQModal({ open, onClose }) {
+export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
   const [form, setForm] = useState({
     name: "", phone: "", gst_number: "", company_name: "", email: "", fabric_type: ""
   });
@@ -31,6 +31,9 @@ export default function RFQModal({ open, onClose }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          fabric_type: fabricUrl ? "" : form.fabric_type,
+          fabric_url: fabricUrl || "",
+          fabric_name: fabricName || "",
           gst_legal_name: gstData?.legal_name || "",
           gst_trade_name: gstData?.trade_name || "",
           gst_status: gstData?.gst_status || "",
@@ -133,13 +136,20 @@ export default function RFQModal({ open, onClose }) {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">What fabric type are you looking at? <span className="text-red-500">*</span></label>
-            <select required value={form.fabric_type} onChange={(e) => setForm(p => ({ ...p, fabric_type: e.target.value }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white" data-testid="rfq-fabric-type">
-              <option value="">Select fabric type</option>
-              {FABRIC_TYPES.map(type => (<option key={type} value={type}>{type}</option>))}
-            </select>
-          </div>
+          {fabricUrl ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-xs text-blue-600 font-medium mb-1">Enquiry for</p>
+              <a href={fabricUrl} className="text-sm font-medium text-[#2563EB] hover:underline" target="_blank" rel="noopener noreferrer" data-testid="rfq-fabric-link">{fabricName || fabricUrl}</a>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">What fabric type are you looking at? <span className="text-red-500">*</span></label>
+              <select required value={form.fabric_type} onChange={(e) => setForm(p => ({ ...p, fabric_type: e.target.value }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white" data-testid="rfq-fabric-type">
+                <option value="">Select fabric type</option>
+                {FABRIC_TYPES.map(type => (<option key={type} value={type}>{type}</option>))}
+              </select>
+            </div>
+          )}
 
           <button type="submit" disabled={submitting} className="w-full py-3 bg-[#2563EB] text-white font-medium rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors flex items-center justify-center gap-2" data-testid="rfq-submit">
             {submitting ? "Submitting..." : "Get Fabric Samples"}

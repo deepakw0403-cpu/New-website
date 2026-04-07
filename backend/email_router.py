@@ -897,6 +897,8 @@ async def send_rfq_lead_email(lead: dict):
     company = lead.get('company', '')
     gst = lead.get('gst_number', '')
     fabric_type = lead.get('fabric_type', '')
+    fabric_url = lead.get('fabric_url', '')
+    fabric_name = lead.get('fabric_name', '')
     gst_legal = lead.get('gst_legal_name', '')
     gst_status = lead.get('gst_status', '')
     gst_city = lead.get('gst_city', '')
@@ -922,7 +924,7 @@ async def send_rfq_lead_email(lead: dict):
     <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a2e;">
         <div style="background: linear-gradient(135deg, #2563EB, #1d4ed8); padding: 24px; border-radius: 12px 12px 0 0;">
             <h1 style="color: white; margin: 0; font-size: 20px;">New Quote Request</h1>
-            <p style="color: #bfdbfe; margin: 8px 0 0; font-size: 14px;">From Homepage RFQ Form</p>
+            <p style="color: #bfdbfe; margin: 8px 0 0; font-size: 14px;">{'From Product Page' if fabric_url else 'From Homepage RFQ Form'}</p>
         </div>
         <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none;">
             <table style="width: 100%; border-collapse: collapse;">
@@ -932,7 +934,7 @@ async def send_rfq_lead_email(lead: dict):
                 <tr style="background: #f8fafc;"><td style="padding: 10px 0; font-weight: bold; color: #64748b;">Company</td><td style="padding: 10px 0;">{company}</td></tr>
                 <tr><td style="padding: 10px 0; font-weight: bold; color: #64748b;">GST Number</td><td style="padding: 10px 0; font-family: monospace;">{gst}</td></tr>
                 {gst_badge}
-                <tr style="background: #eff6ff;"><td style="padding: 10px 0; font-weight: bold; color: #64748b;">Fabric Type</td><td style="padding: 10px 0;"><strong style="color: #2563EB;">{fabric_type}</strong></td></tr>
+                {'<tr style="background: #eff6ff;"><td style="padding: 10px 0; font-weight: bold; color: #64748b;">Fabric</td><td style="padding: 10px 0;"><a href="' + fabric_url + '" style="color: #2563EB; font-weight: bold;">' + (fabric_name or fabric_url) + '</a></td></tr>' if fabric_url else '<tr style="background: #eff6ff;"><td style="padding: 10px 0; font-weight: bold; color: #64748b;">Fabric Type</td><td style="padding: 10px 0;"><strong style="color: #2563EB;">' + fabric_type + '</strong></td></tr>'}
             </table>
         </div>
         <div style="text-align: center; padding: 16px; background: #f8fafc; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
@@ -946,7 +948,7 @@ async def send_rfq_lead_email(lead: dict):
         params = {
             "from": SENDER_EMAIL,
             "to": ["marketing@locofast.com"],
-            "subject": f"[RFQ Lead] {name} - {company} - {fabric_type}",
+            "subject": f"[RFQ Lead] {name} - {company} - {fabric_name or fabric_type}",
             "html": html,
             "reply_to": email
         }

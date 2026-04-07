@@ -945,8 +945,13 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
           </div>
         </div>
 
-        {/* RFQ Modal - Same flow as homepage and header */}
-        <RFQModal open={showRfqModal} onClose={() => setShowRfqModal(false)} />
+        {/* RFQ Modal - Same flow as homepage and header, with fabric URL */}
+        <RFQModal 
+          open={showRfqModal} 
+          onClose={() => setShowRfqModal(false)} 
+          fabricUrl={`${window.location.origin}/fabrics/${fabric.id}`}
+          fabricName={fabric.name}
+        />
 
         {/* Order Modal (Sample/Bulk) - Simple Enquiry Form */}
         {orderModalType && (

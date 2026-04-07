@@ -1552,6 +1552,8 @@ async def create_rfq_lead(data: dict):
     company_name = data.get('company_name', '')
     email = data.get('email', '')
     fabric_type = data.get('fabric_type', '')
+    fabric_url = data.get('fabric_url', '')
+    fabric_name = data.get('fabric_name', '')
     # GST-verified fields (auto-populated from frontend)
     gst_legal_name = data.get('gst_legal_name', '')
     gst_trade_name = data.get('gst_trade_name', '')
@@ -1579,9 +1581,11 @@ async def create_rfq_lead(data: dict):
         'gst_state': gst_state,
         'gst_address': gst_address,
         'fabric_type': fabric_type,
-        'message': f"Fabric Type: {fabric_type}\nCompany: {company_name}\nGST: {gst_number}\nGST Legal Name: {gst_legal_name}\nGST Status: {gst_status}",
+        'fabric_url': fabric_url,
+        'fabric_name': fabric_name,
+        'message': f"{'Fabric URL: ' + fabric_url if fabric_url else 'Fabric Type: ' + fabric_type}\nCompany: {company_name}\nGST: {gst_number}\nGST Legal Name: {gst_legal_name}\nGST Status: {gst_status}",
         'type': 'rfq_lead',
-        'source': 'Homepage RFQ Form',
+        'source': 'SKU Page RFQ' if fabric_url else 'Homepage RFQ Form',
         'status': 'new',
         'created_at': datetime.now(timezone.utc).isoformat()
     }
