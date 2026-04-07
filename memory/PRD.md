@@ -33,6 +33,13 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Apr 7, 2026 - Content & UI Overhaul (10 Changes)
+- **Homepage**: Trust badge updated to "Trusted by 500+ Brands & Manufacturers across India & the globe"
+- **Footer**: Removed "lifetime free enquiries", removed "80:20", added "Payment Protection", added clickable links to Stellaris Ventures & Chiratae Ventures
+- **About page**: CTA buttons replaced with "Submit a Requirement" that opens unified RFQ modal
+- **Supplier page**: Removed sales call/response time requirements (30-min daily, 2-hour window), removed "Suppliers Already Winning" stats section, replaced with marketplace-focused content: "Grow Your Business", "Increase Capacity Utilisation", "How Sellers Succeed"
+- **Status**: COMPLETED (15/15 frontend tests pass)
+
 ### Apr 7, 2026 - SKU-Level RFQ Button Unified
 - **Fabric Detail Page**: Replaced the old custom enquiry modal on "Request a Quote" button with the unified `RFQModal` component (same flow as homepage and header)
 - Both the sidebar button and the bottom "Final CTA" button now open the same RFQ modal
