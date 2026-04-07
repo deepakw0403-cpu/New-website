@@ -83,13 +83,13 @@ const SellOnLocofast = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.contactName,
-          email: form.email,
-          phone: form.phone,
-          company: form.companyName,
+          name: formData.contact_name,
+          email: formData.email,
+          phone: formData.phone,
+          company: formData.company_name,
           enquiry_type: "supplier_signup",
           source: "supplier_signup_page",
-          message: `**Supplier Application**\n\nCompany: ${form.companyName}\nContact: ${form.contactName}\nFabric Categories: ${form.fabricCategories.join(', ')}\nMonthly Capacity: ${form.monthlyCapacity}\nLocation: ${form.location}\nWebsite: ${form.website || 'N/A'}\n\nAdditional Info: ${form.message || 'None'}`
+          message: `**Supplier Application**\n\nCompany: ${formData.company_name}\nContact: ${formData.contact_name}\nFabric Categories: ${formData.categories.join(', ')}\nMonthly Capacity: ${formData.monthly_capacity}\nLocation: ${formData.city}\n\nAdditional Info: None`
         })
       });
       
@@ -269,7 +269,7 @@ const SellOnLocofast = () => {
         <section className="py-16 md:py-24">
           <div className="max-w-6xl mx-auto px-4">
             <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 rounded-full px-4 py-1.5 text-sm font-medium mb-4">
+              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 rounded-full px-4 py-1.5 text-sm font-medium mb-4">
                 <Zap size={16} />
                 How Locofast Works
               </div>
@@ -282,7 +282,7 @@ const SellOnLocofast = () => {
             </div>
 
             <div className="grid md:grid-cols-2 gap-8 mb-12">
-              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl border border-emerald-100">
+              <div className="bg-gradient-to-br from-blue-50 to-sky-50 p-8 rounded-2xl border border-blue-100">
                 <h3 className="text-2xl font-bold text-slate-900 mb-6">What We Do</h3>
                 <ul className="space-y-4">
                   {[
@@ -293,7 +293,7 @@ const SellOnLocofast = () => {
                     "Provide conversion data so you know what's working"
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
-                      <CheckCircle2 className="text-emerald-600 mt-0.5 flex-shrink-0" size={20} />
+                      <CheckCircle2 className="text-blue-600 mt-0.5 flex-shrink-0" size={20} />
                       <span className="text-slate-700">{item}</span>
                     </li>
                   ))}
@@ -348,12 +348,12 @@ const SellOnLocofast = () => {
             
             <div className="grid md:grid-cols-2 gap-8">
               {/* For */}
-              <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-2xl p-8">
+              <div className="bg-blue-900/30 border border-blue-500/30 rounded-2xl p-8">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-[#2563EB] rounded-full flex items-center justify-center">
                     <CheckCircle2 size={20} />
                   </div>
-                  <h3 className="text-2xl font-bold text-emerald-400">This IS For You If:</h3>
+                  <h3 className="text-2xl font-bold text-blue-400">This IS For You If:</h3>
                 </div>
                 <ul className="space-y-4">
                   {[
@@ -365,7 +365,7 @@ const SellOnLocofast = () => {
                     "You want direct buyer relationships, not middlemen"
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
-                      <CheckCircle2 className="text-emerald-400 mt-0.5 flex-shrink-0" size={18} />
+                      <CheckCircle2 className="text-blue-400 mt-0.5 flex-shrink-0" size={18} />
                       <span className="text-slate-200">{item}</span>
                     </li>
                   ))}
@@ -484,7 +484,7 @@ const SellOnLocofast = () => {
             </div>
             
             <p className="text-center text-slate-400 mt-8">
-              More categories coming soon. If you have capacity in other fabrics, <a href="#apply-form" className="text-emerald-400 hover:underline">still apply</a>.
+              More categories coming soon. If you have capacity in other fabrics, <a href="#apply-form" className="text-blue-400 hover:underline">still apply</a>.
             </p>
           </div>
         </section>
@@ -601,7 +601,7 @@ const SellOnLocofast = () => {
                 { stat: "₹8.5L", label: "Avg. Monthly GMV", sub: "Per active supplier" }
               ].map((item, i) => (
                 <div key={i} className="bg-white p-8 rounded-xl border border-slate-200 text-center">
-                  <div className="text-4xl md:text-5xl font-bold text-emerald-600 mb-2">{item.stat}</div>
+                  <div className="text-4xl md:text-5xl font-bold text-[#2563EB] mb-2">{item.stat}</div>
                   <div className="text-lg font-semibold text-slate-900">{item.label}</div>
                   <div className="text-sm text-slate-500">{item.sub}</div>
                 </div>
@@ -638,7 +638,7 @@ const SellOnLocofast = () => {
                       <div className="font-semibold text-slate-900">{item.name}</div>
                       <div className="text-sm text-slate-500">{item.company}</div>
                     </div>
-                    <div className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">
+                    <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
                       {item.stat}
                     </div>
                   </div>
@@ -702,7 +702,7 @@ const SellOnLocofast = () => {
                 <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle2 size={32} />
                 </div>
-                <h3 className="text-2xl font-bold text-emerald-400 mb-4">Application Received</h3>
+                <h3 className="text-2xl font-bold text-blue-400 mb-4">Application Received</h3>
                 <p className="text-slate-300 mb-6">
                   Our onboarding team will review your application and call you within 24-48 hours. 
                   Keep your phone handy.
@@ -711,7 +711,7 @@ const SellOnLocofast = () => {
                   href="https://wa.me/918920392418?text=Hi, I just submitted my supplier application on Locofast"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300"
+                  className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300"
                 >
                   <Phone size={18} />
                   Or message us on WhatsApp for faster response
@@ -729,7 +729,7 @@ const SellOnLocofast = () => {
                       required
                       value={formData.company_name}
                       onChange={(e) => setFormData({...formData, company_name: e.target.value})}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
                       placeholder="Your mill / trading company name"
                     />
                   </div>
@@ -742,7 +742,7 @@ const SellOnLocofast = () => {
                       required
                       value={formData.contact_name}
                       onChange={(e) => setFormData({...formData, contact_name: e.target.value})}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
                       placeholder="Decision maker name"
                     />
                   </div>
@@ -755,7 +755,7 @@ const SellOnLocofast = () => {
                       required
                       value={formData.phone}
                       onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
                       placeholder="+91 XXXXX XXXXX"
                     />
                   </div>
@@ -768,7 +768,7 @@ const SellOnLocofast = () => {
                       required
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
                       placeholder="business@company.com"
                     />
                   </div>
@@ -781,7 +781,7 @@ const SellOnLocofast = () => {
                       required
                       value={formData.city}
                       onChange={(e) => setFormData({...formData, city: e.target.value})}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
                       placeholder="Ahmedabad, Surat, Erode, etc."
                     />
                   </div>
@@ -815,8 +815,8 @@ const SellOnLocofast = () => {
                         onClick={() => handleCategoryToggle(cat)}
                         className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${
                           formData.categories.includes(cat)
-                            ? "bg-emerald-500 border-emerald-500 text-white"
-                            : "bg-white border-slate-200 text-slate-700 hover:border-emerald-500"
+                            ? "bg-[#2563EB] border-[#2563EB] text-white"
+                            : "bg-white border-slate-200 text-slate-700 hover:border-[#2563EB]"
                         }`}
                       >
                         {cat}
@@ -835,7 +835,7 @@ const SellOnLocofast = () => {
                 <button
                   type="submit"
                   disabled={submitting || formData.categories.length === 0}
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white py-4 rounded-lg font-semibold text-lg transition-all flex items-center justify-center gap-2"
+                  className="w-full bg-[#2563EB] hover:bg-[#1d4ed8] disabled:bg-slate-300 text-white py-4 rounded-lg font-semibold text-lg transition-all flex items-center justify-center gap-2"
                 >
                   {submitting ? (
                     "Submitting..."
@@ -852,18 +852,18 @@ const SellOnLocofast = () => {
         </section>
 
         {/* Final CTA */}
-        <section className="py-16 md:py-20 bg-emerald-600 text-white">
+        <section className="py-16 md:py-20 bg-[#2563EB] text-white">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Stop Waiting. Start Selling.
             </h2>
-            <p className="text-xl text-emerald-100 mb-8">
+            <p className="text-xl text-blue-100 mb-8">
               Verified demand is being routed right now. Are you on the list?
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a 
                 href="#apply-form"
-                className="inline-flex items-center justify-center gap-2 bg-white text-emerald-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-emerald-50 transition-all"
+                className="inline-flex items-center justify-center gap-2 bg-white text-[#2563EB] px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-all"
               >
                 Apply Now
                 <ArrowRight size={20} />
@@ -872,7 +872,7 @@ const SellOnLocofast = () => {
                 href="https://wa.me/918920392418?text=Hi, I want to know more about selling on Locofast"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all"
+                className="inline-flex items-center justify-center gap-2 bg-[#1d4ed8] hover:bg-[#1e40af] text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all"
               >
                 <Phone size={20} />
                 WhatsApp Us
