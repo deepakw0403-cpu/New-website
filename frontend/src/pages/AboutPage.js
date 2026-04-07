@@ -1,8 +1,11 @@
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Check } from "lucide-react";
+import { useState } from "react";
+import { Check, MessageCircle } from "lucide-react";
+import RFQModal from "../components/RFQModal";
 
 const AboutPage = () => {
+  const [showRfqModal, setShowRfqModal] = useState(false);
   const philosophyPoints = [
     "Clarity in pricing and lead times from Day 1",
     "Structured communication between buyers and suppliers",
@@ -157,23 +160,26 @@ const AboutPage = () => {
           </h2>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/rfq"
-              className="px-10 py-4 bg-neutral-900 text-white text-sm tracking-wide font-medium hover:bg-neutral-800 transition-colors"
-              data-testid="cta-talk"
+            <button
+              onClick={() => setShowRfqModal(true)}
+              className="px-10 py-4 bg-neutral-900 text-white text-sm tracking-wide font-medium hover:bg-neutral-800 transition-colors inline-flex items-center justify-center gap-2"
+              data-testid="cta-submit-requirement"
             >
-              Request a Quote
-            </Link>
+              <MessageCircle size={18} />
+              Submit a Requirement
+            </button>
             <Link
-              to="/rfq"
+              to="/fabrics"
               className="px-10 py-4 border border-neutral-900 text-neutral-900 text-sm tracking-wide font-medium hover:bg-neutral-50 transition-colors"
-              data-testid="cta-submit"
+              data-testid="cta-browse"
             >
-              Submit Your Requirement
+              Browse Fabrics
             </Link>
           </div>
         </div>
       </section>
+
+      <RFQModal open={showRfqModal} onClose={() => setShowRfqModal(false)} />
     </main>
   );
 };

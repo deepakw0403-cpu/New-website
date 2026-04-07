@@ -32,14 +32,9 @@ const Footer = () => {
 
   const supplierBenefits = [
     {
-      icon: CheckCircle,
-      title: "Lifetime Free Enquiries",
-      description: "Unlimited buyer queries at no subscription cost"
-    },
-    {
       icon: Shield,
       title: "Payment Protection",
-      description: "Secure 80:20 terms with invoice discounting"
+      description: "Secure payment protection for all transactions"
     },
     {
       icon: Truck,
@@ -50,6 +45,11 @@ const Footer = () => {
       icon: CreditCard,
       title: "Instant Settlements",
       description: "Quick payments once orders are confirmed"
+    },
+    {
+      icon: CheckCircle,
+      title: "Verified Buyer Network",
+      description: "Access to pre-qualified brands and manufacturers"
     }
   ];
 
@@ -68,7 +68,7 @@ const Footer = () => {
                 Sell Fabrics Smarter with Locofast
               </h2>
               <p className="text-blue-100 mb-6 text-base">
-                Pay-for-performance B2B marketplace. No subscription fees. Get lifetime free enquiries from verified buyers.
+                Pay-for-performance B2B marketplace. Connect directly with verified buyers and grow your business.
               </p>
               <div className="flex flex-wrap gap-3">
                 <a
@@ -114,7 +114,7 @@ const Footer = () => {
               </span>
             </div>
             <div className="text-xs text-blue-200">
-              Backed by Stellaris Ventures, Chiratae Ventures & Axilor
+              Backed by <a href="https://www.stellarisvp.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">Stellaris Ventures</a>, <a href="https://www.chiratae.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">Chiratae Ventures</a> & Axilor
             </div>
           </div>
         </div>

@@ -156,7 +156,7 @@ const HomePage = () => {
             <div className="max-w-3xl mx-auto text-center">
               <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white/90 px-4 py-2 rounded-full text-sm mb-8">
                 <Sparkles size={16} />
-                Trusted by 500+ across India & the globe
+                Trusted by 500+ Brands & Manufacturers across India & the globe
               </div>
               
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white leading-tight mb-6" data-testid="hero-headline">

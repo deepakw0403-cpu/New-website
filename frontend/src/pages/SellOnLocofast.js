@@ -360,8 +360,7 @@ const SellOnLocofast = () => {
                     "You're a manufacturer or trader doing 5000+ meters/month",
                     "You can handle MOQ of 1000 meters minimum",
                     "You have capacity in Denim, Cotton Shirting, Knits, or Blends",
-                    "You're comfortable making 5-10 sales calls daily",
-                    "You respond to requirements within 2 hours",
+                    "You want to increase your capacity utilisation",
                     "You want direct buyer relationships, not middlemen"
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
@@ -384,8 +383,8 @@ const SellOnLocofast = () => {
                   {[
                     "You sell cut-pieces or retail quantities",
                     "You want to just list and wait for orders to come",
-                    "You can't commit 30 minutes daily to sales calls",
                     "You expect guaranteed orders without effort",
+                    "You can't maintain consistent quality and delivery timelines",
                     "You're looking for a magic solution to fill your factory",
                     "You can't handle professional follow-up and documentation"
                   ].map((item, i) => (
@@ -405,23 +404,15 @@ const SellOnLocofast = () => {
           <div className="max-w-4xl mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-                What We Expect From Suppliers
+                How Sellers Succeed on Locofast
               </h2>
               <p className="text-xl text-slate-600">
-                We're building a network of serious players. Here's the commitment.
+                Our most successful sellers share these traits.
               </p>
             </div>
             
             <div className="space-y-6">
               {[
-                {
-                  title: "30 Minutes Daily Talk Time (Minimum)",
-                  desc: "Requirements come in throughout the day. You need to call buyers promptly. Delayed response = lost deal. We track call activity."
-                },
-                {
-                  title: "2-Hour Response Window",
-                  desc: "When you get a requirement, you call within 2 hours. Buyers have options. Speed wins. This is non-negotiable."
-                },
                 {
                   title: "Professional Follow-Up",
                   desc: "After first call, you follow up systematically. Send quotes on time. Update the platform. Close professionally."
@@ -431,8 +422,16 @@ const SellOnLocofast = () => {
                   desc: "Quote what you can deliver. Don't overpromise on timelines. Reputation is everything in B2B."
                 },
                 {
-                  title: "No Guaranteed Orders — This is Sales",
-                  desc: "We give you demand. You close it. Some months will be better than others. Consistency compounds."
+                  title: "Maximize Capacity Utilisation",
+                  desc: "Use Locofast to fill idle capacity. Consistent demand from verified buyers means your looms and machines stay productive."
+                },
+                {
+                  title: "Build Your Brand on the Platform",
+                  desc: "Maintain quality ratings, deliver on time, and watch your seller ranking grow. Top sellers get priority access to high-volume requirements."
+                },
+                {
+                  title: "Leverage the Marketplace Network",
+                  desc: "Locofast connects you with 700+ brands and manufacturers across India and internationally. Every requirement is a chance to build a long-term relationship."
                 }
               ].map((item, i) => (
                 <div key={i} className="flex gap-4 p-6 bg-slate-50 rounded-xl border border-slate-200">
@@ -581,24 +580,24 @@ const SellOnLocofast = () => {
           </div>
         </section>
 
-        {/* Social Proof Section */}
+        {/* Marketplace Growth Section */}
         <section className="py-16 md:py-24 bg-slate-50">
           <div className="max-w-6xl mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-                Suppliers Already Winning
+                Grow Your Business with Locofast
               </h2>
               <p className="text-xl text-slate-600">
-                Real results from suppliers who work the system.
+                Our marketplace is designed to help sellers scale.
               </p>
             </div>
             
-            {/* Stats */}
+            {/* Value Props Grid */}
             <div className="grid sm:grid-cols-3 gap-6 mb-12">
               {[
-                { stat: "12%", label: "Avg. Conversion Rate", sub: "For active suppliers" },
-                { stat: "45 min", label: "Avg. Daily Talk Time", sub: "Top performer average" },
-                { stat: "₹8.5L", label: "Avg. Monthly GMV", sub: "Per active supplier" }
+                { stat: "700+", label: "Verified Buyers", sub: "Brands & manufacturers across India" },
+                { stat: "500+", label: "Seller Partners", sub: "Growing network of verified suppliers" },
+                { stat: "5,000+", label: "Orders Executed", sub: "And counting every month" }
               ].map((item, i) => (
                 <div key={i} className="bg-white p-8 rounded-xl border border-slate-200 text-center">
                   <div className="text-4xl md:text-5xl font-bold text-[#2563EB] mb-2">{item.stat}</div>
@@ -608,40 +607,38 @@ const SellOnLocofast = () => {
               ))}
             </div>
             
-            {/* Testimonials Placeholder */}
+            {/* Seller Benefits */}
             <div className="grid md:grid-cols-2 gap-6">
               {[
                 {
-                  quote: "First month was slow — 2 orders from 18 leads. Third month, I cracked 7 orders. The system works if you work it. No BS.",
-                  name: "Rajesh M.",
-                  company: "Denim Manufacturer, Ahmedabad",
-                  stat: "7 orders in Month 3"
+                  title: "Increase Capacity Utilisation",
+                  desc: "Fill idle looms and machines with consistent demand from verified buyers. No more waiting for seasonal orders or depending on a single buyer.",
+                  icon: "M13 10V3L4 14h7v7l9-11h-7z"
                 },
                 {
-                  quote: "I was skeptical about another platform. But direct buyer numbers changed everything. No agents eating my margins anymore.",
-                  name: "Suresh K.",
-                  company: "Cotton Shirting Trader, Erode",
-                  stat: "15% conversion rate"
+                  title: "Direct Access to Brand Buyers",
+                  desc: "No middlemen eating your margins. Connect directly with fashion brands, export houses, and manufacturers who need your fabrics.",
+                  icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                },
+                {
+                  title: "Payment Protection & Timely Settlements",
+                  desc: "All transactions are protected. Get paid on time, every time. No chasing payments or dealing with defaulters.",
+                  icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                },
+                {
+                  title: "Grow Your Seller Reputation",
+                  desc: "Build your brand on the platform. High ratings and on-time deliveries unlock priority access to bigger requirements and premium buyers.",
+                  icon: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
                 }
               ].map((item, i) => (
                 <div key={i} className="bg-white p-8 rounded-xl border border-slate-200">
-                  <div className="flex items-center gap-1 mb-4">
-                    {[...Array(5)].map((_, j) => (
-                      <svg key={j} className="w-5 h-5 text-amber-400 fill-current" viewBox="0 0 20 20">
-                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-                      </svg>
-                    ))}
+                  <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-4">
+                    <svg className="w-6 h-6 text-[#2563EB]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+                    </svg>
                   </div>
-                  <p className="text-slate-700 mb-6 italic">"{item.quote}"</p>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold text-slate-900">{item.name}</div>
-                      <div className="text-sm text-slate-500">{item.company}</div>
-                    </div>
-                    <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
-                      {item.stat}
-                    </div>
-                  </div>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">{item.title}</h3>
+                  <p className="text-slate-600">{item.desc}</p>
                 </div>
               ))}
             </div>
@@ -827,8 +824,8 @@ const SellOnLocofast = () => {
                 
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8">
                   <p className="text-amber-800 text-sm">
-                    <strong>By applying, you confirm:</strong> You can handle MOQ 1000+ meters, 
-                    commit 30+ minutes daily to calls, and respond to requirements within 2 hours.
+                    <strong>By applying, you confirm:</strong> You can handle MOQ 1000+ meters
+                    and deliver consistent quality with professional communication.
                   </p>
                 </div>
                 
