@@ -77,6 +77,7 @@ import AdminEnquiries from "./pages/admin/AdminEnquiries";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminRFQ from "./pages/admin/AdminRFQ";
 import AdminCoupons from "./pages/admin/AdminCoupons";
+import AdminReviews from "./pages/admin/AdminReviews";
 import AdminFabricSEO from "./pages/admin/AdminFabricSEO";
 import AdminBlog from "./pages/admin/AdminBlog";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -205,6 +206,7 @@ function App() {
           <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
           <Route path="/admin/rfq" element={<ProtectedRoute><AdminRFQ /></ProtectedRoute>} />
           <Route path="/admin/coupons" element={<ProtectedRoute><AdminCoupons /></ProtectedRoute>} />
+          <Route path="/admin/reviews" element={<ProtectedRoute><AdminReviews /></ProtectedRoute>} />
           <Route path="/admin/seo" element={<ProtectedRoute><AdminFabricSEO /></ProtectedRoute>} />
           <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
 

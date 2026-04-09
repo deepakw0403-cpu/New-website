@@ -25,6 +25,14 @@ const AdminSellers = () => {
     category_ids: [],
     is_active: true,
     password: "",
+    established_year: "",
+    monthly_capacity: "",
+    employee_count: "",
+    factory_size: "",
+    turnover_range: "",
+    certifications: "",
+    export_markets: "",
+    gst_number: "",
   };
   const [form, setForm] = useState(emptyForm);
 
@@ -95,6 +103,14 @@ const AdminSellers = () => {
       contact_phone: seller.contact_phone || "",
       category_ids: seller.category_ids || [],
       is_active: seller.is_active !== false,
+      established_year: seller.established_year || "",
+      monthly_capacity: seller.monthly_capacity || "",
+      employee_count: seller.employee_count || "",
+      factory_size: seller.factory_size || "",
+      turnover_range: seller.turnover_range || "",
+      certifications: (seller.certifications || []).join(", "),
+      export_markets: (seller.export_markets || []).join(", "),
+      gst_number: seller.gst_number || "",
     });
     setShowModal(true);
   };
@@ -117,11 +133,17 @@ const AdminSellers = () => {
     }
 
     try {
+      const payload = {
+        ...form,
+        established_year: form.established_year ? parseInt(form.established_year) : null,
+        certifications: form.certifications ? form.certifications.split(",").map(s => s.trim()).filter(Boolean) : [],
+        export_markets: form.export_markets ? form.export_markets.split(",").map(s => s.trim()).filter(Boolean) : [],
+      };
       if (editingSeller) {
-        await updateSeller(editingSeller.id, form);
+        await updateSeller(editingSeller.id, payload);
         toast.success("Seller updated");
       } else {
-        await createSeller(form);
+        await createSeller(payload);
         toast.success("Seller created");
       }
       setShowModal(false);
@@ -454,6 +476,45 @@ const AdminSellers = () => {
                   <p className="text-xs text-gray-500 mt-1">
                     Vendor can login at <span className="text-blue-600">/vendor/login</span> with their email and this password
                   </p>
+                </div>
+
+                {/* Additional Fields */}
+                <div className="border-t border-gray-100 pt-4">
+                  <p className="text-sm font-semibold text-gray-800 mb-3">Additional Fields</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Established Year</label>
+                      <input type="number" value={form.established_year} onChange={e => setForm({ ...form, established_year: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="2005" data-testid="seller-established-input" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">GST Number</label>
+                      <input type="text" value={form.gst_number} onChange={e => setForm({ ...form, gst_number: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="24AABCS1429B1Z5" data-testid="seller-gst-input" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Monthly Capacity</label>
+                      <input type="text" value={form.monthly_capacity} onChange={e => setForm({ ...form, monthly_capacity: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="1,20,000m/month" data-testid="seller-capacity-input" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Employee Count</label>
+                      <input type="text" value={form.employee_count} onChange={e => setForm({ ...form, employee_count: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="150-200" data-testid="seller-employees-input" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Factory Size</label>
+                      <input type="text" value={form.factory_size} onChange={e => setForm({ ...form, factory_size: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="25,000 sq ft" data-testid="seller-factory-input" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Annual Turnover</label>
+                      <input type="text" value={form.turnover_range} onChange={e => setForm({ ...form, turnover_range: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="10-50 Crore" data-testid="seller-turnover-input" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Certifications <span className="text-gray-400">(comma-separated)</span></label>
+                    <input type="text" value={form.certifications} onChange={e => setForm({ ...form, certifications: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="GOTS, OEKO-TEX, ISO 9001" data-testid="seller-certs-input" />
+                  </div>
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Export Markets <span className="text-gray-400">(comma-separated)</span></label>
+                    <input type="text" value={form.export_markets} onChange={e => setForm({ ...form, export_markets: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Bangladesh, UAE, EU" data-testid="seller-exports-input" />
+                  </div>
                 </div>
 
                 <div className="flex gap-4 pt-4">

@@ -91,19 +91,54 @@ async def get_supplier_profile(slug: str):
     
     total_orders = len(recent_orders)
     
-    # Get reviews (placeholder — no reviews collection yet)
+    # Get reviews from reviews collection
+    reviews_cursor = db.reviews.find(
+        {"seller_id": seller_id}, {"_id": 0}
+    ).sort("review_date", -1).limit(50)
+    reviews_raw = await reviews_cursor.to_list(50)
+    
     reviews = []
-    review_stats = {
-        "average": 4.5,
-        "count": 0,
-        "distribution": {"5": 0, "4": 0, "3": 0, "2": 0, "1": 0},
-        "sub_ratings": {
-            "quality": 4.6,
-            "communication": 4.3,
-            "on_time_delivery": 4.5,
-            "packaging": 4.4
+    for r in reviews_raw:
+        reviews.append({
+            "buyer_name": r.get("customer_name", ""),
+            "buyer_company": r.get("customer_company", ""),
+            "buyer_location": r.get("customer_location", ""),
+            "rating": r.get("rating", 5),
+            "text": r.get("review_text", ""),
+            "date": r.get("review_date", ""),
+            "is_verified": r.get("is_verified", True),
+        })
+    
+    # Compute review stats from actual data
+    review_count = len(reviews)
+    if review_count > 0:
+        avg_rating = round(sum(r["rating"] for r in reviews) / review_count, 1)
+        dist = {"5": 0, "4": 0, "3": 0, "2": 0, "1": 0}
+        for r in reviews:
+            dist[str(r["rating"])] = dist.get(str(r["rating"]), 0) + 1
+        review_stats = {
+            "average": avg_rating,
+            "count": review_count,
+            "distribution": dist,
+            "sub_ratings": {
+                "quality": avg_rating,
+                "communication": avg_rating,
+                "on_time_delivery": avg_rating,
+                "packaging": avg_rating,
+            }
         }
-    }
+    else:
+        review_stats = {
+            "average": 0,
+            "count": 0,
+            "distribution": {"5": 0, "4": 0, "3": 0, "2": 0, "1": 0},
+            "sub_ratings": {
+                "quality": 0,
+                "communication": 0,
+                "on_time_delivery": 0,
+                "packaging": 0,
+            }
+        }
     
     # Get similar suppliers (same state or category)
     similar = []

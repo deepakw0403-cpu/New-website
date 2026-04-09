@@ -114,6 +114,15 @@ class SellerCreate(BaseModel):
     category_ids: List[str] = []
     is_active: bool = True
     password: Optional[str] = ""  # For vendor portal login
+    # Additional fields
+    established_year: Optional[int] = None
+    monthly_capacity: Optional[str] = ""
+    employee_count: Optional[str] = ""
+    factory_size: Optional[str] = ""
+    turnover_range: Optional[str] = ""
+    certifications: Optional[List[str]] = []
+    export_markets: Optional[List[str]] = []
+    gst_number: Optional[str] = ""
 
 class SellerUpdate(BaseModel):
     name: Optional[str] = None
@@ -127,6 +136,15 @@ class SellerUpdate(BaseModel):
     category_ids: Optional[List[str]] = None
     is_active: Optional[bool] = None
     password: Optional[str] = None
+    # Additional fields
+    established_year: Optional[int] = None
+    monthly_capacity: Optional[str] = None
+    employee_count: Optional[str] = None
+    factory_size: Optional[str] = None
+    turnover_range: Optional[str] = None
+    certifications: Optional[List[str]] = None
+    export_markets: Optional[List[str]] = None
+    gst_number: Optional[str] = None
 
 class Seller(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -144,6 +162,15 @@ class Seller(BaseModel):
     category_names: List[str] = []
     is_active: bool = True
     created_at: str
+    # Additional fields
+    established_year: Optional[int] = None
+    monthly_capacity: str = ""
+    employee_count: str = ""
+    factory_size: str = ""
+    turnover_range: str = ""
+    certifications: List[str] = []
+    export_markets: List[str] = []
+    gst_number: str = ""
 
 class FabricCreate(BaseModel):
     name: str
@@ -590,7 +617,15 @@ async def create_seller(data: SellerCreate, admin=Depends(get_current_admin)):
         'category_ids': data.category_ids or [],
         'is_active': data.is_active,
         'password_hash': hashed_password,
-        'created_at': datetime.now(timezone.utc).isoformat()
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'established_year': data.established_year,
+        'monthly_capacity': data.monthly_capacity or "",
+        'employee_count': data.employee_count or "",
+        'factory_size': data.factory_size or "",
+        'turnover_range': data.turnover_range or "",
+        'certifications': data.certifications or [],
+        'export_markets': data.export_markets or [],
+        'gst_number': data.gst_number or "",
     }
     await db.sellers.insert_one(seller_doc)
     
@@ -1467,6 +1502,58 @@ async def delete_enquiry(enquiry_id: str, admin=Depends(get_current_admin)):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail='Enquiry not found')
     return {'message': 'Enquiry deleted'}
+
+# ==================== REVIEWS CMS ====================
+
+@api_router.post("/reviews")
+async def create_review(data: dict, admin=Depends(get_current_admin)):
+    """Admin creates a review for a seller (from ERP data)"""
+    required = ['seller_id', 'customer_name', 'rating']
+    for field in required:
+        if not data.get(field):
+            raise HTTPException(status_code=400, detail=f'{field} is required')
+
+    rating = data['rating']
+    if not isinstance(rating, (int, float)) or rating < 1 or rating > 5:
+        raise HTTPException(status_code=400, detail='Rating must be between 1 and 5')
+
+    seller = await db.sellers.find_one({'id': data['seller_id']}, {'_id': 0, 'company_name': 1})
+    if not seller:
+        raise HTTPException(status_code=404, detail='Seller not found')
+
+    review = {
+        'id': str(uuid.uuid4())[:8],
+        'seller_id': data['seller_id'],
+        'seller_name': seller.get('company_name', ''),
+        'customer_name': data['customer_name'],
+        'customer_company': data.get('customer_company', ''),
+        'customer_location': data.get('customer_location', ''),
+        'rating': int(rating),
+        'review_text': data.get('review_text', ''),
+        'review_date': data.get('review_date', datetime.now(timezone.utc).strftime('%Y-%m-%d')),
+        'is_verified': data.get('is_verified', True),
+        'created_at': datetime.now(timezone.utc).isoformat(),
+    }
+    await db.reviews.insert_one(review)
+    review.pop('_id', None)
+    return review
+
+@api_router.get("/reviews")
+async def get_reviews(seller_id: str = Query(None), admin=Depends(get_current_admin)):
+    """Get all reviews, optionally filtered by seller_id"""
+    query = {}
+    if seller_id:
+        query['seller_id'] = seller_id
+    reviews = await db.reviews.find(query, {'_id': 0}).sort('created_at', -1).to_list(500)
+    return reviews
+
+@api_router.delete("/reviews/{review_id}")
+async def delete_review(review_id: str, admin=Depends(get_current_admin)):
+    """Delete a review"""
+    result = await db.reviews.delete_one({'id': review_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail='Review not found')
+    return {'message': 'Review deleted'}
 
 # ==================== GST VERIFICATION ====================
 

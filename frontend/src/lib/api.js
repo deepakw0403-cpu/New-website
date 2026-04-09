@@ -84,6 +84,11 @@ export const createSeller = (data) => api.post("/sellers", data);
 export const updateSeller = (id, data) => api.put(`/sellers/${id}`, data);
 export const deleteSeller = (id) => api.delete(`/sellers/${id}`);
 
+// Reviews
+export const getReviews = (sellerId) => api.get("/reviews", { params: sellerId ? { seller_id: sellerId } : {} });
+export const createReview = (data) => api.post("/reviews", data);
+export const deleteReview = (id) => api.delete(`/reviews/${id}`);
+
 // Fabrics
 export const getFabrics = (params) => api.get("/fabrics", { params });
 export const getFabricsCount = (params) => api.get("/fabrics/count", { params });
