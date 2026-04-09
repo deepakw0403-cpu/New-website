@@ -33,6 +33,11 @@ Build a CMS-driven fabric catalog website for Locofast - a B2B fabric sourcing p
 
 ## What's Been Implemented
 
+### Apr 9, 2026 - Supplier Profile Pages (Full Feature)
+- **Backend API**: `GET /api/suppliers/{slug}/profile` and `GET /api/suppliers/directory`
+- **Frontend**: Rich tabbed profile at `/suppliers/:category/:city/:slug` with Breadcrumbs, Hero, Metrics, 5 Tabs (Overview, Catalog, Inventory, Reviews, Orders & Terms), Sidebar, SEO JSON-LD
+- **Status**: COMPLETED (26/26 tests pass)
+
 ### Apr 7, 2026 - Supplier Page Content Enrichment (from About Us HTML)
 - **Hero stats**: Added 2,000+ Brands, 50M+ Metres, 95% OTIF, 500+ Seller Partners
 - **Before vs After section**: New visual comparison showing middleman chain (Broker +8%, Trading House +10%) vs. direct Locofast marketplace
