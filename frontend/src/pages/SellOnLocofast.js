@@ -179,9 +179,7 @@ const SellOnLocofast = () => {
                   <ArrowRight size={20} />
                 </a>
                 <a 
-                  href="https://wa.me/918920392418?text=Hi, I want to discuss supplier onboarding for Locofast"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="mailto:mail@locofast.com?subject=Supplier Onboarding Inquiry"
                   className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all"
                   data-testid="hero-cta-talk"
                 >
