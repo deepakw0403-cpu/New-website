@@ -736,7 +736,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                 <div className="flex flex-col gap-3">
                   {actions.canBookBulk && (
                     <button
-                      onClick={() => openOrderModal('bulk')}
+                      onClick={() => navigate(`/checkout/?fabric_id=${fabric.id}&type=bulk&qty=${fabric.moq || 100}`)}
                       className="w-full bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors inline-flex items-center justify-center gap-2"
                       data-testid="book-bulk-btn"
                     >
@@ -746,7 +746,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   )}
                   {actions.canBookSample && (
                     <button
-                      onClick={() => openOrderModal('sample')}
+                      onClick={() => navigate(`/checkout/?fabric_id=${fabric.id}&type=sample&qty=1`)}
                       className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-2"
                       data-testid="book-sample-btn"
                     >
