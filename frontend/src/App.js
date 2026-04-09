@@ -42,6 +42,7 @@ import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import SellOnLocofast from "./pages/SellOnLocofast";
 import RFQPage from "./pages/RFQPage";
 import SupplierDetailPage from "./pages/SupplierDetailPage";
+import SupplierProfilePage from "./pages/SupplierProfilePage";
 
 // Vendor pages
 import VendorLogin from "./pages/vendor/VendorLogin";
@@ -133,6 +134,7 @@ function App() {
           <Route path="/terms" element={<><Navbar /><TermsPage /><Footer /></>} />
           <Route path="/customers" element={<><Navbar /><CustomersPage /><Footer /></>} />
           <Route path="/suppliers" element={<SellOnLocofast />} />
+          <Route path="/suppliers/:category/:city/:slug/*" element={<SupplierProfilePage />} />
           <Route path="/suppliers/:category/:state/*" element={<SupplierDetailPage />} />
           <Route path="/sell" element={<SellOnLocofast />} />
           <Route path="/media" element={<><Navbar /><MediaPage /><Footer /></>} />

@@ -31,6 +31,7 @@ import vendor_router
 import coupon_router
 import cloudinary_router
 import rfq_router
+import supplier_profile_router
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -1918,6 +1919,7 @@ app.include_router(vendor_router.router)
 app.include_router(coupon_router.router, prefix="/api")
 app.include_router(cloudinary_router.router)
 app.include_router(rfq_router.router)
+app.include_router(supplier_profile_router.router)
 
 # Serve uploaded files
 app.mount("/api/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
