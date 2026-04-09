@@ -158,7 +158,7 @@ const SellOnLocofast = () => {
                 Scaling B2B Fabric Sourcing in India
               </div>
               
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 text-white">
                 Stop Chasing Random Inquiries.
                 <span className="block text-[#60a5fa] mt-2">Start Closing Real Orders.</span>
               </h1>
