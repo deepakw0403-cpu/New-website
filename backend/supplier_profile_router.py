@@ -1,10 +1,11 @@
 """
 Supplier Profile API — Full profile data for supplier storefront pages.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import re
+import uuid as _uuid
 from datetime import datetime, timezone
 
 router = APIRouter(prefix="/api/suppliers", tags=["supplier-profiles"])
@@ -249,3 +250,24 @@ async def get_supplier_directory():
         })
     
     return suppliers
+
+
+
+@router.post("/{slug}/enquiry")
+async def create_supplier_enquiry(slug: str, body: dict = Body(...)):
+    """Save a supplier-specific enquiry from the profile page."""
+    enquiry = {
+        "id": str(_uuid.uuid4())[:8],
+        "supplier_slug": slug,
+        "name": body.get("name", ""),
+        "company_name": body.get("company_name", ""),
+        "country": body.get("country", "India"),
+        "product_interest": body.get("product_interest", ""),
+        "quantity": body.get("quantity", ""),
+        "message": body.get("message", ""),
+        "source": "supplier_profile",
+        "status": "new",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.enquiries.insert_one(enquiry)
+    return {"success": True, "message": "Enquiry sent successfully"}

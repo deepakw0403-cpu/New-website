@@ -156,5 +156,38 @@ class TestSupplierProfileAPI:
             assert field in stats, f"Stats should have '{field}' field"
 
 
+class TestSupplierEnquiryAPI:
+    """Tests for supplier enquiry endpoint"""
+
+    def test_create_enquiry_success(self):
+        """Test POST /api/suppliers/{slug}/enquiry saves enquiry successfully"""
+        payload = {
+            "name": "Test User",
+            "company_name": "Test Company",
+            "country": "India",
+            "product_interest": "Cotton",
+            "quantity": "500 meters",
+            "message": "Testing enquiry form"
+        }
+        response = requests.post(f"{BASE_URL}/api/suppliers/pali-mills/enquiry", json=payload)
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        
+        data = response.json()
+        assert data["success"] == True, "Response should have success=True"
+        assert "message" in data, "Response should have 'message' key"
+
+    def test_create_enquiry_minimal_fields(self):
+        """Test POST /api/suppliers/{slug}/enquiry with minimal fields"""
+        payload = {
+            "name": "Minimal User",
+            "company_name": "Minimal Co"
+        }
+        response = requests.post(f"{BASE_URL}/api/suppliers/test-fabrics-co/enquiry", json=payload)
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        
+        data = response.json()
+        assert data["success"] == True, "Response should have success=True"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
