@@ -15,7 +15,7 @@ const FABRIC_TYPES = [
 
 export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
   const [form, setForm] = useState({
-    name: "", phone: "", gst_number: "", company_name: "", email: "", fabric_type: ""
+    name: "", phone: "", country_code: "+91", gst_number: "", company_name: "", email: "", fabric_type: ""
   });
   const [submitting, setSubmitting] = useState(false);
   const [gstVerifying, setGstVerifying] = useState(false);
@@ -31,6 +31,7 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          phone: `${form.country_code}${form.phone}`,
           fabric_type: fabricUrl ? "" : form.fabric_type,
           fabric_url: fabricUrl || "",
           fabric_name: fabricName || "",
@@ -108,8 +109,13 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
               <div className="flex">
-                <span className="inline-flex items-center px-3 bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg text-sm text-gray-500">+91</span>
-                <input type="tel" required value={form.phone} onChange={(e) => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="Phone number" pattern="[0-9]{10}" className="w-full px-3 py-2.5 border border-gray-300 rounded-r-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-phone" />
+                <select value={form.country_code} onChange={(e) => setForm(p => ({ ...p, country_code: e.target.value }))} className="px-2 py-2.5 bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" data-testid="rfq-country-code">
+                  <option value="+91">+91 IN</option>
+                  <option value="+880">+880 BD</option>
+                  <option value="+94">+94 LK</option>
+                  <option value="+84">+84 VN</option>
+                </select>
+                <input type="tel" required value={form.phone} onChange={(e) => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="Phone number" className="w-full px-3 py-2.5 border border-gray-300 rounded-r-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-phone" />
               </div>
             </div>
             <div>
