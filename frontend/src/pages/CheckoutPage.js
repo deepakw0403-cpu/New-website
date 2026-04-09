@@ -237,7 +237,7 @@ const CheckoutPage = () => {
               navigate(`/order-confirmation/${orderInfo.order_number}`);
             }
           } catch (err) {
-            setPaymentError("Payment verification failed. Please contact support.");
+            setPaymentError({ message: "Payment verification failed. Please contact support at mail@locofast.com", code: "VERIFY_FAILED" });
             toast.error("Payment verification failed");
           }
         },
@@ -263,7 +263,31 @@ const CheckoutPage = () => {
 
       const razorpay = new window.Razorpay(options);
       razorpay.on('payment.failed', function (response) {
-        setPaymentError(response.error.description || "Payment failed");
+        const error = response.error || {};
+        const errorCode = error.code || 'UNKNOWN';
+        const errorSource = error.source || '';
+        const errorStep = error.step || '';
+        const errorReason = error.reason || '';
+        const errorDesc = error.description || 'Payment failed';
+        
+        // Build detailed error message
+        let userMessage = errorDesc;
+        if (errorReason && errorReason !== errorDesc) {
+          userMessage = `${errorDesc} (${errorReason.replace(/_/g, ' ')})`;
+        }
+        
+        // Log full details for debugging
+        console.error('Payment failed:', { code: errorCode, source: errorSource, step: errorStep, reason: errorReason, description: errorDesc });
+        
+        setPaymentError({
+          message: userMessage,
+          code: errorCode,
+          source: errorSource,
+          reason: errorReason,
+          step: errorStep,
+          paymentId: error.metadata?.payment_id || '',
+          orderId: error.metadata?.order_id || ''
+        });
         setSubmitting(false);
       });
       razorpay.open();
@@ -275,7 +299,7 @@ const CheckoutPage = () => {
         || err.response?.data?.message 
         || err.message 
         || "Failed to initiate payment";
-      setPaymentError(errorMessage);
+      setPaymentError({ message: errorMessage, code: "INIT_FAILED" });
       toast.error(errorMessage);
       setSubmitting(false);
     }
@@ -569,11 +593,39 @@ const CheckoutPage = () => {
 
                 {/* Payment Error */}
                 {paymentError && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                    <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
-                    <div>
-                      <p className="font-medium text-red-800">Payment Failed</p>
-                      <p className="text-sm text-red-600">{paymentError}</p>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4" data-testid="payment-error">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
+                      <div className="flex-1">
+                        <p className="font-medium text-red-800">Payment Failed</p>
+                        <p className="text-sm text-red-600 mt-1">{typeof paymentError === 'string' ? paymentError : paymentError.message}</p>
+                        
+                        {typeof paymentError === 'object' && (paymentError.code || paymentError.source) && (
+                          <div className="mt-2 text-xs text-red-500 space-y-0.5">
+                            {paymentError.code && paymentError.code !== 'UNKNOWN' && (
+                              <p>Error code: <span className="font-mono">{paymentError.code}</span></p>
+                            )}
+                            {paymentError.source && (
+                              <p>Source: {paymentError.source}</p>
+                            )}
+                            {paymentError.step && (
+                              <p>Step: {paymentError.step.replace(/_/g, ' ')}</p>
+                            )}
+                            {paymentError.paymentId && (
+                              <p>Payment ID: <span className="font-mono">{paymentError.paymentId}</span></p>
+                            )}
+                          </div>
+                        )}
+                        
+                        <button
+                          type="button"
+                          onClick={() => { setPaymentError(null); setSubmitting(false); }}
+                          className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-red-700 hover:text-red-800 underline"
+                          data-testid="retry-payment-btn"
+                        >
+                          Dismiss & Try Again
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
