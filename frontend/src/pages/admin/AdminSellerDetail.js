@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Pencil, X, Upload, Check, MapPin, Building2, Package, Search, Filter, Trash2, Plus, ToggleLeft, ToggleRight } from "lucide-react";
+import { ArrowLeft, Pencil, X, Upload, Check, Package, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { getSeller, updateSeller, getCategories, getSellers, getFabrics, getArticles, uploadImage, approveFabric, rejectFabric, updateFabric, deleteFabric, uploadToCloudinary, uploadVideoToCloudinary } from "../../lib/api";
+import { getSeller, updateSeller, getCategories, getFabrics, uploadImage, approveFabric, rejectFabric, deleteFabric } from "../../lib/api";
 
 const AdminSellerDetail = () => {
   const { id } = useParams();
