@@ -1,20 +1,8 @@
-# NOTE: shop.locofast.com is a staging site - block all crawlers
-# Remove this block when domain switches to locofast.com
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /admin/
+Disallow: /vendor/
+Disallow: /checkout/
+Disallow: /api/
 
-# Sitemaps (will be enabled when site goes live on locofast.com)
-# Sitemap: https://locofast.com/api/sitemap.xml
-
-# Disallow admin and vendor portals
-# Disallow: /admin/
-# Disallow: /admin/*
-# Disallow: /vendor/
-# Disallow: /vendor/*
-
-# Allow CSS and JS
-# Allow: /static/css/
-# Allow: /static/js/
-
-# Crawl delay (optional, be nice to crawlers)
-# Crawl-delay: 1
+Sitemap: https://locofast.com/sitemap.xml
