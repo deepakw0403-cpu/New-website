@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, X, Upload, Building2, MapPin, Check, ToggleLeft, ToggleRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Pencil, Trash2, X, Upload, Building2, MapPin, Check, ToggleLeft, ToggleRight, Eye } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { getSellers, getCategories, createSeller, updateSeller, deleteSeller, uploadImage } from "../../lib/api";
 
 const AdminSellers = () => {
+  const navigate = useNavigate();
   const [sellers, setSellers] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -267,20 +269,26 @@ const AdminSellers = () => {
                     {seller.is_active !== false ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
                   </button>
                   <button
+                    onClick={() => navigate(`/admin/sellers/${seller.id}`)}
+                    className="flex-1 btn-primary text-sm py-2 inline-flex items-center justify-center gap-2"
+                    data-testid={`view-seller-${seller.id}`}
+                  >
+                    <Eye size={14} />
+                    View
+                  </button>
+                  <button
                     onClick={() => openEditModal(seller)}
-                    className="flex-1 btn-secondary text-sm py-2 inline-flex items-center justify-center gap-2"
+                    className="btn-secondary text-sm py-2 px-3 inline-flex items-center justify-center gap-1"
                     data-testid={`edit-seller-${seller.id}`}
                   >
                     <Pencil size={14} />
-                    Edit
                   </button>
                   <button
                     onClick={() => handleDelete(seller)}
-                    className="flex-1 btn-secondary text-sm py-2 inline-flex items-center justify-center gap-2 hover:border-red-500 hover:text-red-500"
+                    className="btn-secondary text-sm py-2 px-3 inline-flex items-center justify-center gap-1 hover:border-red-500 hover:text-red-500"
                     data-testid={`delete-seller-${seller.id}`}
                   >
                     <Trash2 size={14} />
-                    Delete
                   </button>
                 </div>
               </div>

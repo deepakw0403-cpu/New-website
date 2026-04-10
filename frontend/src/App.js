@@ -80,6 +80,7 @@ import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminReviews from "./pages/admin/AdminReviews";
 import AdminFabricSEO from "./pages/admin/AdminFabricSEO";
 import AdminBlog from "./pages/admin/AdminBlog";
+import AdminSellerDetail from "./pages/admin/AdminSellerDetail";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // SEO Landing Pages
@@ -200,6 +201,7 @@ function App() {
           <Route path="/admin/fabrics" element={<ProtectedRoute><AdminFabrics /></ProtectedRoute>} />
           <Route path="/admin/categories" element={<ProtectedRoute><AdminCategories /></ProtectedRoute>} />
           <Route path="/admin/sellers" element={<ProtectedRoute><AdminSellers /></ProtectedRoute>} />
+          <Route path="/admin/sellers/:id" element={<ProtectedRoute><AdminSellerDetail /></ProtectedRoute>} />
           <Route path="/admin/collections" element={<ProtectedRoute><AdminCollections /></ProtectedRoute>} />
           <Route path="/admin/articles" element={<ProtectedRoute><AdminArticles /></ProtectedRoute>} />
           <Route path="/admin/enquiries" element={<ProtectedRoute><AdminEnquiries /></ProtectedRoute>} />
