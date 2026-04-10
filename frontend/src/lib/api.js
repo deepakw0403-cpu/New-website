@@ -8,12 +8,15 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-  // Check for vendor token first (for /vendor/* routes)
+  // Check for vendor token first (for /vendor/* and /cloudinary/* routes when vendor is logged in)
+  const vendorToken = localStorage.getItem("vendor_token");
   if (config.url?.startsWith('/vendor') && !config.url?.includes('/vendor/login')) {
-    const vendorToken = localStorage.getItem("vendor_token");
     if (vendorToken) {
       config.headers.Authorization = `Bearer ${vendorToken}`;
     }
+  } else if (config.url?.includes('/cloudinary') && vendorToken && !localStorage.getItem("locofast_token")) {
+    // Use vendor token for cloudinary uploads when only vendor is logged in
+    config.headers.Authorization = `Bearer ${vendorToken}`;
   } else {
     // Admin token for other protected routes
     const token = localStorage.getItem("locofast_token");

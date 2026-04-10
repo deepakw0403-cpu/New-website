@@ -49,37 +49,77 @@ class FabricCreate(BaseModel):
     fabric_code: str = ""
     category_id: str = ""
     description: str = ""
-    composition: str = ""
+    composition: object = ""  # Can be string (legacy) or list of {material, percentage}
     gsm: Optional[int] = None
     ounce: str = ""
     width: Optional[str] = ""
     finish: str = ""
-    tags: str = ""
+    tags: object = ""  # Can be string or list
     images: List[str] = []
+    videos: List[str] = []
     is_bookable: bool = False
     quantity_available: int = 0
     rate_per_meter: float = 0
     sample_price: Optional[float] = None
     moq: str = ""
     dispatch_timeline: str = ""
+    # Comprehensive fields
+    fabric_type: str = "woven"
+    pattern: str = "Solid"
+    color: str = ""
+    warp_count: str = ""
+    weft_count: str = ""
+    yarn_count: str = ""
+    denier: Optional[int] = None
+    weft_shrinkage: Optional[float] = None
+    stretch_percentage: Optional[float] = None
+    weight_unit: str = "gsm"
+    stock_type: str = "ready_stock"
+    starting_price: str = ""
+    availability: List[str] = []
+    seller_sku: str = ""
+    article_id: str = ""
+    sample_delivery_days: str = ""
+    bulk_delivery_days: str = ""
+    pricing_tiers: List[dict] = []
 
 class FabricUpdate(BaseModel):
     name: Optional[str] = None
     fabric_code: Optional[str] = None
     description: Optional[str] = None
-    composition: Optional[str] = None
+    composition: Optional[object] = None
     gsm: Optional[int] = None
     ounce: Optional[str] = None
     width: Optional[str] = None
     finish: Optional[str] = None
-    tags: Optional[str] = None
+    tags: Optional[object] = None
     images: Optional[List[str]] = None
+    videos: Optional[List[str]] = None
     is_bookable: Optional[bool] = None
     quantity_available: Optional[int] = None
     rate_per_meter: Optional[float] = None
     sample_price: Optional[float] = None
     moq: Optional[str] = None
     dispatch_timeline: Optional[str] = None
+    # Comprehensive fields
+    fabric_type: Optional[str] = None
+    pattern: Optional[str] = None
+    color: Optional[str] = None
+    warp_count: Optional[str] = None
+    weft_count: Optional[str] = None
+    yarn_count: Optional[str] = None
+    denier: Optional[int] = None
+    weft_shrinkage: Optional[float] = None
+    stretch_percentage: Optional[float] = None
+    weight_unit: Optional[str] = None
+    stock_type: Optional[str] = None
+    starting_price: Optional[str] = None
+    availability: Optional[List[str]] = None
+    seller_sku: Optional[str] = None
+    article_id: Optional[str] = None
+    sample_delivery_days: Optional[str] = None
+    bulk_delivery_days: Optional[str] = None
+    pricing_tiers: Optional[List[dict]] = None
 
 # ==================== AUTH HELPERS ====================
 
@@ -206,19 +246,32 @@ async def create_vendor_fabric(data: FabricCreate, vendor=Depends(get_current_ve
         'finish': data.finish,
         'tags': data.tags,
         'images': data.images,
+        'videos': data.videos,
         'is_bookable': data.is_bookable,
         'quantity_available': data.quantity_available,
         'rate_per_meter': data.rate_per_meter,
         'sample_price': data.sample_price,
         'moq': data.moq,
         'dispatch_timeline': data.dispatch_timeline,
-        'status': 'pending',  # pending, approved, rejected
-        'fabric_type': 'woven',
-        'pattern': 'Solid',
-        'color': '',
-        'availability': [],
-        'videos': [],
-        'pricing_tiers': [],
+        'status': 'pending',
+        'fabric_type': data.fabric_type,
+        'pattern': data.pattern,
+        'color': data.color,
+        'warp_count': data.warp_count,
+        'weft_count': data.weft_count,
+        'yarn_count': data.yarn_count,
+        'denier': data.denier,
+        'weft_shrinkage': data.weft_shrinkage,
+        'stretch_percentage': data.stretch_percentage,
+        'weight_unit': data.weight_unit,
+        'stock_type': data.stock_type,
+        'starting_price': data.starting_price,
+        'availability': data.availability,
+        'seller_sku': data.seller_sku,
+        'article_id': data.article_id,
+        'sample_delivery_days': data.sample_delivery_days,
+        'bulk_delivery_days': data.bulk_delivery_days,
+        'pricing_tiers': data.pricing_tiers,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     

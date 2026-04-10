@@ -53,9 +53,12 @@ def init_cloudinary():
 ALLOWED_FOLDERS = ("fabrics/", "sellers/", "categories/", "collections/", "uploads/")
 
 async def verify_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Verify admin token for protected endpoints"""
+    """Verify admin or vendor token for protected endpoints (uploads)"""
     try:
         payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        # Accept vendor tokens for upload access
+        if payload.get('type') == 'vendor':
+            return {'id': payload.get('seller_id'), 'type': 'vendor'}
         admin_id = payload.get('sub')
         if db is not None:
             admin = await db.admins.find_one({'id': admin_id}, {'_id': 0})
