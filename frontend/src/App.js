@@ -127,7 +127,7 @@ function App() {
           <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/inventory" element={<Navigate to="/fabrics" replace />} />
           <Route path="/collections/:id" element={<CollectionDetailPage />} />
-          <Route path="/about" element={<><Navbar /><AboutPage /><Footer /></>} />
+          <Route path="/about-us" element={<><Navbar /><AboutPage /><Footer /></>} />
           <Route path="/how-it-works" element={<><Navbar /><HowItWorksPage /><Footer /></>} />
           <Route path="/contact" element={<><Navbar /><ContactPage /><Footer /></>} />
           <Route path="/faq" element={<><Navbar /><FAQPage /><Footer /></>} />

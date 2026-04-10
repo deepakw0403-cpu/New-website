@@ -408,7 +408,7 @@ const HomePage = () => {
                 </div>
               </div>
               <Link
-                to="/about"
+                to="/about-us"
                 className="inline-flex items-center gap-2 bg-[#2563EB] text-white px-8 py-4 rounded-lg font-medium mt-10 hover:bg-blue-600 transition-colors"
               >
                 Learn More About Us <ArrowRight size={18} />
