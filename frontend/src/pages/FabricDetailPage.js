@@ -62,11 +62,11 @@ const FabricDetailPage = () => {
 
   const actions = getAvailableActions();
 
-  // Helper function to get unit based on fabric type
+  // Helper function to get unit based on category
   const getUnit = () => {
     if (!fabric) return { singular: 'meter', plural: 'meters', short: 'm', priceLabel: '/m' };
-    // Knitted fabrics use kg for bulk
-    if (fabric.fabric_type === 'knitted') {
+    // Knits category uses kg
+    if (fabric.category_id === 'cat-knits') {
       return { singular: 'kg', plural: 'kg', short: 'kg', priceLabel: '/kg' };
     }
     return { singular: 'meter', plural: 'meters', short: 'm', priceLabel: '/m' };

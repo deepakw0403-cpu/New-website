@@ -82,6 +82,11 @@ const VendorInventory = () => {
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [form, setForm] = useState(emptyForm);
 
+  const isKnitsCategory = (catId) => catId === "cat-knits";
+  const unit = isKnitsCategory(form.category_id) ? "kg" : "m";
+  const unitLabel = isKnitsCategory(form.category_id) ? "kilograms" : "meters";
+  const getFabricUnit = (fabric) => isKnitsCategory(fabric.category_id) ? "kg" : "m";
+
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
@@ -331,9 +336,9 @@ const VendorInventory = () => {
                     </td>
                     <td className="px-4 py-4 text-gray-600">{fabric.category_name || "-"}</td>
                     <td className="px-4 py-4 text-gray-600">{fabric.gsm ? `${fabric.gsm} GSM` : fabric.ounce ? `${fabric.ounce} oz` : "-"}</td>
-                    <td className="px-4 py-4"><span className={`font-medium ${fabric.quantity_available > 0 ? "text-emerald-600" : "text-gray-400"}`}>{fabric.quantity_available || 0}m</span></td>
-                    <td className="px-4 py-4">₹{fabric.rate_per_meter?.toLocaleString() || 0}/m</td>
-                    <td className="px-4 py-4">{fabric.sample_price ? `₹${fabric.sample_price.toLocaleString()}/m` : "-"}</td>
+                    <td className="px-4 py-4"><span className={`font-medium ${fabric.quantity_available > 0 ? "text-emerald-600" : "text-gray-400"}`}>{fabric.quantity_available || 0}{getFabricUnit(fabric)}</span></td>
+                    <td className="px-4 py-4">₹{fabric.rate_per_meter?.toLocaleString() || 0}/{getFabricUnit(fabric)}</td>
+                    <td className="px-4 py-4">{fabric.sample_price ? `₹${fabric.sample_price.toLocaleString()}/${getFabricUnit(fabric)}` : "-"}</td>
                     <td className="px-4 py-4">
                       <span className={`px-2 py-1 text-xs rounded-full ${fabric.status === "approved" ? "bg-emerald-100 text-emerald-700" : fabric.status === "pending" ? "bg-yellow-100 text-yellow-700" : fabric.status === "rejected" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"}`}>
                         {fabric.status === "approved" ? "Live" : fabric.status === "pending" ? "Pending Approval" : fabric.status === "rejected" ? "Rejected" : "Draft"}
@@ -595,19 +600,19 @@ const VendorInventory = () => {
 
                   <div className="grid grid-cols-3 gap-4 mb-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Stock (meters)</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Stock ({unitLabel})</label>
                       <input type="number" value={form.quantity_available} onChange={e => setForm({ ...form, quantity_available: e.target.value })}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg" placeholder="1000" data-testid="stock-input" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Base Rate (₹/m)</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Base Rate (₹/{unit})</label>
                       <input type="number" step="0.01" value={form.rate_per_meter} onChange={e => setForm({ ...form, rate_per_meter: e.target.value })}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg" placeholder="150" data-testid="rate-input" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">MOQ</label>
                       <input type="text" value={form.moq} onChange={e => setForm({ ...form, moq: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg" placeholder="500 meters" />
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg" placeholder={`500 ${unitLabel}`} />
                     </div>
                   </div>
 
@@ -633,12 +638,12 @@ const VendorInventory = () => {
 
                   {/* Sample Price */}
                   <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
-                    <label className="block text-sm font-medium text-blue-800 mb-2">Sample Price (1-5 meters)</label>
+                    <label className="block text-sm font-medium text-blue-800 mb-2">Sample Price (1-5 {unitLabel})</label>
                     <div className="flex items-center gap-2">
                       <span className="text-gray-500">₹</span>
                       <input type="number" step="0.01" value={form.sample_price} onChange={e => setForm({ ...form, sample_price: e.target.value })}
                         className="w-32 px-3 py-2 border border-blue-300 rounded-lg bg-white text-sm" placeholder="200" data-testid="sample-price-input" />
-                      <span className="text-gray-500">/m</span>
+                      <span className="text-gray-500">/{unit}</span>
                     </div>
                   </div>
 
@@ -654,9 +659,9 @@ const VendorInventory = () => {
                           <input type="number" value={tier.min_qty} onChange={e => updatePricingTier(i, 'min_qty', e.target.value)} className="w-20 px-2 py-1.5 border border-gray-200 rounded text-sm" />
                           <span className="text-gray-400">to</span>
                           <input type="number" value={tier.max_qty} onChange={e => updatePricingTier(i, 'max_qty', e.target.value)} className="w-20 px-2 py-1.5 border border-gray-200 rounded text-sm" />
-                          <span className="text-gray-500">m @</span>
+                          <span className="text-gray-500">{unit} @</span>
                           <span className="text-gray-500">₹</span>
-                          <input type="number" step="0.01" value={tier.price} onChange={e => updatePricingTier(i, 'price', e.target.value)} className="w-24 px-2 py-1.5 border border-gray-200 rounded text-sm" placeholder="₹/m" />
+                          <input type="number" step="0.01" value={tier.price} onChange={e => updatePricingTier(i, 'price', e.target.value)} className="w-24 px-2 py-1.5 border border-gray-200 rounded text-sm" placeholder={`₹/${unit}`} />
                           <button type="button" onClick={() => removePricingTier(i)} className="p-1 text-gray-400 hover:text-red-500"><X size={14} /></button>
                         </div>
                       ))}

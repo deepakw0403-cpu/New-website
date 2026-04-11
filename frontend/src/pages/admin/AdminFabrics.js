@@ -25,6 +25,12 @@ const AdminFabrics = () => {
   const [filterAvailability, setFilterAvailability] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
+  // Unit helper: Knits category uses kg, everything else uses meters
+  const isKnitsCategory = (catId) => catId === "cat-knits";
+  const getFormUnit = () => isKnitsCategory(form?.category_id) ? "kg" : "m";
+  const getFormUnitLabel = () => isKnitsCategory(form?.category_id) ? "kilograms" : "meters";
+  const getFabricUnit = (fabric) => isKnitsCategory(fabric?.category_id) ? "kg" : "m";
+
   const emptyComposition = [
     { material: "", percentage: 0 },
     { material: "", percentage: 0 },
@@ -1149,7 +1155,7 @@ const AdminFabrics = () => {
                       value={form.moq}
                       onChange={(e) => setForm({ ...form, moq: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-200 rounded"
-                      placeholder="e.g., 500 meters"
+                      placeholder={`e.g., 500 ${getFormUnitLabel()}`}
                       data-testid="fabric-moq-input"
                     />
                   </div>
@@ -1160,7 +1166,7 @@ const AdminFabrics = () => {
                       value={form.starting_price}
                       onChange={(e) => setForm({ ...form, starting_price: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-200 rounded"
-                      placeholder="e.g., ₹150/meter or On enquiry"
+                      placeholder={`e.g., ₹150/${getFormUnit()} or On enquiry`}
                       data-testid="fabric-starting-price-input"
                     />
                   </div>
@@ -1188,7 +1194,7 @@ const AdminFabrics = () => {
                   {/* Basic Inventory Info */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Quantity Available (meters)</label>
+                      <label className="block text-sm font-medium mb-2">Quantity Available ({getFormUnitLabel()})</label>
                       <input
                         type="number"
                         value={form.quantity_available}
@@ -1279,7 +1285,7 @@ const AdminFabrics = () => {
                         <span className="text-gray-500">/m</span>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Customers can order 1-5 meters at this sample rate</p>
+                    <p className="text-xs text-gray-500 mt-1">Customers can order 1-5 {getFormUnitLabel()} at this sample rate</p>
                   </div>
 
                   {/* Bulk Pricing Tiers */}
@@ -1314,7 +1320,7 @@ const AdminFabrics = () => {
                             className="w-20 px-2 py-1.5 border border-gray-200 rounded text-sm"
                             placeholder="Max"
                           />
-                          <span className="text-gray-500">meters @</span>
+                          <span className="text-gray-500">{getFormUnit()} @</span>
                           <div className="flex items-center gap-1">
                             <span className="text-gray-500">₹</span>
                             <input
