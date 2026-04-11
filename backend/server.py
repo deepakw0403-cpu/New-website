@@ -1484,16 +1484,15 @@ async def create_enquiry(data: EnquiryCreate):
     # Push supplier queries to campaigns.locofast.com
     try:
         import httpx as httpx_client
-        campaign_name = 'locofast_supplier_signup' if enquiry_doc.get('enquiry_type') == 'supplier_signup' else 'locofast_enquiry'
+        campaign_name = 'Vendor Signup' if enquiry_doc.get('enquiry_type') == 'supplier_signup' else 'Website RFQ'
         async with httpx_client.AsyncClient(timeout=10) as client:
             await client.post('https://campaigns.locofast.com/api/leads', json={
                 'name': enquiry_doc.get('name', ''),
                 'company': enquiry_doc.get('company', ''),
                 'email': enquiry_doc.get('email', ''),
                 'phone': enquiry_doc.get('phone', ''),
+                'company_type': 'Others',
                 'message': enquiry_doc.get('message', ''),
-                'source': enquiry_doc.get('source', 'website'),
-                'enquiry_type': enquiry_doc.get('enquiry_type', 'general'),
                 'campaign': campaign_name,
             })
             logging.info(f"Enquiry pushed to campaigns admin: {enquiry_doc.get('name', '')} ({campaign_name})")
@@ -1731,7 +1730,7 @@ async def create_rfq_lead(data: dict):
                     'address': gst_address,
                     'fabric_type': fabric_type,
                 } if gst_legal_name else None,
-                'campaign': 'locofast_rfq',
+                'campaign': 'Website RFQ',
             })
             logging.info(f"RFQ lead pushed to campaigns admin: {name}")
     except Exception as e:
