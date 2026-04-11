@@ -10,17 +10,30 @@ const FABRIC_TYPES = [
   "Printed Fabric",
   "Yarn Dyed Fabric",
   "Denim Fabrics",
-  "Others"
+];
+
+const LOCATIONS = [
+  { value: "", label: "Select" },
+  { value: "India", label: "India" },
+  { value: "Bangladesh", label: "Bangladesh" },
+  { value: "Vietnam", label: "Vietnam" },
+  { value: "Sri Lanka", label: "Sri Lanka" },
 ];
 
 export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
   const [form, setForm] = useState({
-    name: "", phone: "", country_code: "+91", gst_number: "", company_name: "", email: "", fabric_type: ""
+    name: "", phone: "", country_code: "+91", gst_number: "", company_name: "", email: "", fabric_type: "", location: ""
   });
   const [submitting, setSubmitting] = useState(false);
 
+  const isIndia = form.location === "India";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isIndia && !form.gst_number) {
+      toast.error("GST Number is required for India");
+      return;
+    }
     setSubmitting(true);
     try {
       await fetch(`${API}/api/enquiries/rfq-lead`, {
@@ -36,7 +49,7 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
       });
       toast.success("Your enquiry has been submitted! Our team will reach out within 24 hours.");
       onClose();
-      setForm({ name: "", phone: "", country_code: "+91", company_name: "", email: "", fabric_type: "" });
+      setForm({ name: "", phone: "", country_code: "+91", gst_number: "", company_name: "", email: "", fabric_type: "", location: "" });
     } catch (err) {
       toast.error("Something went wrong. Please try again.");
     } finally {
@@ -77,8 +90,12 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">GST Number <span className="text-red-500">*</span></label>
-              <input type="text" required value={form.gst_number} onChange={(e) => setForm(p => ({ ...p, gst_number: e.target.value.toUpperCase() }))} placeholder="22AAAAA0000A1Z5" maxLength={15} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-gst" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Company Location <span className="text-red-500">*</span>
+              </label>
+              <select required value={form.location} onChange={(e) => setForm(p => ({ ...p, location: e.target.value, gst_number: e.target.value !== "India" ? "" : p.gst_number }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white" data-testid="rfq-location">
+                {LOCATIONS.map(loc => (<option key={loc.value} value={loc.value}>{loc.label}</option>))}
+              </select>
             </div>
           </div>
 
@@ -92,6 +109,14 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
               <input type="email" required value={form.email} onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))} placeholder="you@company.com" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-email" />
             </div>
           </div>
+
+          {/* GST field - only shown and required when India is selected */}
+          {isIndia && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">GST Number <span className="text-red-500">*</span></label>
+              <input type="text" required value={form.gst_number} onChange={(e) => setForm(p => ({ ...p, gst_number: e.target.value.toUpperCase() }))} placeholder="22AAAAA0000A1Z5" maxLength={15} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-gst" />
+            </div>
+          )}
 
           {fabricUrl ? (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
