@@ -1481,6 +1481,25 @@ async def create_enquiry(data: EnquiryCreate):
     except Exception as e:
         logging.warning(f"Failed to send to Zapier: {str(e)}")
     
+    # Push supplier queries to campaigns.locofast.com
+    try:
+        import httpx as httpx_client
+        campaign_name = 'locofast_supplier_signup' if enquiry_doc.get('enquiry_type') == 'supplier_signup' else 'locofast_enquiry'
+        async with httpx_client.AsyncClient(timeout=10) as client:
+            await client.post('https://campaigns.locofast.com/api/leads', json={
+                'name': enquiry_doc.get('name', ''),
+                'company': enquiry_doc.get('company', ''),
+                'email': enquiry_doc.get('email', ''),
+                'phone': enquiry_doc.get('phone', ''),
+                'message': enquiry_doc.get('message', ''),
+                'source': enquiry_doc.get('source', 'website'),
+                'enquiry_type': enquiry_doc.get('enquiry_type', 'general'),
+                'campaign': campaign_name,
+            })
+            logging.info(f"Enquiry pushed to campaigns admin: {enquiry_doc.get('name', '')} ({campaign_name})")
+    except Exception as e:
+        logging.warning(f"Failed to push enquiry to campaigns: {str(e)}")
+    
     return Enquiry(**enquiry_doc)
 
 @api_router.get("/enquiries", response_model=List[Enquiry])
