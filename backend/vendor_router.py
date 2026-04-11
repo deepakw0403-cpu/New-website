@@ -203,6 +203,16 @@ async def get_vendor_fabrics(vendor=Depends(get_current_vendor)):
         {'_id': 0}
     ).sort('created_at', -1).to_list(1000)
     
+    # Resolve category names for fabrics missing category_name
+    categories_cache = {}
+    for f in fabrics:
+        if not f.get('category_name') and f.get('category_id'):
+            cid = f['category_id']
+            if cid not in categories_cache:
+                cat = await db.categories.find_one({'id': cid}, {'_id': 0})
+                categories_cache[cid] = cat.get('name', '') if cat else ''
+            f['category_name'] = categories_cache[cid]
+    
     return fabrics
 
 @router.get("/fabrics/{fabric_id}")
