@@ -70,7 +70,7 @@ const CollectionDetailPage = () => {
       <Navbar />
       <main className="flex-grow pt-20">
         {/* Hero */}
-        {collection.image_url && (
+        {collection.image_url && collection.image_url.startsWith('http') && (
           <div className="relative h-64 md:h-80 lg:h-96 overflow-hidden">
             <img
               src={collection.image_url}
@@ -92,7 +92,7 @@ const CollectionDetailPage = () => {
         )}
 
         {/* Header without image */}
-        {!collection.image_url && (
+        {(!collection.image_url || !collection.image_url.startsWith('http')) && (
           <section className="bg-white border-b border-gray-100">
             <div className="container-main py-8">
               <Link to="/collections" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 text-sm">
