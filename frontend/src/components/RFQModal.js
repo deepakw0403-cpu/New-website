@@ -13,11 +13,11 @@ const FABRIC_TYPES = [
 ];
 
 const LOCATIONS = [
-  { value: "", label: "Select" },
-  { value: "India", label: "India" },
-  { value: "Bangladesh", label: "Bangladesh" },
-  { value: "Vietnam", label: "Vietnam" },
-  { value: "Sri Lanka", label: "Sri Lanka" },
+  { value: "", label: "Select", code: "+91" },
+  { value: "India", label: "India", code: "+91" },
+  { value: "Bangladesh", label: "Bangladesh", code: "+880" },
+  { value: "Vietnam", label: "Vietnam", code: "+84" },
+  { value: "Sri Lanka", label: "Sri Lanka", code: "+94" },
 ];
 
 export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
@@ -27,6 +27,17 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
   const [submitting, setSubmitting] = useState(false);
 
   const isIndia = form.location === "India";
+
+  const handleLocationChange = (e) => {
+    const loc = e.target.value;
+    const match = LOCATIONS.find(l => l.value === loc);
+    setForm(p => ({
+      ...p,
+      location: loc,
+      country_code: match ? match.code : "+91",
+      gst_number: loc !== "India" ? "" : p.gst_number,
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -71,29 +82,14 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4" data-testid="rfq-form">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500">*</span></label>
-            <input type="text" required value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Your full name" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-name" />
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
-              <div className="flex">
-                <select value={form.country_code} onChange={(e) => setForm(p => ({ ...p, country_code: e.target.value }))} className="px-2 py-2.5 bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" data-testid="rfq-country-code">
-                  <option value="+91">+91 IN</option>
-                  <option value="+880">+880 BD</option>
-                  <option value="+94">+94 LK</option>
-                  <option value="+84">+84 VN</option>
-                </select>
-                <input type="tel" required value={form.phone} onChange={(e) => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="Phone number" className="w-full px-3 py-2.5 border border-gray-300 rounded-r-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-phone" />
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500">*</span></label>
+              <input type="text" required value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Your full name" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-name" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Company Location <span className="text-red-500">*</span>
-              </label>
-              <select required value={form.location} onChange={(e) => setForm(p => ({ ...p, location: e.target.value, gst_number: e.target.value !== "India" ? "" : p.gst_number }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white" data-testid="rfq-location">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Company Location <span className="text-red-500">*</span></label>
+              <select required value={form.location} onChange={handleLocationChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white" data-testid="rfq-location">
                 {LOCATIONS.map(loc => (<option key={loc.value} value={loc.value}>{loc.label}</option>))}
               </select>
             </div>
@@ -101,8 +97,13 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Company Name <span className="text-red-500">*</span></label>
-              <input type="text" required value={form.company_name} onChange={(e) => setForm(p => ({ ...p, company_name: e.target.value }))} placeholder="Your company" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-company" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
+              <div className="flex">
+                <span className="px-3 py-2.5 bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg text-sm text-gray-700 flex items-center" data-testid="rfq-country-code">
+                  {form.country_code}
+                </span>
+                <input type="tel" required value={form.phone} onChange={(e) => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="Phone number" className="w-full px-3 py-2.5 border border-gray-300 rounded-r-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-phone" />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email ID <span className="text-red-500">*</span></label>
@@ -110,7 +111,11 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
             </div>
           </div>
 
-          {/* GST field - only shown and required when India is selected */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Company Name <span className="text-red-500">*</span></label>
+            <input type="text" required value={form.company_name} onChange={(e) => setForm(p => ({ ...p, company_name: e.target.value }))} placeholder="Your company" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-company" />
+          </div>
+
           {isIndia && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">GST Number <span className="text-red-500">*</span></label>
