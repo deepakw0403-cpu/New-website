@@ -876,7 +876,49 @@ const SellOnLocofast = () => {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8 md:p-12">
-                {/* GST Number - First field */}
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Contact Person *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.contact_name}
+                      onChange={(e) => setFormData({...formData, contact_name: e.target.value})}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                      placeholder="Decision maker name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                      placeholder="+91 XXXXX XXXXX"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                      placeholder="business@company.com"
+                    />
+                  </div>
+                </div>
+
+                {/* GST Number - After Email */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     GST Number *
@@ -930,90 +972,37 @@ const SellOnLocofast = () => {
                   {gstResult?.valid === false && (
                     <p className="mt-2 text-red-600 text-sm">{gstResult.message || 'Invalid GST number'}</p>
                   )}
-                  <p className="mt-1 text-slate-400 text-xs">Enter your 15-digit GSTIN — company details will auto-populate</p>
+                  <p className="mt-1 text-slate-400 text-xs">Enter your 15-digit GSTIN — company name &amp; city will auto-populate</p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       Company Name *
+                      {gstResult?.valid && <span className="ml-2 text-xs text-green-600 font-normal">(auto-filled from GST)</span>}
                     </label>
                     <input
                       type="text"
                       required
                       value={formData.company_name}
                       onChange={(e) => setFormData({...formData, company_name: e.target.value})}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 ${gstResult?.valid ? 'border-green-300 bg-green-50' : 'border-slate-200'}`}
                       placeholder="Your mill / trading company name"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Contact Person *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.contact_name}
-                      onChange={(e) => setFormData({...formData, contact_name: e.target.value})}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
-                      placeholder="Decision maker name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Phone Number *
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
-                      placeholder="+91 XXXXX XXXXX"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
-                      placeholder="business@company.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       City / Location *
+                      {gstResult?.valid && formData.city && <span className="ml-2 text-xs text-green-600 font-normal">(auto-filled from GST)</span>}
                     </label>
                     <input
                       type="text"
                       required
                       value={formData.city}
                       onChange={(e) => setFormData({...formData, city: e.target.value})}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 ${gstResult?.valid && formData.city ? 'border-green-300 bg-green-50' : 'border-slate-200'}`}
                       placeholder="Ahmedabad, Surat, Erode, etc."
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Monthly Capacity (meters)
-                    </label>
-                    <select
-                      value={formData.monthly_capacity}
-                      onChange={(e) => setFormData({...formData, monthly_capacity: e.target.value})}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 bg-white"
-                    >
-                      <option value="">Select capacity</option>
-                      <option value="5000-10000">5,000 - 10,000 meters</option>
-                      <option value="10000-25000">10,000 - 25,000 meters</option>
-                      <option value="25000-50000">25,000 - 50,000 meters</option>
-                      <option value="50000+">50,000+ meters</option>
-                    </select>
                   </div>
                 </div>
                 
