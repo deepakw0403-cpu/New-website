@@ -1485,13 +1485,24 @@ async def create_enquiry(data: EnquiryCreate):
     try:
         import httpx as httpx_client
         campaign_name = 'Vendor Signup' if enquiry_doc.get('enquiry_type') == 'supplier_signup' else 'Website RFQ'
+        # Extract company_type from enquiry data
+        company_type = enquiry_doc.get('company_type', '')
+        if not company_type:
+            # Try to extract fabric categories from message for supplier signups
+            msg = enquiry_doc.get('message', '')
+            if 'Fabric Categories:' in msg:
+                cat_line = [l for l in msg.split('\n') if 'Fabric Categories:' in l]
+                if cat_line:
+                    company_type = cat_line[0].split('Fabric Categories:')[-1].strip()
+            if not company_type:
+                company_type = 'Supplier' if enquiry_doc.get('enquiry_type') == 'supplier_signup' else 'Buyer'
         async with httpx_client.AsyncClient(timeout=10) as client:
             await client.post('https://campaigns.locofast.com/api/leads', json={
                 'name': enquiry_doc.get('name', ''),
                 'company': enquiry_doc.get('company', ''),
                 'email': enquiry_doc.get('email', ''),
                 'phone': enquiry_doc.get('phone', ''),
-                'company_type': 'Others',
+                'company_type': company_type,
                 'message': enquiry_doc.get('message', ''),
                 'campaign': campaign_name,
             })
@@ -1721,8 +1732,7 @@ async def create_rfq_lead(data: dict):
                 'company': company_name,
                 'email': email,
                 'phone': phone,
-                'company_type': 'Others',
-                'gst_number': gst_number,
+                'company_type': fabric_type if fabric_type else 'Buyer',
                 'gst_info': {
                     'legal_name': gst_legal_name,
                     'trade_name': gst_trade_name,

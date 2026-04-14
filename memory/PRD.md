@@ -51,6 +51,11 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
   - Description & Tags
 - [x] **Vendor Image/Video Upload**: Cloudinary signature endpoint now accepts vendor tokens
 
+### Phase 9: Campaigns API Fixes (Complete - Apr 2026)
+- [x] **Dynamic company_type in Campaigns Push**: Fixed hardcoded `'Others'` in webhook payload to Campaigns API. Supplier signups now send extracted Fabric Categories; RFQ leads send the selected fabric_type. Fallbacks: 'Supplier' / 'Buyer'.
+- [x] **RFQ Modal Enhancements**: Location dropdown, auto-phone code, conditional GST, removed 'Others' fabric type.
+- [x] **GST Sandbox API on Supplier Sign-up**: Debounced verification, auto-populates Company Name & City.
+
 ## Backlog
 
 ### P1 (High Priority)
