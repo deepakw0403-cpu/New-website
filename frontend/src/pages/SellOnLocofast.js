@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { 
@@ -16,7 +16,8 @@ import {
   Building2,
   Zap,
   ShieldCheck,
-  BarChart3
+  BarChart3,
+  Loader2
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -30,12 +31,60 @@ const SellOnLocofast = () => {
     email: "",
     categories: [],
     monthly_capacity: "",
-    city: ""
+    city: "",
+    gst_number: ""
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [gstVerifying, setGstVerifying] = useState(false);
+  const [gstResult, setGstResult] = useState(null); // { valid, legal_name, ... }
+  const [gstCooldown, setGstCooldown] = useState(false);
+  const gstDebounceRef = useRef(null);
 
   const categories = ["Denim", "Cotton Shirting", "Knits", "Blends"];
+
+  const verifyGst = async (gstin) => {
+    if (gstCooldown || gstVerifying) return;
+    const cleaned = gstin.trim().toUpperCase();
+    if (cleaned.length !== 15) return;
+
+    setGstVerifying(true);
+    setGstResult(null);
+    try {
+      const API_URL = process.env.REACT_APP_BACKEND_URL;
+      const res = await fetch(`${API_URL}/api/gst/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gstin: cleaned })
+      });
+      const data = await res.json();
+      setGstResult(data);
+      if (data.valid && data.legal_name) {
+        setFormData(prev => ({
+          ...prev,
+          company_name: data.trade_name || data.legal_name,
+          city: data.city || prev.city
+        }));
+      }
+      // Cooldown: prevent re-verification for 10 seconds
+      setGstCooldown(true);
+      setTimeout(() => setGstCooldown(false), 10000);
+    } catch {
+      setGstResult({ valid: false, message: "Verification service unavailable" });
+    }
+    setGstVerifying(false);
+  };
+
+  const handleGstChange = (value) => {
+    const cleaned = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+    setFormData(prev => ({ ...prev, gst_number: cleaned }));
+    setGstResult(null);
+    // Debounce: auto-verify after 1 second when 15 chars entered
+    if (gstDebounceRef.current) clearTimeout(gstDebounceRef.current);
+    if (cleaned.length === 15) {
+      gstDebounceRef.current = setTimeout(() => verifyGst(cleaned), 1000);
+    }
+  };
 
   const faqs = [
     {
@@ -89,7 +138,7 @@ const SellOnLocofast = () => {
           company: formData.company_name,
           enquiry_type: "supplier_signup",
           source: "supplier_signup_page",
-          message: `**Supplier Application**\n\nCompany: ${formData.company_name}\nContact: ${formData.contact_name}\nFabric Categories: ${formData.categories.join(', ')}\nMonthly Capacity: ${formData.monthly_capacity}\nLocation: ${formData.city}\n\nAdditional Info: None`
+          message: `**Supplier Application**\n\nCompany: ${formData.company_name}\nContact: ${formData.contact_name}\nGST: ${formData.gst_number}\nGST Verified: ${gstResult?.valid ? 'Yes' : 'No'}\nGST Legal Name: ${gstResult?.legal_name || ''}\nFabric Categories: ${formData.categories.join(', ')}\nMonthly Capacity: ${formData.monthly_capacity}\nLocation: ${formData.city}\n\nAdditional Info: None`
         })
       });
       
@@ -827,6 +876,63 @@ const SellOnLocofast = () => {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8 md:p-12">
+                {/* GST Number - First field */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    GST Number *
+                  </label>
+                  <div className="flex gap-3">
+                    <div className="flex-1 relative">
+                      <input
+                        type="text"
+                        required
+                        value={formData.gst_number}
+                        onChange={(e) => handleGstChange(e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 font-mono tracking-wide ${
+                          gstResult?.valid ? 'border-green-400 bg-green-50' : gstResult?.valid === false ? 'border-red-400 bg-red-50' : 'border-slate-200'
+                        }`}
+                        placeholder="22AAAAA0000A1Z5"
+                        maxLength={15}
+                        data-testid="supplier-gst-input"
+                      />
+                      {gstVerifying && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 size={18} className="animate-spin text-blue-500" />
+                        </div>
+                      )}
+                      {gstResult?.valid && !gstVerifying && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <CheckCircle2 size={18} className="text-green-500" />
+                        </div>
+                      )}
+                      {gstResult?.valid === false && !gstVerifying && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <XCircle size={18} className="text-red-500" />
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => verifyGst(formData.gst_number)}
+                      disabled={formData.gst_number.length !== 15 || gstVerifying || gstCooldown}
+                      className="px-5 py-3 bg-[#2563EB] text-white rounded-lg font-medium hover:bg-[#1d4ed8] disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap"
+                      data-testid="verify-gst-btn"
+                    >
+                      {gstVerifying ? "Verifying..." : gstCooldown ? "Wait..." : "Verify GST"}
+                    </button>
+                  </div>
+                  {gstResult?.valid && (
+                    <div className="mt-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                      <p className="text-green-800 text-sm font-medium">{gstResult.legal_name}</p>
+                      <p className="text-green-600 text-xs">{gstResult.trade_name && gstResult.trade_name !== gstResult.legal_name ? `Trade: ${gstResult.trade_name} | ` : ''}Status: {gstResult.gst_status} | {gstResult.city}, {gstResult.state}</p>
+                    </div>
+                  )}
+                  {gstResult?.valid === false && (
+                    <p className="mt-2 text-red-600 text-sm">{gstResult.message || 'Invalid GST number'}</p>
+                  )}
+                  <p className="mt-1 text-slate-400 text-xs">Enter your 15-digit GSTIN — company details will auto-populate</p>
+                </div>
+
                 <div className="grid md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
