@@ -73,6 +73,12 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **LCP Fix — Static Hero Shell**: Added inline HTML hero (navbar + heading + CTAs + trust badges) in `index.html` that renders immediately from HTML+CSS before React JS loads. MutationObserver removes shell once React mounts. Eliminated JS-dependent render chain for LCP element.
 - [x] **Critical CSS Inlined**: Hero section styles inlined in `<style>` in `<head>` — no external CSS needed for first paint
 
+### Phase 12: Canonical Tags — Duplicate Content Fix (Complete - Apr 2026)
+- [x] **Global CanonicalTag component**: Auto-generates self-referencing canonical for every route, strips trailing slashes, normalizes to `https://locofast.com`
+- [x] **Duplicate route handling**: `/sell` canonicalizes to `/suppliers` (same content, one canonical)
+- [x] **Fixed broken canonicals**: AboutPage `/about` → `/about-us`, FabricsPage removed query params from canonical, BlogPostPage uses `locofast.com` not `window.location`, SupplierProfilePage uses `locofast.com`
+- [x] **Static canonical in index.html**: For raw HTML before React loads
+
 ## Backlog
 
 ### P1 (High Priority)

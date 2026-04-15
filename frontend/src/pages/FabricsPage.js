@@ -264,7 +264,7 @@ const FabricsPage = () => {
         <meta name="description" content={pageMeta.description} />
         <meta property="og:title" content={pageMeta.title} />
         <meta property="og:description" content={pageMeta.description} />
-        <link rel="canonical" href={`${window.location.origin}/fabrics${selectedCategory ? `?category=${selectedCategory}` : ''}`} />
+        <link rel="canonical" href="https://locofast.com/fabrics" />
       </Helmet>
       <Navbar />
       <main className="flex-grow pt-20" data-testid="fabrics-page">

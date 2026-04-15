@@ -129,7 +129,7 @@ export default function SupplierProfilePage() {
   const cats = Object.keys(stats.category_counts);
   const pageTitle = `${s.company_name} — ${s.primary_category || "Fabric"} ${s.business_type} in ${s.city}`;
   const pageDesc = `${s.city}-based ${(s.primary_category || "fabric").toLowerCase()} ${(s.business_type || "manufacturer").toLowerCase()}. ${s.certifications?.length ? s.certifications.join(" & ") + " certified. " : ""}MOQ ${s.moq || "on request"}. ${stats.total_orders}+ orders. ${profile.review_stats.average} from ${profile.review_stats.count} buyers.`;
-  const profileUrl = `${window.location.origin}/suppliers/${category}/${city}/${slug}`;
+  const profileUrl = `https://locofast.com/suppliers/${category}/${city}/${slug}`;
   const logoSrc = s.logo_url ? (s.logo_url.startsWith("http") ? s.logo_url : `${API}${s.logo_url}`) : null;
   const initials = s.company_name.split(" ").map(w => w[0]).join("").slice(0, 3).toUpperCase();
 

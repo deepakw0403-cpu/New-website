@@ -368,9 +368,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
       <Helmet>
         <title>{seoContent?.meta_title || `${fabric.name} | Locofast`}</title>
         <meta name="description" content={seoContent?.meta_description || fabric.description} />
-        {seoContent?.canonical_url && (
-          <link rel="canonical" href={`${window.location.origin}${seoContent.canonical_url}`} />
-        )}
+        <link rel="canonical" href={seoContent?.canonical_url ? `https://locofast.com${seoContent.canonical_url}` : `https://locofast.com/fabrics/${fabric.id}`} />
         {seoContent?.is_indexed === false && (
           <meta name="robots" content="noindex, nofollow" />
         )}

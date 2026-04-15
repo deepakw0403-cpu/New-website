@@ -17,6 +17,30 @@ function ScrollToTop() {
   return null;
 }
 
+// Global self-referencing canonical tag — prevents duplicate content issues.
+// Strips query params, trailing slashes, and normalizes to https://locofast.com
+// Handles known duplicate routes (e.g. /sell → /suppliers)
+function CanonicalTag() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    let clean = pathname.replace(/\/+$/, '') || '/';
+    // Normalize known duplicates to a single canonical
+    const canonicalMap = {
+      '/sell': '/suppliers',
+    };
+    clean = canonicalMap[clean] || clean;
+    const canonical = `https://locofast.com${clean}`;
+    let link = document.querySelector('link[rel="canonical"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.setAttribute('rel', 'canonical');
+      document.head.appendChild(link);
+    }
+    link.setAttribute('href', canonical);
+  }, [pathname]);
+  return null;
+}
+
 // Minimal loading fallback
 const PageLoader = () => (
   <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -130,6 +154,7 @@ function App() {
         <BrowserRouter>
           <Toaster position="top-right" richColors />
           <ScrollToTop />
+          <CanonicalTag />
           <Suspense fallback={<PageLoader />}>
           <Routes>
           {/* Public routes */}

@@ -44,7 +44,7 @@ const ContactPage = () => {
         <meta name="description" content="Contact Locofast for B2B fabric sourcing inquiries. Get matched with verified textile suppliers within 48 hours. Offices in Delhi, Noida, Gurugram, Jaipur, Ahmedabad." />
         <meta property="og:title" content="Contact Locofast - Get in Touch for Fabric Sourcing" />
         <meta property="og:description" content="Contact Locofast for B2B fabric sourcing inquiries. Get matched with verified textile suppliers within 48 hours." />
-        <link rel="canonical" href={`${window.location.origin}/contact`} />
+        <link rel="canonical" href="https://locofast.com/contact" />
       </Helmet>
     <main className="pt-20" data-testid="contact-page">
       {/* Hero */}

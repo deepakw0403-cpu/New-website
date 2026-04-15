@@ -186,7 +186,7 @@ const BlogPostPage = () => {
         )}
         
         {/* Canonical */}
-        <link rel="canonical" href={post.canonical_url || shareUrl} />
+        <link rel="canonical" href={post.canonical_url || `https://locofast.com/blog/${post.slug}`} />
         
         {/* Structured Data */}
         <script type="application/ld+json">

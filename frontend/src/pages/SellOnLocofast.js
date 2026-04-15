@@ -180,7 +180,7 @@ const SellOnLocofast = () => {
           content="Join India's structured fabric sourcing engine. Get verified buyer requirements routed to you. Denim, Cotton Shirting, Knits — MOQ 1000+ meters. No subscriptions. Performance-based. Apply now." 
         />
         <meta name="keywords" content="sell fabric online, b2b fabric marketplace, fabric supplier india, denim supplier, cotton shirting manufacturer, knit fabric seller, wholesale fabric platform" />
-        <link rel="canonical" href="https://locofast.com/sell" />
+        <link rel="canonical" href="https://locofast.com/suppliers" />
         <meta property="og:title" content="Sell on Locofast | B2B Fabric Supplier Platform" />
         <meta property="og:description" content="Get verified buyer requirements for Denim, Cotton Shirting, and Knits. MOQ 1000+ meters. No subscriptions." />
         <meta property="og:type" content="website" />

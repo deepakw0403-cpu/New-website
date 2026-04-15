@@ -20,7 +20,7 @@ const AboutPage = () => {
         <meta name="description" content="Locofast is India's leading B2B fabric sourcing platform, built by operators who understand supplier relationships and production challenges. Connecting fashion brands with verified textile mills." />
         <meta property="og:title" content="About Locofast - B2B Fabric Sourcing Platform" />
         <meta property="og:description" content="Built by operators who understand supplier relationships and production challenges. Connecting fashion brands with verified textile mills." />
-        <link rel="canonical" href={`${window.location.origin}/about`} />
+        <link rel="canonical" href="https://locofast.com/about-us" />
       </Helmet>
       {/* Section 1: Hero */}
       <section className="relative h-[85vh] min-h-[600px]" data-testid="hero-section">

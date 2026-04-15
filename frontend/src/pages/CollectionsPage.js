@@ -30,7 +30,7 @@ const CollectionsPage = () => {
         <meta name="description" content="Explore curated fabric collections organized by occasion, season, and application. Premium textiles for fashion brands, designers, and manufacturers. Sample orders available." />
         <meta property="og:title" content="Fabric Collections - Curated Selections for Fashion | Locofast" />
         <meta property="og:description" content="Explore curated fabric collections organized by occasion, season, and application. Premium textiles for fashion brands." />
-        <link rel="canonical" href={`${window.location.origin}/collections`} />
+        <link rel="canonical" href="https://locofast.com/collections" />
       </Helmet>
       <Navbar />
       <main className="flex-grow pt-20">

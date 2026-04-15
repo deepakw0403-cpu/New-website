@@ -97,7 +97,7 @@ const BlogPage = () => {
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:type" content="website" />
-        <link rel="canonical" href={`${window.location.origin}/blog`} />
+        <link rel="canonical" href="https://locofast.com/blog" />
         
         {/* Blog structured data */}
         <script type="application/ld+json">
