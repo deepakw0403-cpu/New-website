@@ -1,7 +1,7 @@
 /**
  * Cloudflare Worker: Bot-Aware Prerender Proxy for locofast.com
  * 
- * Deploy this worker on shop.locofast.com (or locofast.com).
+ * Deploy this worker on locofast.com.
  * It detects search engine bots and serves pre-rendered HTML
  * from the backend instead of the React SPA.
  * 

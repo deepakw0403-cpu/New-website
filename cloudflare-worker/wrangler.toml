@@ -7,4 +7,4 @@ compatibility_date = "2024-01-01"
 
 # Route: attach to your production domain
 # [env.production]
-# route = { pattern = "shop.locofast.com/*", zone_id = "YOUR_ZONE_ID" }
+# route = { pattern = "locofast.com/*", zone_id = "YOUR_ZONE_ID" }
