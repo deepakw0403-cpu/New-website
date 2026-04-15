@@ -4,5 +4,8 @@ Disallow: /admin/
 Disallow: /vendor/
 Disallow: /checkout/
 Disallow: /api/
+Allow: /api/sitemap.xml
+Allow: /api/prerender/
 
 Sitemap: https://locofast.com/sitemap.xml
+Sitemap: https://locofast.com/api/sitemap.xml

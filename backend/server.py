@@ -1930,10 +1930,12 @@ def parse_date_string(date_str: str) -> str:
 
 async def generate_sitemap_xml():
     """Generate dynamic sitemap.xml content"""
+    import re as re_mod
     base_url = "https://locofast.com"
+    today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     
     # Get all fabrics
-    fabrics = await db.fabrics.find({}, {'id': 1, 'created_at': 1}).to_list(length=1000)
+    fabrics = await db.fabrics.find({'status': 'approved'}, {'id': 1, 'created_at': 1}).to_list(length=10000)
     
     # Get all collections
     collections = await db.collections.find({}, {'id': 1, 'created_at': 1}).to_list(length=100)
@@ -1942,19 +1944,34 @@ async def generate_sitemap_xml():
     posts = await db.posts.find({'status': 'published'}, {'slug': 1, 'updated_at': 1}).to_list(length=500)
     
     # Get all categories
-    categories = await db.categories.find({}, {'id': 1}).to_list(length=100)
+    categories = await db.categories.find({}, {'_id': 0}).to_list(length=100)
+    
+    # Get all active sellers
+    sellers = await db.sellers.find(
+        {'is_active': {'$ne': False}},
+        {'_id': 0, 'id': 1, 'company_name': 1, 'name': 1, 'state': 1, 'category_ids': 1}
+    ).to_list(length=500)
+    cat_map = {c['id']: c['name'] for c in categories}
     
     # Static pages
     static_pages = [
-        {'loc': '/', 'priority': '1.0', 'changefreq': 'daily'},
+        {'loc': '/', 'priority': '1.0', 'changefreq': 'weekly'},
         {'loc': '/fabrics', 'priority': '0.9', 'changefreq': 'daily'},
         {'loc': '/collections', 'priority': '0.8', 'changefreq': 'weekly'},
-        {'loc': '/about', 'priority': '0.7', 'changefreq': 'monthly'},
-        {'loc': '/contact', 'priority': '0.7', 'changefreq': 'monthly'},
-        {'loc': '/blog', 'priority': '0.8', 'changefreq': 'daily'},
-        {'loc': '/suppliers', 'priority': '0.7', 'changefreq': 'weekly'},
-        {'loc': '/assisted-sourcing', 'priority': '0.8', 'changefreq': 'monthly'},
-        {'loc': '/free-tools', 'priority': '0.7', 'changefreq': 'weekly'},
+        {'loc': '/suppliers', 'priority': '0.8', 'changefreq': 'weekly'},
+        {'loc': '/sell', 'priority': '0.7', 'changefreq': 'monthly'},
+        {'loc': '/about-us', 'priority': '0.6', 'changefreq': 'monthly'},
+        {'loc': '/customers', 'priority': '0.6', 'changefreq': 'monthly'},
+        {'loc': '/how-it-works', 'priority': '0.6', 'changefreq': 'monthly'},
+        {'loc': '/assisted-sourcing', 'priority': '0.7', 'changefreq': 'monthly'},
+        {'loc': '/contact', 'priority': '0.5', 'changefreq': 'monthly'},
+        {'loc': '/faq', 'priority': '0.5', 'changefreq': 'monthly'},
+        {'loc': '/blog', 'priority': '0.7', 'changefreq': 'weekly'},
+        {'loc': '/tools', 'priority': '0.6', 'changefreq': 'monthly'},
+        {'loc': '/tools/gst-calculator', 'priority': '0.5', 'changefreq': 'monthly'},
+        {'loc': '/tools/profit-margin-calculator', 'priority': '0.5', 'changefreq': 'monthly'},
+        {'loc': '/tools/gsm-calculator', 'priority': '0.5', 'changefreq': 'monthly'},
+        {'loc': '/tools/cbm-calculator', 'priority': '0.5', 'changefreq': 'monthly'},
     ]
     
     xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -2004,6 +2021,31 @@ async def generate_sitemap_xml():
     <priority>0.5</priority>
   </url>\n'''
     
+    # Add supplier profile pages
+    def _slugify(text):
+        s = text.lower().strip()
+        s = re_mod.sub(r'[^a-z0-9\s-]', '', s)
+        s = re_mod.sub(r'[\s_]+', '-', s)
+        s = re_mod.sub(r'-+', '-', s)
+        return s.strip('-')
+    
+    for seller in sellers:
+        company = seller.get('company_name') or seller.get('name', '')
+        state = seller.get('state', '')
+        s_cat_ids = seller.get('category_ids', [])
+        if not company or not state:
+            continue
+        company_slug = _slugify(company)
+        state_slug = _slugify(state)
+        cat_name = cat_map.get(s_cat_ids[0], 'fabrics') if s_cat_ids else 'fabrics'
+        cat_slug = _slugify(cat_name)
+        xml_content += f'''  <url>
+    <loc>{base_url}/suppliers/{cat_slug}/{state_slug}/{company_slug}/</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>\n'''
+    
     xml_content += '</urlset>'
     
     return xml_content
@@ -2037,6 +2079,9 @@ app.include_router(coupon_router.router, prefix="/api")
 app.include_router(cloudinary_router.router)
 app.include_router(rfq_router.router)
 app.include_router(supplier_profile_router.router)
+
+import prerender_router
+app.include_router(prerender_router.router)
 
 # Serve uploaded files
 app.mount("/api/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
