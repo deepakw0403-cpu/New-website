@@ -40,9 +40,30 @@
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         
-        <!-- Font loading: swap display, non-blocking -->
+        <!-- Preload the critical Inter font weight (600 for hero heading, latin subset) -->
+        <link rel="preload" href="https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hiA.woff2" as="font" type="font/woff2" crossorigin />
+        
+        <!-- Load full font stylesheet non-blocking -->
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
         <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" /></noscript>
+        
+        <!-- Inlined critical CSS: hero section renders without waiting for JS bundle -->
+        <style>
+            *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+            body{font-family:Inter,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+            @font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hiA.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+            #lf-hero-shell{position:relative;min-height:90vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1e3a8a,#2563EB,#3b82f6);text-align:center;padding:80px 24px}
+            #lf-hero-shell h1{font-family:Inter,system-ui,sans-serif;font-size:clamp(2.25rem,5vw,3.75rem);font-weight:600;color:#fff;line-height:1.15;max-width:768px;margin:0 auto 24px}
+            #lf-hero-shell p{font-size:clamp(1rem,2vw,1.25rem);color:rgba(255,255,255,0.8);max-width:640px;margin:0 auto 40px;line-height:1.6}
+            #lf-hero-shell .lf-ctas{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+            #lf-hero-shell .lf-ctas a{display:inline-flex;align-items:center;padding:16px 32px;border-radius:8px;font-weight:500;font-size:16px;text-decoration:none}
+            #lf-hero-shell .lf-cta-primary{background:#fff;color:#2563EB}
+            #lf-hero-shell .lf-cta-secondary{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2)}
+            #lf-hero-shell .lf-trust{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-top:64px;padding-top:32px;border-top:1px solid rgba(255,255,255,0.1)}
+            #lf-hero-shell .lf-trust span{color:rgba(255,255,255,0.8);font-size:14px;font-weight:500}
+            #lf-nav-shell{position:fixed;top:0;left:0;right:0;z-index:50;background:#fff;border-bottom:1px solid #f3f4f6;height:80px;display:flex;align-items:center;padding:0 24px}
+            #lf-nav-shell img{height:32px}
+        </style>
         
         <!-- Structured Data - Organization -->
         <script type="application/ld+json">
@@ -100,6 +121,26 @@
         </script>
     </head>
     <body>
+        <!-- Static hero shell: renders INSTANTLY before React JS loads (fixes LCP) -->
+        <div id="lf-nav-shell" aria-hidden="true">
+            <a href="/"><img src="https://customer-assets.emergentagent.com/job_locofast-cms/artifacts/xkuf449w_Locofast%20-%20Medium.svg" alt="Locofast" width="120" height="32" fetchpriority="high" /></a>
+        </div>
+        <div id="lf-hero-shell" aria-hidden="true">
+            <div>
+                <h1>Buy Fabrics from India's Largest B2B Textile Platform</h1>
+                <p>Connect directly with 500+ verified seller partners. Get instant access to quality fabrics with transparent pricing, clear MOQs, and secure payments.</p>
+                <div class="lf-ctas">
+                    <a href="/fabrics" class="lf-cta-primary">Instant Booking</a>
+                    <a href="/request-quote" class="lf-cta-secondary">Request a Quote</a>
+                </div>
+                <div class="lf-trust">
+                    <span>500+ Seller Partners</span>
+                    <span>Verified Suppliers</span>
+                    <span>Money Safety Guarantee</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Fallback content for SEO crawlers and no-JS users -->
         <noscript>
             <div style="padding: 40px; max-width: 800px; margin: 0 auto; font-family: system-ui, sans-serif;">
@@ -122,6 +163,20 @@
             </div>
         </noscript>
         <div id="root"></div>
+        <script>
+            // Remove static hero shell once React mounts
+            var rootEl = document.getElementById('root');
+            var observer = new MutationObserver(function() {
+                if (rootEl.childNodes.length > 0) {
+                    var navShell = document.getElementById('lf-nav-shell');
+                    var heroShell = document.getElementById('lf-hero-shell');
+                    if (navShell) navShell.remove();
+                    if (heroShell) heroShell.remove();
+                    observer.disconnect();
+                }
+            });
+            observer.observe(rootEl, { childList: true });
+        </script>
         <script>
             // Defer PostHog analytics until after page is interactive
             window.addEventListener('load', function() {

@@ -69,7 +69,9 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Code Splitting**: All ~60 route components lazy-loaded via `React.lazy()` + `Suspense` — only HomePage, Navbar, Footer loaded eagerly
 - [x] **Image Optimization**: Added `loading="lazy"`, `decoding="async"`, explicit `width`/`height` to all below-fold images; `fetchPriority="high"` on logo
 - [x] **Deferred Analytics**: PostHog loads 3s after `window.load`; Emergent scripts use `defer`
-- [x] **Font Loading**: Switched from `preload` to `media="print"` swap pattern for non-blocking font loading
+- [x] **Font Loading**: Removed render-blocking `@import` from CSS bundle; preload Inter 600 woff2 in `<head>`; inline `@font-face` in critical CSS
+- [x] **LCP Fix — Static Hero Shell**: Added inline HTML hero (navbar + heading + CTAs + trust badges) in `index.html` that renders immediately from HTML+CSS before React JS loads. MutationObserver removes shell once React mounts. Eliminated JS-dependent render chain for LCP element.
+- [x] **Critical CSS Inlined**: Hero section styles inlined in `<style>` in `<head>` — no external CSS needed for first paint
 
 ## Backlog
 
