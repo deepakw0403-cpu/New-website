@@ -65,6 +65,12 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Updated static sitemap.xml**: 17 core pages as fallback
 - [x] **Production Setup Guide**: `/app/docs/SEO_PRERENDER_GUIDE.md` with nginx/Cloudflare Worker configs
 
+### Phase 11: Performance Optimization (Complete - Apr 2026)
+- [x] **Code Splitting**: All ~60 route components lazy-loaded via `React.lazy()` + `Suspense` — only HomePage, Navbar, Footer loaded eagerly
+- [x] **Image Optimization**: Added `loading="lazy"`, `decoding="async"`, explicit `width`/`height` to all below-fold images; `fetchPriority="high"` on logo
+- [x] **Deferred Analytics**: PostHog loads 3s after `window.load`; Emergent scripts use `defer`
+- [x] **Font Loading**: Switched from `preload` to `media="print"` swap pattern for non-blocking font loading
+
 ## Backlog
 
 ### P1 (High Priority)
