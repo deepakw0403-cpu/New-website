@@ -2094,6 +2094,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Bot prerender middleware: serves pre-rendered HTML to search engine bots
+from bot_prerender_middleware import BotPrerenderMiddleware
+app.add_middleware(BotPrerenderMiddleware)
+
 @app.on_event("startup")
 async def startup_create_default_admin():
     """Create or reset default admin on startup"""

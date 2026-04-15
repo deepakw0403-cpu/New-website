@@ -36,12 +36,27 @@
 4. Submit sitemap: `https://locofast.com/api/sitemap.xml`
 
 ### Step 2: Deploy the code changes
-The `noindex` → `index, follow` fix needs to be deployed to production.
+The `noindex` → `index, follow` fix, static hero shell, and bot middleware need to be deployed.
 
-### Step 3: Configure Bot Routing (Nginx / Cloudflare Worker)
-For Googlebot to receive pre-rendered HTML, you need a reverse proxy rule:
+### Step 3: Bot Routing — Choose ONE Option
 
-#### Option A: Nginx Config
+#### Option 1: Cloudflare Worker (Recommended — 15 min)
+A ready-to-deploy worker is at `/app/cloudflare-worker/worker.js`.
+
+```bash
+cd /app/cloudflare-worker
+npm install -g wrangler
+wrangler login
+# Edit wrangler.toml: add your account_id and zone_id
+wrangler deploy
+```
+
+The worker intercepts Googlebot/Bingbot/Twitterbot/Facebook requests and serves pre-rendered HTML from `v2-launch.emergent.host/api/prerender/*`.
+
+#### Option 2: Backend Middleware (Already Built)
+If all traffic routes through the FastAPI backend (v2-launch.emergent.host), the `BotPrerenderMiddleware` in `bot_prerender_middleware.py` handles everything automatically. No additional config needed — it detects bots and internally fetches prerendered HTML.
+
+#### Option 3: Nginx Config (If using Nginx)
 ```nginx
 # Add to your server block
 map $http_user_agent $is_bot {
@@ -87,7 +102,7 @@ location ~ ^/suppliers/(.+)/(.+)/(.+) {
 }
 ```
 
-#### Option B: Cloudflare Worker
+#### Option 4: Cloudflare Worker (Alternative)
 ```javascript
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request));
@@ -132,8 +147,11 @@ async function handleRequest(request) {
 | Fix | Impact | Status |
 |-----|--------|--------|
 | Remove `noindex, nofollow` | **CRITICAL** — Google was explicitly blocked | Done in code |
-| Meta tags in static HTML | HIGH — title & description visible without JS | Already existed |
+| Meta tags in static HTML | HIGH — title & description visible without JS | Done in code |
+| Static hero shell (LCP fix) | HIGH — hero renders in HTML before JS | Done in code |
+| Font preload + critical CSS | HIGH — Inter 600 loads instantly | Done in code |
 | Dynamic sitemap with all pages | HIGH — Google discovers all content | Done in code |
 | Prerender endpoints for bots | HIGH — Googlebot gets full HTML | Done in code |
+| Bot detection middleware | HIGH — Auto-routes bots to prerender | Done in code |
+| Cloudflare Worker | HIGH — Production bot routing | Ready at `/app/cloudflare-worker/` |
 | Request re-indexing in GSC | HIGH — Forces Google to re-crawl | **Manual step** |
-| Bot routing (nginx/CF worker) | MEDIUM — Delivers prerendered HTML to bots | **Manual config** |
