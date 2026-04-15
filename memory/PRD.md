@@ -56,12 +56,21 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **RFQ Modal Enhancements**: Location dropdown, auto-phone code, conditional GST, removed 'Others' fabric type.
 - [x] **GST Sandbox API on Supplier Sign-up**: Debounced verification, auto-populates Company Name & City.
 
+### Phase 10: SEO & Prerender (Complete - Apr 2026)
+- [x] **Critical Fix**: Removed `noindex, nofollow` meta tag — was explicitly blocking Google from indexing
+- [x] **Dynamic Sitemap** (`GET /api/sitemap.xml`): Generates from DB — all fabrics, collections, suppliers, blog posts, tool pages
+- [x] **Prerender Endpoints**: `/api/prerender/homepage`, `/api/prerender/fabrics`, `/api/prerender/collections` — serve full HTML to Googlebot
+- [x] **Bot Detection**: `/api/prerender/check` endpoint for testing
+- [x] **Updated robots.txt**: Allows prerender/sitemap paths, blocks admin/vendor/api
+- [x] **Updated static sitemap.xml**: 17 core pages as fallback
+- [x] **Production Setup Guide**: `/app/docs/SEO_PRERENDER_GUIDE.md` with nginx/Cloudflare Worker configs
+
 ## Backlog
 
 ### P1 (High Priority)
 - [ ] Customer Accounts & Order History
 - [ ] Test Email Flow (end-to-end order confirmation)
-- [ ] Production Nginx prerender config for SEO
+- [ ] Production bot routing config (nginx/Cloudflare Worker for prerender — see `/app/docs/SEO_PRERENDER_GUIDE.md`)
 
 ### P2 (Medium Priority)
 - [ ] SEO-Friendly Fabric URLs (slugs)
