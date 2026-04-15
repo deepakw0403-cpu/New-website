@@ -4,7 +4,7 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 import { VendorAuthProvider } from "./context/VendorAuthContext";
 import WhatsAppChat from "./components/WhatsAppChat";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -17,100 +17,110 @@ function ScrollToTop() {
   return null;
 }
 
-// Public pages
+// Minimal loading fallback
+const PageLoader = () => (
+  <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ width: 32, height: 32, border: '3px solid #e5e7eb', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+    <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+  </div>
+);
+
+// =====================================================================
+// CRITICAL PATH — loaded eagerly (needed on first paint)
+// =====================================================================
 import HomePage from "./pages/HomePage";
-import FabricsPage from "./pages/FabricsPage";
-import FabricDetailPage from "./pages/FabricDetailPage";
-import CollectionsPage from "./pages/CollectionsPage";
-import CollectionDetailPage from "./pages/CollectionDetailPage";
-import AboutPage from "./pages/AboutPage";
-import HowItWorksPage from "./pages/HowItWorksPage";
-import ContactPage from "./pages/ContactPage";
-import FAQPage from "./pages/FAQPage";
-import PrivacyPage from "./pages/PrivacyPage";
-import TermsPage from "./pages/TermsPage";
-import CustomersPage from "./pages/CustomersPage";
-import SuppliersPage from "./pages/SuppliersPage";
-import MediaPage from "./pages/MediaPage";
-import CareersPage from "./pages/CareersPage";
-import AssistedSourcingPage from "./pages/AssistedSourcingPage";
-import BlogPage from "./pages/BlogPage";
-import BlogPostPage from "./pages/BlogPostPage";
-import InventoryPage from "./pages/InventoryPage";
-import CheckoutPage from "./pages/CheckoutPage";
-import OrderConfirmationPage from "./pages/OrderConfirmationPage";
-import SellOnLocofast from "./pages/SellOnLocofast";
-import RFQPage from "./pages/RFQPage";
-import SupplierDetailPage from "./pages/SupplierDetailPage";
-import SupplierProfilePage from "./pages/SupplierProfilePage";
-
-// Vendor pages
-import VendorLogin from "./pages/vendor/VendorLogin";
-import VendorDashboard from "./pages/vendor/VendorDashboard";
-import VendorInventory from "./pages/vendor/VendorInventory";
-import VendorOrders from "./pages/vendor/VendorOrders";
-import VendorProtectedRoute from "./components/VendorProtectedRoute";
-
-// Tools pages
-import {
-  ToolsPage,
-  GSTCalculator,
-  ProfitMarginCalculator,
-  DiscountCalculator,
-  GSMCalculator,
-  CBMCalculator,
-  VolumetricWeightCalculator,
-  ProductDescriptionGenerator,
-  ProductTitleGenerator,
-  BarcodeGenerator
-} from "./pages/tools";
-
-// Admin pages
-import AdminLogin from "./pages/admin/AdminLogin";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminFabrics from "./pages/admin/AdminFabrics";
-import AdminCategories from "./pages/admin/AdminCategories";
-import AdminSellers from "./pages/admin/AdminSellers";
-import AdminCollections from "./pages/admin/AdminCollections";
-import AdminArticles from "./pages/admin/AdminArticles";
-import AdminEnquiries from "./pages/admin/AdminEnquiries";
-import AdminOrders from "./pages/admin/AdminOrders";
-import AdminRFQ from "./pages/admin/AdminRFQ";
-import AdminCoupons from "./pages/admin/AdminCoupons";
-import AdminReviews from "./pages/admin/AdminReviews";
-import AdminFabricSEO from "./pages/admin/AdminFabricSEO";
-import AdminBlog from "./pages/admin/AdminBlog";
-import AdminSellerDetail from "./pages/admin/AdminSellerDetail";
-import ProtectedRoute from "./components/ProtectedRoute";
-
-// SEO Landing Pages
-import FabricsHub from "./pages/seo/FabricsHub";
-// Denim SEO Pages
-import DenimCategory from "./pages/seo/denim/DenimCategory";
-import Denim8oz from "./pages/seo/denim/Denim8oz";
-import Denim10oz from "./pages/seo/denim/Denim10oz";
-import Denim12oz from "./pages/seo/denim/Denim12oz";
-import DenimStretch from "./pages/seo/denim/DenimStretch";
-import DenimRigid from "./pages/seo/denim/DenimRigid";
-import DenimIndigoDyed from "./pages/seo/denim/DenimIndigoDyed";
-import DenimForJeans from "./pages/seo/denim/DenimForJeans";
-import DenimBulkSuppliers from "./pages/seo/denim/DenimBulkSuppliers";
-import DenimManufacturers from "./pages/seo/denim/DenimManufacturers";
-// Poly Knit SEO Pages
-import PolyKnitCategory from "./pages/seo/poly-knit/PolyKnitCategory";
-import PolyKnit180gsm from "./pages/seo/poly-knit/PolyKnit180gsm";
-import PolyKnit220gsm from "./pages/seo/poly-knit/PolyKnit220gsm";
-import PolyKnit240gsm from "./pages/seo/poly-knit/PolyKnit240gsm";
-import PolyKnitInterlock from "./pages/seo/poly-knit/PolyKnitInterlock";
-import PolyKnitJersey from "./pages/seo/poly-knit/PolyKnitJersey";
-import PolyKnitMoistureWicking from "./pages/seo/poly-knit/PolyKnitMoistureWicking";
-import PolyKnitSportswear from "./pages/seo/poly-knit/PolyKnitSportswear";
-import PolyKnitBulkSuppliers from "./pages/seo/poly-knit/PolyKnitBulkSuppliers";
-import PolyKnitManufacturers from "./pages/seo/poly-knit/PolyKnitManufacturers";
-
-// Layout
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+
+// =====================================================================
+// LAZY-LOADED ROUTES — code-split into separate chunks
+// =====================================================================
+
+// Public pages
+const FabricsPage = lazy(() => import("./pages/FabricsPage"));
+const FabricDetailPage = lazy(() => import("./pages/FabricDetailPage"));
+const CollectionsPage = lazy(() => import("./pages/CollectionsPage"));
+const CollectionDetailPage = lazy(() => import("./pages/CollectionDetailPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const HowItWorksPage = lazy(() => import("./pages/HowItWorksPage"));
+const ContactPage = lazy(() => import("./pages/ContactPage"));
+const FAQPage = lazy(() => import("./pages/FAQPage"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
+const TermsPage = lazy(() => import("./pages/TermsPage"));
+const CustomersPage = lazy(() => import("./pages/CustomersPage"));
+const SuppliersPage = lazy(() => import("./pages/SuppliersPage"));
+const MediaPage = lazy(() => import("./pages/MediaPage"));
+const CareersPage = lazy(() => import("./pages/CareersPage"));
+const AssistedSourcingPage = lazy(() => import("./pages/AssistedSourcingPage"));
+const BlogPage = lazy(() => import("./pages/BlogPage"));
+const BlogPostPage = lazy(() => import("./pages/BlogPostPage"));
+const InventoryPage = lazy(() => import("./pages/InventoryPage"));
+const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
+const OrderConfirmationPage = lazy(() => import("./pages/OrderConfirmationPage"));
+const SellOnLocofast = lazy(() => import("./pages/SellOnLocofast"));
+const RFQPage = lazy(() => import("./pages/RFQPage"));
+const SupplierDetailPage = lazy(() => import("./pages/SupplierDetailPage"));
+const SupplierProfilePage = lazy(() => import("./pages/SupplierProfilePage"));
+
+// Vendor pages
+const VendorLogin = lazy(() => import("./pages/vendor/VendorLogin"));
+const VendorDashboard = lazy(() => import("./pages/vendor/VendorDashboard"));
+const VendorInventory = lazy(() => import("./pages/vendor/VendorInventory"));
+const VendorOrders = lazy(() => import("./pages/vendor/VendorOrders"));
+const VendorProtectedRoute = lazy(() => import("./components/VendorProtectedRoute"));
+
+// Tools pages
+const ToolsPage = lazy(() => import("./pages/tools").then(m => ({ default: m.ToolsPage })));
+const GSTCalculator = lazy(() => import("./pages/tools").then(m => ({ default: m.GSTCalculator })));
+const ProfitMarginCalculator = lazy(() => import("./pages/tools").then(m => ({ default: m.ProfitMarginCalculator })));
+const DiscountCalculator = lazy(() => import("./pages/tools").then(m => ({ default: m.DiscountCalculator })));
+const GSMCalculator = lazy(() => import("./pages/tools").then(m => ({ default: m.GSMCalculator })));
+const CBMCalculator = lazy(() => import("./pages/tools").then(m => ({ default: m.CBMCalculator })));
+const VolumetricWeightCalculator = lazy(() => import("./pages/tools").then(m => ({ default: m.VolumetricWeightCalculator })));
+const ProductDescriptionGenerator = lazy(() => import("./pages/tools").then(m => ({ default: m.ProductDescriptionGenerator })));
+const ProductTitleGenerator = lazy(() => import("./pages/tools").then(m => ({ default: m.ProductTitleGenerator })));
+const BarcodeGenerator = lazy(() => import("./pages/tools").then(m => ({ default: m.BarcodeGenerator })));
+
+// Admin pages
+const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminFabrics = lazy(() => import("./pages/admin/AdminFabrics"));
+const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
+const AdminSellers = lazy(() => import("./pages/admin/AdminSellers"));
+const AdminCollections = lazy(() => import("./pages/admin/AdminCollections"));
+const AdminArticles = lazy(() => import("./pages/admin/AdminArticles"));
+const AdminEnquiries = lazy(() => import("./pages/admin/AdminEnquiries"));
+const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const AdminRFQ = lazy(() => import("./pages/admin/AdminRFQ"));
+const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
+const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
+const AdminFabricSEO = lazy(() => import("./pages/admin/AdminFabricSEO"));
+const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
+const AdminSellerDetail = lazy(() => import("./pages/admin/AdminSellerDetail"));
+const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
+
+// SEO Landing Pages
+const FabricsHub = lazy(() => import("./pages/seo/FabricsHub"));
+const DenimCategory = lazy(() => import("./pages/seo/denim/DenimCategory"));
+const Denim8oz = lazy(() => import("./pages/seo/denim/Denim8oz"));
+const Denim10oz = lazy(() => import("./pages/seo/denim/Denim10oz"));
+const Denim12oz = lazy(() => import("./pages/seo/denim/Denim12oz"));
+const DenimStretch = lazy(() => import("./pages/seo/denim/DenimStretch"));
+const DenimRigid = lazy(() => import("./pages/seo/denim/DenimRigid"));
+const DenimIndigoDyed = lazy(() => import("./pages/seo/denim/DenimIndigoDyed"));
+const DenimForJeans = lazy(() => import("./pages/seo/denim/DenimForJeans"));
+const DenimBulkSuppliers = lazy(() => import("./pages/seo/denim/DenimBulkSuppliers"));
+const DenimManufacturers = lazy(() => import("./pages/seo/denim/DenimManufacturers"));
+const PolyKnitCategory = lazy(() => import("./pages/seo/poly-knit/PolyKnitCategory"));
+const PolyKnit180gsm = lazy(() => import("./pages/seo/poly-knit/PolyKnit180gsm"));
+const PolyKnit220gsm = lazy(() => import("./pages/seo/poly-knit/PolyKnit220gsm"));
+const PolyKnit240gsm = lazy(() => import("./pages/seo/poly-knit/PolyKnit240gsm"));
+const PolyKnitInterlock = lazy(() => import("./pages/seo/poly-knit/PolyKnitInterlock"));
+const PolyKnitJersey = lazy(() => import("./pages/seo/poly-knit/PolyKnitJersey"));
+const PolyKnitMoistureWicking = lazy(() => import("./pages/seo/poly-knit/PolyKnitMoistureWicking"));
+const PolyKnitSportswear = lazy(() => import("./pages/seo/poly-knit/PolyKnitSportswear"));
+const PolyKnitBulkSuppliers = lazy(() => import("./pages/seo/poly-knit/PolyKnitBulkSuppliers"));
+const PolyKnitManufacturers = lazy(() => import("./pages/seo/poly-knit/PolyKnitManufacturers"));
 
 function App() {
   return (
@@ -120,6 +130,7 @@ function App() {
         <BrowserRouter>
           <Toaster position="top-right" richColors />
           <ScrollToTop />
+          <Suspense fallback={<PageLoader />}>
           <Routes>
           {/* Public routes */}
           <Route path="/" element={<><Navbar /><HomePage /><Footer /></>} />
@@ -214,10 +225,11 @@ function App() {
 
           {/* Vendor routes */}
           <Route path="/vendor/login" element={<VendorLogin />} />
-          <Route path="/vendor" element={<VendorProtectedRoute><VendorDashboard /></VendorProtectedRoute>} />
-          <Route path="/vendor/inventory" element={<VendorProtectedRoute><VendorInventory /></VendorProtectedRoute>} />
-          <Route path="/vendor/orders" element={<VendorProtectedRoute><VendorOrders /></VendorProtectedRoute>} />
+          <Route path="/vendor" element={<Suspense fallback={<PageLoader />}><VendorProtectedRoute><VendorDashboard /></VendorProtectedRoute></Suspense>} />
+          <Route path="/vendor/inventory" element={<Suspense fallback={<PageLoader />}><VendorProtectedRoute><VendorInventory /></VendorProtectedRoute></Suspense>} />
+          <Route path="/vendor/orders" element={<Suspense fallback={<PageLoader />}><VendorProtectedRoute><VendorOrders /></VendorProtectedRoute></Suspense>} />
         </Routes>
+        </Suspense>
         <WhatsAppChat />
       </BrowserRouter>
     </AuthProvider>

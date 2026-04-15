@@ -27,6 +27,9 @@ const Navbar = () => {
                 src="https://customer-assets.emergentagent.com/job_locofast-cms/artifacts/xkuf449w_Locofast%20-%20Medium.svg" 
                 alt="Locofast" 
                 className="h-8"
+                width={120}
+                height={32}
+                fetchPriority="high"
               />
             </Link>
 

@@ -327,7 +327,7 @@ const HomePage = () => {
                     className="group relative bg-gradient-to-br from-[#2563EB] to-[#1e3a8a] rounded-2xl overflow-hidden aspect-[4/5] hover:shadow-xl transition-all"
                   >
                     {collection.image ? (
-                      <img src={collection.image} alt={collection.name} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity" />
+                      <img src={collection.image} alt={collection.name} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity" loading="lazy" decoding="async" width={400} height={500} />
                     ) : (
                       <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800" />
                     )}
@@ -353,7 +353,7 @@ const HomePage = () => {
                     to="/collections"
                     className="group relative bg-gradient-to-br from-[#2563EB] to-[#1e3a8a] rounded-2xl overflow-hidden aspect-[4/5] hover:shadow-xl transition-all"
                   >
-                    <img src={item.img} alt={item.name} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity" loading="lazy" />
+                    <img src={item.img} alt={item.name} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity" loading="lazy" decoding="async" width={400} height={500} />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6">
                       <h3 className="text-xl font-semibold text-white mb-2">{item.name}</h3>
