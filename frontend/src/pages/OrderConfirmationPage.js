@@ -4,6 +4,7 @@ import { CheckCircle, Package, Truck, Mail, Phone, MapPin, ArrowRight, Loader2, 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getOrder, downloadInvoice } from "../lib/api";
+import { trackPurchase } from "../lib/analytics";
 
 const OrderConfirmationPage = () => {
   const { orderNumber } = useParams();
@@ -21,6 +22,8 @@ const OrderConfirmationPage = () => {
     try {
       const res = await getOrder(orderNumber);
       setOrder(res.data);
+      // GA4: track purchase
+      if (res.data) trackPurchase(res.data);
     } catch (err) {
       setError("Order not found");
     }

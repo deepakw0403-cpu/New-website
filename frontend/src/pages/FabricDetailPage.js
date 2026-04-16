@@ -8,6 +8,7 @@ import Footer from "../components/Footer";
 import ExpandableText from "../components/ExpandableText";
 import RFQModal from "../components/RFQModal";
 import { getFabric, createEnquiry, getFabricSEO, getRelatedFabrics } from "../lib/api";
+import { trackViewItem, trackAddToCart, trackRFQIntent } from "../lib/analytics";
 
 const FabricDetailPage = () => {
   const { id } = useParams();
@@ -40,6 +41,8 @@ const FabricDetailPage = () => {
         setFabric(fabricRes.data);
         setSeoContent(seoRes.data);
         setRelatedFabrics(relatedRes.data || []);
+        // GA4: track product view
+        if (fabricRes.data) trackViewItem(fabricRes.data);
       } catch (err) {
         console.error("Error fetching fabric:", err);
         toast.error("Failed to load fabric details");
@@ -734,7 +737,10 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                 <div className="flex flex-col gap-3">
                   {actions.canBookBulk && (
                     <button
-                      onClick={() => navigate(`/checkout/?fabric_id=${fabric.id}&type=bulk&qty=${fabric.moq || 100}`)}
+                      onClick={() => {
+                        trackAddToCart(fabric, 'bulk', fabric.moq || 100, fabric.rate_per_meter || 0);
+                        navigate(`/checkout/?fabric_id=${fabric.id}&type=bulk&qty=${fabric.moq || 100}`);
+                      }}
                       className="w-full bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors inline-flex items-center justify-center gap-2"
                       data-testid="book-bulk-btn"
                     >
@@ -744,7 +750,10 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   )}
                   {actions.canBookSample && (
                     <button
-                      onClick={() => navigate(`/checkout/?fabric_id=${fabric.id}&type=sample&qty=1`)}
+                      onClick={() => {
+                        trackAddToCart(fabric, 'sample', 1, actions.samplePrice || 0);
+                        navigate(`/checkout/?fabric_id=${fabric.id}&type=sample&qty=1`);
+                      }}
                       className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-2"
                       data-testid="book-sample-btn"
                     >
@@ -753,7 +762,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                     </button>
                   )}
                   <button
-                    onClick={() => setShowRfqModal(true)}
+                    onClick={() => { trackRFQIntent(fabric.name, 'fabric_detail'); setShowRfqModal(true); }}
                     className="w-full border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors inline-flex items-center justify-center gap-2"
                     data-testid="enquiry-btn"
                   >

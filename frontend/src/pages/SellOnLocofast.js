@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
+import { trackSupplierSignup } from "../lib/analytics";
 import { 
   ArrowRight, 
   Phone, 
@@ -144,6 +145,7 @@ const SellOnLocofast = () => {
       
       if (response.ok) {
         setSubmitted(true);
+        trackSupplierSignup({ company: formData.company_name, categories: formData.categories.join(', ') });
       } else {
         throw new Error("Failed to submit");
       }

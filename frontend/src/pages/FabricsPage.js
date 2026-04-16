@@ -6,6 +6,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import RFQModal from "../components/RFQModal";
 import { getFabrics, getFabricsCount, getCategories, createEnquiry } from "../lib/api";
+import { trackViewItemList } from "../lib/analytics";
 import { toast } from "sonner";
 
 const ITEMS_PER_PAGE = 20;
@@ -82,6 +83,13 @@ const FabricsPage = () => {
         ]);
         setFabrics(fabricsRes.data);
         setTotalCount(countRes.data.count);
+        // GA4: track catalog view
+        if (fabricsRes.data.length > 0) {
+          const listName = selectedCategory
+            ? categories.find(c => c.id === selectedCategory)?.name || 'Filtered Catalog'
+            : 'Fabric Catalog';
+          trackViewItemList(fabricsRes.data, listName);
+        }
       } catch (err) {
         console.error("Error fetching fabrics:", err);
       }

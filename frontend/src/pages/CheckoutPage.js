@@ -4,6 +4,7 @@ import { ArrowLeft, ShoppingCart, Truck, CreditCard, CheckCircle2, AlertCircle, 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getFabric, createOrder, verifyPayment, sendOrderConfirmation, validateCoupon } from "../lib/api";
+import { trackBeginCheckout } from "../lib/analytics";
 import { toast } from "sonner";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -78,6 +79,10 @@ const CheckoutPage = () => {
     try {
       const res = await getFabric(fabricId);
       setFabric(res.data);
+      // GA4: track begin_checkout when fabric loads
+      if (res.data) {
+        trackBeginCheckout(res.data, orderType, quantity, res.data.rate_per_meter ? res.data.rate_per_meter * quantity : 0);
+      }
     } catch (err) {
       toast.error("Failed to load fabric details");
       navigate("/fabrics");

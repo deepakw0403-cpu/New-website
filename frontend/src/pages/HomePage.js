@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle, MessageCircle, Shield, Clock, Users, ChevronDo
 import Navbar from "../components/Navbar";
 import RFQModal from "../components/RFQModal";
 import { getCollections } from "../lib/api";
+import { trackRFQIntent } from "../lib/analytics";
 
 const HomePage = () => {
   const [collections, setCollections] = useState([]);
@@ -177,7 +178,7 @@ const HomePage = () => {
                   <ArrowRight size={18} />
                 </Link>
                 <button
-                  onClick={() => setShowRfqModal(true)}
+                  onClick={() => { trackRFQIntent('', 'homepage_hero'); setShowRfqModal(true); }}
                   className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-medium hover:bg-white/20 transition-colors border border-white/20"
                   data-testid="hero-cta-secondary"
                 >

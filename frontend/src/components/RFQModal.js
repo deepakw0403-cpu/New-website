@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowRight, X } from "lucide-react";
 import { toast } from "sonner";
+import { trackGenerateLead } from "../lib/analytics";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -59,6 +60,7 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
         })
       });
       toast.success("Your enquiry has been submitted! Our team will reach out within 24 hours.");
+      trackGenerateLead({ source: fabricUrl ? 'SKU Page RFQ' : 'Homepage RFQ', fabric_type: form.fabric_type, fabric_name: fabricName || '', location: form.location });
       onClose();
       setForm({ name: "", phone: "", country_code: "+91", gst_number: "", company_name: "", email: "", fabric_type: "", location: "" });
     } catch (err) {
