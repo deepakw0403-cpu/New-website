@@ -146,6 +146,7 @@ const SharedCartPage = () => {
               <span className="text-emerald-600">₹{(subtotal * 1.05).toLocaleString()}</span>
             </div>
             <p className="text-xs text-gray-400 mt-2">Logistics charges will be calculated at checkout.</p>
+            <p className="text-xs text-amber-600 mt-1.5">For export orders, additional port charges, custom charges, export documentation &amp; cess may be applicable.</p>
           </div>
 
           {/* CTA */}

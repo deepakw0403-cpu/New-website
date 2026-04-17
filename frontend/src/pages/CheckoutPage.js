@@ -871,6 +871,7 @@ const CheckoutPage = () => {
                     <span>Total</span>
                     <span className="text-emerald-600">₹{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
+                  <p className="text-xs text-amber-600 mt-3">For export orders, additional port charges, custom charges, export documentation &amp; cess may be applicable.</p>
                 </div>
 
                 {/* Desktop Submit Button */}
