@@ -15,6 +15,29 @@ import uuid
 import resend
 import shutil
 from pathlib import Path
+import httpx
+
+# ==================== EXCHANGE RATE CACHE ====================
+
+_exchange_rate_cache = {"rate": None, "date": None}
+METERS_TO_YARDS = 1.0936
+
+async def get_usd_rate() -> float:
+    """Get daily cached INR→USD rate."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if _exchange_rate_cache["rate"] and _exchange_rate_cache["date"] == today:
+        return _exchange_rate_cache["rate"]
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get("https://open.er-api.com/v6/latest/INR")
+            data = resp.json()
+            rate = data.get("rates", {}).get("USD", 0.0119)
+            _exchange_rate_cache["rate"] = rate
+            _exchange_rate_cache["date"] = today
+            return rate
+    except Exception as e:
+        logger.warning(f"Exchange rate fetch failed: {e}")
+        return _exchange_rate_cache["rate"] or 0.0119  # fallback ~84 INR/USD
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +87,7 @@ class CreateSharedCartRequest(BaseModel):
     customer_email: str = ""
     notes: str = ""
     payment_proof_url: str = ""  # RTGS/NEFT screenshot URL
+    dispatch_country: str = "india"  # "india" or "bangladesh"
 
 
 # ==================== AUTH HELPERS ====================
@@ -189,6 +213,15 @@ async def get_agent_profile(request: Request):
     return agent
 
 
+# ==================== EXCHANGE RATE ENDPOINT ====================
+
+@router.get("/exchange-rate")
+async def get_exchange_rate():
+    """Get current INR→USD exchange rate (daily cached)."""
+    rate = await get_usd_rate()
+    return {"inr_to_usd": rate, "usd_to_inr": round(1 / rate, 2) if rate else 84.0, "meters_to_yards": METERS_TO_YARDS}
+
+
 # ==================== SHARED CART ====================
 
 @router.post("/shared-cart")
@@ -203,6 +236,28 @@ async def create_shared_cart(data: CreateSharedCartRequest, request: Request):
     cart_token = str(uuid.uuid4()).replace('-', '')[:12]
     now = datetime.now(timezone.utc)
 
+    # Calculate Bangladesh charges if applicable
+    bangladesh_charges = None
+    usd_rate = None
+    if data.dispatch_country == "bangladesh":
+        subtotal = sum(item.quantity * item.price_per_meter for item in data.items)
+        usd_rate = await get_usd_rate()
+        border_logistics = round(subtotal * 0.01, 2)
+        export_documentation = round(subtotal * 0.004, 2)
+        custom_clearance = round(subtotal * 0.0105, 2)
+        bangladesh_charges = {
+            "border_logistics_pct": 1.0,
+            "border_logistics": border_logistics,
+            "export_documentation_pct": 0.40,
+            "export_documentation": export_documentation,
+            "custom_clearance_pct": 1.05,
+            "custom_clearance": custom_clearance,
+            "total_extra_charges": round(border_logistics + export_documentation + custom_clearance, 2),
+            "inr_to_usd_rate": usd_rate,
+            "subtotal_inr": subtotal,
+            "subtotal_usd": round(subtotal * usd_rate, 2),
+        }
+
     cart_doc = {
         'id': cart_id,
         'token': cart_token,
@@ -213,7 +268,10 @@ async def create_shared_cart(data: CreateSharedCartRequest, request: Request):
         'customer_email': data.customer_email,
         'notes': data.notes,
         'payment_proof_url': data.payment_proof_url,
-        'status': 'pending',  # pending, completed, expired
+        'dispatch_country': data.dispatch_country,
+        'bangladesh_charges': bangladesh_charges,
+        'usd_rate': usd_rate,
+        'status': 'pending',
         'created_at': now.isoformat(),
         'expires_at': (now + timedelta(days=7)).isoformat()
     }
@@ -223,7 +281,8 @@ async def create_shared_cart(data: CreateSharedCartRequest, request: Request):
     return {
         'cart_id': cart_id,
         'token': cart_token,
-        'status': 'pending'
+        'status': 'pending',
+        'bangladesh_charges': bangladesh_charges,
     }
 
 

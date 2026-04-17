@@ -36,6 +36,8 @@ const AgentDashboardPage = () => {
   const [customerEmail, setCustomerEmail] = useState("");
   const [paymentProofUrl, setPaymentProofUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [dispatchCountry, setDispatchCountry] = useState("india");
+  const [usdRate, setUsdRate] = useState(null);
 
   const fetchFabrics = useCallback(async () => {
     setFabricsLoading(true);
@@ -77,6 +79,13 @@ const AgentDashboardPage = () => {
   useEffect(() => { fetchFabrics(); }, [fetchFabrics]);
   useEffect(() => { if (activeTab === "shared") fetchSharedCarts(); }, [activeTab]);
   useEffect(() => { if (activeTab === "orders") fetchOrders(); }, [activeTab]);
+
+  // Fetch USD rate when Bangladesh selected
+  useEffect(() => {
+    if (dispatchCountry === "bangladesh" && !usdRate) {
+      fetch(`${API}/api/agent/exchange-rate`).then(r => r.json()).then(d => setUsdRate(d)).catch(() => {});
+    }
+  }, [dispatchCountry, usdRate]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -149,7 +158,7 @@ const AgentDashboardPage = () => {
       const res = await fetch(`${API}/api/agent/shared-cart`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ items: cart, customer_email: customerEmail, notes: "", payment_proof_url: paymentProofUrl }),
+        body: JSON.stringify({ items: cart, customer_email: customerEmail, notes: "", payment_proof_url: paymentProofUrl, dispatch_country: dispatchCountry }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Failed");
@@ -159,6 +168,7 @@ const AgentDashboardPage = () => {
       setCart([]);
       setCustomerEmail("");
       setPaymentProofUrl("");
+      setDispatchCountry("india");
       setActiveTab("shared");
       fetchSharedCarts();
     } catch (err) {
@@ -173,6 +183,21 @@ const AgentDashboardPage = () => {
   };
 
   const cartTotal = cart.reduce((s, c) => s + c.quantity * c.price_per_meter, 0);
+  const totalMeters = cart.reduce((s, c) => s + (c.order_type === "bulk" ? c.quantity : 0), 0);
+  const METERS_TO_YARDS = 1.0936;
+
+  // Bangladesh charges
+  const bdCharges = dispatchCountry === "bangladesh" ? {
+    borderLogistics: Math.round(cartTotal * 0.01 * 100) / 100,
+    exportDocs: Math.round(cartTotal * 0.004 * 100) / 100,
+    customClearance: Math.round(cartTotal * 0.0105 * 100) / 100,
+  } : null;
+  const bdTotal = bdCharges ? bdCharges.borderLogistics + bdCharges.exportDocs + bdCharges.customClearance : 0;
+  const grandTotalINR = cartTotal + bdTotal;
+  const inrToUsd = usdRate?.inr_to_usd || 0.0119;
+  const grandTotalUSD = Math.round(grandTotalINR * inrToUsd * 100) / 100;
+  const totalYards = totalMeters * METERS_TO_YARDS;
+  const usdPerYard = totalYards > 0 ? Math.round(grandTotalUSD / totalYards * 100) / 100 : 0;
 
   const handleLogout = () => { logout(); navigate("/agent/login"); };
 
@@ -319,9 +344,72 @@ const AgentDashboardPage = () => {
                   </div>
                   <div className="bg-white rounded-xl p-6 border border-gray-200 h-fit sticky top-24">
                     <h3 className="font-semibold text-gray-900 mb-4">Share Cart</h3>
-                    <div className="space-y-3 text-sm mb-4">
+
+                    {/* Dispatch Country */}
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Dispatch Country</label>
+                      <div className="flex gap-2">
+                        {[{ val: "india", label: "India", flag: "🇮🇳" }, { val: "bangladesh", label: "Bangladesh", flag: "🇧🇩" }].map((c) => (
+                          <button
+                            key={c.val}
+                            type="button"
+                            onClick={() => setDispatchCountry(c.val)}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium border transition-all ${dispatchCountry === c.val ? "border-[#2563EB] bg-blue-50 text-[#2563EB]" : "border-gray-200 text-gray-600 hover:border-gray-300"}`}
+                            data-testid={`dispatch-${c.val}`}
+                          >
+                            <span>{c.flag}</span>{c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm mb-3">
                       <div className="flex justify-between"><span className="text-gray-600">Items</span><span>{cart.length}</span></div>
-                      <div className="flex justify-between"><span className="text-gray-600">Cart Total</span><span className="font-semibold text-[#2563EB]">₹{cartTotal.toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-600">Subtotal (INR)</span><span className="font-medium">₹{cartTotal.toLocaleString()}</span></div>
+                      
+                      {dispatchCountry === "bangladesh" && bdCharges && (
+                        <>
+                          <div className="pt-2 border-t border-dashed border-amber-200">
+                            <p className="text-xs font-semibold text-amber-700 mb-1.5">Bangladesh Export Charges</p>
+                          </div>
+                          <div className="flex justify-between text-amber-700">
+                            <span className="text-xs">Border Logistics (1%)</span>
+                            <span className="text-xs font-medium">₹{bdCharges.borderLogistics.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-amber-700">
+                            <span className="text-xs">Export Documentation (0.40%)</span>
+                            <span className="text-xs font-medium">₹{bdCharges.exportDocs.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-amber-700">
+                            <span className="text-xs">Custom Clearance (1.05%)</span>
+                            <span className="text-xs font-medium">₹{bdCharges.customClearance.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between pt-2 border-t border-amber-200 font-semibold">
+                            <span className="text-gray-700">Grand Total (INR)</span>
+                            <span>₹{grandTotalINR.toLocaleString()}</span>
+                          </div>
+                          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mt-1">
+                            <div className="flex justify-between font-bold text-emerald-800">
+                              <span>Total (USD)</span>
+                              <span>${grandTotalUSD.toLocaleString()}</span>
+                            </div>
+                            {usdPerYard > 0 && (
+                              <div className="flex justify-between text-xs text-emerald-600 mt-1">
+                                <span>Rate</span>
+                                <span>${usdPerYard}/yard ({totalYards.toFixed(1)} yards)</span>
+                              </div>
+                            )}
+                            <p className="text-[10px] text-emerald-500 mt-1">Rate: 1 INR = {inrToUsd.toFixed(4)} USD (daily)</p>
+                          </div>
+                        </>
+                      )}
+                      
+                      {dispatchCountry === "india" && (
+                        <div className="flex justify-between font-semibold pt-2 border-t">
+                          <span className="text-gray-700">Cart Total</span>
+                          <span className="text-[#2563EB]">₹{cartTotal.toLocaleString()}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="mb-4">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Customer Email (optional)</label>
