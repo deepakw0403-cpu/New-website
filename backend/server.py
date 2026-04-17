@@ -467,238 +467,9 @@ async def login_admin(data: AdminLogin):
 async def get_me(admin=Depends(get_current_admin)):
     return AdminResponse(id=admin['id'], email=admin['email'], name=admin['name'])
 
-# ==================== CATEGORY ROUTES ====================
+# ==================== CATEGORY ROUTES (extracted to category_router.py) ====================
 
-@api_router.get("/categories", response_model=List[Category])
-async def get_categories():
-    categories = await db.categories.find({}, {'_id': 0}).to_list(100)
-    return categories
-
-@api_router.get("/categories/{category_id}", response_model=Category)
-async def get_category(category_id: str):
-    category = await db.categories.find_one({'id': category_id}, {'_id': 0})
-    if not category:
-        raise HTTPException(status_code=404, detail='Category not found')
-    return category
-
-@api_router.post("/categories", response_model=Category)
-async def create_category(data: CategoryCreate, admin=Depends(get_current_admin)):
-    category_id = str(uuid.uuid4())
-    category_doc = {
-        'id': category_id,
-        'name': data.name,
-        'description': data.description or "",
-        'image_url': data.image_url or "",
-        'created_at': datetime.now(timezone.utc).isoformat()
-    }
-    await db.categories.insert_one(category_doc)
-    return Category(**category_doc)
-
-@api_router.put("/categories/{category_id}", response_model=Category)
-async def update_category(category_id: str, data: CategoryUpdate, admin=Depends(get_current_admin)):
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
-    if not update_data:
-        raise HTTPException(status_code=400, detail='No data to update')
-    
-    result = await db.categories.update_one({'id': category_id}, {'$set': update_data})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail='Category not found')
-    
-    category = await db.categories.find_one({'id': category_id}, {'_id': 0})
-    return Category(**category)
-
-@api_router.delete("/categories/{category_id}")
-async def delete_category(category_id: str, admin=Depends(get_current_admin)):
-    result = await db.categories.delete_one({'id': category_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail='Category not found')
-    return {'message': 'Category deleted'}
-
-# ==================== SELLER ROUTES ====================
-
-@api_router.get("/sellers", response_model=List[Seller])
-async def get_sellers(include_inactive: bool = Query(False)):
-    query = {} if include_inactive else {'is_active': {'$ne': False}}
-    sellers = await db.sellers.find(query, {'_id': 0}).sort('created_at', -1).to_list(100)
-    
-    # Get all category IDs needed
-    all_cat_ids = []
-    for seller in sellers:
-        all_cat_ids.extend(seller.get('category_ids', []))
-    all_cat_ids = list(set(all_cat_ids))
-    
-    # Fetch categories
-    categories = await db.categories.find({'id': {'$in': all_cat_ids}}, {'_id': 0}).to_list(100) if all_cat_ids else []
-    cat_map = {c['id']: c['name'] for c in categories}
-    
-    # Add category names to each seller
-    for seller in sellers:
-        seller['category_names'] = [cat_map.get(cid, '') for cid in seller.get('category_ids', []) if cat_map.get(cid)]
-        if 'category_ids' not in seller:
-            seller['category_ids'] = []
-        if 'city' not in seller:
-            seller['city'] = seller.get('location', '')
-        if 'state' not in seller:
-            seller['state'] = ''
-        if 'is_active' not in seller:
-            seller['is_active'] = True
-        if 'seller_code' not in seller:
-            seller['seller_code'] = ''
-        if 'created_at' not in seller:
-            seller['created_at'] = datetime.now(timezone.utc).isoformat()
-        if 'description' not in seller:
-            seller['description'] = ''
-        if 'logo_url' not in seller:
-            seller['logo_url'] = ''
-        if 'contact_email' not in seller:
-            seller['contact_email'] = ''
-        if 'contact_phone' not in seller:
-            seller['contact_phone'] = ''
-        if 'company_name' not in seller:
-            seller['company_name'] = seller.get('name', '')
-    
-    return sellers
-
-@api_router.get("/sellers/{seller_id}", response_model=Seller)
-async def get_seller(seller_id: str):
-    seller = await db.sellers.find_one({'id': seller_id}, {'_id': 0})
-    if not seller:
-        raise HTTPException(status_code=404, detail='Seller not found')
-    
-    # Get category names
-    category_names = []
-    if seller.get('category_ids'):
-        categories = await db.categories.find({'id': {'$in': seller['category_ids']}}, {'_id': 0}).to_list(100)
-        category_names = [c['name'] for c in categories]
-    seller['category_names'] = category_names
-    
-    # Handle legacy fields
-    if 'category_ids' not in seller:
-        seller['category_ids'] = []
-    if 'city' not in seller:
-        seller['city'] = seller.get('location', '')
-    if 'state' not in seller:
-        seller['state'] = ''
-    if 'is_active' not in seller:
-        seller['is_active'] = True
-    if 'seller_code' not in seller:
-        seller['seller_code'] = ''
-    if 'created_at' not in seller:
-        seller['created_at'] = datetime.now(timezone.utc).isoformat()
-    if 'description' not in seller:
-        seller['description'] = ''
-    if 'logo_url' not in seller:
-        seller['logo_url'] = ''
-    if 'contact_email' not in seller:
-        seller['contact_email'] = ''
-    if 'contact_phone' not in seller:
-        seller['contact_phone'] = ''
-    if 'company_name' not in seller:
-        seller['company_name'] = seller.get('name', '')
-    
-    return seller
-
-@api_router.post("/sellers", response_model=Seller)
-async def create_seller(data: SellerCreate, admin=Depends(get_current_admin)):
-    seller_id = str(uuid.uuid4())
-    seller_code = await generate_seller_code()
-    
-    # Get category names for response
-    category_names = []
-    if data.category_ids:
-        categories = await db.categories.find({'id': {'$in': data.category_ids}}, {'_id': 0}).to_list(100)
-        category_names = [c['name'] for c in categories]
-    
-    # Hash password if provided
-    hashed_password = ""
-    if data.password:
-        hashed_password = bcrypt.hashpw(data.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    
-    seller_doc = {
-        'id': seller_id,
-        'seller_code': seller_code,
-        'name': data.name,
-        'company_name': data.company_name,
-        'description': data.description or "",
-        'logo_url': data.logo_url or "",
-        'city': data.city or "",
-        'state': data.state or "",
-        'contact_email': data.contact_email,
-        'contact_phone': data.contact_phone,
-        'category_ids': data.category_ids or [],
-        'is_active': data.is_active,
-        'password_hash': hashed_password,
-        'created_at': datetime.now(timezone.utc).isoformat(),
-        'established_year': data.established_year,
-        'monthly_capacity': data.monthly_capacity or "",
-        'employee_count': data.employee_count or "",
-        'factory_size': data.factory_size or "",
-        'turnover_range': data.turnover_range or "",
-        'certifications': data.certifications or [],
-        'export_markets': data.export_markets or [],
-        'gst_number': data.gst_number or "",
-    }
-    await db.sellers.insert_one(seller_doc)
-    
-    response_doc = {**seller_doc, 'category_names': category_names}
-    return Seller(**response_doc)
-
-@api_router.put("/sellers/{seller_id}", response_model=Seller)
-async def update_seller(seller_id: str, data: SellerUpdate, admin=Depends(get_current_admin)):
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None and k != 'password'}
-    
-    # Hash password if provided
-    if data.password:
-        update_data['password_hash'] = bcrypt.hashpw(data.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    
-    if not update_data:
-        raise HTTPException(status_code=400, detail='No data to update')
-    
-    result = await db.sellers.update_one({'id': seller_id}, {'$set': update_data})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail='Seller not found')
-    
-    seller = await db.sellers.find_one({'id': seller_id}, {'_id': 0})
-    
-    # Get category names
-    category_names = []
-    if seller.get('category_ids'):
-        categories = await db.categories.find({'id': {'$in': seller['category_ids']}}, {'_id': 0}).to_list(100)
-        category_names = [c['name'] for c in categories]
-    seller['category_names'] = category_names
-    
-    # Handle legacy fields
-    if 'category_ids' not in seller:
-        seller['category_ids'] = []
-    if 'city' not in seller:
-        seller['city'] = seller.get('location', '')
-    if 'state' not in seller:
-        seller['state'] = ''
-    if 'is_active' not in seller:
-        seller['is_active'] = True
-    if 'seller_code' not in seller:
-        seller['seller_code'] = ''
-    if 'created_at' not in seller:
-        seller['created_at'] = datetime.now(timezone.utc).isoformat()
-    if 'description' not in seller:
-        seller['description'] = ''
-    if 'logo_url' not in seller:
-        seller['logo_url'] = ''
-    if 'contact_email' not in seller:
-        seller['contact_email'] = ''
-    if 'contact_phone' not in seller:
-        seller['contact_phone'] = ''
-    if 'company_name' not in seller:
-        seller['company_name'] = seller.get('name', '')
-    
-    return Seller(**seller)
-
-@api_router.delete("/sellers/{seller_id}")
-async def delete_seller(seller_id: str, admin=Depends(get_current_admin)):
-    result = await db.sellers.delete_one({'id': seller_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail='Seller not found')
-    return {'message': 'Seller deleted'}
+# ==================== SELLER ROUTES (extracted to seller_router.py) ====================
 
 # ==================== FABRIC ROUTES ====================
 
@@ -1970,98 +1741,7 @@ async def create_rfq_lead(data: dict):
     
     return {'message': 'Quote request submitted successfully', 'id': enquiry_id}
 
-# ==================== COLLECTION ROUTES ====================
-
-@api_router.get("/collections", response_model=List[Collection])
-async def get_collections():
-    collections = await db.collections.find({}, {'_id': 0}).sort('created_at', -1).to_list(100)
-    for coll in collections:
-        coll['fabric_count'] = len(coll.get('fabric_ids', []))
-    return collections
-
-@api_router.get("/collections/featured", response_model=List[Collection])
-async def get_featured_collections():
-    collections = await db.collections.find({'is_featured': True}, {'_id': 0}).sort('created_at', -1).to_list(10)
-    for coll in collections:
-        coll['fabric_count'] = len(coll.get('fabric_ids', []))
-    return collections
-
-@api_router.get("/collections/{collection_id}", response_model=Collection)
-async def get_collection(collection_id: str):
-    collection = await db.collections.find_one({'id': collection_id}, {'_id': 0})
-    if not collection:
-        raise HTTPException(status_code=404, detail='Collection not found')
-    collection['fabric_count'] = len(collection.get('fabric_ids', []))
-    return collection
-
-@api_router.get("/collections/{collection_id}/fabrics", response_model=List[Fabric])
-async def get_collection_fabrics(collection_id: str):
-    collection = await db.collections.find_one({'id': collection_id}, {'_id': 0})
-    if not collection:
-        raise HTTPException(status_code=404, detail='Collection not found')
-    
-    fabric_ids = collection.get('fabric_ids', [])
-    if not fabric_ids:
-        return []
-    
-    fabrics = await db.fabrics.find({'id': {'$in': fabric_ids}}, {'_id': 0}).to_list(100)
-    
-    # Get category and seller info
-    category_ids = list(set(f['category_id'] for f in fabrics))
-    categories = await db.categories.find({'id': {'$in': category_ids}}, {'_id': 0}).to_list(100)
-    cat_map = {c['id']: c['name'] for c in categories}
-    
-    seller_ids = list(set(f.get('seller_id', '') for f in fabrics if f.get('seller_id')))
-    sellers = await db.sellers.find({'id': {'$in': seller_ids}}, {'_id': 0}).to_list(100) if seller_ids else []
-    seller_map = {s['id']: s for s in sellers}
-    
-    for fabric in fabrics:
-        normalize_fabric(fabric)
-        fabric['category_name'] = cat_map.get(fabric['category_id'], '')
-        seller = seller_map.get(fabric.get('seller_id', ''))
-        fabric['seller_name'] = seller['name'] if seller else ''
-        fabric['seller_company'] = seller['company_name'] if seller else ''
-        if 'seller_id' not in fabric:
-            fabric['seller_id'] = ''
-    
-    return fabrics
-
-@api_router.post("/collections", response_model=Collection)
-async def create_collection(data: CollectionCreate, admin=Depends(get_current_admin)):
-    collection_id = str(uuid.uuid4())
-    collection_doc = {
-        'id': collection_id,
-        'name': data.name,
-        'description': data.description or "",
-        'image_url': data.image_url or "",
-        'fabric_ids': data.fabric_ids or [],
-        'is_featured': data.is_featured,
-        'created_at': datetime.now(timezone.utc).isoformat()
-    }
-    await db.collections.insert_one(collection_doc)
-    collection_doc['fabric_count'] = len(collection_doc['fabric_ids'])
-    return Collection(**collection_doc)
-
-@api_router.put("/collections/{collection_id}", response_model=Collection)
-async def update_collection(collection_id: str, data: CollectionUpdate, admin=Depends(get_current_admin)):
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
-    if not update_data:
-        raise HTTPException(status_code=400, detail='No data to update')
-    
-    result = await db.collections.update_one({'id': collection_id}, {'$set': update_data})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail='Collection not found')
-    
-    collection = await db.collections.find_one({'id': collection_id}, {'_id': 0})
-    collection['fabric_count'] = len(collection.get('fabric_ids', []))
-    return Collection(**collection)
-
-@api_router.delete("/collections/{collection_id}")
-async def delete_collection(collection_id: str, admin=Depends(get_current_admin)):
-    result = await db.collections.delete_one({'id': collection_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail='Collection not found')
-    return {'message': 'Collection deleted'}
+# ==================== COLLECTION ROUTES (extracted to collection_router.py) ====================
 
 # ==================== STATS ====================
 
@@ -2332,6 +2012,18 @@ app.include_router(agent_router.router)
 import commission_router
 commission_router.set_db(db)
 app.include_router(commission_router.router)
+
+import category_router
+category_router.set_db(db)
+app.include_router(category_router.router)
+
+import seller_router
+seller_router.set_db(db)
+app.include_router(seller_router.router)
+
+import collection_router
+collection_router.set_db(db, normalize_fn=normalize_fabric)
+app.include_router(collection_router.router)
 
 import credit_router
 credit_router.set_db(db)
