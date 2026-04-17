@@ -98,6 +98,8 @@ class OrderCreate(BaseModel):
     notes: str = ""
     coupon: Optional[CouponInfo] = None
     discount: float = 0
+    logistics_charge: float = 0
+    payment_method: str = "razorpay"  # "razorpay" or "credit"
 
 class Order(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -138,15 +140,15 @@ async def generate_order_number() -> str:
         if not existing:
             return number
 
-def calculate_totals(items: List[OrderItem]) -> dict:
+def calculate_totals(items: List[OrderItem], logistics_charge: float = 0) -> dict:
     """Calculate order totals"""
     subtotal = sum(item.quantity * item.price_per_meter for item in items)
-    # GST 5% for fabrics
     tax = round(subtotal * 0.05, 2)
-    total = round(subtotal + tax, 2)
+    total = round(subtotal + tax + logistics_charge, 2)
     return {
         "subtotal": round(subtotal, 2),
         "tax": tax,
+        "logistics_charge": round(logistics_charge, 2),
         "total": total
     }
 
@@ -184,16 +186,12 @@ async def get_payment_status():
 
 @router.post("/create", response_model=dict)
 async def create_order(order_data: OrderCreate):
-    """Create a new order and initiate Razorpay payment"""
-    if not razorpay_client:
-        logger.error("Razorpay client not initialized - check RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET env vars")
-        raise HTTPException(status_code=503, detail="Payment service not configured. Please contact support.")
-    
+    """Create a new order and initiate payment (Razorpay or Credit)"""
     if not order_data.items or len(order_data.items) == 0:
         raise HTTPException(status_code=400, detail="No items in order")
     
     # Calculate totals
-    totals = calculate_totals(order_data.items)
+    totals = calculate_totals(order_data.items, order_data.logistics_charge)
     discount = order_data.discount or 0
     final_total = max(0, totals["total"] - discount)
     
@@ -203,6 +201,80 @@ async def create_order(order_data: OrderCreate):
     # Generate order ID and number
     order_id = str(uuid.uuid4())
     order_number = await generate_order_number()
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Credit payment path
+    if order_data.payment_method == "credit":
+        wallet = await db.credit_wallets.find_one({'email': order_data.customer.email}, {'_id': 0})
+        if not wallet or wallet.get('balance', 0) < final_total:
+            raise HTTPException(status_code=400, detail="Insufficient credit balance")
+        
+        # Deduct from wallet
+        new_balance = wallet['balance'] - final_total
+        await db.credit_wallets.update_one(
+            {'email': order_data.customer.email},
+            {'$set': {'balance': new_balance, 'updated_at': now}}
+        )
+        
+        # Log transaction
+        await db.credit_transactions.insert_one({
+            'id': str(uuid.uuid4()),
+            'email': order_data.customer.email,
+            'order_id': order_id,
+            'order_number': order_number,
+            'type': 'debit',
+            'amount': final_total,
+            'balance_after': new_balance,
+            'created_at': now
+        })
+        
+        # Create order as paid
+        order_doc = {
+            "id": order_id,
+            "order_number": order_number,
+            "items": [item.model_dump() for item in order_data.items],
+            "customer": order_data.customer.model_dump(),
+            "subtotal": totals["subtotal"],
+            "tax": totals["tax"],
+            "logistics_charge": totals["logistics_charge"],
+            "discount": discount,
+            "coupon": order_data.coupon.model_dump() if order_data.coupon else None,
+            "total": final_total,
+            "currency": "INR",
+            "status": "confirmed",
+            "payment_status": "paid",
+            "payment_method": "credit",
+            "razorpay_order_id": "",
+            "razorpay_payment_id": "",
+            "razorpay_signature": "",
+            "awb_code": None,
+            "notes": order_data.notes,
+            "created_at": now,
+            "updated_at": now,
+            "paid_at": now
+        }
+        await db.orders.insert_one(order_doc)
+        
+        # Send confirmation emails
+        try:
+            await send_order_notification_emails(db, order_doc)
+        except Exception as e:
+            logger.warning(f"Failed to send order emails: {e}")
+        
+        return {
+            "order_id": order_id,
+            "order_number": order_number,
+            "payment_method": "credit",
+            "amount": final_total,
+            "currency": "INR",
+            "status": "confirmed",
+            "customer": order_data.customer.model_dump()
+        }
+    
+    # Razorpay payment path
+    if not razorpay_client:
+        logger.error("Razorpay client not initialized")
+        raise HTTPException(status_code=503, detail="Payment service not configured. Please contact support.")
     
     # Create Razorpay order
     try:
@@ -229,12 +301,14 @@ async def create_order(order_data: OrderCreate):
         "customer": order_data.customer.model_dump(),
         "subtotal": totals["subtotal"],
         "tax": totals["tax"],
+        "logistics_charge": totals["logistics_charge"],
         "discount": discount,
         "coupon": order_data.coupon.model_dump() if order_data.coupon else None,
         "total": final_total,
         "currency": "INR",
         "status": "payment_pending",
         "payment_status": "initiated",
+        "payment_method": "razorpay",
         "razorpay_order_id": razorpay_order["id"],
         "razorpay_payment_id": "",
         "razorpay_signature": "",
@@ -482,6 +556,139 @@ async def update_order_status(order_id: str, status: str):
         raise HTTPException(status_code=404, detail="Order not found")
     
     return {"success": True, "message": f"Order status updated to {status}"}
+
+@router.put("/{order_id}/cancel")
+async def cancel_order(order_id: str, data: dict):
+    """Cancel an order with reason (stock out or credit limit). Refunds credit if paid via credit."""
+    reason = data.get('reason', '')
+    if reason not in ['stock_out', 'credit_limit', 'customer_request', 'other']:
+        raise HTTPException(status_code=400, detail="Reason must be: stock_out, credit_limit, customer_request, or other")
+    
+    order = await db.orders.find_one(
+        {"$or": [{"id": order_id}, {"order_number": order_id}]},
+        {'_id': 0}
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # If paid via credit, refund the balance
+    if order.get('payment_method') == 'credit' and order.get('payment_status') == 'paid':
+        email = order.get('customer', {}).get('email', '')
+        if email:
+            wallet = await db.credit_wallets.find_one({'email': email})
+            if wallet:
+                new_balance = wallet.get('balance', 0) + order.get('total', 0)
+                await db.credit_wallets.update_one(
+                    {'email': email},
+                    {'$set': {'balance': new_balance, 'updated_at': now}}
+                )
+                await db.credit_transactions.insert_one({
+                    'id': str(uuid.uuid4()),
+                    'email': email,
+                    'order_id': order['id'],
+                    'order_number': order['order_number'],
+                    'type': 'refund',
+                    'amount': order['total'],
+                    'balance_after': new_balance,
+                    'reason': reason,
+                    'created_at': now
+                })
+    
+    await db.orders.update_one(
+        {"$or": [{"id": order_id}, {"order_number": order_id}]},
+        {"$set": {
+            "status": "cancelled",
+            "cancellation_reason": reason,
+            "cancelled_at": now,
+            "updated_at": now
+        }}
+    )
+    
+    reason_labels = {
+        'stock_out': 'Stock Out',
+        'credit_limit': 'Lack of Credit Limit',
+        'customer_request': 'Customer Request',
+        'other': 'Other'
+    }
+    
+    return {"success": True, "message": f"Order cancelled: {reason_labels.get(reason, reason)}"}
+
+# ==================== CREDIT MANAGEMENT ENDPOINTS ====================
+
+@router.get("/credit/wallets")
+async def list_credit_wallets():
+    """Admin: list all credit wallets with balances."""
+    wallets = await db.credit_wallets.find({}, {'_id': 0}).to_list(1000)
+    return wallets
+
+@router.put("/credit/wallets/{email}/edit")
+async def edit_credit_wallet(email: str, data: dict):
+    """Admin: edit credit limit for a customer. Password protected (0905)."""
+    password = data.get('password', '')
+    if password != '0905':
+        raise HTTPException(status_code=403, detail="Invalid password")
+    
+    credit_limit = data.get('credit_limit')
+    balance = data.get('balance')
+    
+    update = {'updated_at': datetime.now(timezone.utc).isoformat()}
+    if credit_limit is not None:
+        update['credit_limit'] = credit_limit
+    if balance is not None:
+        update['balance'] = balance
+    
+    result = await db.credit_wallets.update_one({'email': email}, {'$set': update})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    
+    return {"success": True, "message": f"Credit updated for {email}"}
+
+@router.post("/credit/wallets/bulk-upload")
+async def bulk_upload_credit_wallets(data: dict):
+    """Admin: bulk upload credit wallets. Expects { wallets: [{email, name, company, credit_limit, lender}] }"""
+    wallets = data.get('wallets', [])
+    if not wallets:
+        raise HTTPException(status_code=400, detail="No wallets provided")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    created = 0
+    updated = 0
+    
+    for w in wallets:
+        email = w.get('email', '').strip()
+        if not email:
+            continue
+        existing = await db.credit_wallets.find_one({'email': email})
+        if existing:
+            await db.credit_wallets.update_one(
+                {'email': email},
+                {'$set': {
+                    'credit_limit': w.get('credit_limit', existing.get('credit_limit', 0)),
+                    'balance': w.get('credit_limit', existing.get('credit_limit', 0)),
+                    'lender': w.get('lender', existing.get('lender', '')),
+                    'name': w.get('name', existing.get('name', '')),
+                    'company': w.get('company', existing.get('company', '')),
+                    'updated_at': now
+                }}
+            )
+            updated += 1
+        else:
+            await db.credit_wallets.insert_one({
+                'email': email,
+                'name': w.get('name', ''),
+                'company': w.get('company', ''),
+                'credit_limit': w.get('credit_limit', 0),
+                'balance': w.get('credit_limit', 0),
+                'lender': w.get('lender', ''),
+                'updated_at': now
+            })
+            created += 1
+    
+    return {"success": True, "created": created, "updated": updated, "total": created + updated}
+
+
 
 @router.get("/stats/summary")
 async def get_order_stats():

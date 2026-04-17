@@ -335,7 +335,11 @@ export const getOrder = (id) => api.get(`/orders/${id}`);
 export const getOrderByRazorpayId = (razorpayOrderId) => api.get(`/orders/by-razorpay/${razorpayOrderId}`);
 export const listOrders = (params) => api.get("/orders", { params });
 export const updateOrderStatus = (id, status) => api.put(`/orders/${id}/status?status=${status}`);
+export const cancelOrder = (id, reason) => api.put(`/orders/${id}/cancel`, { reason });
 export const getOrderStats = () => api.get("/orders/stats/summary");
+export const listCreditWallets = () => api.get("/orders/credit/wallets");
+export const editCreditWallet = (email, data) => api.put(`/orders/credit/wallets/${email}/edit`, data);
+export const bulkUploadCreditWallets = (wallets) => api.post("/orders/credit/wallets/bulk-upload", { wallets });
 export const downloadInvoice = (orderId) => {
   const API_URL = process.env.REACT_APP_BACKEND_URL;
   return `${API_URL}/api/orders/${orderId}/invoice`;

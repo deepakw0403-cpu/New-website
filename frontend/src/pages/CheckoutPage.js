@@ -194,13 +194,7 @@ const CheckoutPage = () => {
     setPaymentError(null);
 
     try {
-      // Load Razorpay script
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        throw new Error("Failed to load payment gateway");
-      }
-
-      // Create order
+      // Create order data
       const orderData = {
         items: [{
           fabric_id: fabric.id,
@@ -218,6 +212,7 @@ const CheckoutPage = () => {
         customer: customer,
         notes: notes,
         logistics_charge: logistics,
+        payment_method: paymentMethod,
         coupon: appliedCoupon ? {
           code: appliedCoupon.code,
           discount_type: appliedCoupon.discount_type,
@@ -226,6 +221,27 @@ const CheckoutPage = () => {
         } : null,
         discount: discount
       };
+
+      // CREDIT payment path — instant confirmation, no Razorpay
+      if (paymentMethod === 'credit') {
+        if (!creditBalance?.has_credit || creditBalance.balance < total) {
+          toast.error("Insufficient credit balance");
+          setSubmitting(false);
+          return;
+        }
+        const response = await createOrder(orderData);
+        const orderInfo = response.data;
+        toast.success("Order placed via Locofast Credit!");
+        navigate(`/order-confirmation/${orderInfo.order_number}`);
+        return;
+      }
+
+      // RAZORPAY payment path
+      // Load Razorpay script
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        throw new Error("Failed to load payment gateway");
+      }
 
       const response = await createOrder(orderData);
       const orderInfo = response.data;
