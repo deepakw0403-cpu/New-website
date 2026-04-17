@@ -233,7 +233,7 @@ export default function SupplierDetailPage() {
               {fabrics.map((fabric) => (
                 <Link
                   key={fabric.id}
-                  to={`/fabrics/${fabric.id}`}
+                  to={`/fabrics/${fabric.slug || fabric.id}`}
                   className="group bg-white border border-stone-200 rounded-lg overflow-hidden hover:shadow-md transition-all"
                   data-testid={`fabric-card-${fabric.id}`}
                 >

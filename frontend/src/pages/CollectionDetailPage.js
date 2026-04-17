@@ -125,7 +125,7 @@ const CollectionDetailPage = () => {
               {fabrics.map((fabric) => (
                 <Link
                   key={fabric.id}
-                  to={`/fabrics/${fabric.id}`}
+                  to={`/fabrics/${fabric.slug || fabric.id}`}
                   className="group bg-white rounded-lg overflow-hidden border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all"
                   data-testid={`fabric-card-${fabric.id}`}
                 >

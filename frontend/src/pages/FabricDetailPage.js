@@ -962,7 +962,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                         <td className="px-4 py-3 text-sm text-gray-600">{s.dispatch_timeline || s.bulk_delivery_days || '—'}</td>
                         <td className="px-4 py-3">
                           <Link
-                            to={`/fabrics/${s.id}`}
+                            to={`/fabrics/${s.slug || s.id}`}
                             className="text-sm font-medium text-[#2563EB] hover:underline"
                           >
                             View
@@ -984,7 +984,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                 {relatedFabrics.map((related) => (
                   <Link
                     key={related.id}
-                    to={`/fabrics/${related.id}`}
+                    to={`/fabrics/${related.slug || related.id}`}
                     className="bg-white border border-gray-100 rounded-lg overflow-hidden hover:border-[#2563EB] transition-colors group"
                   >
                     <div className="aspect-square bg-gray-100 overflow-hidden">

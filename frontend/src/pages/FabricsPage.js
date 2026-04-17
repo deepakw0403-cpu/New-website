@@ -610,7 +610,7 @@ const FabricsPage = () => {
                     className="group bg-white rounded-lg border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow"
                     data-testid={`fabric-card-${fabric.id}`}
                   >
-                    <Link to={`/fabrics/${fabric.id}`} className="block">
+                    <Link to={`/fabrics/${fabric.slug || fabric.id}`} className="block">
                       <div className="aspect-[3/4] overflow-hidden bg-gray-100 relative">
                         <img
                           src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600"}
@@ -634,7 +634,7 @@ const FabricsPage = () => {
                     
                     <div className="p-3 sm:p-4">
                       <p className="text-[10px] sm:text-xs font-medium text-[#2563EB] mb-0.5 sm:mb-1 truncate">{fabric.category_name}</p>
-                      <Link to={`/fabrics/${fabric.id}`}>
+                      <Link to={`/fabrics/${fabric.slug || fabric.id}`}>
                         <h3 className="font-semibold text-gray-900 text-sm sm:text-base mb-1 group-hover:text-[#2563EB] transition-colors line-clamp-2">
                           {fabric.name}
                         </h3>

@@ -266,6 +266,7 @@ class FabricUpdate(BaseModel):
 class Fabric(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
+    slug: str = ""
     fabric_code: str = ""  # Unique ID like LF-XXXXX
     name: str
     category_id: str
@@ -791,6 +792,10 @@ def normalize_fabric(fabric: dict) -> dict:
     # Status field (legacy fabrics don't have it)
     if 'status' not in fabric or fabric.get('status') is None:
         fabric['status'] = None
+    # Slug field
+    if 'slug' not in fabric or not fabric.get('slug'):
+        from slug_utils import generate_slug
+        fabric['slug'] = generate_slug(fabric.get('name', 'fabric'))
     
     return fabric
 
@@ -1240,9 +1245,12 @@ async def get_fabrics_count(
     count = await db.fabrics.count_documents(query)
     return {'count': count}
 
-@api_router.get("/fabrics/{fabric_id}", response_model=Fabric)
-async def get_fabric(fabric_id: str):
-    fabric = await db.fabrics.find_one({'id': fabric_id}, {'_id': 0})
+@api_router.get("/fabrics/{fabric_id_or_slug}", response_model=Fabric)
+async def get_fabric(fabric_id_or_slug: str):
+    # Try by ID first, then by slug
+    fabric = await db.fabrics.find_one({'id': fabric_id_or_slug}, {'_id': 0})
+    if not fabric:
+        fabric = await db.fabrics.find_one({'slug': fabric_id_or_slug}, {'_id': 0})
     if not fabric:
         raise HTTPException(status_code=404, detail='Fabric not found')
     
@@ -1280,9 +1288,14 @@ async def create_fabric(data: FabricCreate, admin=Depends(get_current_admin)):
     fabric_id = str(uuid.uuid4())
     fabric_code = await generate_fabric_code()
     
+    # Generate SEO-friendly slug
+    from slug_utils import generate_slug
+    slug = generate_slug(data.name)
+    
     fabric_doc = {
         'id': fabric_id,
         'fabric_code': fabric_code,
+        'slug': slug,
         **data.model_dump(),
         'created_at': datetime.now(timezone.utc).isoformat()
     }
@@ -1298,6 +1311,11 @@ async def update_fabric(fabric_id: str, data: FabricUpdate, admin=Depends(get_cu
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail='No data to update')
+    
+    # Regenerate slug if name changed
+    if 'name' in update_data:
+        from slug_utils import generate_slug
+        update_data['slug'] = generate_slug(update_data['name'])
     
     if 'category_id' in update_data:
         category = await db.categories.find_one({'id': update_data['category_id']}, {'_id': 0})
@@ -2116,6 +2134,23 @@ async def seed_data():
     
     return {'message': 'Data seeded successfully', 'admin_email': 'admin@locofast.com', 'admin_password': 'admin123'}
 
+
+@api_router.post("/migrate/slugs")
+async def migrate_slugs(admin=Depends(get_current_admin)):
+    """One-time migration: generate slugs for all fabrics that don't have one."""
+    from slug_utils import generate_slug
+    fabrics = await db.fabrics.find(
+        {'$or': [{'slug': {'$exists': False}}, {'slug': ''}, {'slug': None}]},
+        {'_id': 0, 'id': 1, 'name': 1}
+    ).to_list(10000)
+    count = 0
+    for f in fabrics:
+        slug = generate_slug(f.get('name', 'fabric'))
+        await db.fabrics.update_one({'id': f['id']}, {'$set': {'slug': slug}})
+        count += 1
+    return {'migrated': count}
+
+
 # ==================== SITEMAP ====================
 
 from fastapi.responses import Response
@@ -2137,7 +2172,7 @@ async def generate_sitemap_xml():
     today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     
     # Get all fabrics
-    fabrics = await db.fabrics.find({'status': 'approved'}, {'id': 1, 'created_at': 1}).to_list(length=10000)
+    fabrics = await db.fabrics.find({'status': 'approved'}, {'_id': 0, 'id': 1, 'slug': 1, 'created_at': 1}).to_list(length=10000)
     
     # Get all collections
     collections = await db.collections.find({}, {'id': 1, 'created_at': 1}).to_list(length=100)
@@ -2187,11 +2222,12 @@ async def generate_sitemap_xml():
     <priority>{page['priority']}</priority>
   </url>\n'''
     
-    # Add fabric pages
+    # Add fabric pages (use slug if available, fallback to id)
     for fabric in fabrics:
         last_mod = parse_date_string(fabric.get('created_at', ''))
+        fabric_path = fabric.get('slug') or fabric['id']
         xml_content += f'''  <url>
-    <loc>{base_url}/fabrics/{fabric['id']}</loc>
+    <loc>{base_url}/fabrics/{fabric_path}</loc>
     <lastmod>{last_mod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>

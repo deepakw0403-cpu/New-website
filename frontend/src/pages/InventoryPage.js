@@ -309,7 +309,7 @@ const InventoryPage = () => {
                     className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group"
                     data-testid={`inventory-item-${fabric.id}`}
                   >
-                    <Link to={`/fabrics/${fabric.id}`} className="block aspect-[4/3] overflow-hidden relative">
+                    <Link to={`/fabrics/${fabric.slug || fabric.id}`} className="block aspect-[4/3] overflow-hidden relative">
                       <img
                         src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600"}
                         alt={fabric.name}
@@ -331,7 +331,7 @@ const InventoryPage = () => {
 
                     <div className="p-5">
                       <p className="text-xs font-medium text-emerald-600 mb-1">{fabric.category_name}</p>
-                      <Link to={`/fabrics/${fabric.id}`}>
+                      <Link to={`/fabrics/${fabric.slug || fabric.id}`}>
                         <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-emerald-600 transition-colors line-clamp-2">
                           {fabric.name}
                         </h3>
@@ -393,7 +393,7 @@ const InventoryPage = () => {
                           Order Now
                         </button>
                         <Link
-                          to={`/fabrics/${fabric.id}`}
+                          to={`/fabrics/${fabric.slug || fabric.id}`}
                           className="px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium"
                         >
                           Details
