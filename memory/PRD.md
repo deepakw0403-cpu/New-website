@@ -101,7 +101,16 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
   - New backend: `agent_router.py` with collections: `agents`, `agent_otps`, `shared_carts`
   - New fields in orders: `booking_type` (online/assisted_online), `agent_id`, `agent_email`, `agent_name`
 
+### Phase 15: Navbar Cleanup + Filters + Agent Payment Proof (Complete - Apr 2026)
+- [x] **Removed Collections from navbar**: Collections link removed from header. Page still accessible via direct URL.
+- [x] **Composition filter**: New filter dropdown on FabricsPage pulls unique material names from DB.
+- [x] **Denim oz filter**: When Denim category selected, GSM Range filter becomes "Weight (oz)". Non-denim shows both.
+- [x] **Agent RTGS/NEFT Payment Proof**: Agents can upload payment proof screenshots when creating shared carts.
+
 ## Backlog
+
+### P1 (High Priority)
+- [ ] Multi-Color SKU System: Add color variants per fabric with separate photos and inventory per color
 
 ### P2 (Medium Priority)
 - [ ] SEO-Friendly Fabric URLs (slugs)
