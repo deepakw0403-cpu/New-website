@@ -102,6 +102,11 @@ export const deleteFabric = (id) => api.delete(`/fabrics/${id}`);
 export const approveFabric = (id) => api.put(`/fabrics/${id}`, { status: 'approved' });
 export const rejectFabric = (id) => api.put(`/fabrics/${id}`, { status: 'rejected' });
 
+// Credit / Wallet
+export const applyForCredit = (data) => api.post("/credit/apply", data);
+export const getCreditBalance = (email) => api.get("/credit/balance", { params: { email } });
+
+
 // Articles (Color Variant Grouping)
 export const getArticles = (params) => api.get("/articles", { params });
 export const getArticle = (id) => api.get(`/articles/${id}`);

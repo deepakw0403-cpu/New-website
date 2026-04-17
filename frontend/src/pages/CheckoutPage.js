@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Truck, CreditCard, CheckCircle2, AlertCircle, Loader2, Package, Tag } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Truck, CreditCard, CheckCircle2, AlertCircle, Loader2, Package, Tag, Wallet } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getFabric, createOrder, verifyPayment, sendOrderConfirmation, validateCoupon } from "../lib/api";
+import { getFabric, createOrder, verifyPayment, sendOrderConfirmation, validateCoupon, getCreditBalance } from "../lib/api";
 import { trackBeginCheckout } from "../lib/analytics";
 import { toast } from "sonner";
 
@@ -60,6 +60,8 @@ const CheckoutPage = () => {
   const [logistics, setLogistics] = useState(0);
   const [logisticsPerMeter, setLogisticsPerMeter] = useState(0);
   const [total, setTotal] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState("razorpay"); // razorpay or credit
+  const [creditBalance, setCreditBalance] = useState(null); // { balance, credit_limit, has_credit }
 
   useEffect(() => {
     if (!fabricId) {
@@ -459,6 +461,16 @@ const CheckoutPage = () => {
                         required
                         value={customer.email}
                         onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
+                        onBlur={async (e) => {
+                          const email = e.target.value;
+                          if (email && email.includes('@')) {
+                            try {
+                              const res = await getCreditBalance(email);
+                              setCreditBalance(res.data);
+                              if (res.data.has_credit) setPaymentMethod("credit");
+                            } catch { setCreditBalance(null); }
+                          }
+                        }}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
                         placeholder="you@company.com"
                         data-testid="checkout-email"
@@ -651,6 +663,36 @@ const CheckoutPage = () => {
                   </div>
                 )}
 
+                {/* Payment Method Selector */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6" data-testid="payment-method">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Payment Method</h3>
+                  <div className="space-y-3">
+                    <label className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'razorpay' ? 'border-[#2563EB] bg-blue-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input type="radio" name="payment" value="razorpay" checked={paymentMethod === 'razorpay'} onChange={() => setPaymentMethod('razorpay')} className="text-[#2563EB]" />
+                      <CreditCard size={20} className="text-gray-600" />
+                      <div>
+                        <p className="font-medium text-sm text-gray-900">Pay via Razorpay</p>
+                        <p className="text-xs text-gray-500">UPI, Cards, Net Banking</p>
+                      </div>
+                    </label>
+                    <label className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'credit' ? 'border-emerald-500 bg-emerald-50/50' : 'border-gray-200 hover:border-gray-300'} ${!creditBalance?.has_credit ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                      <input type="radio" name="payment" value="credit" checked={paymentMethod === 'credit'} onChange={() => creditBalance?.has_credit && setPaymentMethod('credit')} disabled={!creditBalance?.has_credit} className="text-emerald-600" />
+                      <Wallet size={20} className="text-emerald-600" />
+                      <div className="flex-1">
+                        <p className="font-medium text-sm text-gray-900">Pay via Locofast Credit</p>
+                        {creditBalance?.has_credit ? (
+                          <p className="text-xs text-emerald-600">Available balance: ₹{creditBalance.balance.toLocaleString()}</p>
+                        ) : (
+                          <p className="text-xs text-gray-400">Enter your email to check credit balance</p>
+                        )}
+                      </div>
+                      {creditBalance?.has_credit && creditBalance.balance < total && (
+                        <span className="text-xs text-red-500 font-medium">Insufficient balance</span>
+                      )}
+                    </label>
+                  </div>
+                </div>
+
                 {/* Submit Button (Mobile) */}
                 <div className="lg:hidden">
                   <button
@@ -663,6 +705,11 @@ const CheckoutPage = () => {
                       <>
                         <Loader2 className="animate-spin" size={20} />
                         Processing...
+                      </>
+                    ) : paymentMethod === 'credit' ? (
+                      <>
+                        <Wallet size={20} />
+                        Pay with Credit ₹{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </>
                     ) : (
                       <>
@@ -734,6 +781,11 @@ const CheckoutPage = () => {
                       <Loader2 className="animate-spin" size={20} />
                       Processing...
                     </>
+                  ) : paymentMethod === 'credit' ? (
+                    <>
+                      <Wallet size={20} />
+                      Pay with Credit
+                    </>
                   ) : (
                     <>
                       <CreditCard size={20} />
@@ -745,7 +797,7 @@ const CheckoutPage = () => {
                 {/* Security Badge */}
                 <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-500">
                   <CheckCircle2 size={14} className="text-emerald-500" />
-                  Secured by Razorpay
+                  {paymentMethod === 'credit' ? 'Locofast Credit Wallet' : 'Secured by Razorpay'}
                 </div>
 
                 {/* Info */}

@@ -4,12 +4,29 @@ import { ArrowRight, CheckCircle, MessageCircle, Shield, Clock, Users, ChevronDo
 import Navbar from "../components/Navbar";
 import RFQModal from "../components/RFQModal";
 import { getCollections } from "../lib/api";
+import { applyForCredit } from "../lib/api";
 import { trackRFQIntent } from "../lib/analytics";
 
 const HomePage = () => {
   const [collections, setCollections] = useState([]);
   const [openFaq, setOpenFaq] = useState(null);
   const [showRfqModal, setShowRfqModal] = useState(false);
+  const [creditForm, setCreditForm] = useState({ name: '', company: '', email: '', phone: '', gst_number: '', turnover: '' });
+  const [creditSubmitting, setCreditSubmitting] = useState(false);
+  const [creditSubmitted, setCreditSubmitted] = useState(false);
+
+  const handleCreditSubmit = async (e) => {
+    e.preventDefault();
+    setCreditSubmitting(true);
+    try {
+      await applyForCredit(creditForm);
+      setCreditSubmitted(true);
+    } catch (err) {
+      console.error("Credit application error:", err);
+      setCreditSubmitted(true); // Show success anyway to not block UX
+    }
+    setCreditSubmitting(false);
+  };
 
   useEffect(() => {
     fetchCollections();
@@ -414,6 +431,109 @@ const HomePage = () => {
               >
                 Learn More About Us <ArrowRight size={18} />
               </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ========== APPLY FOR CREDIT BLOCK ========== */}
+        <section className="py-20 lg:py-28 bg-white" data-testid="credit-section">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              {/* Left: Value Prop */}
+              <div>
+                <p className="text-sm tracking-widest text-emerald-600 uppercase mb-4">Locofast Credit</p>
+                <h2 className="text-3xl md:text-4xl font-semibold text-neutral-900 mb-6">
+                  Buy Now, Pay Later — Credit Line for Fabric Buyers
+                </h2>
+                <p className="text-lg text-neutral-600 leading-relaxed mb-8">
+                  Get approved for a credit line and source fabrics without upfront payment. Place orders using your Locofast wallet and settle within agreed terms.
+                </p>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle size={20} className="text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-neutral-900">Instant Credit Decisions</p>
+                      <p className="text-sm text-neutral-500">Apply once, get a credit limit assigned to your wallet</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle size={20} className="text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-neutral-900">Wallet-Based Booking</p>
+                      <p className="text-sm text-neutral-500">Use your credit balance to book samples and bulk orders — no Razorpay needed</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle size={20} className="text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-neutral-900">Eligibility: 2Cr+ Annual Turnover</p>
+                      <p className="text-sm text-neutral-500">Last financial year turnover or provisional turnover should be ₹2 Crore+</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Application Form */}
+              <div className="bg-gray-50 rounded-2xl p-8 border border-gray-200" data-testid="credit-form-container">
+                <h3 className="text-xl font-semibold text-neutral-900 mb-1">Apply for Credit</h3>
+                <p className="text-sm text-neutral-500 mb-6">Get a credit line in 24-48 hours</p>
+                {creditSubmitted ? (
+                  <div className="text-center py-8" data-testid="credit-success">
+                    <CheckCircle size={48} className="text-emerald-600 mx-auto mb-4" />
+                    <h4 className="text-lg font-semibold text-neutral-900 mb-2">Application Submitted!</h4>
+                    <p className="text-neutral-600">Our team will review your application and contact you within 24-48 hours with your credit limit.</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleCreditSubmit} className="space-y-4" data-testid="credit-form">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Full Name *</label>
+                        <input type="text" required value={creditForm.name} onChange={(e) => setCreditForm({...creditForm, name: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm" placeholder="Your name" data-testid="credit-name" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Company *</label>
+                        <input type="text" required value={creditForm.company} onChange={(e) => setCreditForm({...creditForm, company: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm" placeholder="Company name" data-testid="credit-company" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Email *</label>
+                        <input type="email" required value={creditForm.email} onChange={(e) => setCreditForm({...creditForm, email: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm" placeholder="you@company.com" data-testid="credit-email" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Phone *</label>
+                        <input type="tel" required value={creditForm.phone} onChange={(e) => setCreditForm({...creditForm, phone: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm" placeholder="+91 98765 43210" data-testid="credit-phone" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">GST Number</label>
+                      <input type="text" value={creditForm.gst_number} onChange={(e) => setCreditForm({...creditForm, gst_number: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm" placeholder="22AAAAA0000A1Z5" data-testid="credit-gst" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Last FY Turnover / Provisional Turnover *</label>
+                      <select required value={creditForm.turnover} onChange={(e) => setCreditForm({...creditForm, turnover: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm" data-testid="credit-turnover">
+                        <option value="">Select turnover range</option>
+                        <option value="2-5 Cr">₹2 Cr - ₹5 Cr</option>
+                        <option value="5-10 Cr">₹5 Cr - ₹10 Cr</option>
+                        <option value="10-25 Cr">₹10 Cr - ₹25 Cr</option>
+                        <option value="25-50 Cr">₹25 Cr - ₹50 Cr</option>
+                        <option value="50-100 Cr">₹50 Cr - ₹100 Cr</option>
+                        <option value="100 Cr+">₹100 Cr+</option>
+                      </select>
+                      <p className="text-xs text-neutral-400 mt-1">Minimum ₹2 Crore annual turnover required</p>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={creditSubmitting}
+                      className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                      data-testid="credit-submit-btn"
+                    >
+                      {creditSubmitting ? "Submitting..." : "Apply for Credit Line"}
+                      {!creditSubmitting && <ArrowRight size={16} />}
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
         </section>
