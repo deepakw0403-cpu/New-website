@@ -209,6 +209,13 @@ async def create_order(order_data: OrderCreate):
     discount = order_data.discount or 0
     final_total = max(0, totals["total"] - discount)
     
+    # Calculate commission
+    from commission_router import calculate_commission
+    commission_info = await calculate_commission(
+        order_data.model_dump(),
+        [item.model_dump() for item in order_data.items]
+    )
+    
     if final_total <= 0:
         raise HTTPException(status_code=400, detail="Order total must be greater than zero")
     
@@ -264,6 +271,10 @@ async def create_order(order_data: OrderCreate):
             "agent_id": order_data.agent_id,
             "agent_email": order_data.agent_email,
             "agent_name": order_data.agent_name,
+            "commission_pct": commission_info["commission_pct"],
+            "commission_amount": commission_info["commission_amount"],
+            "commission_rule": commission_info["rule_applied"],
+            "seller_payout": round(totals["subtotal"] - commission_info["commission_amount"], 2),
             "razorpay_order_id": "",
             "razorpay_payment_id": "",
             "razorpay_signature": "",
@@ -342,6 +353,10 @@ async def create_order(order_data: OrderCreate):
         "agent_id": order_data.agent_id,
         "agent_email": order_data.agent_email,
         "agent_name": order_data.agent_name,
+        "commission_pct": commission_info["commission_pct"],
+        "commission_amount": commission_info["commission_amount"],
+        "commission_rule": commission_info["rule_applied"],
+        "seller_payout": round(totals["subtotal"] - commission_info["commission_amount"], 2),
         "razorpay_order_id": razorpay_order["id"],
         "razorpay_payment_id": "",
         "razorpay_signature": "",

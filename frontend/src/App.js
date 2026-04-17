@@ -131,6 +131,7 @@ const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
 const AdminSellerDetail = lazy(() => import("./pages/admin/AdminSellerDetail"));
 const AdminCreditApplications = lazy(() => import("./pages/admin/AdminCreditApplications"));
 const AdminAgents = lazy(() => import("./pages/admin/AdminAgents"));
+const AdminCommission = lazy(() => import("./pages/admin/AdminCommission"));
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
 
 // SEO Landing Pages
@@ -271,6 +272,7 @@ function App() {
           <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
           <Route path="/admin/credit" element={<ProtectedRoute><AdminCreditApplications /></ProtectedRoute>} />
           <Route path="/admin/agents" element={<ProtectedRoute><AdminAgents /></ProtectedRoute>} />
+          <Route path="/admin/commission" element={<ProtectedRoute><AdminCommission /></ProtectedRoute>} />
 
           {/* Vendor routes */}
           <Route path="/vendor/login" element={<VendorLogin />} />

@@ -2293,6 +2293,10 @@ import agent_router
 agent_router.set_db(db)
 app.include_router(agent_router.router)
 
+import commission_router
+commission_router.set_db(db)
+app.include_router(commission_router.router)
+
 import credit_router
 credit_router.set_db(db)
 app.include_router(credit_router.router, prefix="/api")
