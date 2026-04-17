@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getFabric, createOrder, verifyPayment, sendOrderConfirmation, validateCoupon, getCreditBalance } from "../lib/api";
 import { trackBeginCheckout } from "../lib/analytics";
+import { useCustomerAuth } from "../context/CustomerAuthContext";
 import { toast } from "sonner";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -62,6 +63,67 @@ const CheckoutPage = () => {
   const [total, setTotal] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("razorpay"); // razorpay or credit
   const [creditBalance, setCreditBalance] = useState(null); // { balance, credit_limit, has_credit }
+
+  // GST verification
+  const [gstNumber, setGstNumber] = useState("");
+  const [gstVerifying, setGstVerifying] = useState(false);
+  const [gstResult, setGstResult] = useState(null);
+  const [gstAddress, setGstAddress] = useState(null);
+
+  // Shipping address toggle
+  const [useGstAddress, setUseGstAddress] = useState(true);
+  const { customer: loggedInCustomer, isLoggedIn } = useCustomerAuth();
+
+  // Auto-fill from customer profile
+  useEffect(() => {
+    if (isLoggedIn && loggedInCustomer) {
+      setCustomer(prev => ({
+        ...prev,
+        name: loggedInCustomer.name || prev.name,
+        email: loggedInCustomer.email || prev.email,
+        phone: loggedInCustomer.phone || prev.phone,
+        company: loggedInCustomer.company || prev.company,
+        address: loggedInCustomer.address || prev.address,
+        city: loggedInCustomer.city || prev.city,
+        state: loggedInCustomer.state || prev.state,
+        pincode: loggedInCustomer.pincode || prev.pincode,
+      }));
+      if (loggedInCustomer.email) {
+        getCreditBalance(loggedInCustomer.email).then(res => {
+          setCreditBalance(res.data);
+          if (res.data?.has_credit) setPaymentMethod("credit");
+        }).catch(() => {});
+      }
+    }
+  }, [isLoggedIn, loggedInCustomer]);
+
+  const verifyGst = async (gstin) => {
+    const cleaned = gstin.trim().toUpperCase();
+    if (cleaned.length !== 15 || gstVerifying) return;
+    setGstVerifying(true);
+    try {
+      const res = await fetch(`${API_URL}/api/gst/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gstin: cleaned })
+      });
+      const data = await res.json();
+      setGstResult(data);
+      if (data.valid) {
+        const addr = { address: data.address || '', city: data.city || '', state: data.state || '', pincode: data.pincode || '' };
+        setGstAddress(addr);
+        setCustomer(prev => ({
+          ...prev,
+          company: data.trade_name || data.legal_name || prev.company,
+          ...(useGstAddress ? addr : {}),
+        }));
+        toast.success("GST verified — company details auto-filled");
+      }
+    } catch {
+      setGstResult({ valid: false, message: "Verification failed" });
+    }
+    setGstVerifying(false);
+  };
 
   useEffect(() => {
     if (!fabricId) {
@@ -440,116 +502,106 @@ const CheckoutPage = () => {
                   </div>
                 </div>
 
-                {/* Shipping Details */}
+                {/* Billing & GST */}
                 <div className="bg-white rounded-xl p-6 border border-gray-200">
                   <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Truck size={20} />
-                    Shipping Details
+                    <CreditCard size={20} />
+                    Billing Details
                   </h2>
                   
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={customer.name}
-                        onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                        placeholder="Amit Sharma"
-                        data-testid="checkout-name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
-                      <input
-                        type="text"
-                        value={customer.company}
-                        onChange={(e) => setCustomer({ ...customer, company: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                        placeholder="Company Name (optional)"
-                      />
+                      <input type="text" required value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="Amit Sharma" data-testid="checkout-name" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                      <input
-                        type="email"
-                        required
-                        value={customer.email}
-                        onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
+                      <input type="email" required value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
                         onBlur={async (e) => {
                           const email = e.target.value;
                           if (email && email.includes('@')) {
-                            try {
-                              const res = await getCreditBalance(email);
-                              setCreditBalance(res.data);
-                              if (res.data.has_credit) setPaymentMethod("credit");
-                            } catch { setCreditBalance(null); }
+                            try { const res = await getCreditBalance(email); setCreditBalance(res.data); if (res.data.has_credit) setPaymentMethod("credit"); } catch { setCreditBalance(null); }
                           }
                         }}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                        placeholder="you@company.com"
-                        data-testid="checkout-email"
-                      />
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="you@company.com" data-testid="checkout-email" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
-                      <input
-                        type="tel"
-                        required
-                        value={customer.phone}
-                        onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                        placeholder="+91 98765 43210"
-                        data-testid="checkout-phone"
-                      />
+                      <input type="tel" required value={customer.phone} onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="+91 98765 43210" data-testid="checkout-phone" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          maxLength={15}
+                          value={gstNumber}
+                          onChange={(e) => {
+                            const v = e.target.value.toUpperCase();
+                            setGstNumber(v);
+                            if (v.length === 15) verifyGst(v);
+                            else setGstResult(null);
+                          }}
+                          className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none pr-10 ${gstResult?.valid ? 'border-emerald-500 bg-emerald-50/30' : gstResult?.valid === false ? 'border-red-400' : 'border-gray-200 focus:border-blue-500'}`}
+                          placeholder="22AAAAA0000A1Z5"
+                          data-testid="checkout-gst"
+                        />
+                        {gstVerifying && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-blue-500" />}
+                        {gstResult?.valid && <CheckCircle2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />}
+                        {gstResult?.valid === false && <AlertCircle size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400" />}
+                      </div>
+                      {gstResult?.valid && <p className="text-xs text-emerald-600 mt-1">{gstResult.trade_name || gstResult.legal_name}</p>}
+                      {gstResult?.valid === false && <p className="text-xs text-red-500 mt-1">{gstResult.message || 'Invalid GST'}</p>}
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-                      <input
-                        type="text"
-                        required
-                        value={customer.address}
-                        onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                        placeholder="Street address, building, floor"
-                        data-testid="checkout-address"
-                      />
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                      <input type="text" value={customer.company} onChange={(e) => setCustomer({ ...customer, company: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none bg-gray-50" placeholder="Auto-filled from GST" data-testid="checkout-company" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Shipping Address */}
+                <div className="bg-white rounded-xl p-6 border border-gray-200">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Truck size={20} />
+                    Shipping Address
+                  </h2>
+
+                  {gstAddress && (
+                    <div className="mb-4 space-y-2">
+                      <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer ${useGstAddress ? 'border-[#2563EB] bg-blue-50/30' : 'border-gray-200'}`}>
+                        <input type="radio" name="addressType" checked={useGstAddress} onChange={() => { setUseGstAddress(true); setCustomer(prev => ({ ...prev, ...gstAddress })); }} />
+                        <div>
+                          <p className="font-medium text-sm">GST Registered Address</p>
+                          <p className="text-xs text-gray-500">{[gstAddress.address, gstAddress.city, gstAddress.state, gstAddress.pincode].filter(Boolean).join(', ')}</p>
+                        </div>
+                      </label>
+                      <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer ${!useGstAddress ? 'border-[#2563EB] bg-blue-50/30' : 'border-gray-200'}`}>
+                        <input type="radio" name="addressType" checked={!useGstAddress} onChange={() => { setUseGstAddress(false); setCustomer(prev => ({ ...prev, address: '', city: '', state: '', pincode: '' })); }} />
+                        <div>
+                          <p className="font-medium text-sm">Ship to a Different Address</p>
+                          <p className="text-xs text-gray-500">Enter a custom shipping address below</p>
+                        </div>
+                      </label>
+                    </div>
+                  )}
+
+                  <div className={`grid md:grid-cols-2 gap-4 ${gstAddress && useGstAddress ? 'opacity-60 pointer-events-none' : ''}`}>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Street Address *</label>
+                      <input type="text" required value={customer.address} onChange={(e) => setCustomer({ ...customer, address: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="Street address, building, floor" data-testid="checkout-address" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
-                      <input
-                        type="text"
-                        required
-                        value={customer.city}
-                        onChange={(e) => setCustomer({ ...customer, city: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                        placeholder="Mumbai"
-                      />
+                      <input type="text" required value={customer.city} onChange={(e) => setCustomer({ ...customer, city: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="Mumbai" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
-                      <input
-                        type="text"
-                        required
-                        value={customer.state}
-                        onChange={(e) => setCustomer({ ...customer, state: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                        placeholder="Maharashtra"
-                      />
+                      <input type="text" required value={customer.state} onChange={(e) => setCustomer({ ...customer, state: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="Maharashtra" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code *</label>
-                      <input
-                        type="text"
-                        required
-                        maxLength={6}
-                        value={customer.pincode}
-                        onChange={(e) => setCustomer({ ...customer, pincode: e.target.value.replace(/\D/g, '') })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                        placeholder="400001"
-                        data-testid="checkout-pincode"
-                      />
+                      <input type="text" required maxLength={6} value={customer.pincode} onChange={(e) => setCustomer({ ...customer, pincode: e.target.value.replace(/\D/g, '') })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="400001" data-testid="checkout-pincode" />
                     </div>
                   </div>
                 </div>
