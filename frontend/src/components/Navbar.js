@@ -55,6 +55,19 @@ const Navbar = () => {
                 </Link>
               ))}
               <button
+                onClick={() => {
+                  if (location.pathname === '/') {
+                    document.querySelector('[data-testid="credit-section"]')?.scrollIntoView({ behavior: 'smooth' });
+                  } else {
+                    window.location.href = '/#apply-credit';
+                  }
+                }}
+                className="text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors duration-200"
+                data-testid="nav-apply-credit"
+              >
+                Apply for Credit
+              </button>
+              <button
                 onClick={() => setShowRfq(true)}
                 className="text-sm font-medium text-gray-600 hover:text-[#2563EB] transition-colors duration-200 flex items-center gap-1.5"
                 data-testid="nav-link-request-quote"
@@ -131,6 +144,19 @@ const Navbar = () => {
                 className="block text-lg font-medium text-gray-600"
               >
                 Request Quote
+              </button>
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  if (location.pathname === '/') {
+                    document.querySelector('[data-testid="credit-section"]')?.scrollIntoView({ behavior: 'smooth' });
+                  } else {
+                    window.location.href = '/#apply-credit';
+                  }
+                }}
+                className="block text-lg font-medium text-emerald-600"
+              >
+                Apply for Credit
               </button>
               {isLoggedIn ? (
                 <>

@@ -14,6 +14,12 @@ const HomePage = () => {
 
   useEffect(() => {
     fetchCollections();
+    // Handle #apply-credit hash navigation
+    if (window.location.hash === '#apply-credit') {
+      setTimeout(() => {
+        document.querySelector('[data-testid="credit-section"]')?.scrollIntoView({ behavior: 'smooth' });
+      }, 500);
+    }
   }, []);
 
   const fetchCollections = async () => {
