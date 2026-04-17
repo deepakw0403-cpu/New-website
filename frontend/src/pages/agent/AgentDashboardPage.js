@@ -9,7 +9,7 @@ import Footer from "../../components/Footer";
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const AgentDashboardPage = () => {
-  const { agent, token, logout } = useAgentAuth();
+  const { agent, token, logout, loading: authLoading } = useAgentAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("catalog"); // catalog | cart | shared | orders
 
@@ -78,6 +78,11 @@ const AgentDashboardPage = () => {
   useEffect(() => { if (activeTab === "shared") fetchSharedCarts(); }, [activeTab]);
   useEffect(() => { if (activeTab === "orders") fetchOrders(); }, [activeTab]);
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !token) navigate("/agent/login");
+  }, [authLoading, token, navigate]);
+
   const addToCart = (fabric) => {
     const existing = cart.find((c) => c.fabric_id === fabric.id);
     if (existing) {
@@ -92,7 +97,7 @@ const AgentDashboardPage = () => {
       category_name: fabric.category_name || "",
       seller_company: fabric.seller_company || "",
       seller_id: fabric.seller_id || "",
-      quantity: fabric.moq || 100,
+      quantity: parseInt(fabric.moq) || 100,
       price_per_meter: fabric.rate_per_meter || 0,
       order_type: "bulk",
       image_url: fabric.images?.[0] || "",
@@ -144,8 +149,8 @@ const AgentDashboardPage = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Failed");
       const link = `${window.location.origin}/shared-cart/${data.token}`;
-      await navigator.clipboard.writeText(link);
-      toast.success("Cart shared! Link copied to clipboard.");
+      try { await navigator.clipboard.writeText(link); } catch { /* clipboard may fail */ }
+      toast.success(`Cart shared! Link: ${link}`);
       setCart([]);
       setCustomerEmail("");
       setPaymentProofUrl("");
