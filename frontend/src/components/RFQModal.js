@@ -23,11 +23,12 @@ const LOCATIONS = [
 
 export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
   const [form, setForm] = useState({
-    name: "", phone: "", country_code: "+91", gst_number: "", company_name: "", email: "", fabric_type: "", location: ""
+    name: "", phone: "", country_code: "+91", gst_number: "", bin_number: "", company_name: "", email: "", fabric_type: "", location: ""
   });
   const [submitting, setSubmitting] = useState(false);
 
   const isIndia = form.location === "India";
+  const isBangladesh = form.location === "Bangladesh";
 
   const handleLocationChange = (e) => {
     const loc = e.target.value;
@@ -37,6 +38,7 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
       location: loc,
       country_code: match ? match.code : "+91",
       gst_number: loc !== "India" ? "" : p.gst_number,
+      bin_number: loc !== "Bangladesh" ? "" : p.bin_number,
     }));
   };
 
@@ -44,6 +46,10 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
     e.preventDefault();
     if (isIndia && !form.gst_number) {
       toast.error("GST Number is required for India");
+      return;
+    }
+    if (isBangladesh && !form.bin_number) {
+      toast.error("BIN is required for Bangladesh");
       return;
     }
     setSubmitting(true);
@@ -62,7 +68,7 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
       toast.success("Your enquiry has been submitted! Our team will reach out within 24 hours.");
       trackGenerateLead({ source: fabricUrl ? 'SKU Page RFQ' : 'Homepage RFQ', fabric_type: form.fabric_type, fabric_name: fabricName || '', location: form.location });
       onClose();
-      setForm({ name: "", phone: "", country_code: "+91", gst_number: "", company_name: "", email: "", fabric_type: "", location: "" });
+      setForm({ name: "", phone: "", country_code: "+91", gst_number: "", bin_number: "", company_name: "", email: "", fabric_type: "", location: "" });
     } catch (err) {
       toast.error("Something went wrong. Please try again.");
     } finally {
@@ -122,6 +128,13 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">GST Number <span className="text-red-500">*</span></label>
               <input type="text" required value={form.gst_number} onChange={(e) => setForm(p => ({ ...p, gst_number: e.target.value.toUpperCase() }))} placeholder="22AAAAA0000A1Z5" maxLength={15} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-gst" />
+            </div>
+          )}
+
+          {isBangladesh && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">BIN (Business Identification Number) <span className="text-red-500">*</span></label>
+              <input type="text" required value={form.bin_number} onChange={(e) => setForm(p => ({ ...p, bin_number: e.target.value }))} placeholder="Enter your BIN" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-bin" />
             </div>
           )}
 

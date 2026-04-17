@@ -29,6 +29,12 @@ const CheckoutPage = () => {
   const orderType = searchParams.get("type") || "bulk"; // sample or bulk
   const quantity = parseInt(searchParams.get("qty") || "1");
   
+  // Agent-assisted booking params
+  const sharedCartToken = searchParams.get("shared_cart") || "";
+  const agentId = searchParams.get("agent_id") || "";
+  const agentEmail = searchParams.get("agent_email") || "";
+  const agentName = searchParams.get("agent_name") || "";
+  
   const [fabric, setFabric] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -59,6 +65,8 @@ const CheckoutPage = () => {
   const [tax, setTax] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [logistics, setLogistics] = useState(0);
+  const [packagingCharge, setPackagingCharge] = useState(0);
+  const [logisticsCharge, setLogisticsCharge] = useState(0);
   const [logisticsPerMeter, setLogisticsPerMeter] = useState(0);
   const [total, setTotal] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("razorpay"); // razorpay or credit
@@ -181,21 +189,29 @@ const CheckoutPage = () => {
     const taxAmount = sub * 0.05; // 5% GST
     
     // Logistics calculation
-    let logisticsCharge = 0;
+    let totalLogistics = 0;
+    let packaging = 0;
+    let logisticsOnly = 0;
     if (orderType === "sample") {
-      logisticsCharge = 100; // Flat Rs 100 for samples
+      totalLogistics = 100; // Flat Rs 100 for samples
     } else {
-      // 3% of cart value or Rs 3000, whichever is higher
-      logisticsCharge = Math.max(sub * 0.03, 3000);
+      // Total = max(3% of cart value, Rs 3000)
+      totalLogistics = Math.max(sub * 0.03, 3000);
+      // Packaging = Rs 1/meter (or kg for knitted)
+      packaging = quantity * 1;
+      // Logistics = Total - Packaging (ensure non-negative)
+      logisticsOnly = Math.max(0, totalLogistics - packaging);
     }
-    const logisticsPerUnit = quantity > 0 ? logisticsCharge / quantity : 0;
+    const logisticsPerUnit = quantity > 0 ? totalLogistics / quantity : 0;
     
-    const finalTotal = sub + taxAmount + logisticsCharge - discount;
+    const finalTotal = sub + taxAmount + totalLogistics - discount;
     
     setPricePerMeter(price);
     setSubtotal(sub);
     setTax(taxAmount);
-    setLogistics(logisticsCharge);
+    setLogistics(totalLogistics);
+    setPackagingCharge(packaging);
+    setLogisticsCharge(logisticsOnly);
     setLogisticsPerMeter(logisticsPerUnit);
     setTotal(Math.max(0, finalTotal));
   };
@@ -275,7 +291,13 @@ const CheckoutPage = () => {
         customer: { ...customer, gst_number: gstNumber },
         notes: notes,
         logistics_charge: logistics,
+        packaging_charge: packagingCharge,
+        logistics_only_charge: logisticsCharge,
         payment_method: paymentMethod,
+        agent_id: agentId,
+        agent_email: agentEmail,
+        agent_name: agentName,
+        shared_cart_token: sharedCartToken,
         coupon: appliedCoupon ? {
           code: appliedCoupon.code,
           discount_type: appliedCoupon.discount_type,
@@ -816,16 +838,29 @@ const CheckoutPage = () => {
                     <span className="text-gray-600">GST (5%)</span>
                     <span>₹{tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">
-                      Logistics
-                      {orderType === "sample" 
-                        ? " (Flat)" 
-                        : ` (₹${logisticsPerMeter.toFixed(1)}/${getUnit(fabric).short})`
-                      }
-                    </span>
-                    <span>₹{logistics.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                  </div>
+                  {orderType === "bulk" ? (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">
+                          Packaging (₹1/{getUnit(fabric).short})
+                        </span>
+                        <span>₹{packagingCharge.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">
+                          Logistics
+                        </span>
+                        <span>₹{logisticsCharge.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">
+                        Logistics (Flat)
+                      </span>
+                      <span>₹{logistics.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-600">
                       <span>Coupon Discount</span>

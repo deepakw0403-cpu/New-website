@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 import { VendorAuthProvider } from "./context/VendorAuthContext";
 import { CustomerAuthProvider } from "./context/CustomerAuthContext";
+import { AgentAuthProvider } from "./context/AgentAuthContext";
 import WhatsAppChat from "./components/WhatsAppChat";
 import { useEffect, lazy, Suspense } from "react";
 
@@ -87,6 +88,11 @@ const RFQPage = lazy(() => import("./pages/RFQPage"));
 const SupplierDetailPage = lazy(() => import("./pages/SupplierDetailPage"));
 const SupplierProfilePage = lazy(() => import("./pages/SupplierProfilePage"));
 const CustomerAccountPage = lazy(() => import("./pages/CustomerAccountPage"));
+const SharedCartPage = lazy(() => import("./pages/SharedCartPage"));
+
+// Agent pages
+const AgentLoginPage = lazy(() => import("./pages/agent/AgentLoginPage"));
+const AgentDashboardPage = lazy(() => import("./pages/agent/AgentDashboardPage"));
 
 // Vendor pages
 const VendorLogin = lazy(() => import("./pages/vendor/VendorLogin"));
@@ -124,6 +130,7 @@ const AdminFabricSEO = lazy(() => import("./pages/admin/AdminFabricSEO"));
 const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
 const AdminSellerDetail = lazy(() => import("./pages/admin/AdminSellerDetail"));
 const AdminCreditApplications = lazy(() => import("./pages/admin/AdminCreditApplications"));
+const AdminAgents = lazy(() => import("./pages/admin/AdminAgents"));
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
 
 // SEO Landing Pages
@@ -153,6 +160,7 @@ function App() {
   return (
     <HelmetProvider>
     <CustomerAuthProvider>
+    <AgentAuthProvider>
     <VendorAuthProvider>
       <AuthProvider>
         <BrowserRouter>
@@ -187,6 +195,13 @@ function App() {
           
           {/* Customer Account */}
           <Route path="/account" element={<CustomerAccountPage />} />
+          
+          {/* Shared Cart (customer-facing) */}
+          <Route path="/shared-cart/:token" element={<SharedCartPage />} />
+          
+          {/* Agent routes */}
+          <Route path="/agent/login" element={<AgentLoginPage />} />
+          <Route path="/agent" element={<AgentDashboardPage />} />
           
           {/* Blog routes */}
           <Route path="/blog" element={<BlogPage />} />
@@ -255,6 +270,7 @@ function App() {
           <Route path="/admin/seo" element={<ProtectedRoute><AdminFabricSEO /></ProtectedRoute>} />
           <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
           <Route path="/admin/credit" element={<ProtectedRoute><AdminCreditApplications /></ProtectedRoute>} />
+          <Route path="/admin/agents" element={<ProtectedRoute><AdminAgents /></ProtectedRoute>} />
 
           {/* Vendor routes */}
           <Route path="/vendor/login" element={<VendorLogin />} />
@@ -267,6 +283,7 @@ function App() {
       </BrowserRouter>
     </AuthProvider>
     </VendorAuthProvider>
+    </AgentAuthProvider>
     </CustomerAuthProvider>
     </HelmetProvider>
   );

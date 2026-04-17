@@ -1816,6 +1816,7 @@ async def create_rfq_lead(data: dict):
     name = data.get('name', '')
     phone = data.get('phone', '')
     gst_number = data.get('gst_number', '')
+    bin_number = data.get('bin_number', '')
     company_name = data.get('company_name', '')
     email = data.get('email', '')
     fabric_type = data.get('fabric_type', '')
@@ -1842,6 +1843,7 @@ async def create_rfq_lead(data: dict):
         'phone': phone,
         'company': company_name,
         'gst_number': gst_number,
+        'bin_number': bin_number,
         'gst_legal_name': gst_legal_name,
         'gst_trade_name': gst_trade_name,
         'gst_status': gst_status,
@@ -1877,7 +1879,7 @@ async def create_rfq_lead(data: dict):
     # Push to campaigns.locofast.com admin
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            await client.post('https://campaigns.locofast.com/api/leads', json={
+            campaign_payload = {
                 'name': name,
                 'company': company_name,
                 'email': email,
@@ -1893,7 +1895,11 @@ async def create_rfq_lead(data: dict):
                     'fabric_type': fabric_type,
                 } if gst_legal_name else None,
                 'campaign': 'Website RFQ',
-            })
+            }
+            # Include BIN for Bangladesh leads
+            if bin_number:
+                campaign_payload['bin'] = bin_number
+            await client.post('https://campaigns.locofast.com/api/leads', json=campaign_payload)
             logging.info(f"RFQ lead pushed to campaigns admin: {name}")
     except Exception as e:
         logging.warning(f"Failed to push to campaigns: {str(e)}")
@@ -2236,6 +2242,10 @@ app.include_router(prerender_router.router)
 import customer_router
 customer_router.set_db(db)
 app.include_router(customer_router.router)
+
+import agent_router
+agent_router.set_db(db)
+app.include_router(agent_router.router)
 
 import credit_router
 credit_router.set_db(db)

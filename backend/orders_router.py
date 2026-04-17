@@ -103,7 +103,14 @@ class OrderCreate(BaseModel):
     coupon: Optional[CouponInfo] = None
     discount: float = 0
     logistics_charge: float = 0
+    packaging_charge: float = 0
+    logistics_only_charge: float = 0
     payment_method: str = "razorpay"  # "razorpay" or "credit"
+    # Agent-assisted booking fields
+    agent_id: str = ""
+    agent_email: str = ""
+    agent_name: str = ""
+    shared_cart_token: str = ""
 
 class Order(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -145,7 +152,7 @@ async def generate_order_number() -> str:
     seq = counter.get('seq', 1)
     return f'LF/ORD/{seq:03d}'
 
-def calculate_totals(items: List[OrderItem], logistics_charge: float = 0) -> dict:
+def calculate_totals(items: List[OrderItem], logistics_charge: float = 0, packaging_charge: float = 0, logistics_only_charge: float = 0) -> dict:
     """Calculate order totals"""
     subtotal = sum(item.quantity * item.price_per_meter for item in items)
     tax = round(subtotal * 0.05, 2)
@@ -154,6 +161,8 @@ def calculate_totals(items: List[OrderItem], logistics_charge: float = 0) -> dic
         "subtotal": round(subtotal, 2),
         "tax": tax,
         "logistics_charge": round(logistics_charge, 2),
+        "packaging_charge": round(packaging_charge, 2),
+        "logistics_only_charge": round(logistics_only_charge, 2),
         "total": total
     }
 
@@ -196,7 +205,7 @@ async def create_order(order_data: OrderCreate):
         raise HTTPException(status_code=400, detail="No items in order")
     
     # Calculate totals
-    totals = calculate_totals(order_data.items, order_data.logistics_charge)
+    totals = calculate_totals(order_data.items, order_data.logistics_charge, order_data.packaging_charge, order_data.logistics_only_charge)
     discount = order_data.discount or 0
     final_total = max(0, totals["total"] - discount)
     
@@ -242,6 +251,8 @@ async def create_order(order_data: OrderCreate):
             "subtotal": totals["subtotal"],
             "tax": totals["tax"],
             "logistics_charge": totals["logistics_charge"],
+            "packaging_charge": totals["packaging_charge"],
+            "logistics_only_charge": totals["logistics_only_charge"],
             "discount": discount,
             "coupon": order_data.coupon.model_dump() if order_data.coupon else None,
             "total": final_total,
@@ -249,6 +260,10 @@ async def create_order(order_data: OrderCreate):
             "status": "confirmed",
             "payment_status": "paid",
             "payment_method": "credit",
+            "booking_type": "assisted_online" if order_data.agent_id else "online",
+            "agent_id": order_data.agent_id,
+            "agent_email": order_data.agent_email,
+            "agent_name": order_data.agent_name,
             "razorpay_order_id": "",
             "razorpay_payment_id": "",
             "razorpay_signature": "",
@@ -259,6 +274,13 @@ async def create_order(order_data: OrderCreate):
             "paid_at": now
         }
         await db.orders.insert_one(order_doc)
+        
+        # Mark shared cart as completed if this was an assisted booking
+        if order_data.shared_cart_token:
+            await db.shared_carts.update_one(
+                {'token': order_data.shared_cart_token},
+                {'$set': {'status': 'completed', 'order_id': order_id, 'updated_at': now}}
+            )
         
         # Send confirmation emails
         try:
@@ -307,6 +329,8 @@ async def create_order(order_data: OrderCreate):
         "subtotal": totals["subtotal"],
         "tax": totals["tax"],
         "logistics_charge": totals["logistics_charge"],
+        "packaging_charge": totals["packaging_charge"],
+        "logistics_only_charge": totals["logistics_only_charge"],
         "discount": discount,
         "coupon": order_data.coupon.model_dump() if order_data.coupon else None,
         "total": final_total,
@@ -314,6 +338,10 @@ async def create_order(order_data: OrderCreate):
         "status": "payment_pending",
         "payment_status": "initiated",
         "payment_method": "razorpay",
+        "booking_type": "assisted_online" if order_data.agent_id else "online",
+        "agent_id": order_data.agent_id,
+        "agent_email": order_data.agent_email,
+        "agent_name": order_data.agent_name,
         "razorpay_order_id": razorpay_order["id"],
         "razorpay_payment_id": "",
         "razorpay_signature": "",
@@ -325,6 +353,13 @@ async def create_order(order_data: OrderCreate):
     }
     
     await db.orders.insert_one(order_doc)
+    
+    # Mark shared cart as completed if this was an assisted booking
+    if order_data.shared_cart_token:
+        await db.shared_carts.update_one(
+            {'token': order_data.shared_cart_token},
+            {'$set': {'status': 'completed', 'order_id': order_id, 'updated_at': now}}
+        )
     
     # Return order details with Razorpay info for frontend
     return {
@@ -1026,6 +1061,8 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     tax = order.get('tax', 0)
     discount = order.get('discount', 0)
     logistics = order.get('logistics_charge', 0)
+    packaging = order.get('packaging_charge', 0)
+    logistics_only = order.get('logistics_only_charge', 0)
     total = order.get('total', 0)
     cgst = tax / 2
     sgst = tax / 2
@@ -1036,7 +1073,11 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
         ['SGST (2.5%):', f"Rs {sgst:,.2f}"],
     ]
     
-    if logistics > 0:
+    # Show packaging and logistics separately for bulk orders
+    if packaging > 0 and logistics_only > 0:
+        totals_data.append(['Packaging:', f"Rs {packaging:,.2f}"])
+        totals_data.append(['Logistics:', f"Rs {logistics_only:,.2f}"])
+    elif logistics > 0:
         totals_data.append([f'Logistics:', f"Rs {logistics:,.2f}"])
     else:
         totals_data.append(['Logistics:', 'FREE (Included)'])
