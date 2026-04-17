@@ -30,6 +30,17 @@ const FabricsPage = () => {
     min: searchParams.get("min_gsm") || "",
     max: searchParams.get("max_gsm") || "",
   });
+  const [selectedPattern, setSelectedPattern] = useState(searchParams.get("pattern") || "");
+  const [selectedColor, setSelectedColor] = useState(searchParams.get("color") || "");
+  const [selectedWidth, setSelectedWidth] = useState(searchParams.get("width") || "");
+  const [weightRange, setWeightRange] = useState({
+    min: searchParams.get("min_oz") || "",
+    max: searchParams.get("max_oz") || "",
+  });
+  const [priceRange, setPriceRange] = useState({
+    min: searchParams.get("min_price") || "",
+    max: searchParams.get("max_price") || "",
+  });
 
   // Modal states
   const [modalType, setModalType] = useState(null); // 'sample' | 'bulk'
@@ -43,6 +54,8 @@ const FabricsPage = () => {
   const [showRfqModal, setShowRfqModal] = useState(false);
 
   const fabricTypes = ["woven", "knitted", "non-woven"];
+  const patternOptions = ["Solid", "Checks", "Stripes", "Print", "Others"];
+  const widthOptions = ['54"', '56"', '58"', '60"', '63"', '65"', '67"'];
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   // Helper function to get unit based on fabric type
@@ -76,6 +89,13 @@ const FabricsPage = () => {
         if (availabilityFilter === "bulk") params.bookable_only = true;
         if (availabilityFilter === "instant") params.instant_bookable = true;
         if (availabilityFilter === "enquiry") params.enquiry_only = true;
+        if (selectedPattern) params.pattern = selectedPattern;
+        if (selectedColor) params.color = selectedColor;
+        if (selectedWidth) params.width = selectedWidth.replace(/"/g, '');
+        if (weightRange.min) params.min_weight_oz = weightRange.min;
+        if (weightRange.max) params.max_weight_oz = weightRange.max;
+        if (priceRange.min) params.min_price = priceRange.min;
+        if (priceRange.max) params.max_price = priceRange.max;
 
         const [fabricsRes, countRes] = await Promise.all([
           getFabrics(params),
@@ -98,7 +118,7 @@ const FabricsPage = () => {
 
     const timeout = setTimeout(fetchFabrics, 300);
     return () => clearTimeout(timeout);
-  }, [search, selectedCategory, selectedType, availabilityFilter, gsmRange, currentPage]);
+  }, [search, selectedCategory, selectedType, availabilityFilter, gsmRange, selectedPattern, selectedColor, selectedWidth, weightRange, priceRange, currentPage]);
 
   // Update URL params
   useEffect(() => {
@@ -109,9 +129,16 @@ const FabricsPage = () => {
     if (availabilityFilter) params.set("availability", availabilityFilter);
     if (gsmRange.min) params.set("min_gsm", gsmRange.min);
     if (gsmRange.max) params.set("max_gsm", gsmRange.max);
+    if (selectedPattern) params.set("pattern", selectedPattern);
+    if (selectedColor) params.set("color", selectedColor);
+    if (selectedWidth) params.set("width", selectedWidth);
+    if (weightRange.min) params.set("min_oz", weightRange.min);
+    if (weightRange.max) params.set("max_oz", weightRange.max);
+    if (priceRange.min) params.set("min_price", priceRange.min);
+    if (priceRange.max) params.set("max_price", priceRange.max);
     if (currentPage > 1) params.set("page", currentPage.toString());
     setSearchParams(params, { replace: true });
-  }, [search, selectedCategory, selectedType, availabilityFilter, gsmRange, currentPage, setSearchParams]);
+  }, [search, selectedCategory, selectedType, availabilityFilter, gsmRange, selectedPattern, selectedColor, selectedWidth, weightRange, priceRange, currentPage, setSearchParams]);
 
   const goToPage = (page) => {
     setCurrentPage(page);
@@ -124,6 +151,11 @@ const FabricsPage = () => {
     setSelectedType("");
     setAvailabilityFilter("");
     setGsmRange({ min: "", max: "" });
+    setSelectedPattern("");
+    setSelectedColor("");
+    setSelectedWidth("");
+    setWeightRange({ min: "", max: "" });
+    setPriceRange({ min: "", max: "" });
     setCurrentPage(1);
   };
 
@@ -377,13 +409,15 @@ const FabricsPage = () => {
           {/* Expandable Filters */}
           {showFilters && (
             <div className="bg-white p-6 rounded-lg border border-gray-200 mb-8 animate-fadeIn">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4">
+                {/* Row 1 */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">Category</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Category</label>
                   <select
                     value={selectedCategory}
                     onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
+                    data-testid="filter-category"
                   >
                     <option value="">All Categories</option>
                     {categories.map((cat) => (
@@ -392,11 +426,12 @@ const FabricsPage = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Type</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Type</label>
                   <select
                     value={selectedType}
                     onChange={(e) => { setSelectedType(e.target.value); setCurrentPage(1); }}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
+                    data-testid="filter-type"
                   >
                     <option value="">All Types</option>
                     {fabricTypes.map((type) => (
@@ -405,32 +440,114 @@ const FabricsPage = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">GSM Range</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Pattern</label>
+                  <select
+                    value={selectedPattern}
+                    onChange={(e) => { setSelectedPattern(e.target.value); setCurrentPage(1); }}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
+                    data-testid="filter-pattern"
+                  >
+                    <option value="">All Patterns</option>
+                    {patternOptions.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Color</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Blue, Indigo, RFD"
+                    value={selectedColor}
+                    onChange={(e) => { setSelectedColor(e.target.value); setCurrentPage(1); }}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
+                    data-testid="filter-color"
+                  />
+                </div>
+
+                {/* Row 2 */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Width</label>
+                  <select
+                    value={selectedWidth}
+                    onChange={(e) => { setSelectedWidth(e.target.value); setCurrentPage(1); }}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
+                    data-testid="filter-width"
+                  >
+                    <option value="">All Widths</option>
+                    {widthOptions.map((w) => (
+                      <option key={w} value={w}>{w}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">GSM Range</label>
                   <div className="flex gap-2">
                     <input
                       type="number"
                       placeholder="Min"
                       value={gsmRange.min}
                       onChange={(e) => { setGsmRange({ ...gsmRange, min: e.target.value }); setCurrentPage(1); }}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
                     />
                     <input
                       type="number"
                       placeholder="Max"
                       value={gsmRange.max}
                       onChange={(e) => { setGsmRange({ ...gsmRange, max: e.target.value }); setCurrentPage(1); }}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
                     />
                   </div>
                 </div>
-                <div className="flex items-end">
-                  <button
-                    onClick={clearFilters}
-                    className="w-full px-4 py-2 text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50"
-                  >
-                    Clear All
-                  </button>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Weight (oz)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      step="0.5"
+                      placeholder="Min"
+                      value={weightRange.min}
+                      onChange={(e) => { setWeightRange({ ...weightRange, min: e.target.value }); setCurrentPage(1); }}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
+                    />
+                    <input
+                      type="number"
+                      step="0.5"
+                      placeholder="Max"
+                      value={weightRange.max}
+                      onChange={(e) => { setWeightRange({ ...weightRange, max: e.target.value }); setCurrentPage(1); }}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
+                    />
+                  </div>
                 </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Price (₹/m)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      value={priceRange.min}
+                      onChange={(e) => { setPriceRange({ ...priceRange, min: e.target.value }); setCurrentPage(1); }}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      value={priceRange.max}
+                      onChange={(e) => { setPriceRange({ ...priceRange, max: e.target.value }); setCurrentPage(1); }}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  data-testid="clear-filters-btn"
+                >
+                  Clear All Filters
+                </button>
               </div>
             </div>
           )}

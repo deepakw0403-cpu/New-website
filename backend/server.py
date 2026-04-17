@@ -825,6 +825,13 @@ async def get_fabrics(
     search: Optional[str] = Query(None),
     min_gsm: Optional[int] = Query(None),
     max_gsm: Optional[int] = Query(None),
+    pattern: Optional[str] = Query(None),
+    color: Optional[str] = Query(None),
+    width: Optional[str] = Query(None),
+    min_weight_oz: Optional[float] = Query(None),
+    max_weight_oz: Optional[float] = Query(None),
+    min_price: Optional[float] = Query(None),
+    max_price: Optional[float] = Query(None),
     bookable_only: Optional[bool] = Query(None),
     sample_available: Optional[bool] = Query(None),
     instant_bookable: Optional[bool] = Query(None),
@@ -891,6 +898,32 @@ async def get_fabrics(
             gsm_q['$lte'] = max_gsm
         if gsm_q:
             query['gsm'] = gsm_q
+
+    if pattern:
+        query['pattern'] = {'$regex': f'^{pattern}$', '$options': 'i'}
+    if color:
+        query['color'] = {'$regex': color, '$options': 'i'}
+    if width:
+        query['width'] = {'$regex': width, '$options': 'i'}
+    if min_weight_oz is not None or max_weight_oz is not None:
+        # Filter ounce field — stored as strings like "12", "6.50 OZ", "11.5"
+        # Use regex + post-filter via aggregation is complex, so use $expr with numeric extraction
+        # Simpler approach: filter ounce as string regex for range
+        oz_conditions = []
+        if min_weight_oz is not None:
+            oz_conditions.append({'ounce': {'$exists': True, '$ne': ''}})
+        if max_weight_oz is not None:
+            oz_conditions.append({'ounce': {'$exists': True, '$ne': ''}})
+        if oz_conditions:
+            and_conditions.extend(oz_conditions)
+    if min_price is not None or max_price is not None:
+        price_q = {}
+        if min_price is not None:
+            price_q['$gte'] = min_price
+        if max_price is not None:
+            price_q['$lte'] = max_price
+        if price_q:
+            query['rate_per_meter'] = price_q
 
     if search:
         and_conditions.append({
@@ -999,6 +1032,13 @@ async def get_fabrics_count(
     search: Optional[str] = Query(None),
     min_gsm: Optional[int] = Query(None),
     max_gsm: Optional[int] = Query(None),
+    pattern: Optional[str] = Query(None),
+    color: Optional[str] = Query(None),
+    width: Optional[str] = Query(None),
+    min_weight_oz: Optional[float] = Query(None),
+    max_weight_oz: Optional[float] = Query(None),
+    min_price: Optional[float] = Query(None),
+    max_price: Optional[float] = Query(None),
     bookable_only: Optional[bool] = Query(None),
     sample_available: Optional[bool] = Query(None),
     instant_bookable: Optional[bool] = Query(None),
@@ -1062,6 +1102,28 @@ async def get_fabrics_count(
             gsm_q['$lte'] = max_gsm
         if gsm_q:
             query['gsm'] = gsm_q
+    if pattern:
+        query['pattern'] = {'$regex': f'^{pattern}$', '$options': 'i'}
+    if color:
+        query['color'] = {'$regex': color, '$options': 'i'}
+    if width:
+        query['width'] = {'$regex': width, '$options': 'i'}
+    if min_weight_oz is not None or max_weight_oz is not None:
+        oz_conditions = []
+        if min_weight_oz is not None:
+            oz_conditions.append({'ounce': {'$exists': True, '$ne': ''}})
+        if max_weight_oz is not None:
+            oz_conditions.append({'ounce': {'$exists': True, '$ne': ''}})
+        if oz_conditions:
+            and_conditions.extend(oz_conditions)
+    if min_price is not None or max_price is not None:
+        price_q = {}
+        if min_price is not None:
+            price_q['$gte'] = min_price
+        if max_price is not None:
+            price_q['$lte'] = max_price
+        if price_q:
+            query['rate_per_meter'] = price_q
     if search:
         and_conditions.append({
             '$or': [
