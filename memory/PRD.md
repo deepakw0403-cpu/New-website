@@ -118,6 +118,16 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - New backend: `commission_router.py`, new collection: `commission_rules`
 - New fields in orders: `commission_pct`, `commission_amount`, `commission_rule`, `seller_payout`
 
+### Phase 17: SEO-Friendly Fabric URLs + Refactoring (Complete - Apr 2026)
+- [x] **SEO Slugs**: Fabrics now use human-readable URLs like `/fabrics/cotton-poplin-60s-abc123`
+  - Auto-generated from fabric name with 6-char hex suffix for uniqueness
+  - Backward compatible: old UUID URLs still work (lookup tries ID first, then slug)
+  - 194 existing fabrics migrated with `/api/migrate/slugs` endpoint
+  - Frontend links updated across FabricsPage, FabricDetailPage, CollectionDetailPage, InventoryPage, SupplierDetailPage
+  - Sitemap updated to use slug URLs
+- [x] **Shared Models**: Created `models.py` with all Pydantic models for future router extraction
+- [x] **Slug Utils**: `slug_utils.py` — reusable slug generation utility
+
 ## Backlog
 
 ### P1 (High Priority)
