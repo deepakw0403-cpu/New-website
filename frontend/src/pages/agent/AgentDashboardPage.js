@@ -83,13 +83,14 @@ const AgentDashboardPage = () => {
     if (!authLoading && !token) navigate("/agent/login");
   }, [authLoading, token, navigate]);
 
-  const addToCart = (fabric) => {
-    const existing = cart.find((c) => c.fabric_id === fabric.id);
+  const addToCart = (fabric, orderType = "bulk") => {
+    const existing = cart.find((c) => c.fabric_id === fabric.id && c.order_type === orderType);
     if (existing) {
       toast.info("Already in cart — adjust quantity there");
       setActiveTab("cart");
       return;
     }
+    const isSample = orderType === "sample";
     setCart([...cart, {
       fabric_id: fabric.id,
       fabric_name: fabric.name,
@@ -97,13 +98,17 @@ const AgentDashboardPage = () => {
       category_name: fabric.category_name || "",
       seller_company: fabric.seller_company || "",
       seller_id: fabric.seller_id || "",
-      quantity: parseInt(fabric.moq) || 100,
-      price_per_meter: fabric.rate_per_meter || 0,
-      order_type: "bulk",
+      quantity: isSample ? 1 : (parseInt(fabric.moq) || 100),
+      price_per_meter: isSample ? (fabric.sample_price || fabric.rate_per_meter || 0) : (fabric.rate_per_meter || 0),
+      order_type: orderType,
       image_url: fabric.images?.[0] || "",
       hsn_code: fabric.hsn_code || "",
     }]);
-    toast.success(`${fabric.name} added to cart`);
+    toast.success(`${fabric.name} added as ${orderType}`);
+  };
+
+  const updateCartOrderType = (fabricId, newType) => {
+    setCart(cart.map((c) => c.fabric_id === fabricId ? { ...c, order_type: newType, quantity: newType === "sample" ? 1 : Math.max(c.quantity, 100) } : c));
   };
 
   const updateCartQty = (fabricId, delta) => {
@@ -236,13 +241,22 @@ const AgentDashboardPage = () => {
                         <p className="text-xs text-gray-500 mt-0.5">{f.category_name} {f.seller_company ? `· ${f.seller_company}` : ""}</p>
                         <div className="flex items-center justify-between mt-3">
                           <span className="text-lg font-semibold text-[#2563EB]">₹{f.rate_per_meter?.toLocaleString()}<span className="text-xs font-normal text-gray-500">/m</span></span>
-                          <button
-                            onClick={() => addToCart(f)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563EB] text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                            data-testid={`add-to-cart-${f.id}`}
-                          >
-                            <Plus size={14} />Add
-                          </button>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => addToCart(f, "sample")}
+                              className="px-2.5 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors"
+                              data-testid={`add-sample-${f.id}`}
+                            >
+                              Sample
+                            </button>
+                            <button
+                              onClick={() => addToCart(f, "bulk")}
+                              className="px-2.5 py-1.5 bg-[#2563EB] text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                              data-testid={`add-bulk-${f.id}`}
+                            >
+                              Bulk
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -273,19 +287,30 @@ const AgentDashboardPage = () => {
                 <div className="grid lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 space-y-3">
                     {cart.map((item) => (
-                      <div key={item.fabric_id} className="bg-white rounded-xl p-4 border border-gray-200 flex gap-4" data-testid={`cart-item-${item.fabric_id}`}>
+                      <div key={`${item.fabric_id}-${item.order_type}`} className="bg-white rounded-xl p-4 border border-gray-200 flex gap-4" data-testid={`cart-item-${item.fabric_id}`}>
                         {item.image_url && <img src={item.image_url} alt={item.fabric_name} className="w-20 h-20 object-cover rounded-lg" />}
                         <div className="flex-1">
                           <h3 className="font-medium text-gray-900">{item.fabric_name}</h3>
                           <p className="text-xs text-gray-500">{item.category_name}{item.seller_company ? ` · ${item.seller_company}` : ""}</p>
-                          <p className="text-sm text-[#2563EB] font-semibold mt-1">₹{item.price_per_meter}/m</p>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <select
+                              value={item.order_type}
+                              onChange={(e) => updateCartOrderType(item.fabric_id, e.target.value)}
+                              className={`text-xs font-semibold px-2 py-0.5 rounded-full border-0 cursor-pointer ${item.order_type === "sample" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"}`}
+                              data-testid={`cart-type-${item.fabric_id}`}
+                            >
+                              <option value="sample">Sample</option>
+                              <option value="bulk">Bulk</option>
+                            </select>
+                            <span className="text-sm text-[#2563EB] font-semibold">₹{item.price_per_meter}/{item.order_type === "sample" ? "pc" : "m"}</span>
+                          </div>
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <button onClick={() => removeFromCart(item.fabric_id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
                           <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-1">
-                            <button onClick={() => updateCartQty(item.fabric_id, -10)} className="p-1 text-gray-500 hover:text-gray-700"><Minus size={14} /></button>
-                            <span className="text-sm font-medium w-12 text-center">{item.quantity}m</span>
-                            <button onClick={() => updateCartQty(item.fabric_id, 10)} className="p-1 text-gray-500 hover:text-gray-700"><Plus size={14} /></button>
+                            <button onClick={() => updateCartQty(item.fabric_id, item.order_type === "sample" ? -1 : -10)} className="p-1 text-gray-500 hover:text-gray-700"><Minus size={14} /></button>
+                            <span className="text-sm font-medium w-12 text-center">{item.quantity}{item.order_type === "sample" ? "pc" : "m"}</span>
+                            <button onClick={() => updateCartQty(item.fabric_id, item.order_type === "sample" ? 1 : 10)} className="p-1 text-gray-500 hover:text-gray-700"><Plus size={14} /></button>
                           </div>
                           <span className="text-sm font-semibold">₹{(item.quantity * item.price_per_meter).toLocaleString()}</span>
                         </div>
@@ -379,7 +404,10 @@ const AgentDashboardPage = () => {
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {sc.items?.slice(0, 3).map((item, i) => (
-                          <span key={i} className="text-xs bg-gray-50 border border-gray-100 px-2 py-1 rounded">{item.fabric_name} ({item.quantity}m)</span>
+                          <span key={i} className="text-xs bg-gray-50 border border-gray-100 px-2 py-1 rounded">
+                            <span className={`inline-block mr-1 px-1 py-0 rounded text-[10px] font-bold ${item.order_type === 'sample' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>{item.order_type === 'sample' ? 'S' : 'B'}</span>
+                            {item.fabric_name} ({item.quantity}{item.order_type === 'sample' ? 'pc' : 'm'})
+                          </span>
                         ))}
                         {sc.items?.length > 3 && <span className="text-xs text-gray-400">+{sc.items.length - 3} more</span>}
                       </div>
@@ -407,6 +435,7 @@ const AgentDashboardPage = () => {
                     <thead className="bg-gray-50 border-b">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -414,9 +443,16 @@ const AgentDashboardPage = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {orders.map((o) => (
+                      {orders.map((o) => {
+                        const isSample = o.items?.[0]?.order_type === 'sample';
+                        return (
                         <tr key={o.id} className="hover:bg-gray-50">
                           <td className="px-4 py-4 font-medium text-[#2563EB]">{o.order_number}</td>
+                          <td className="px-4 py-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${isSample ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                              {isSample ? 'SAMPLE' : 'BULK'}
+                            </span>
+                          </td>
                           <td className="px-4 py-4">
                             <p className="text-sm font-medium">{o.customer?.name}</p>
                             <p className="text-xs text-gray-500">{o.customer?.email}</p>
@@ -429,7 +465,8 @@ const AgentDashboardPage = () => {
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-500">{formatDate(o.created_at)}</td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
