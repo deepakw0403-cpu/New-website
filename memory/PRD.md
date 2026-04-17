@@ -86,16 +86,25 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Zero data migration**: Existing fabrics untouched, articles are optional grouping layer
 - [x] **Admin workflow**: Link fabrics to same article via admin panel to enable multi-vendor comparison
 
-## Backlog
+### Phase 14: Split Bulk Logistics + Bangladesh BIN + Agent-Assisted Booking (Complete - Apr 2026)
+- [x] **Split Bulk Logistics**: Bulk orders now show "Packaging" (Rs 1/meter) and "Logistics" (remainder) as separate line items. Total = max(3% of subtotal, Rs 3000). Sample orders unchanged (flat Rs 100).
+  - Updated: `CheckoutPage.js` (calculatePricing, Payment Summary), `orders_router.py` (calculate_totals, order creation, PDF generation), `AdminOrders.js` (detail modal)
+  - New fields in orders collection: `packaging_charge`, `logistics_only_charge`
+- [x] **Bangladesh BIN Field**: RFQ Modal now collects BIN (Business Identification Number) for Bangladesh location, pushed to `campaigns.locofast.com` API. GST field remains for India.
+  - Updated: `RFQModal.js`, `server.py` (`create_rfq_lead`)
+- [x] **Agent-Assisted Booking System**: Full agent portal for assisted online bookings.
+  - Agent OTP login (`/agent/login`) — admin creates agent, agent logs in via OTP email
+  - Agent dashboard (`/agent`) — browse catalog, build cart, generate shareable cart link
+  - Shared cart page (`/shared-cart/:token`) — customer receives link, logs in via OTP, proceeds to checkout
+  - Order labels: "Online" or "Assisted Online" with agent name on admin orders page
+  - Admin agent management (`/admin/agents`) — create, edit, deactivate agents, view performance stats
+  - New backend: `agent_router.py` with collections: `agents`, `agent_otps`, `shared_carts`
+  - New fields in orders: `booking_type` (online/assisted_online), `agent_id`, `agent_email`, `agent_name`
 
-### P1 (High Priority)
-- [ ] Customer Accounts & Order History
-- [ ] Test Email Flow (end-to-end order confirmation)
-- [ ] Production bot routing config (nginx/Cloudflare Worker for prerender — see `/app/docs/SEO_PRERENDER_GUIDE.md`)
+## Backlog
 
 ### P2 (Medium Priority)
 - [ ] SEO-Friendly Fabric URLs (slugs)
-- [ ] Order Status Emails
 - [ ] server.py refactoring into separate routers
 
 ### P3 (Low Priority)

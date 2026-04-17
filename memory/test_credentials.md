@@ -13,3 +13,12 @@
 ## Alternate Vendor
 - Email: info@palimills.com
 - Password: admin@123
+
+## Agent
+- Email: agent@locofast.com
+- Auth: OTP-based (code sent via Resend email)
+- Login URL: /agent/login
+
+## Customer
+- Auth: OTP-based via Resend email
+- Login URL: Account icon in navbar
