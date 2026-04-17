@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import List, Optional
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import ReturnDocument
 import razorpay
 import hmac
 import hashlib
@@ -69,12 +70,15 @@ class OrderItem(BaseModel):
     price_per_meter: float
     order_type: str = "bulk"  # "sample" or "bulk"
     image_url: str = ""
+    hsn_code: str = ""
+    dispatch_timeline: str = ""
 
 class CustomerInfo(BaseModel):
     name: str
     email: EmailStr
     phone: str
     company: str = ""
+    gst_number: str = ""
     address: str = ""
     city: str = ""
     state: str = ""
@@ -131,14 +135,15 @@ class PaymentVerification(BaseModel):
 # ==================== HELPER FUNCTIONS ====================
 
 async def generate_order_number() -> str:
-    """Generate unique order number like ORD-XXXXX"""
-    import random
-    import string
-    while True:
-        number = 'ORD-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        existing = await db.orders.find_one({'order_number': number})
-        if not existing:
-            return number
+    """Generate sequential invoice number like LF/ORD/001"""
+    counter = await db.counters.find_one_and_update(
+        {'_id': 'invoice_number'},
+        {'$inc': {'seq': 1}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER
+    )
+    seq = counter.get('seq', 1)
+    return f'LF/ORD/{seq:03d}'
 
 def calculate_totals(items: List[OrderItem], logistics_charge: float = 0) -> dict:
     """Calculate order totals"""
@@ -833,105 +838,66 @@ def number_to_words(num: float) -> str:
         return words_under_1000(num)
 
 def generate_invoice_pdf(order: dict) -> io.BytesIO:
-    """Generate a GST-compliant invoice PDF"""
+    """Generate a GST-compliant invoice PDF in Locofast brand style"""
     buffer = io.BytesIO()
     
-    # Create PDF document
+    BRAND_BLUE = '#2563EB'
+    BRAND_DARK = '#1e3a5f'
+    LIGHT_BG = '#f0f5ff'
+    
     doc = SimpleDocTemplate(
-        buffer, 
-        pagesize=A4,
-        rightMargin=15*mm,
-        leftMargin=15*mm,
-        topMargin=15*mm,
-        bottomMargin=15*mm
+        buffer, pagesize=A4,
+        rightMargin=15*mm, leftMargin=15*mm,
+        topMargin=15*mm, bottomMargin=15*mm
     )
     
     elements = []
     styles = getSampleStyleSheet()
     
-    # Custom styles
-    title_style = ParagraphStyle(
-        'Title',
-        parent=styles['Heading1'],
-        fontSize=18,
-        alignment=TA_CENTER,
-        spaceAfter=5*mm,
-        textColor=colors.HexColor('#1e40af')
-    )
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=20, alignment=TA_CENTER, spaceAfter=2*mm, textColor=colors.HexColor(BRAND_BLUE), fontName='Helvetica-Bold')
+    heading_style = ParagraphStyle('Heading', parent=styles['Heading2'], fontSize=11, spaceBefore=3*mm, spaceAfter=2*mm, textColor=colors.HexColor(BRAND_BLUE), fontName='Helvetica-Bold')
+    normal_style = ParagraphStyle('CustomNormal', parent=styles['Normal'], fontSize=9, leading=12)
+    small_style = ParagraphStyle('Small', parent=styles['Normal'], fontSize=8, leading=11)
+    bold_style = ParagraphStyle('Bold', parent=styles['Normal'], fontSize=9, leading=12, fontName='Helvetica-Bold')
     
-    heading_style = ParagraphStyle(
-        'Heading',
-        parent=styles['Heading2'],
-        fontSize=11,
-        spaceBefore=3*mm,
-        spaceAfter=2*mm,
-        textColor=colors.HexColor('#1e40af')
-    )
-    
-    normal_style = ParagraphStyle(
-        'CustomNormal',
-        parent=styles['Normal'],
-        fontSize=9,
-        leading=12
-    )
-    
-    small_style = ParagraphStyle(
-        'Small',
-        parent=styles['Normal'],
-        fontSize=8,
-        leading=10
-    )
-    
-    bold_style = ParagraphStyle(
-        'Bold',
-        parent=styles['Normal'],
-        fontSize=9,
-        leading=12,
-        fontName='Helvetica-Bold'
-    )
-    
-    # Header - Company Name
+    # Header
     elements.append(Paragraph("LOCOFAST", title_style))
-    elements.append(Paragraph("B2B Fabric Sourcing Platform", ParagraphStyle(
-        'Subtitle', parent=styles['Normal'], fontSize=10, alignment=TA_CENTER, textColor=colors.grey
-    )))
-    elements.append(Spacer(1, 5*mm))
+    elements.append(Paragraph("B2B Fabric Sourcing Platform", ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=9, alignment=TA_CENTER, textColor=colors.HexColor('#64748b'))))
+    elements.append(Spacer(1, 4*mm))
     
-    # Tax Invoice Title
-    elements.append(Paragraph("TAX INVOICE", ParagraphStyle(
-        'InvoiceTitle', parent=styles['Heading1'], fontSize=14, alignment=TA_CENTER, 
-        textColor=colors.white, backColor=colors.HexColor('#1e40af'), 
-        borderPadding=5, spaceBefore=2*mm, spaceAfter=5*mm
-    )))
+    # Tax Invoice Banner
+    elements.append(Paragraph("TAX INVOICE", ParagraphStyle('InvoiceTitle', parent=styles['Heading1'], fontSize=13, alignment=TA_CENTER, textColor=colors.white, backColor=colors.HexColor(BRAND_BLUE), borderPadding=5, spaceBefore=2*mm, spaceAfter=5*mm, fontName='Helvetica-Bold')))
     
-    # Invoice Details Table
+    # Invoice Details
     customer = order.get('customer', {})
     invoice_date = order.get('paid_at') or order.get('created_at', '')
     if invoice_date:
         try:
-            invoice_date = invoice_date[:10]  # Extract YYYY-MM-DD
+            invoice_date = invoice_date[:10]
         except:
             invoice_date = datetime.now().strftime('%Y-%m-%d')
     
+    inv_number = order.get('order_number', 'N/A')
+    
     invoice_details = [
-        ['Invoice No:', order.get('order_number', 'N/A'), 'Invoice Date:', invoice_date],
-        ['Order ID:', order.get('id', 'N/A')[:8] + '...', 'Payment Status:', order.get('payment_status', 'N/A').upper()],
+        ['Invoice No:', inv_number, 'Invoice Date:', invoice_date],
+        ['Payment Method:', (order.get('payment_method', 'razorpay')).title(), 'Payment Status:', order.get('payment_status', 'N/A').upper()],
     ]
     
-    invoice_table = Table(invoice_details, colWidths=[25*mm, 55*mm, 30*mm, 50*mm])
+    invoice_table = Table(invoice_details, colWidths=[28*mm, 52*mm, 30*mm, 50*mm])
     invoice_table.setStyle(TableStyle([
         ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
         ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#1e40af')),
-        ('TEXTCOLOR', (2, 0), (2, -1), colors.HexColor('#1e40af')),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor(BRAND_BLUE)),
+        ('TEXTCOLOR', (2, 0), (2, -1), colors.HexColor(BRAND_BLUE)),
     ]))
     elements.append(invoice_table)
     elements.append(Spacer(1, 5*mm))
     
-    # Seller and Buyer Details Side by Side
+    # Seller and Buyer Details
     seller_info = """<b>Sold By:</b><br/>
     LOCOFAST ONLINE SERVICES PRIVATE LIMITED<br/>
     First Floor, Khasra No 385, Deskconnect<br/>
@@ -941,10 +907,15 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     <b>Email:</b> mail@locofast.com<br/>
     <b>Phone:</b> +91-8920392418"""
     
+    gst_line = ''
+    cust_gst = customer.get('gst_number', '')
+    if cust_gst:
+        gst_line = f'<b>GSTIN:</b> {cust_gst}<br/>'
+    
     buyer_info = f"""<b>Bill To:</b><br/>
     {customer.get('name', 'N/A')}<br/>
     {customer.get('company', '') + '<br/>' if customer.get('company') else ''}
-    {customer.get('address', 'N/A')}<br/>
+    {gst_line}{customer.get('address', 'N/A')}<br/>
     {customer.get('city', '')}, {customer.get('state', '')}<br/>
     PIN: {customer.get('pincode', 'N/A')}<br/>
     <b>Phone:</b> {customer.get('phone', 'N/A')}<br/>
@@ -955,9 +926,9 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     ], colWidths=[90*mm, 90*mm])
     address_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (0, 0), 0.5, colors.HexColor('#e5e7eb')),
-        ('BOX', (1, 0), (1, 0), 0.5, colors.HexColor('#e5e7eb')),
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f9fafb')),
+        ('BOX', (0, 0), (0, 0), 0.5, colors.HexColor('#dbeafe')),
+        ('BOX', (1, 0), (1, 0), 0.5, colors.HexColor('#dbeafe')),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(LIGHT_BG)),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
         ('LEFTPADDING', (0, 0), (-1, -1), 8),
@@ -969,12 +940,8 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     # Items Table
     elements.append(Paragraph("Order Items", heading_style))
     
-    # Table Header - Added Lead Time column
-    items_data = [
-        ['#', 'Description', 'HSN', 'Qty (m)', 'Rate (₹/m)', 'Lead Time', 'Amount (₹)']
-    ]
+    items_data = [['#', 'Description', 'HSN Code', 'Qty (m)', 'Rate (₹/m)', 'Lead Time', 'Amount (₹)']]
     
-    # Table Rows
     items = order.get('items', [])
     has_bulk_items = False
     
@@ -990,91 +957,83 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
         if order_type:
             description += f"\nType: {order_type.title()}"
         
-        # Determine lead time based on order type
+        # HSN code: use item-specific if set, fallback to generic fabric HSN
+        hsn = item.get('hsn_code', '') or '540799'
+        
         if order_type == 'sample':
             lead_time = "Ready Stock"
         else:
-            # Bulk order - check for dispatch_timeline or use default
             has_bulk_items = True
-            dispatch_timeline = item.get('dispatch_timeline')
-            if dispatch_timeline:
-                lead_time = dispatch_timeline
-            else:
-                # Default lead time for bulk production
-                lead_time = "15-20 days"
+            lead_time = item.get('dispatch_timeline') or "15-20 days"
         
         items_data.append([
             str(idx),
             Paragraph(description, small_style),
-            '5407',  # HSN code for fabrics
+            hsn,
             str(qty),
-            f"₹{rate:,.2f}",
+            f"Rs {rate:,.2f}",
             lead_time,
-            f"₹{amount:,.2f}"
+            f"Rs {amount:,.2f}"
         ])
     
-    items_table = Table(items_data, colWidths=[8*mm, 58*mm, 15*mm, 18*mm, 24*mm, 25*mm, 28*mm])
+    items_table = Table(items_data, colWidths=[8*mm, 54*mm, 18*mm, 18*mm, 24*mm, 25*mm, 28*mm])
     items_table.setStyle(TableStyle([
-        # Header
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e40af')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(BRAND_BLUE)),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 8),
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-        # Body
         ('FONTSIZE', (0, 1), (-1, -1), 8),
-        ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # #
-        ('ALIGN', (2, 1), (2, -1), 'CENTER'),  # HSN
-        ('ALIGN', (3, 1), (3, -1), 'CENTER'),  # Qty
-        ('ALIGN', (4, 1), (4, -1), 'RIGHT'),   # Rate
-        ('ALIGN', (5, 1), (5, -1), 'CENTER'),  # Lead Time
-        ('ALIGN', (6, 1), (6, -1), 'RIGHT'),   # Amount
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+        ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+        ('ALIGN', (3, 1), (3, -1), 'CENTER'),
+        ('ALIGN', (4, 1), (4, -1), 'RIGHT'),
+        ('ALIGN', (5, 1), (5, -1), 'CENTER'),
+        ('ALIGN', (6, 1), (6, -1), 'RIGHT'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        # Grid
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e5e7eb')),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#dbeafe')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor(LIGHT_BG)]),
         ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
     elements.append(items_table)
     elements.append(Spacer(1, 3*mm))
     
-    # Add bulk production note if there are bulk items
     if has_bulk_items:
         bulk_note = """<b>Note:</b> Lead time for bulk production items is estimated from the date of order confirmation 
         and payment. Actual delivery may vary based on production schedules and material availability. 
         You will receive tracking details once the order is dispatched."""
-        elements.append(Paragraph(bulk_note, ParagraphStyle(
-            'BulkNote', parent=styles['Normal'], fontSize=7, textColor=colors.HexColor('#b45309'),
-            backColor=colors.HexColor('#fef3c7'), borderPadding=5, leading=9
-        )))
+        elements.append(Paragraph(bulk_note, ParagraphStyle('BulkNote', parent=styles['Normal'], fontSize=7, textColor=colors.HexColor('#b45309'), backColor=colors.HexColor('#fef3c7'), borderPadding=5, leading=9)))
         elements.append(Spacer(1, 3*mm))
     
     elements.append(Spacer(1, 2*mm))
     
-    # Totals Table
+    # Totals
     subtotal = order.get('subtotal', 0)
     tax = order.get('tax', 0)
     discount = order.get('discount', 0)
+    logistics = order.get('logistics_charge', 0)
     total = order.get('total', 0)
-    
-    # GST split (CGST + SGST for intra-state, IGST for inter-state)
     cgst = tax / 2
     sgst = tax / 2
     
     totals_data = [
-        ['Subtotal:', f"₹{subtotal:,.2f}"],
-        ['CGST (2.5%):', f"₹{cgst:,.2f}"],
-        ['SGST (2.5%):', f"₹{sgst:,.2f}"],
-        ['Logistics:', 'FREE (Included)'],
+        ['Subtotal:', f"Rs {subtotal:,.2f}"],
+        ['CGST (2.5%):', f"Rs {cgst:,.2f}"],
+        ['SGST (2.5%):', f"Rs {sgst:,.2f}"],
     ]
+    
+    if logistics > 0:
+        totals_data.append([f'Logistics:', f"Rs {logistics:,.2f}"])
+    else:
+        totals_data.append(['Logistics:', 'FREE (Included)'])
     
     if discount > 0:
         coupon = order.get('coupon', {})
         coupon_code = coupon.get('code', 'DISCOUNT') if coupon else 'DISCOUNT'
-        totals_data.append([f'Coupon ({coupon_code}):', f"-₹{discount:,.2f}"])
+        totals_data.append([f'Coupon ({coupon_code}):', f"-Rs {discount:,.2f}"])
     
-    totals_data.append(['TOTAL:', f"₹{total:,.2f}"])
+    totals_data.append(['TOTAL:', f"Rs {total:,.2f}"])
     
     totals_table = Table(totals_data, colWidths=[130*mm, 46*mm])
     totals_table.setStyle(TableStyle([
@@ -1082,8 +1041,8 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
         ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#1e40af')),
-        ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#1e40af')),
+        ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor(BRAND_BLUE)),
+        ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor(BRAND_BLUE)),
         ('TOPPADDING', (0, 0), (-1, -1), 4),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
     ]))
@@ -1094,36 +1053,35 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     amount_words = number_to_words(total)
     elements.append(Paragraph(
         f"<b>Amount in Words:</b> {amount_words} Rupees Only",
-        ParagraphStyle('AmountWords', parent=styles['Normal'], fontSize=9, 
-                      backColor=colors.HexColor('#f0f9ff'), borderPadding=5)
+        ParagraphStyle('AmountWords', parent=styles['Normal'], fontSize=9, backColor=colors.HexColor(LIGHT_BG), borderPadding=5)
     ))
     elements.append(Spacer(1, 5*mm))
     
     # Terms and Conditions
-    elements.append(Paragraph("Terms & Conditions", heading_style))
+    elements.append(Paragraph("Terms &amp; Conditions", heading_style))
     terms = """
-    1. Goods once sold will not be taken back or exchanged.<br/>
-    2. All disputes are subject to Delhi jurisdiction only.<br/>
-    3. Payment must be made in full before dispatch of goods.<br/>
-    4. Delivery timelines are estimates and may vary based on availability.<br/>
-    5. E&OE (Errors and Omissions Excepted).<br/>
-    6. This is a computer-generated invoice and does not require a physical signature.<br/><br/>
+    i) Goods once sold will not be taken back or exchanged.<br/>
+    ii) Orders once placed cannot be cancelled.<br/>
+    iii) As per industry standards, L99 is acceptable quantity and hence no refunds will be issued in such cases.<br/>
+    iv) For finished goods, upto 2 inch width short each side is in the acceptable range and no debit will be accepted.<br/>
+    v) All disputes are subject to Delhi jurisdiction only.<br/>
+    vi) Payment must be made in full before dispatch of goods.<br/>
+    vii) Delivery timelines are estimates and may vary based on availability.<br/>
+    viii) E&amp;OE (Errors and Omissions Excepted).<br/>
+    ix) This is a computer-generated invoice and does not require a physical signature.<br/><br/>
     <b>For any queries, contact us at:</b><br/>
     Email: mail@locofast.com | Phone: +91-8920392418
     """
-    elements.append(Paragraph(terms, ParagraphStyle(
-        'Terms', parent=styles['Normal'], fontSize=7, textColor=colors.grey, leading=10
-    )))
+    elements.append(Paragraph(terms, ParagraphStyle('Terms', parent=styles['Normal'], fontSize=7, textColor=colors.HexColor('#64748b'), leading=10)))
     
     elements.append(Spacer(1, 10*mm))
     
     # Footer
     elements.append(Paragraph(
         "Thank you for your business! | www.locofast.com | mail@locofast.com | +91-8920392418",
-        ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, alignment=TA_CENTER, textColor=colors.grey)
+        ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, alignment=TA_CENTER, textColor=colors.HexColor('#94a3b8'))
     ))
     
-    # Build PDF
     doc.build(elements)
     buffer.seek(0)
     return buffer

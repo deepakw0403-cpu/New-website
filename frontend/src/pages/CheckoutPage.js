@@ -269,9 +269,10 @@ const CheckoutPage = () => {
           price_per_meter: pricePerMeter,
           order_type: orderType,
           image_url: fabric.images?.[0] || "",
+          hsn_code: fabric.hsn_code || "",
           dispatch_timeline: fabric.dispatch_timeline || (orderType === 'bulk' ? '15-20 days' : 'Ready Stock')
         }],
-        customer: customer,
+        customer: { ...customer, gst_number: gstNumber },
         notes: notes,
         logistics_charge: logistics,
         payment_method: paymentMethod,

@@ -213,6 +213,7 @@ class FabricCreate(BaseModel):
     stretch_percentage: Optional[float] = None  # Percentage
     # Seller's unique serial number for this SKU
     seller_sku: Optional[str] = ""
+    hsn_code: Optional[str] = ""  # 6-digit HSN code for invoicing
 
 class FabricUpdate(BaseModel):
     name: Optional[str] = None
@@ -254,6 +255,7 @@ class FabricUpdate(BaseModel):
     weft_shrinkage: Optional[float] = None
     stretch_percentage: Optional[float] = None
     seller_sku: Optional[str] = None
+    hsn_code: Optional[str] = None  # 6-digit HSN code for invoicing
     status: Optional[str] = None  # pending, approved, rejected
 
 class Fabric(BaseModel):

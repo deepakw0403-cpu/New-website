@@ -89,6 +89,7 @@ const AdminFabrics = () => {
     stretch_percentage: "",
     // Seller SKU
     seller_sku: "",
+    hsn_code: "",
   };
 
   const [form, setForm] = useState(emptyForm);
@@ -414,6 +415,7 @@ const AdminFabrics = () => {
       weft_shrinkage: fabric.weft_shrinkage ? fabric.weft_shrinkage.toString() : "",
       stretch_percentage: fabric.stretch_percentage ? fabric.stretch_percentage.toString() : "",
       seller_sku: fabric.seller_sku || "",
+      hsn_code: fabric.hsn_code || "",
     });
     setShowModal(true);
   };
@@ -499,6 +501,7 @@ const AdminFabrics = () => {
       weft_shrinkage: form.weft_shrinkage ? parseFloat(form.weft_shrinkage) : null,
       stretch_percentage: form.stretch_percentage ? parseFloat(form.stretch_percentage) : null,
       seller_sku: form.seller_sku,
+      hsn_code: form.hsn_code,
       article_id: form.article_id,
     };
     
@@ -1361,6 +1364,22 @@ const AdminFabrics = () => {
                     data-testid="fabric-seller-sku-input"
                   />
                 </div>
+
+                {/* HSN Code */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">HSN Code (6-digit)</label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={form.hsn_code}
+                    onChange={(e) => setForm({ ...form, hsn_code: e.target.value.replace(/\D/g, '') })}
+                    className="w-full px-4 py-2 border border-gray-200 rounded"
+                    placeholder="e.g. 540799"
+                    data-testid="fabric-hsn-code-input"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Used on invoices. 6-digit HSN code for this fabric.</p>
+                </div>
+
 
                 {/* Article Grouping */}
                 <div>
