@@ -24,7 +24,8 @@ const AgentLoginPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      const data = JSON.parse(text);
       if (!res.ok) throw new Error(data.detail || "Failed");
       toast.success("OTP sent to your email");
       setStep("otp");
@@ -44,7 +45,8 @@ const AgentLoginPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase(), otp: otp.trim() }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      const data = JSON.parse(text);
       if (!res.ok) throw new Error(data.detail || "Invalid OTP");
       login(data.token, data.agent);
       toast.success(`Welcome, ${data.agent.name}!`);
