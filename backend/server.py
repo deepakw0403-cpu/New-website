@@ -904,7 +904,13 @@ async def get_fabrics(
     if pattern:
         query['pattern'] = {'$regex': f'^{pattern}$', '$options': 'i'}
     if color:
-        query['color'] = {'$regex': color, '$options': 'i'}
+        # Search color field OR fabric name (color data often embedded in name)
+        and_conditions.append({
+            '$or': [
+                {'color': {'$regex': color, '$options': 'i'}},
+                {'name': {'$regex': color, '$options': 'i'}}
+            ]
+        })
     if width:
         query['width'] = {'$regex': width, '$options': 'i'}
     if min_weight_oz is not None or max_weight_oz is not None:
@@ -1107,7 +1113,13 @@ async def get_fabrics_count(
     if pattern:
         query['pattern'] = {'$regex': f'^{pattern}$', '$options': 'i'}
     if color:
-        query['color'] = {'$regex': color, '$options': 'i'}
+        # Search color field OR fabric name (color data often embedded in name)
+        and_conditions.append({
+            '$or': [
+                {'color': {'$regex': color, '$options': 'i'}},
+                {'name': {'$regex': color, '$options': 'i'}}
+            ]
+        })
     if width:
         query['width'] = {'$regex': width, '$options': 'i'}
     if min_weight_oz is not None or max_weight_oz is not None:
