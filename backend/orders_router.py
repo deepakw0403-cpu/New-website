@@ -1093,7 +1093,7 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
         totals_data.append(['Packaging:', f"Rs {packaging:,.2f}"])
         totals_data.append(['Logistics:', f"Rs {logistics_only:,.2f}"])
     elif logistics > 0:
-        totals_data.append([f'Logistics:', f"Rs {logistics:,.2f}"])
+        totals_data.append(['Logistics:', f"Rs {logistics:,.2f}"])
     else:
         totals_data.append(['Logistics:', 'FREE (Included)'])
     
@@ -1189,3 +1189,302 @@ async def get_invoice(order_id: str):
     except Exception as e:
         logger.error(f"Failed to generate invoice: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate invoice: {str(e)}")
+
+
+# ==================== PROFORMA INVOICE (Bangladesh/Export) ====================
+
+async def generate_pi_number() -> str:
+    """Generate PI number in format LF/EX/PI/25-26/XXX"""
+    year_now = datetime.now(timezone.utc).year
+    fy = f"{str(year_now)[-2:]}-{str(year_now + 1)[-2:]}"
+    count = await db.orders.count_documents({"dispatch_country": "bangladesh"})
+    return f"LF/EX/PI/{fy}/{count + 1:03d}"
+
+
+def generate_pi_pdf(order: dict) -> io.BytesIO:
+    """Generate Proforma Invoice PDF for Bangladesh/export orders."""
+    buffer = io.BytesIO()
+
+    BRAND_BLUE = '#2563EB'
+
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4,
+        rightMargin=12*mm, leftMargin=12*mm,
+        topMargin=12*mm, bottomMargin=12*mm
+    )
+
+    elements = []
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle('PITitle', parent=styles['Heading1'], fontSize=16, alignment=TA_CENTER, spaceAfter=2*mm, textColor=colors.HexColor(BRAND_BLUE), fontName='Helvetica-Bold')
+    normal = ParagraphStyle('PIBody', parent=styles['Normal'], fontSize=8, leading=11)
+    bold_style = ParagraphStyle('PIBold', parent=styles['Normal'], fontSize=8, leading=11, fontName='Helvetica-Bold')
+    small_style = ParagraphStyle('PISmall', parent=styles['Normal'], fontSize=7, leading=9)
+    header_style = ParagraphStyle('PIHeader', parent=styles['Normal'], fontSize=9, leading=12, fontName='Helvetica-Bold', textColor=colors.HexColor('#1e3a5f'))
+
+    # Header
+    elements.append(Paragraph("PROFORMA INVOICE", title_style))
+    elements.append(Spacer(1, 2*mm))
+
+    # Company + PI Info
+    pi_number = order.get('pi_number', '')
+    pi_date = order.get('created_at', '')
+    if isinstance(pi_date, str):
+        try:
+            pi_date = datetime.fromisoformat(pi_date.replace('Z', '+00:00')).strftime('%d/%m/%Y')
+        except Exception:
+            pi_date = datetime.now().strftime('%d/%m/%Y')
+    else:
+        pi_date = pi_date.strftime('%d/%m/%Y') if pi_date else datetime.now().strftime('%d/%m/%Y')
+
+    company_info = [
+        [Paragraph("<b>Locofast Online Services Pvt Ltd</b>", bold_style),
+         Paragraph(f"<b>PI No:</b> {pi_number}", normal)],
+        [Paragraph("First Floor, Khasra No 385, Deskconnect<br/>100 Feet Road, Opp. Corporation Bank, Ghitorni,<br/>New Delhi, Delhi - 110030, India<br/>GSTIN: 07AADCL8794N1ZM<br/>Email: accounts@locofast.com", small_style),
+         Paragraph(f"<b>Date:</b> {pi_date}<br/><b>Payment:</b> LC 90 days from date of LR<br/><b>Validity:</b> 15 Days From PI Date", normal)],
+    ]
+    company_table = Table(company_info, colWidths=[100*mm, 70*mm])
+    company_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    elements.append(company_table)
+    elements.append(Spacer(1, 4*mm))
+
+    # Bill To / Ship To
+    customer = order.get('customer', {})
+    bill_ship = [
+        [Paragraph("<b>Bill To</b>", header_style), Paragraph("<b>Ship To</b>", header_style)],
+        [Paragraph(f"{customer.get('name', '')}<br/>{customer.get('company', '')}<br/>{customer.get('address', '')}<br/>{customer.get('city', '')}, {customer.get('state', '')}<br/>{customer.get('email', '')}", small_style),
+         Paragraph(f"{customer.get('shipping_name', customer.get('name', ''))}<br/>{customer.get('shipping_address', customer.get('address', ''))}<br/>{customer.get('shipping_city', customer.get('city', ''))}, {customer.get('shipping_state', customer.get('state', ''))}", small_style)],
+    ]
+    bill_table = Table(bill_ship, colWidths=[85*mm, 85*mm])
+    bill_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f0f5ff')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('PADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(bill_table)
+    elements.append(Spacer(1, 4*mm))
+
+    # Items table
+    usd_rate = order.get('usd_rate', 0.0119)
+    items = order.get('items', [])
+    METERS_TO_YARDS = 1.0936
+
+    table_header = ['Item & Description', 'HSN/SAC', 'Qty (Yards)', 'Rate (USD/Yard)', 'Amount (USD)']
+    table_data = [table_header]
+
+    total_usd = 0
+    for item in items:
+        qty_m = item.get('quantity', 0)
+        price_inr = item.get('price_per_meter', 0)
+        qty_yards = round(qty_m * METERS_TO_YARDS, 2)
+        rate_usd_yard = round(price_inr * usd_rate / METERS_TO_YARDS, 4)
+        amount_usd = round(qty_yards * rate_usd_yard, 2)
+        total_usd += amount_usd
+
+        table_data.append([
+            Paragraph(f"{item.get('fabric_name', '')}<br/><font size='6' color='#64748b'>{item.get('category_name', '')} | {item.get('fabric_code', '')}</font>", small_style),
+            item.get('hsn_code', ''),
+            f"{qty_yards:,.2f}",
+            f"${rate_usd_yard:,.4f}",
+            f"${amount_usd:,.2f}",
+        ])
+
+    items_table = Table(table_data, colWidths=[65*mm, 20*mm, 25*mm, 30*mm, 30*mm])
+    items_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(BRAND_BLUE)),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+        ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('PADDING', (0, 0), (-1, -1), 5),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fafafa')]),
+    ]))
+    elements.append(items_table)
+    elements.append(Spacer(1, 3*mm))
+
+    # Bangladesh charges
+    bd = order.get('bangladesh_charges', {})
+    border = bd.get('border_logistics', 0)
+    export_doc = bd.get('export_documentation', 0)
+    customs = bd.get('custom_clearance', 0)
+    border_usd = round(border * usd_rate, 2) if border else 0
+    export_doc_usd = round(export_doc * usd_rate, 2) if export_doc else 0
+    customs_usd = round(customs * usd_rate, 2) if customs else 0
+
+    grand_total_usd = round(total_usd + border_usd + export_doc_usd + customs_usd, 2)
+
+    totals_data = [
+        ['Subtotal (Fabric)', f'${total_usd:,.2f}'],
+        ['Border Logistics (1%)', f'${border_usd:,.2f}'],
+        ['Export Documentation (0.40%)', f'${export_doc_usd:,.2f}'],
+        ['Custom Clearance (1.05%)', f'${customs_usd:,.2f}'],
+        ['IGST (0%)', '$0.00'],
+    ]
+    totals_data.append(['GRAND TOTAL (USD)', f'${grand_total_usd:,.2f}'])
+
+    totals_table = Table(totals_data, colWidths=[130*mm, 40*mm])
+    totals_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor(BRAND_BLUE)),
+        ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor(BRAND_BLUE)),
+        ('PADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(totals_table)
+    elements.append(Spacer(1, 3*mm))
+
+    # Shipment Notes
+    notes = [
+        "Goods country of origin - India",
+        "ETD Mill - (30) Days from the Date of LC Issue",
+        "Port of Loading - Petrapole, India",
+        "Port of Discharge - Benapole, Bangladesh",
+        "ETA Benapole - (45) Days from the Date of LC Issue",
+        "Incoterms 2020 - CPT Benapole",
+        "Production will start after receiving of Confirm LC from buyer",
+        "All quantities are in Yards and all amounts are in USD",
+        "Tolerance acceptable - (\u00b1) 5% in quantity and amount",
+    ]
+    elements.append(Paragraph("<b>Shipment Details</b>", header_style))
+    for n in notes:
+        elements.append(Paragraph(f"• {n}", small_style))
+    elements.append(Spacer(1, 3*mm))
+
+    # Bank Details
+    elements.append(Paragraph("<b>Bank Details</b>", header_style))
+    bank_info = "Standard Chartered Bank | SWIFT: SCBLINBBXXX | A/c No: 53005089578 | IFSC: SCBL0036024"
+    elements.append(Paragraph(bank_info, small_style))
+    elements.append(Spacer(1, 3*mm))
+
+    # Terms
+    tc_items = [
+        "Delivery timelines are strictly linked to the date of LC/TT or client's Purchase Order or Locofast's Proforma Invoice, whichever is later",
+        "In case of any fabric anomaly or quality issue, report in writing via email within 15 days of shipment date else it will be deemed that the goods have been accepted by the Buyer.",
+        "Locofast reserves the right to reject any debit request received for any consignment that is not returned in its original state/packing.",
+        "Advance received is non-refundable.",
+        "Usance interest - In case of delayed payment beyond the maturity date, LC applicant / beneficiary bank shall be liable to pay interest at a rate of 18% per annum on the outstanding amount or 250 USD whichever is higher",
+        "A tolerance of upto 5% in terms of wastage should be acceptable as processing is a value addition job & there are chances of shrinkage that may lead to wastage",
+        "LC or TT once generated cannot be cancelled and goods once sold will not be taken back.",
+        "Risk of damage to or loss of the Goods shall pass to the client in accordance with the relevant provision of Incoterms",
+        "All required testing parameters must be verified at the FOB/sampling stage. Any deficiencies in testing will not be accepted once the final goods are delivered",
+    ]
+    elements.append(Paragraph("<b>Terms & Conditions</b>", header_style))
+    for i, tc in enumerate(tc_items, 1):
+        elements.append(Paragraph(f"{i}. {tc}", small_style))
+
+    elements.append(Spacer(1, 3*mm))
+    elements.append(Paragraph("<i>This is a computer generated invoice, hence does not require signature.</i>", ParagraphStyle('Italic', parent=small_style, fontName='Helvetica-Oblique', textColor=colors.HexColor('#94a3b8'))))
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+@router.post("/confirm-export")
+async def confirm_export_order(order_data: OrderCreate, request: Request):
+    """Create a Bangladesh/export order — no payment, generates PI. Customer confirms and downloads PI."""
+
+    order_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    pi_number = await generate_pi_number()
+    order_number = pi_number
+
+    totals = calculate_totals(order_data.items, order_data.logistics_charge, order_data.packaging_charge, order_data.logistics_only_charge)
+    discount = order_data.discount or 0
+    final_total = max(0, totals["total"] - discount)
+
+    # Get Bangladesh charges from shared cart if available
+    bangladesh_charges = None
+    usd_rate = None
+    if order_data.shared_cart_token:
+        cart = await db.shared_carts.find_one({'token': order_data.shared_cart_token}, {'_id': 0})
+        if cart:
+            bangladesh_charges = cart.get('bangladesh_charges')
+            usd_rate = cart.get('usd_rate')
+
+    if not usd_rate:
+        from agent_router import get_usd_rate
+        usd_rate = await get_usd_rate()
+
+    order_doc = {
+        "id": order_id,
+        "order_number": order_number,
+        "pi_number": pi_number,
+        "items": [item.model_dump() for item in order_data.items],
+        "customer": order_data.customer.model_dump(),
+        "subtotal": totals["subtotal"],
+        "tax": 0,
+        "logistics_charge": totals["logistics_charge"],
+        "packaging_charge": totals["packaging_charge"],
+        "logistics_only_charge": totals["logistics_only_charge"],
+        "discount": discount,
+        "total": final_total,
+        "currency": "USD",
+        "dispatch_country": "bangladesh",
+        "bangladesh_charges": bangladesh_charges,
+        "usd_rate": usd_rate,
+        "status": "pi_issued",
+        "payment_status": "pending_lc",
+        "payment_method": "lc_90_days",
+        "booking_type": "assisted_online" if order_data.agent_id else "online",
+        "agent_id": order_data.agent_id,
+        "agent_email": order_data.agent_email,
+        "agent_name": order_data.agent_name,
+        "razorpay_order_id": "",
+        "razorpay_payment_id": "",
+        "razorpay_signature": "",
+        "awb_code": None,
+        "notes": order_data.notes,
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat(),
+        "paid_at": ""
+    }
+
+    await db.orders.insert_one(order_doc)
+
+    # Mark shared cart as completed
+    if order_data.shared_cart_token:
+        await db.shared_carts.update_one(
+            {'token': order_data.shared_cart_token},
+            {'$set': {'status': 'completed', 'order_id': order_id, 'updated_at': now.isoformat()}}
+        )
+
+    return {
+        "order_id": order_id,
+        "order_number": order_number,
+        "pi_number": pi_number,
+        "status": "pi_issued",
+        "dispatch_country": "bangladesh",
+    }
+
+
+@router.get("/{order_id}/proforma-invoice")
+async def get_proforma_invoice(order_id: str):
+    """Download Proforma Invoice PDF for an export order."""
+    order = await db.orders.find_one({'id': order_id}, {'_id': 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.get('dispatch_country') != 'bangladesh':
+        raise HTTPException(status_code=400, detail="Proforma Invoice only available for export orders")
+
+    pdf_buffer = generate_pi_pdf(order)
+    pi_num = order.get('pi_number', order_id).replace('/', '-')
+    filename = f"PI_{pi_num}.pdf"
+
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Content-Type": "application/pdf"
+        }
+    )

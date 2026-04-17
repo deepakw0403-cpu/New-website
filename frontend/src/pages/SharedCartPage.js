@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ShoppingCart, Loader2, AlertCircle, ArrowRight, User } from "lucide-react";
+import { ShoppingCart, Loader2, AlertCircle, ArrowRight, User, FileText, Download } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
@@ -17,6 +17,10 @@ const SharedCartPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [piOrderId, setPiOrderId] = useState(null);
+
+  const isBangladesh = cart?.dispatch_country === "bangladesh";
 
   useEffect(() => {
     fetchCart();
@@ -25,11 +29,12 @@ const SharedCartPage = () => {
   const fetchCart = async () => {
     try {
       const res = await fetch(`${API}/api/agent/cart/${token}`);
+      const text = await res.text();
       if (!res.ok) {
-        const data = await res.json();
+        const data = JSON.parse(text);
         throw new Error(data.detail || "Cart not found");
       }
-      setCart(await res.json());
+      setCart(JSON.parse(text));
     } catch (err) {
       setError(err.message);
     }
@@ -41,8 +46,10 @@ const SharedCartPage = () => {
       setShowLogin(true);
       return;
     }
-    // Navigate to checkout with the first item (or multi-item support)
-    // For simplicity, take the first cart item to checkout
+    if (isBangladesh) {
+      handleConfirmExportOrder();
+      return;
+    }
     if (cart?.items?.length > 0) {
       const item = cart.items[0];
       const params = new URLSearchParams({
@@ -55,6 +62,61 @@ const SharedCartPage = () => {
         agent_name: cart.agent_name || "",
       });
       navigate(`/checkout?${params.toString()}`);
+    }
+  };
+
+  const handleConfirmExportOrder = async () => {
+    if (!cart?.items?.length) return;
+    setConfirming(true);
+    try {
+      const item = cart.items[0];
+      const res = await fetch(`${API}/api/orders/confirm-export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart.items.map((i) => ({
+            fabric_id: i.fabric_id,
+            fabric_name: i.fabric_name,
+            fabric_code: i.fabric_code || "",
+            category_name: i.category_name || "",
+            seller_id: i.seller_id || "",
+            seller_company: i.seller_company || "",
+            quantity: i.quantity,
+            price_per_meter: i.price_per_meter,
+            order_type: i.order_type || "bulk",
+            hsn_code: i.hsn_code || "",
+          })),
+          customer: {
+            name: customer?.name || customer?.email || "",
+            email: customer?.email || "",
+            phone: customer?.phone || "",
+            company: customer?.company_name || "",
+            address: customer?.address || "",
+            city: customer?.city || "",
+            state: customer?.state || "",
+            pincode: customer?.pincode || "",
+            gst_number: customer?.gst_number || "",
+          },
+          shared_cart_token: token,
+          agent_id: cart.agent_id || "",
+          agent_email: cart.agent_email || "",
+          agent_name: cart.agent_name || "",
+        }),
+      });
+      const text = await res.text();
+      const data = JSON.parse(text);
+      if (!res.ok) throw new Error(data.detail || "Failed to confirm order");
+      setPiOrderId(data.order_id);
+      toast.success(`Order confirmed! PI Number: ${data.pi_number}`);
+    } catch (err) {
+      toast.error(err.message);
+    }
+    setConfirming(false);
+  };
+
+  const handleDownloadPI = () => {
+    if (piOrderId) {
+      window.open(`${API}/api/orders/${piOrderId}/proforma-invoice`, "_blank");
     }
   };
 
@@ -150,17 +212,40 @@ const SharedCartPage = () => {
           </div>
 
           {/* CTA */}
-          {!isLoggedIn ? (
+          {piOrderId ? (
+            <div className="bg-emerald-50 rounded-xl p-6 border border-emerald-200 text-center">
+              <FileText size={40} className="mx-auto mb-3 text-emerald-600" />
+              <h3 className="text-lg font-semibold text-emerald-800 mb-1">Order Confirmed</h3>
+              <p className="text-sm text-emerald-600 mb-4">Your Proforma Invoice is ready for download.</p>
+              <button
+                onClick={handleDownloadPI}
+                className="inline-flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors"
+                data-testid="download-pi-btn"
+              >
+                <Download size={18} />Download Proforma Invoice
+              </button>
+              <p className="text-xs text-emerald-500 mt-3">Payment: LC 90 days from date of LR</p>
+            </div>
+          ) : !isLoggedIn ? (
             <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-              <p className="text-gray-700 mb-4">Please sign in to proceed with payment</p>
+              <p className="text-gray-700 mb-4">Please sign in to proceed{isBangladesh ? "" : " with payment"}</p>
               <button
                 onClick={() => setShowLogin(true)}
                 className="inline-flex items-center gap-2 px-8 py-3 bg-[#2563EB] text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
                 data-testid="shared-cart-login-btn"
               >
-                Sign In & Checkout <ArrowRight size={16} />
+                {isBangladesh ? "Sign In & Confirm Order" : "Sign In & Checkout"} <ArrowRight size={16} />
               </button>
             </div>
+          ) : isBangladesh ? (
+            <button
+              onClick={handleProceedToCheckout}
+              disabled={confirming}
+              className="w-full flex items-center justify-center gap-2 bg-[#2563EB] text-white py-4 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              data-testid="confirm-export-btn"
+            >
+              {confirming ? <Loader2 size={18} className="animate-spin" /> : <><FileText size={18} />Confirm Order & Generate PI</>}
+            </button>
           ) : (
             <button
               onClick={handleProceedToCheckout}
