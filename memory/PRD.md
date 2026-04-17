@@ -125,8 +125,12 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
   - 194 existing fabrics migrated with `/api/migrate/slugs` endpoint
   - Frontend links updated across FabricsPage, FabricDetailPage, CollectionDetailPage, InventoryPage, SupplierDetailPage
   - Sitemap updated to use slug URLs
-- [x] **Shared Models**: Created `models.py` with all Pydantic models for future router extraction
-- [x] **Slug Utils**: `slug_utils.py` — reusable slug generation utility
+- [x] **Router Extraction**: server.py reduced from 2389 → 2080 lines
+  - `category_router.py` — Category CRUD (5 endpoints)
+  - `seller_router.py` — Seller CRUD with legacy field normalization (5 endpoints)
+  - `collection_router.py` — Collection CRUD + collection fabrics (7 endpoints)
+  - `models.py` — Shared Pydantic models
+  - `slug_utils.py` — Reusable slug generation utility
 
 ## Backlog
 
