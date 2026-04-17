@@ -821,16 +821,18 @@ async def generate_article_code() -> str:
 
 @api_router.get("/fabrics/filter-options")
 async def get_fabric_filter_options():
-    """Return distinct values for color, pattern, width from approved fabrics — used to populate filter dropdowns."""
+    """Return distinct values for color, pattern, width, composition from approved fabrics — used to populate filter dropdowns."""
     import re as re_mod
     fabrics = await db.fabrics.find(
         {'status': 'approved'},
-        {'_id': 0, 'color': 1, 'name': 1, 'pattern': 1, 'width': 1}
+        {'_id': 0, 'color': 1, 'name': 1, 'pattern': 1, 'width': 1, 'composition': 1, 'category_name': 1}
     ).to_list(5000)
     
     colors = set()
     patterns = set()
     widths = set()
+    compositions = set()
+    has_denim = False
     
     for f in fabrics:
         # Colors: from color field + extract "Color: XXX" from name
@@ -848,11 +850,30 @@ async def get_fabric_filter_options():
         w = (f.get('width') or '').strip()
         if w:
             widths.add(w)
+        # Compositions — extract material names
+        comp = f.get('composition')
+        if isinstance(comp, list):
+            for item in comp:
+                mat = (item.get('material') or '').strip()
+                if mat:
+                    compositions.add(mat)
+        elif isinstance(comp, str) and comp.strip():
+            # Parse "65% Polyester, 35% Cotton" style strings
+            for part in comp.split(','):
+                mat = re_mod.sub(r'\d+%?\s*', '', part).strip()
+                if mat:
+                    compositions.add(mat)
+        # Check if denim category exists
+        cat = (f.get('category_name') or '').lower()
+        if 'denim' in cat:
+            has_denim = True
     
     return {
         'colors': sorted(colors, key=str.lower),
         'patterns': sorted(patterns, key=str.lower),
         'widths': sorted(widths, key=str.lower),
+        'compositions': sorted(compositions, key=str.lower),
+        'has_denim': has_denim,
     }
 
 
@@ -872,6 +893,7 @@ async def get_fabrics(
     max_weight_oz: Optional[float] = Query(None),
     min_price: Optional[float] = Query(None),
     max_price: Optional[float] = Query(None),
+    composition: Optional[str] = Query(None),
     bookable_only: Optional[bool] = Query(None),
     sample_available: Optional[bool] = Query(None),
     instant_bookable: Optional[bool] = Query(None),
@@ -970,6 +992,14 @@ async def get_fabrics(
             price_q['$lte'] = max_price
         if price_q:
             query['rate_per_meter'] = price_q
+
+    if composition:
+        and_conditions.append({
+            '$or': [
+                {'composition': {'$elemMatch': {'material': {'$regex': composition, '$options': 'i'}}}},
+                {'composition': {'$regex': composition, '$options': 'i'}}
+            ]
+        })
 
     if search:
         and_conditions.append({
@@ -1085,6 +1115,7 @@ async def get_fabrics_count(
     max_weight_oz: Optional[float] = Query(None),
     min_price: Optional[float] = Query(None),
     max_price: Optional[float] = Query(None),
+    composition: Optional[str] = Query(None),
     bookable_only: Optional[bool] = Query(None),
     sample_available: Optional[bool] = Query(None),
     instant_bookable: Optional[bool] = Query(None),
@@ -1176,6 +1207,13 @@ async def get_fabrics_count(
             price_q['$lte'] = max_price
         if price_q:
             query['rate_per_meter'] = price_q
+    if composition:
+        and_conditions.append({
+            '$or': [
+                {'composition': {'$elemMatch': {'material': {'$regex': composition, '$options': 'i'}}}},
+                {'composition': {'$regex': composition, '$options': 'i'}}
+            ]
+        })
     if search:
         and_conditions.append({
             '$or': [

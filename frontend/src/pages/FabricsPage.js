@@ -33,6 +33,7 @@ const FabricsPage = () => {
   const [selectedPattern, setSelectedPattern] = useState(searchParams.get("pattern") || "");
   const [selectedColor, setSelectedColor] = useState(searchParams.get("color") || "");
   const [selectedWidth, setSelectedWidth] = useState(searchParams.get("width") || "");
+  const [selectedComposition, setSelectedComposition] = useState(searchParams.get("composition") || "");
   const [weightRange, setWeightRange] = useState({
     min: searchParams.get("min_oz") || "",
     max: searchParams.get("max_oz") || "",
@@ -54,8 +55,15 @@ const FabricsPage = () => {
   const [showRfqModal, setShowRfqModal] = useState(false);
 
   const fabricTypes = ["woven", "knitted", "non-woven"];
-  const [filterOptions, setFilterOptions] = useState({ colors: [], patterns: [], widths: [] });
+  const [filterOptions, setFilterOptions] = useState({ colors: [], patterns: [], widths: [], compositions: [], has_denim: false });
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
+  // Detect if viewing denim category — show oz instead of GSM
+  const isDenimCategory = useMemo(() => {
+    if (!selectedCategory) return false;
+    const cat = categories.find(c => c.id === selectedCategory);
+    return cat ? cat.name?.toLowerCase().includes('denim') : false;
+  }, [selectedCategory, categories]);
 
   // Helper function to get unit based on fabric type
   const getUnit = (fabric) => {
@@ -69,7 +77,7 @@ const FabricsPage = () => {
 
   useEffect(() => {
     getCategories().then(res => setCategories(res.data)).catch(console.error);
-    getFabricFilterOptions().then(res => setFilterOptions(res.data || { colors: [], patterns: [], widths: [] })).catch(() => {});
+    getFabricFilterOptions().then(res => setFilterOptions(res.data || { colors: [], patterns: [], widths: [], compositions: [], has_denim: false })).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -92,6 +100,7 @@ const FabricsPage = () => {
         if (selectedPattern) params.pattern = selectedPattern;
         if (selectedColor) params.color = selectedColor;
         if (selectedWidth) params.width = selectedWidth.replace(/"/g, '');
+        if (selectedComposition) params.composition = selectedComposition;
         if (weightRange.min) params.min_weight_oz = weightRange.min;
         if (weightRange.max) params.max_weight_oz = weightRange.max;
         if (priceRange.min) params.min_price = priceRange.min;
@@ -154,6 +163,7 @@ const FabricsPage = () => {
     setSelectedPattern("");
     setSelectedColor("");
     setSelectedWidth("");
+    setSelectedComposition("");
     setWeightRange({ min: "", max: "" });
     setPriceRange({ min: "", max: "" });
     setCurrentPage(1);
@@ -484,24 +494,39 @@ const FabricsPage = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">GSM Range</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Composition</label>
+                  <select
+                    value={selectedComposition}
+                    onChange={(e) => { setSelectedComposition(e.target.value); setCurrentPage(1); }}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
+                    data-testid="filter-composition"
+                  >
+                    <option value="">All Compositions</option>
+                    {(filterOptions.compositions || []).map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{isDenimCategory ? "Weight (oz)" : "GSM Range"}</label>
                   <div className="flex gap-2">
                     <input
                       type="number"
                       placeholder="Min"
-                      value={gsmRange.min}
-                      onChange={(e) => { setGsmRange({ ...gsmRange, min: e.target.value }); setCurrentPage(1); }}
+                      value={isDenimCategory ? weightRange.min : gsmRange.min}
+                      onChange={(e) => { isDenimCategory ? setWeightRange({ ...weightRange, min: e.target.value }) : setGsmRange({ ...gsmRange, min: e.target.value }); setCurrentPage(1); }}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
                     />
                     <input
                       type="number"
                       placeholder="Max"
-                      value={gsmRange.max}
-                      onChange={(e) => { setGsmRange({ ...gsmRange, max: e.target.value }); setCurrentPage(1); }}
+                      value={isDenimCategory ? weightRange.max : gsmRange.max}
+                      onChange={(e) => { isDenimCategory ? setWeightRange({ ...weightRange, max: e.target.value }) : setGsmRange({ ...gsmRange, max: e.target.value }); setCurrentPage(1); }}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
                     />
                   </div>
                 </div>
+                {!isDenimCategory && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Weight (oz)</label>
                   <div className="flex gap-2">
@@ -523,6 +548,7 @@ const FabricsPage = () => {
                     />
                   </div>
                 </div>
+                )}
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Price (₹/m)</label>
                   <div className="flex gap-2">

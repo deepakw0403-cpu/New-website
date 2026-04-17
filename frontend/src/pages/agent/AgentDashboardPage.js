@@ -34,6 +34,8 @@ const AgentDashboardPage = () => {
   // Share modal
   const [sharing, setSharing] = useState(false);
   const [customerEmail, setCustomerEmail] = useState("");
+  const [paymentProofUrl, setPaymentProofUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const fetchFabrics = useCallback(async () => {
     setFabricsLoading(true);
@@ -107,6 +109,29 @@ const AgentDashboardPage = () => {
     setCart(cart.filter((c) => c.fabric_id !== fabricId));
   };
 
+  const handleUploadProof = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error("Only image files allowed"); return; }
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${API}/api/agent/upload-payment-proof`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+      setPaymentProofUrl(data.url);
+      toast.success("Payment proof uploaded");
+    } catch (err) {
+      toast.error(err.message);
+    }
+    setUploading(false);
+  };
+
   const handleShareCart = async () => {
     if (!cart.length) return;
     setSharing(true);
@@ -114,7 +139,7 @@ const AgentDashboardPage = () => {
       const res = await fetch(`${API}/api/agent/shared-cart`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ items: cart, customer_email: customerEmail, notes: "" }),
+        body: JSON.stringify({ items: cart, customer_email: customerEmail, notes: "", payment_proof_url: paymentProofUrl }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Failed");
@@ -123,6 +148,7 @@ const AgentDashboardPage = () => {
       toast.success("Cart shared! Link copied to clipboard.");
       setCart([]);
       setCustomerEmail("");
+      setPaymentProofUrl("");
       setActiveTab("shared");
       fetchSharedCarts();
     } catch (err) {
@@ -277,6 +303,25 @@ const AgentDashboardPage = () => {
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:outline-none"
                         data-testid="agent-customer-email"
                       />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">RTGS/NEFT Payment Proof</label>
+                      <div className="border-2 border-dashed border-gray-200 rounded-lg p-3 text-center">
+                        {paymentProofUrl ? (
+                          <div className="flex items-center gap-3">
+                            <img src={`${API}${paymentProofUrl}`} alt="Payment proof" className="w-16 h-16 object-cover rounded" />
+                            <div className="flex-1 text-left">
+                              <p className="text-xs text-emerald-600 font-medium">Uploaded</p>
+                              <button onClick={() => setPaymentProofUrl("")} className="text-xs text-red-500 hover:text-red-700">Remove</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label className="cursor-pointer">
+                            <input type="file" accept="image/*" onChange={handleUploadProof} className="hidden" data-testid="agent-payment-proof-input" />
+                            <p className="text-xs text-gray-500">{uploading ? "Uploading..." : "Click to upload screenshot"}</p>
+                          </label>
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={handleShareCart}

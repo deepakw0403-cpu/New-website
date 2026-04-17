@@ -3,7 +3,7 @@ Agent Router - OTP-based email login for sales agents.
 Agents can browse catalog, build carts, share cart links with customers.
 Admin can create/edit/deactivate agents.
 """
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timezone, timedelta
 import os
@@ -13,6 +13,8 @@ import jwt
 import asyncio
 import uuid
 import resend
+import shutil
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +63,7 @@ class CreateSharedCartRequest(BaseModel):
     items: list[SharedCartItem]
     customer_email: str = ""
     notes: str = ""
+    payment_proof_url: str = ""  # RTGS/NEFT screenshot URL
 
 
 # ==================== AUTH HELPERS ====================
@@ -209,6 +212,7 @@ async def create_shared_cart(data: CreateSharedCartRequest, request: Request):
         'items': [item.model_dump() for item in data.items],
         'customer_email': data.customer_email,
         'notes': data.notes,
+        'payment_proof_url': data.payment_proof_url,
         'status': 'pending',  # pending, completed, expired
         'created_at': now.isoformat(),
         'expires_at': (now + timedelta(days=7)).isoformat()
@@ -232,6 +236,31 @@ async def list_shared_carts(request: Request):
         {'_id': 0}
     ).sort('created_at', -1).to_list(100)
     return carts
+
+
+@router.post("/upload-payment-proof")
+async def upload_payment_proof(file: UploadFile = File(...), request: Request = None):
+    """Upload RTGS/NEFT payment proof screenshot."""
+    get_current_agent(request)  # Verify auth
+
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="Only image files are allowed")
+
+    # Save to uploads directory
+    upload_dir = Path(__file__).parent / 'uploads' / 'payment_proofs'
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    ext = file.filename.split('.')[-1] if '.' in file.filename else 'png'
+    filename = f"{uuid.uuid4().hex[:12]}.{ext}"
+    file_path = upload_dir / filename
+
+    with open(file_path, 'wb') as f:
+        shutil.copyfileobj(file.file, f)
+
+    # Return URL path
+    url = f"/api/uploads/payment_proofs/{filename}"
+    return {"url": url, "filename": filename}
+
 
 
 # ==================== PUBLIC SHARED CART (no auth) ====================
