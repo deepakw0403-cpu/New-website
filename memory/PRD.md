@@ -107,6 +107,17 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Denim oz filter**: When Denim category selected, GSM Range filter becomes "Weight (oz)". Non-denim shows both.
 - [x] **Agent RTGS/NEFT Payment Proof**: Agents can upload payment proof screenshots when creating shared carts.
 
+### Phase 16: Vendor Commission System (Complete - Apr 2026)
+- [x] **Commission Rules Engine**: 5-tier commission structure with priority hierarchy:
+  - Vendor-specific override > Category-wise > Cart Value Slab > Meterage Slab > Inventory/RFQ > Default (5%)
+- [x] **Admin Commission Page** (`/admin/commission`): Full CRUD for commission rules, grouped by type, with Add/Edit/Delete/Activate
+- [x] **Auto-calculated on orders**: Commission %, amount, rule applied, and seller payout stored on every order
+- [x] **Vendor Dashboard**: Commission and Your Payout columns + detail modal with breakdown
+- [x] **Admin Orders**: Commission section in order detail (rate, amount, rule, seller payout)
+- [x] **Seller Email**: Commission deduction and payout amount included in order notification email
+- New backend: `commission_router.py`, new collection: `commission_rules`
+- New fields in orders: `commission_pct`, `commission_amount`, `commission_rule`, `seller_payout`
+
 ## Backlog
 
 ### P1 (High Priority)
