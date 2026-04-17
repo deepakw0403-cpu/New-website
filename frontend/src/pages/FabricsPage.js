@@ -610,9 +610,6 @@ const FabricsPage = () => {
                           {fabric.name}
                         </h3>
                       </Link>
-                      {fabric.seller_company && (
-                        <p className="text-[10px] sm:text-xs text-gray-500 mb-2 truncate">by <span className="font-medium">{fabric.seller_company}</span></p>
-                      )}
                       
                       <div className="flex flex-wrap gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-gray-500 mb-2 sm:mb-3">
                         {fabric.gsm > 0 && <span className="px-1 sm:px-1.5 py-0.5 bg-gray-100 rounded">{fabric.gsm} GSM</span>}
@@ -736,9 +733,6 @@ const FabricsPage = () => {
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{selectedFabric.name}</p>
                     <p className="text-sm text-gray-600">{selectedFabric.category_name}</p>
-                    {selectedFabric.seller_company && (
-                      <p className="text-xs text-gray-500">by {selectedFabric.seller_company}</p>
-                    )}
                     {modalType === "bulk" && selectedFabric.quantity_available && (
                       <p className="text-xs text-emerald-600 mt-1 font-medium">
                         {selectedFabric.quantity_available.toLocaleString()} {getUnit(selectedFabric).plural} available
