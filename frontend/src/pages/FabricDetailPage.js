@@ -7,7 +7,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ExpandableText from "../components/ExpandableText";
 import RFQModal from "../components/RFQModal";
-import { getFabric, createEnquiry, getFabricSEO, getRelatedFabrics } from "../lib/api";
+import { getFabric, createEnquiry, getFabricSEO, getRelatedFabrics, getOtherSellers } from "../lib/api";
 import { trackViewItem, trackAddToCart, trackRFQIntent } from "../lib/analytics";
 
 const FabricDetailPage = () => {
@@ -16,6 +16,7 @@ const FabricDetailPage = () => {
   const [fabric, setFabric] = useState(null);
   const [seoContent, setSeoContent] = useState(null);
   const [relatedFabrics, setRelatedFabrics] = useState([]);
+  const [otherSellers, setOtherSellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentImage, setCurrentImage] = useState(0);
   const [showZoom, setShowZoom] = useState(false);
@@ -43,6 +44,10 @@ const FabricDetailPage = () => {
         setRelatedFabrics(relatedRes.data || []);
         // GA4: track product view
         if (fabricRes.data) trackViewItem(fabricRes.data);
+        // Fetch other sellers for same product
+        if (fabricRes.data?.article_id) {
+          getOtherSellers(id).then(res => setOtherSellers(res.data || [])).catch(() => {});
+        }
       } catch (err) {
         console.error("Error fetching fabric:", err);
         toast.error("Failed to load fabric details");
@@ -874,6 +879,57 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
               </div>
             </div>
           </div>
+
+          {/* Other Sellers — Compare Prices */}
+          {otherSellers.length > 0 && (
+            <div className="border-t border-gray-200 pt-12 mt-12" data-testid="other-sellers">
+              <h2 className="text-2xl font-semibold mb-2">Compare Prices from Other Sellers</h2>
+              <p className="text-gray-500 text-sm mb-6">{otherSellers.length} other seller{otherSellers.length > 1 ? 's' : ''} offer this fabric</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border border-gray-200 rounded-lg overflow-hidden">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Seller</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Location</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Price</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">MOQ</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Delivery</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {otherSellers.map((s) => (
+                      <tr key={s.id} className="hover:bg-blue-50/30 transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-sm text-gray-900">{s.seller_company || s.seller_name || 'Verified Seller'}</p>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {s.seller_city ? `${s.seller_city}, ${s.seller_state || ''}` : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          {s.rate_per_meter ? (
+                            <span className="font-semibold text-emerald-700">₹{s.rate_per_meter}/{s.category_id === 'cat-knits' ? 'kg' : 'm'}</span>
+                          ) : (
+                            <span className="text-sm text-gray-400">On request</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{s.moq || '—'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{s.dispatch_timeline || s.bulk_delivery_days || '—'}</td>
+                        <td className="px-4 py-3">
+                          <Link
+                            to={`/fabrics/${s.id}`}
+                            className="text-sm font-medium text-[#2563EB] hover:underline"
+                          >
+                            View
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Related Fabrics */}
           {relatedFabrics.length > 0 && (

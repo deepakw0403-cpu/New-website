@@ -79,6 +79,13 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Fixed broken canonicals**: AboutPage `/about` → `/about-us`, FabricsPage removed query params from canonical, BlogPostPage uses `locofast.com` not `window.location`, SupplierProfilePage uses `locofast.com`
 - [x] **Static canonical in index.html**: For raw HTML before React loads
 
+### Phase 13: Multi-Vendor SKU Architecture (Complete - Apr 2026)
+- [x] **Article-based grouping**: Multiple vendor fabrics linked via shared `article_id` (existing articles system)
+- [x] **API**: `GET /api/fabrics/{id}/other-sellers` — returns other vendor listings for same product, sorted by price
+- [x] **Compare Prices UI**: Fabric detail page shows comparison table (seller, location, price, MOQ, delivery) when multiple vendors list the same product
+- [x] **Zero data migration**: Existing fabrics untouched, articles are optional grouping layer
+- [x] **Admin workflow**: Link fabrics to same article via admin panel to enable multi-vendor comparison
+
 ## Backlog
 
 ### P1 (High Priority)

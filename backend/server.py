@@ -1452,6 +1452,39 @@ async def delete_article(article_id: str, admin=Depends(get_current_admin)):
         raise HTTPException(status_code=404, detail='Article not found')
     return {'message': 'Article deleted'}
 
+@api_router.get("/fabrics/{fabric_id}/other-sellers")
+async def get_other_sellers_for_fabric(fabric_id: str):
+    """Get other vendor listings for the same product (via shared article_id)."""
+    fabric = await db.fabrics.find_one({'id': fabric_id}, {'_id': 0})
+    if not fabric:
+        raise HTTPException(status_code=404, detail='Fabric not found')
+    
+    article_id = fabric.get('article_id', '')
+    if not article_id:
+        return []
+    
+    # Find other approved fabrics with the same article_id, excluding current
+    others = await db.fabrics.find(
+        {'article_id': article_id, 'id': {'$ne': fabric_id}, 'status': 'approved'},
+        {'_id': 0}
+    ).to_list(20)
+    
+    # Enrich with seller info
+    for f in others:
+        if f.get('seller_id'):
+            seller = await db.sellers.find_one({'id': f['seller_id']}, {'_id': 0})
+            if seller:
+                f['seller_name'] = seller.get('name', '')
+                f['seller_company'] = seller.get('company_name', '')
+                f['seller_city'] = seller.get('city', '')
+                f['seller_state'] = seller.get('state', '')
+    
+    # Sort by price (cheapest first)
+    others.sort(key=lambda x: x.get('rate_per_meter') or 999999)
+    
+    return others
+
+
 # ==================== ENQUIRY ROUTES ====================
 
 @api_router.post("/enquiries", response_model=Enquiry)

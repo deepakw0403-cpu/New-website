@@ -291,6 +291,7 @@ export const regenerateSEOBlock = (id, blockName) => api.post(`/seo/fabric/${id}
 export const updateFabricSEO = (id, data) => api.put(`/seo/fabric/${id}`, data);
 export const getSEOPreview = (id) => api.get(`/seo/fabric/${id}/preview`);
 export const getRelatedFabrics = (id) => api.get(`/seo/fabric/${id}/related`);
+export const getOtherSellers = (fabricId) => api.get(`/fabrics/${fabricId}/other-sellers`);
 export const batchGenerateSlugs = () => api.post(`/seo/batch-generate-slugs`);
 
 // Blog - Categories
