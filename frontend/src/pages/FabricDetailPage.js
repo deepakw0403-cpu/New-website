@@ -576,7 +576,10 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                         />
                         <span className="text-sm font-medium text-gray-700">{cv.color_name}</span>
                         {cv.quantity_available != null && (
-                          <span className="text-xs text-gray-400 ml-1">({cv.quantity_available})</span>
+                          <span className="text-xs text-gray-400 ml-1">({cv.quantity_available}m)</span>
+                        )}
+                        {cv.sample_available && (
+                          <span className="text-[10px] bg-blue-100 text-blue-700 px-1 rounded">Sample</span>
                         )}
                       </button>
                     ))}

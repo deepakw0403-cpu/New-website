@@ -318,7 +318,7 @@ const AdminFabrics = () => {
       const result = await uploadVideoToCloudinary(file, "fabrics", (progress) => {
         setVideoUploadProgress(progress);
       });
-      setForm({ ...form, videos: [...form.videos, result.data.url] });
+      setForm({ ...form, videos: [result.data.url] });
       toast.success("Video uploaded to cloud storage!");
     } catch (err) {
       console.error("Video upload error:", err);
@@ -336,7 +336,7 @@ const AdminFabrics = () => {
   const addVideoUrl = () => {
     const url = window.prompt("Enter video URL (YouTube, Vimeo, or direct link):");
     if (url && url.trim()) {
-      setForm({ ...form, videos: [...form.videos, url.trim()] });
+      setForm({ ...form, videos: [url.trim()] });
     }
   };
 
@@ -1165,7 +1165,15 @@ const AdminFabrics = () => {
                       <input
                         type="checkbox"
                         checked={form.has_multiple_colors}
-                        onChange={(e) => setForm({ ...form, has_multiple_colors: e.target.checked })}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          let variants = form.color_variants;
+                          // Auto-add base color as first variant if enabling and no variants yet
+                          if (checked && variants.length === 0 && form.color) {
+                            variants = [{ color_name: form.color, color_hex: "#000000", image_url: "", quantity_available: form.quantity_available ? parseInt(form.quantity_available) : null, sample_available: form.is_bookable_sample || false }];
+                          }
+                          setForm({ ...form, has_multiple_colors: checked, color_variants: variants });
+                        }}
                         className="rounded border-violet-300 text-violet-600 focus:ring-violet-500"
                         data-testid="has-multiple-colors-checkbox"
                       />
@@ -1175,67 +1183,105 @@ const AdminFabrics = () => {
                   {form.has_multiple_colors && (
                     <div className="space-y-3">
                       {form.color_variants.map((cv, idx) => (
-                        <div key={idx} className="flex items-center gap-3 bg-white p-3 rounded border border-violet-200" data-testid={`color-variant-${idx}`}>
-                          <input
-                            type="color"
-                            value={cv.color_hex || "#000000"}
-                            onChange={(e) => {
-                              const updated = [...form.color_variants];
-                              updated[idx] = { ...cv, color_hex: e.target.value };
-                              setForm({ ...form, color_variants: updated });
-                            }}
-                            className="w-8 h-8 rounded cursor-pointer border-0"
-                            title="Pick color"
-                          />
-                          <input
-                            type="text"
-                            value={cv.color_name || ""}
-                            onChange={(e) => {
-                              const updated = [...form.color_variants];
-                              updated[idx] = { ...cv, color_name: e.target.value };
-                              setForm({ ...form, color_variants: updated });
-                            }}
-                            placeholder="Color name (e.g., Indigo)"
-                            className="flex-1 px-3 py-1.5 border border-gray-200 rounded text-sm"
-                            data-testid={`cv-name-${idx}`}
-                          />
-                          <input
-                            type="text"
-                            value={cv.image_url || ""}
-                            onChange={(e) => {
-                              const updated = [...form.color_variants];
-                              updated[idx] = { ...cv, image_url: e.target.value };
-                              setForm({ ...form, color_variants: updated });
-                            }}
-                            placeholder="Image URL"
-                            className="flex-1 px-3 py-1.5 border border-gray-200 rounded text-sm"
-                            data-testid={`cv-image-${idx}`}
-                          />
-                          {cv.image_url && <img src={cv.image_url} alt={cv.color_name} className="w-8 h-8 rounded object-cover" />}
-                          <input
-                            type="number"
-                            value={cv.quantity_available ?? ""}
-                            onChange={(e) => {
-                              const updated = [...form.color_variants];
-                              updated[idx] = { ...cv, quantity_available: e.target.value ? parseInt(e.target.value) : null };
-                              setForm({ ...form, color_variants: updated });
-                            }}
-                            placeholder="Stock"
-                            className="w-20 px-3 py-1.5 border border-gray-200 rounded text-sm"
-                            data-testid={`cv-stock-${idx}`}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setForm({ ...form, color_variants: form.color_variants.filter((_, i) => i !== idx) })}
-                            className="p-1 text-red-400 hover:text-red-600"
-                          >
-                            <X size={16} />
-                          </button>
+                        <div key={idx} className="bg-white p-4 rounded-lg border border-violet-200 space-y-3" data-testid={`color-variant-${idx}`}>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={cv.color_hex || "#000000"}
+                              onChange={(e) => {
+                                const updated = [...form.color_variants];
+                                updated[idx] = { ...cv, color_hex: e.target.value };
+                                setForm({ ...form, color_variants: updated });
+                              }}
+                              className="w-8 h-8 rounded cursor-pointer border-0"
+                              title="Pick color"
+                            />
+                            <input
+                              type="text"
+                              value={cv.color_name || ""}
+                              onChange={(e) => {
+                                const updated = [...form.color_variants];
+                                updated[idx] = { ...cv, color_name: e.target.value };
+                                setForm({ ...form, color_variants: updated });
+                              }}
+                              placeholder="Color name (e.g., Khaki)"
+                              className="flex-1 px-3 py-2 border border-gray-200 rounded text-sm font-medium"
+                              data-testid={`cv-name-${idx}`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setForm({ ...form, color_variants: form.color_variants.filter((_, i) => i !== idx) })}
+                              className="p-1.5 text-red-400 hover:text-red-600"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            {/* Image upload */}
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Photo</label>
+                              {cv.image_url ? (
+                                <div className="relative w-full h-20 rounded border overflow-hidden group">
+                                  <img src={cv.image_url} alt={cv.color_name} className="w-full h-full object-cover" />
+                                  <button type="button" onClick={() => { const updated = [...form.color_variants]; updated[idx] = { ...cv, image_url: "" }; setForm({ ...form, color_variants: updated }); }} className="absolute inset-0 bg-black/50 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">Remove</button>
+                                </div>
+                              ) : (
+                                <label className="flex items-center justify-center w-full h-20 border-2 border-dashed border-violet-200 rounded cursor-pointer hover:border-violet-400 hover:bg-violet-50 transition-colors">
+                                  <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    try {
+                                      const res = await uploadToCloudinary(file, "fabrics");
+                                      const updated = [...form.color_variants];
+                                      updated[idx] = { ...cv, image_url: res.data.url };
+                                      setForm({ ...form, color_variants: updated });
+                                      toast.success(`${cv.color_name || 'Color'} image uploaded`);
+                                    } catch { toast.error("Upload failed"); }
+                                  }} />
+                                  <Upload size={16} className="text-violet-400" />
+                                </label>
+                              )}
+                            </div>
+                            {/* Inventory */}
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Inventory (m)</label>
+                              <input
+                                type="number"
+                                value={cv.quantity_available ?? ""}
+                                onChange={(e) => {
+                                  const updated = [...form.color_variants];
+                                  updated[idx] = { ...cv, quantity_available: e.target.value ? parseInt(e.target.value) : null };
+                                  setForm({ ...form, color_variants: updated });
+                                }}
+                                placeholder="Stock"
+                                className="w-full px-3 py-2 border border-gray-200 rounded text-sm"
+                                data-testid={`cv-stock-${idx}`}
+                              />
+                            </div>
+                            {/* Sample available */}
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Sample</label>
+                              <label className="flex items-center gap-2 mt-1.5 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={cv.sample_available || false}
+                                  onChange={(e) => {
+                                    const updated = [...form.color_variants];
+                                    updated[idx] = { ...cv, sample_available: e.target.checked };
+                                    setForm({ ...form, color_variants: updated });
+                                  }}
+                                  className="rounded"
+                                  data-testid={`cv-sample-${idx}`}
+                                />
+                                <span className="text-xs text-gray-600">Available</span>
+                              </label>
+                            </div>
+                          </div>
                         </div>
                       ))}
                       <button
                         type="button"
-                        onClick={() => setForm({ ...form, color_variants: [...form.color_variants, { color_name: "", color_hex: "#000000", image_url: "", quantity_available: null }] })}
+                        onClick={() => setForm({ ...form, color_variants: [...form.color_variants, { color_name: "", color_hex: "#000000", image_url: "", quantity_available: null, sample_available: false }] })}
                         className="flex items-center gap-2 px-4 py-2 text-sm text-violet-700 border border-violet-300 rounded hover:bg-violet-100 transition-colors"
                         data-testid="add-color-variant-btn"
                       >
@@ -1243,7 +1289,7 @@ const AdminFabrics = () => {
                       </button>
                     </div>
                   )}
-                  {!form.has_multiple_colors && <p className="text-xs text-violet-500">Enable to add separate colors with individual photos and inventory for this SKU.</p>}
+                  {!form.has_multiple_colors && <p className="text-xs text-violet-500">Enable to add separate colors with individual photos, inventory, and sample availability.</p>}
                 </div>
 
 
@@ -1610,67 +1656,67 @@ const AdminFabrics = () => {
                   </div>
                 </div>
 
-                {/* Videos */}
+                {/* Video (single per SKU) */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">Videos</label>
-                  <div className="space-y-2 mb-3" data-testid="fabric-videos-list">
-                    {form.videos.map((video, idx) => (
-                      <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100">
-                        <Video size={16} className="text-gray-400 flex-shrink-0" />
-                        <span className="flex-1 text-sm text-gray-600 truncate">{video}</span>
+                  <label className="block text-sm font-medium mb-2">Video</label>
+                  {form.videos.length > 0 ? (
+                    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded border border-gray-100 mb-2">
+                      <Video size={16} className="text-gray-400 flex-shrink-0" />
+                      <span className="flex-1 text-sm text-gray-600 truncate">{form.videos[0]}</span>
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, videos: [] })}
+                        className="p-1 text-gray-400 hover:text-red-500"
+                        aria-label="Remove video"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Video Upload Progress */}
+                      {uploadingVideo && (
+                        <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-blue-700">Uploading video...</span>
+                            <span className="text-sm font-medium text-blue-800">{videoUploadProgress}%</span>
+                          </div>
+                          <div className="w-full bg-blue-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                              style={{ width: `${videoUploadProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2">
+                        <label className={`btn-primary text-sm inline-flex items-center gap-2 cursor-pointer ${uploadingVideo ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                          <Upload size={16} />
+                          {uploadingVideo ? 'Uploading...' : 'Upload Video'}
+                          <input
+                            type="file"
+                            accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/mpeg"
+                            onChange={handleVideoUpload}
+                            className="hidden"
+                            disabled={uploadingVideo}
+                            data-testid="video-upload-input"
+                          />
+                        </label>
                         <button
                           type="button"
-                          onClick={() => removeVideo(idx)}
-                          className="p-1 text-gray-400 hover:text-red-500"
-                          aria-label="Remove video"
+                          onClick={addVideoUrl}
+                          className="btn-secondary text-sm inline-flex items-center gap-2"
+                          disabled={uploadingVideo}
+                          data-testid="add-video-btn"
                         >
-                          <X size={14} />
+                          <Video size={16} />
+                          Add URL
                         </button>
                       </div>
-                    ))}
-                  </div>
-                  
-                  {/* Video Upload Progress */}
-                  {uploadingVideo && (
-                    <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-blue-700">Uploading video...</span>
-                        <span className="text-sm font-medium text-blue-800">{videoUploadProgress}%</span>
-                      </div>
-                      <div className="w-full bg-blue-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                          style={{ width: `${videoUploadProgress}%` }}
-                        />
-                      </div>
-                    </div>
+                      <p className="text-xs text-gray-500 mt-1">One video per SKU — upload (MP4, WebM, MOV up to 150MB) or paste URL</p>
+                    </>
                   )}
-                  
-                  <div className="flex gap-2">
-                    <label className={`btn-primary text-sm inline-flex items-center gap-2 cursor-pointer ${uploadingVideo ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                      <Upload size={16} />
-                      {uploadingVideo ? 'Uploading...' : 'Upload Video'}
-                      <input
-                        type="file"
-                        accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/mpeg"
-                        onChange={handleVideoUpload}
-                        className="hidden"
-                        disabled={uploadingVideo}
-                        data-testid="video-upload-input"
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      onClick={addVideoUrl}
-                      className="btn-secondary text-sm inline-flex items-center gap-2"
-                      disabled={uploadingVideo}
-                      data-testid="add-video-btn"
-                    >
-                      <Video size={16} />
-                      Add URL
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Upload videos up to 150MB (MP4, WebM, MOV) or add external URLs</p>
                 </div>
 
                 <div className="flex gap-4 pt-4 border-t border-neutral-100">
