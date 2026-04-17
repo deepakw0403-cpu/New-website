@@ -106,6 +106,13 @@ export const rejectFabric = (id) => api.put(`/fabrics/${id}`, { status: 'rejecte
 export const applyForCredit = (data) => api.post("/credit/apply", data);
 export const getCreditBalance = (email) => api.get("/credit/balance", { params: { email } });
 
+// Customer Auth (OTP)
+export const sendCustomerOTP = (email) => api.post("/customer/send-otp", { email });
+export const verifyCustomerOTP = (email, otp) => api.post("/customer/verify-otp", { email, otp });
+export const getCustomerProfile = (token) => api.get("/customer/profile", { headers: { Authorization: `Bearer ${token}` } });
+export const updateCustomerProfile = (token, data) => api.put("/customer/profile", data, { headers: { Authorization: `Bearer ${token}` } });
+export const getCustomerOrders = (token) => api.get("/customer/orders", { headers: { Authorization: `Bearer ${token}` } });
+
 
 // Articles (Color Variant Grouping)
 export const getArticles = (params) => api.get("/articles", { params });

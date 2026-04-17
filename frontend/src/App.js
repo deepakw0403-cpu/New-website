@@ -3,6 +3,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 import { VendorAuthProvider } from "./context/VendorAuthContext";
+import { CustomerAuthProvider } from "./context/CustomerAuthContext";
 import WhatsAppChat from "./components/WhatsAppChat";
 import { useEffect, lazy, Suspense } from "react";
 
@@ -85,6 +86,7 @@ const SellOnLocofast = lazy(() => import("./pages/SellOnLocofast"));
 const RFQPage = lazy(() => import("./pages/RFQPage"));
 const SupplierDetailPage = lazy(() => import("./pages/SupplierDetailPage"));
 const SupplierProfilePage = lazy(() => import("./pages/SupplierProfilePage"));
+const CustomerAccountPage = lazy(() => import("./pages/CustomerAccountPage"));
 
 // Vendor pages
 const VendorLogin = lazy(() => import("./pages/vendor/VendorLogin"));
@@ -149,6 +151,7 @@ const PolyKnitManufacturers = lazy(() => import("./pages/seo/poly-knit/PolyKnitM
 function App() {
   return (
     <HelmetProvider>
+    <CustomerAuthProvider>
     <VendorAuthProvider>
       <AuthProvider>
         <BrowserRouter>
@@ -180,6 +183,9 @@ function App() {
           <Route path="/assisted-sourcing" element={<AssistedSourcingPage />} />
           <Route path="/rfq" element={<RFQPage />} />
           <Route path="/request-quote" element={<RFQPage />} />
+          
+          {/* Customer Account */}
+          <Route path="/account" element={<CustomerAccountPage />} />
           
           {/* Blog routes */}
           <Route path="/blog" element={<BlogPage />} />
@@ -259,6 +265,7 @@ function App() {
       </BrowserRouter>
     </AuthProvider>
     </VendorAuthProvider>
+    </CustomerAuthProvider>
     </HelmetProvider>
   );
 }

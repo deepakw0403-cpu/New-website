@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, MessageCircle } from "lucide-react";
+import { Menu, X, MessageCircle, User, LogOut } from "lucide-react";
 import RFQModal from "./RFQModal";
+import CustomerLoginModal from "./CustomerLoginModal";
+import { useCustomerAuth } from "../context/CustomerAuthContext";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showRfq, setShowRfq] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const { customer, isLoggedIn, logout } = useCustomerAuth();
   const location = useLocation();
 
   const navLinks = [
@@ -60,10 +64,36 @@ const Navbar = () => {
               </button>
             </div>
 
-            <div className="hidden md:block">
-              <Link to="/fabrics" className="btn-primary inline-block" data-testid="nav-browse-btn">
-                Instant Booking
-              </Link>
+            <div className="hidden md:flex items-center gap-3">
+              {isLoggedIn ? (
+                <div className="flex items-center gap-2">
+                  <Link
+                    to="/account"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-[#2563EB] hover:bg-blue-50 rounded-lg transition-colors"
+                    data-testid="nav-my-account"
+                  >
+                    <User size={16} />
+                    {customer?.name || "My Account"}
+                  </Link>
+                  <Link to="/fabrics" className="btn-primary inline-block" data-testid="nav-browse-btn">
+                    Instant Booking
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShowLogin(true)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-[#2563EB] border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors"
+                    data-testid="nav-login-btn"
+                  >
+                    <User size={16} />
+                    Login
+                  </button>
+                  <Link to="/fabrics" className="btn-primary inline-block" data-testid="nav-browse-btn">
+                    Instant Booking
+                  </Link>
+                </div>
+              )}
             </div>
 
             <button
@@ -102,6 +132,20 @@ const Navbar = () => {
               >
                 Request Quote
               </button>
+              {isLoggedIn ? (
+                <>
+                  <Link to="/account" onClick={() => setMobileOpen(false)} className="block text-lg font-medium text-gray-600">
+                    My Account
+                  </Link>
+                  <button onClick={() => { logout(); setMobileOpen(false); }} className="block text-lg font-medium text-red-500">
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => { setMobileOpen(false); setShowLogin(true); }} className="block text-lg font-medium text-[#2563EB]">
+                  Login
+                </button>
+              )}
               <Link
                 to="/fabrics"
                 onClick={() => setMobileOpen(false)}
@@ -115,6 +159,7 @@ const Navbar = () => {
       </nav>
 
       <RFQModal open={showRfq} onClose={() => setShowRfq(false)} />
+      <CustomerLoginModal open={showLogin} onClose={() => setShowLogin(false)} />
     </>
   );
 };

@@ -2278,6 +2278,10 @@ app.include_router(supplier_profile_router.router)
 import prerender_router
 app.include_router(prerender_router.router)
 
+import customer_router
+customer_router.set_db(db)
+app.include_router(customer_router.router)
+
 # Serve uploaded files
 app.mount("/api/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
