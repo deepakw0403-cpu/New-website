@@ -5,7 +5,7 @@ import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, MessageSquare,
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import RFQModal from "../components/RFQModal";
-import { getFabrics, getFabricsCount, getCategories, createEnquiry } from "../lib/api";
+import { getFabrics, getFabricsCount, getCategories, createEnquiry, getFabricFilterOptions } from "../lib/api";
 import { trackViewItemList } from "../lib/analytics";
 import { toast } from "sonner";
 
@@ -54,8 +54,7 @@ const FabricsPage = () => {
   const [showRfqModal, setShowRfqModal] = useState(false);
 
   const fabricTypes = ["woven", "knitted", "non-woven"];
-  const patternOptions = ["Solid", "Checks", "Stripes", "Print", "Others"];
-  const widthOptions = ['54"', '56"', '58"', '60"', '63"', '65"', '67"'];
+  const [filterOptions, setFilterOptions] = useState({ colors: [], patterns: [], widths: [] });
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   // Helper function to get unit based on fabric type
@@ -70,6 +69,7 @@ const FabricsPage = () => {
 
   useEffect(() => {
     getCategories().then(res => setCategories(res.data)).catch(console.error);
+    getFabricFilterOptions().then(res => setFilterOptions(res.data || { colors: [], patterns: [], widths: [] })).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -448,21 +448,24 @@ const FabricsPage = () => {
                     data-testid="filter-pattern"
                   >
                     <option value="">All Patterns</option>
-                    {patternOptions.map((p) => (
+                    {(filterOptions.patterns.length > 0 ? filterOptions.patterns : ["Solid", "Checks", "Stripes", "Print", "Others"]).map((p) => (
                       <option key={p} value={p}>{p}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Color</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Blue, Indigo, RFD"
+                  <select
                     value={selectedColor}
                     onChange={(e) => { setSelectedColor(e.target.value); setCurrentPage(1); }}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-[#2563EB] focus:outline-none text-sm"
                     data-testid="filter-color"
-                  />
+                  >
+                    <option value="">All Colors</option>
+                    {filterOptions.colors.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Row 2 */}
@@ -475,7 +478,7 @@ const FabricsPage = () => {
                     data-testid="filter-width"
                   >
                     <option value="">All Widths</option>
-                    {widthOptions.map((w) => (
+                    {(filterOptions.widths.length > 0 ? filterOptions.widths : ['54"', '56"', '58"', '60"', '63"', '65"', '67"']).map((w) => (
                       <option key={w} value={w}>{w}</option>
                     ))}
                   </select>

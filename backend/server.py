@@ -818,6 +818,44 @@ async def generate_article_code() -> str:
         if not existing:
             return code
 
+
+@api_router.get("/fabrics/filter-options")
+async def get_fabric_filter_options():
+    """Return distinct values for color, pattern, width from approved fabrics — used to populate filter dropdowns."""
+    import re as re_mod
+    fabrics = await db.fabrics.find(
+        {'status': 'approved'},
+        {'_id': 0, 'color': 1, 'name': 1, 'pattern': 1, 'width': 1}
+    ).to_list(5000)
+    
+    colors = set()
+    patterns = set()
+    widths = set()
+    
+    for f in fabrics:
+        # Colors: from color field + extract "Color: XXX" from name
+        c = (f.get('color') or '').strip()
+        if c:
+            colors.add(c)
+        match = re_mod.search(r'Color:\s*([^,]+)', f.get('name', ''))
+        if match:
+            colors.add(match.group(1).strip())
+        # Patterns
+        p = (f.get('pattern') or '').strip()
+        if p:
+            patterns.add(p)
+        # Widths
+        w = (f.get('width') or '').strip()
+        if w:
+            widths.add(w)
+    
+    return {
+        'colors': sorted(colors, key=str.lower),
+        'patterns': sorted(patterns, key=str.lower),
+        'widths': sorted(widths, key=str.lower),
+    }
+
+
 @api_router.get("/fabrics", response_model=List[Fabric])
 async def get_fabrics(
     category_id: Optional[str] = Query(None),
