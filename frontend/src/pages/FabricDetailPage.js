@@ -19,6 +19,7 @@ const FabricDetailPage = () => {
   const [otherSellers, setOtherSellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentImage, setCurrentImage] = useState(0);
+  const [selectedColorVariant, setSelectedColorVariant] = useState(-1);
   const [showZoom, setShowZoom] = useState(false);
   const [showRfqModal, setShowRfqModal] = useState(false);
   
@@ -475,7 +476,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                 onClick={() => setShowZoom(true)}
               >
                 <img
-                  src={images[currentImage]}
+                  src={selectedColorVariant >= 0 && fabric?.color_variants?.[selectedColorVariant]?.image_url ? fabric.color_variants[selectedColorVariant].image_url : images[currentImage]}
                   alt={`${fabric.name} - ${fabric.composition?.map(c => c.material).join(', ') || fabric.category_name} fabric${fabric.color ? ` in ${fabric.color}` : ''}${fabric.gsm ? `, ${fabric.gsm} GSM` : ''}`}
                   className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   data-testid="main-image"
@@ -518,7 +519,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   {images.map((img, idx) => (
                     <button
                       key={idx}
-                      onClick={() => setCurrentImage(idx)}
+                      onClick={() => { setCurrentImage(idx); setSelectedColorVariant(-1); }}
                       className={`w-20 h-20 overflow-hidden border-2 transition-colors ${
                         currentImage === idx ? "border-neutral-900" : "border-transparent hover:border-neutral-300"
                       }`}
@@ -536,6 +537,50 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                       />
                     </button>
                   ))}
+                </div>
+              )}
+
+              {/* Color Variant Swatches */}
+              {fabric.has_multiple_colors && fabric.color_variants?.length > 0 && (
+                <div data-testid="color-swatches">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Available Colors</p>
+                  <div className="flex flex-wrap gap-2">
+                    {fabric.color_variants.map((cv, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          if (cv.image_url) {
+                            // Find if this image is already in the images array
+                            const imgIdx = images.indexOf(cv.image_url);
+                            if (imgIdx >= 0) {
+                              setCurrentImage(imgIdx);
+                            } else {
+                              // Temporarily replace current image
+                              setCurrentImage(0);
+                              // We'll use a state to track selected color variant
+                              setSelectedColorVariant(idx);
+                            }
+                          }
+                        }}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all ${
+                          selectedColorVariant === idx
+                            ? "border-[#2563EB] bg-blue-50 shadow-sm"
+                            : "border-gray-200 hover:border-gray-400"
+                        }`}
+                        data-testid={`color-swatch-${idx}`}
+                        title={`${cv.color_name}${cv.quantity_available != null ? ` — ${cv.quantity_available} in stock` : ''}`}
+                      >
+                        <span
+                          className="w-6 h-6 rounded-full border border-gray-300 flex-shrink-0"
+                          style={{ backgroundColor: cv.color_hex || '#ccc' }}
+                        />
+                        <span className="text-sm font-medium text-gray-700">{cv.color_name}</span>
+                        {cv.quantity_available != null && (
+                          <span className="text-xs text-gray-400 ml-1">({cv.quantity_available})</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 

@@ -90,6 +90,9 @@ const AdminFabrics = () => {
     // Seller SKU
     seller_sku: "",
     hsn_code: "",
+    // Multi-color
+    has_multiple_colors: false,
+    color_variants: [],
   };
 
   const [form, setForm] = useState(emptyForm);
@@ -416,6 +419,8 @@ const AdminFabrics = () => {
       stretch_percentage: fabric.stretch_percentage ? fabric.stretch_percentage.toString() : "",
       seller_sku: fabric.seller_sku || "",
       hsn_code: fabric.hsn_code || "",
+      has_multiple_colors: fabric.has_multiple_colors || false,
+      color_variants: fabric.color_variants || [],
     });
     setShowModal(true);
   };
@@ -503,6 +508,8 @@ const AdminFabrics = () => {
       seller_sku: form.seller_sku,
       hsn_code: form.hsn_code,
       article_id: form.article_id,
+      has_multiple_colors: form.has_multiple_colors,
+      color_variants: form.has_multiple_colors ? form.color_variants : [],
     };
     
     // Remove frontend-only fields
@@ -1149,6 +1156,96 @@ const AdminFabrics = () => {
                     </select>
                   </div>
                 </div>
+
+                {/* Multi-Color Variants */}
+                <div className="p-4 bg-violet-50 border border-violet-100 rounded" data-testid="color-variants-section">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-violet-800">Color Variants</label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.has_multiple_colors}
+                        onChange={(e) => setForm({ ...form, has_multiple_colors: e.target.checked })}
+                        className="rounded border-violet-300 text-violet-600 focus:ring-violet-500"
+                        data-testid="has-multiple-colors-checkbox"
+                      />
+                      <span className="text-sm text-violet-700 font-medium">This SKU has multiple colors</span>
+                    </label>
+                  </div>
+                  {form.has_multiple_colors && (
+                    <div className="space-y-3">
+                      {form.color_variants.map((cv, idx) => (
+                        <div key={idx} className="flex items-center gap-3 bg-white p-3 rounded border border-violet-200" data-testid={`color-variant-${idx}`}>
+                          <input
+                            type="color"
+                            value={cv.color_hex || "#000000"}
+                            onChange={(e) => {
+                              const updated = [...form.color_variants];
+                              updated[idx] = { ...cv, color_hex: e.target.value };
+                              setForm({ ...form, color_variants: updated });
+                            }}
+                            className="w-8 h-8 rounded cursor-pointer border-0"
+                            title="Pick color"
+                          />
+                          <input
+                            type="text"
+                            value={cv.color_name || ""}
+                            onChange={(e) => {
+                              const updated = [...form.color_variants];
+                              updated[idx] = { ...cv, color_name: e.target.value };
+                              setForm({ ...form, color_variants: updated });
+                            }}
+                            placeholder="Color name (e.g., Indigo)"
+                            className="flex-1 px-3 py-1.5 border border-gray-200 rounded text-sm"
+                            data-testid={`cv-name-${idx}`}
+                          />
+                          <input
+                            type="text"
+                            value={cv.image_url || ""}
+                            onChange={(e) => {
+                              const updated = [...form.color_variants];
+                              updated[idx] = { ...cv, image_url: e.target.value };
+                              setForm({ ...form, color_variants: updated });
+                            }}
+                            placeholder="Image URL"
+                            className="flex-1 px-3 py-1.5 border border-gray-200 rounded text-sm"
+                            data-testid={`cv-image-${idx}`}
+                          />
+                          {cv.image_url && <img src={cv.image_url} alt={cv.color_name} className="w-8 h-8 rounded object-cover" />}
+                          <input
+                            type="number"
+                            value={cv.quantity_available ?? ""}
+                            onChange={(e) => {
+                              const updated = [...form.color_variants];
+                              updated[idx] = { ...cv, quantity_available: e.target.value ? parseInt(e.target.value) : null };
+                              setForm({ ...form, color_variants: updated });
+                            }}
+                            placeholder="Stock"
+                            className="w-20 px-3 py-1.5 border border-gray-200 rounded text-sm"
+                            data-testid={`cv-stock-${idx}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setForm({ ...form, color_variants: form.color_variants.filter((_, i) => i !== idx) })}
+                            className="p-1 text-red-400 hover:text-red-600"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, color_variants: [...form.color_variants, { color_name: "", color_hex: "#000000", image_url: "", quantity_available: null }] })}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-violet-700 border border-violet-300 rounded hover:bg-violet-100 transition-colors"
+                        data-testid="add-color-variant-btn"
+                      >
+                        <Plus size={14} />Add Color Variant
+                      </button>
+                    </div>
+                  )}
+                  {!form.has_multiple_colors && <p className="text-xs text-violet-500">Enable to add separate colors with individual photos and inventory for this SKU.</p>}
+                </div>
+
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>

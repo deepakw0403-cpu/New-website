@@ -646,6 +646,16 @@ const FabricsPage = () => {
                         {fabric.width && <span className="px-1 sm:px-1.5 py-0.5 bg-gray-100 rounded">{fabric.width}"</span>}
                       </div>
 
+                      {/* Color variant dots */}
+                      {fabric.has_multiple_colors && fabric.color_variants?.length > 0 && (
+                        <div className="flex gap-1 mb-2" data-testid={`color-dots-${fabric.id}`}>
+                          {fabric.color_variants.slice(0, 6).map((cv, i) => (
+                            <span key={i} className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: cv.color_hex || '#ccc' }} title={cv.color_name} />
+                          ))}
+                          {fabric.color_variants.length > 6 && <span className="text-[10px] text-gray-400 self-center">+{fabric.color_variants.length - 6}</span>}
+                        </div>
+                      )}
+
                       {/* Pricing info */}
                       {actions.canBookSample && (
                         <div className="flex items-center justify-between text-xs sm:text-sm mb-2 sm:mb-3 pt-2 border-t border-gray-100">

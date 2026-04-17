@@ -214,6 +214,9 @@ class FabricCreate(BaseModel):
     # Seller's unique serial number for this SKU
     seller_sku: Optional[str] = ""
     hsn_code: Optional[str] = ""  # 6-digit HSN code for invoicing
+    # Multi-color variant support
+    has_multiple_colors: bool = False
+    color_variants: List[dict] = []  # [{color_name, color_hex, image_url, quantity_available}]
 
 class FabricUpdate(BaseModel):
     name: Optional[str] = None
@@ -257,6 +260,8 @@ class FabricUpdate(BaseModel):
     seller_sku: Optional[str] = None
     hsn_code: Optional[str] = None  # 6-digit HSN code for invoicing
     status: Optional[str] = None  # pending, approved, rejected
+    has_multiple_colors: Optional[bool] = None
+    color_variants: Optional[List[dict]] = None
 
 class Fabric(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -305,6 +310,9 @@ class Fabric(BaseModel):
     weft_shrinkage: Optional[float] = None
     stretch_percentage: Optional[float] = None
     seller_sku: str = ""
+    hsn_code: str = ""
+    has_multiple_colors: bool = False
+    color_variants: List[dict] = []
     status: Optional[str] = None  # pending, approved, rejected (None for legacy/admin fabrics)
     created_at: str
 
