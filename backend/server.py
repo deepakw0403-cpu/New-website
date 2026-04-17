@@ -1646,6 +1646,20 @@ async def approve_credit_application(app_id: str, data: dict, admin=Depends(get_
     return {'message': f'Credit of ₹{credit_limit:,} approved for {app["company"]}'}
 
 
+@api_router.put("/credit/applications/{app_id}/reject")
+async def reject_credit_application(app_id: str, data: dict, admin=Depends(get_current_admin)):
+    """Admin: reject a credit application."""
+    reason = data.get('reason', 'Application does not meet criteria')
+    result = await db.credit_applications.update_one(
+        {'id': app_id},
+        {'$set': {'status': 'rejected', 'rejection_reason': reason, 'updated_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail='Application not found')
+    return {'message': 'Application rejected'}
+
+
+
 
 # ==================== ENQUIRY ROUTES ====================
 

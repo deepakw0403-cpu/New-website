@@ -347,6 +347,9 @@ export const getOrderStats = () => api.get("/orders/stats/summary");
 export const listCreditWallets = () => api.get("/orders/credit/wallets");
 export const editCreditWallet = (email, data) => api.put(`/orders/credit/wallets/${email}/edit`, data);
 export const bulkUploadCreditWallets = (wallets) => api.post("/orders/credit/wallets/bulk-upload", { wallets });
+export const getCreditApplications = () => api.get("/credit/applications");
+export const approveCreditApplication = (id, credit_limit) => api.put(`/credit/applications/${id}/approve`, { credit_limit });
+export const rejectCreditApplication = (id, reason) => api.put(`/credit/applications/${id}/reject`, { reason });
 export const downloadInvoice = (orderId) => {
   const API_URL = process.env.REACT_APP_BACKEND_URL;
   return `${API_URL}/api/orders/${orderId}/invoice`;
