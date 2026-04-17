@@ -560,6 +560,19 @@ async def update_order_status(order_id: str, status: str):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Order not found")
     
+    # Send status email for shipped/delivered
+    if status in ('shipped', 'delivered'):
+        order = await db.orders.find_one(
+            {"$or": [{"id": order_id}, {"order_number": order_id}]},
+            {'_id': 0}
+        )
+        if order:
+            from email_router import send_order_status_email
+            try:
+                await send_order_status_email(order, status)
+            except Exception as e:
+                logger.warning(f"Status email failed for {order_id}: {e}")
+    
     return {"success": True, "message": f"Order status updated to {status}"}
 
 @router.put("/{order_id}/cancel")

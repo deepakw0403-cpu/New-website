@@ -1052,3 +1052,122 @@ async def send_order_notification_emails(order: dict, order_db=None):
     
     logger.info(f"Order {order_number} email results: customer={results['customer_sent']}, admin={results['admin_sent']}, sellers={results['sellers_notified']}")
     return results
+
+
+def get_order_shipped_email(order: dict) -> str:
+    """HTML email for order shipped notification"""
+    customer = order.get('customer', {})
+    items_html = ""
+    for item in order.get('items', []):
+        items_html += f"""
+        <tr>
+            <td style="padding:12px;border-bottom:1px solid #f0f0f0;">{item.get('fabric_name','')}</td>
+            <td style="padding:12px;border-bottom:1px solid #f0f0f0;text-align:center;">{item.get('quantity',0)}m</td>
+            <td style="padding:12px;border-bottom:1px solid #f0f0f0;text-align:right;">Rs {item.get('quantity',0)*item.get('price_per_meter',0):,.0f}</td>
+        </tr>"""
+
+    awb = order.get('awb_code', '')
+    tracking_html = f"""
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;margin:20px 0;text-align:center;">
+        <p style="font-size:14px;color:#166534;margin:0 0 8px;">Tracking Number</p>
+        <p style="font-size:24px;font-weight:700;color:#166534;letter-spacing:2px;margin:0;">{awb if awb else 'Will be updated shortly'}</p>
+    </div>""" if awb else ""
+
+    return f"""
+    <div style="font-family:Inter,-apple-system,sans-serif;max-width:600px;margin:0 auto;background:#fff;">
+        <div style="background:#2563EB;padding:32px;text-align:center;">
+            <h1 style="color:#fff;font-size:24px;margin:0;">Your Order Has Been Shipped!</h1>
+            <p style="color:rgba(255,255,255,0.8);font-size:14px;margin:8px 0 0;">Order {order.get('order_number','')}</p>
+        </div>
+        <div style="padding:32px;">
+            <p style="font-size:16px;color:#1a1a1a;">Hi {customer.get('name','')},</p>
+            <p style="color:#64748b;line-height:1.6;">Great news! Your order has been shipped and is on its way to you.</p>
+            {tracking_html}
+            <div style="margin:24px 0;">
+                <h3 style="font-size:14px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Shipping To</h3>
+                <p style="color:#1a1a1a;margin:8px 0;">{customer.get('name','')}<br/>{customer.get('address','')}<br/>{customer.get('city','')}, {customer.get('state','')} {customer.get('pincode','')}</p>
+            </div>
+            <table style="width:100%;border-collapse:collapse;margin:24px 0;">
+                <thead><tr style="background:#f8fafc;">
+                    <th style="padding:12px;text-align:left;font-size:12px;color:#64748b;text-transform:uppercase;">Item</th>
+                    <th style="padding:12px;text-align:center;font-size:12px;color:#64748b;text-transform:uppercase;">Qty</th>
+                    <th style="padding:12px;text-align:right;font-size:12px;color:#64748b;text-transform:uppercase;">Amount</th>
+                </tr></thead>
+                <tbody>{items_html}</tbody>
+                <tfoot><tr>
+                    <td colspan="2" style="padding:12px;text-align:right;font-weight:700;">Total</td>
+                    <td style="padding:12px;text-align:right;font-weight:700;color:#2563EB;">Rs {order.get('total',0):,.0f}</td>
+                </tr></tfoot>
+            </table>
+            <p style="color:#64748b;font-size:13px;line-height:1.6;">If you have any questions about your delivery, please contact us at <a href="mailto:mail@locofast.com" style="color:#2563EB;">mail@locofast.com</a> or call +91-8920392418.</p>
+        </div>
+        <div style="background:#f8fafc;padding:20px;text-align:center;border-top:1px solid #e5e7eb;">
+            <p style="color:#94a3b8;font-size:12px;margin:0;">Locofast Online Services Pvt Ltd | www.locofast.com</p>
+        </div>
+    </div>"""
+
+
+def get_order_delivered_email(order: dict) -> str:
+    """HTML email for order delivered notification"""
+    customer = order.get('customer', {})
+    return f"""
+    <div style="font-family:Inter,-apple-system,sans-serif;max-width:600px;margin:0 auto;background:#fff;">
+        <div style="background:#059669;padding:32px;text-align:center;">
+            <h1 style="color:#fff;font-size:24px;margin:0;">Your Order Has Been Delivered!</h1>
+            <p style="color:rgba(255,255,255,0.8);font-size:14px;margin:8px 0 0;">Order {order.get('order_number','')}</p>
+        </div>
+        <div style="padding:32px;">
+            <p style="font-size:16px;color:#1a1a1a;">Hi {customer.get('name','')},</p>
+            <p style="color:#64748b;line-height:1.6;">Your order has been successfully delivered. We hope you're happy with your purchase!</p>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:24px;margin:24px 0;text-align:center;">
+                <p style="font-size:48px;margin:0 0 8px;">&#10003;</p>
+                <p style="font-size:18px;font-weight:700;color:#166534;margin:0;">Delivered</p>
+                <p style="color:#64748b;font-size:14px;margin:8px 0 0;">Order {order.get('order_number','')} | Rs {order.get('total',0):,.0f}</p>
+            </div>
+            <p style="color:#64748b;line-height:1.6;">Please inspect the goods upon receipt. If you find any issues, please write to us within 24 hours at <a href="mailto:mail@locofast.com" style="color:#2563EB;">mail@locofast.com</a>.</p>
+            <div style="background:#f8fafc;border-radius:12px;padding:20px;margin:24px 0;">
+                <p style="font-size:14px;font-weight:600;color:#1a1a1a;margin:0 0 8px;">Need more fabric?</p>
+                <p style="color:#64748b;font-size:13px;margin:0 0 12px;">Browse our catalog and place your next order.</p>
+                <a href="https://locofast.com/fabrics" style="display:inline-block;background:#2563EB;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Browse Fabrics</a>
+            </div>
+            <p style="color:#64748b;font-size:13px;">Thank you for choosing Locofast!</p>
+        </div>
+        <div style="background:#f8fafc;padding:20px;text-align:center;border-top:1px solid #e5e7eb;">
+            <p style="color:#94a3b8;font-size:12px;margin:0;">Locofast Online Services Pvt Ltd | www.locofast.com</p>
+        </div>
+    </div>"""
+
+
+async def send_order_status_email(order: dict, new_status: str):
+    """Send email notification when order status changes to shipped or delivered."""
+    if not RESEND_API_KEY:
+        return False
+
+    customer_email = order.get('customer', {}).get('email')
+    if not customer_email:
+        return False
+
+    order_number = order.get('order_number', '')
+
+    if new_status == 'shipped':
+        subject = f"Your Locofast Order {order_number} Has Been Shipped!"
+        html = get_order_shipped_email(order)
+    elif new_status == 'delivered':
+        subject = f"Your Locofast Order {order_number} Has Been Delivered!"
+        html = get_order_delivered_email(order)
+    else:
+        return False
+
+    try:
+        params = {
+            "from": f"Locofast <{SENDER_EMAIL}>",
+            "to": [customer_email],
+            "subject": subject,
+            "html": html,
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Order status email ({new_status}) sent to {customer_email} for {order_number}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send {new_status} email for {order_number}: {e}")
+        return False
