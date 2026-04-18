@@ -143,11 +143,23 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
   - All other categories keep the existing free-text color + no weave constraint
 
 ### Phase 19: HeroSearchCard + Live Category Counts + Router Cleanup (Complete - Apr 2026)
-- [x] **HeroSearchCard on HomePage**: Glass-morphism card replacing the two hero CTAs. Pulls live category counts; any category with < 20 SKUs gets a "COMING SOON" flag (`components/HeroSearchCard.js`). Filters: composition, weight bucket (GSM), price bucket (₹/m) + 4 popular quick chips. Submit routes to `/fabrics?category=...&composition=...&min_gsm=...` using the existing query-string contract.
+- [x] **HeroSearchCard on HomePage**: Glass-morphism card replacing the two hero CTAs. Pulls live category counts; any category with < 20 SKUs gets a "COMING SOON" flag (`components/HeroSearchCard.js`). Filters: composition, weight bucket (GSM), price bucket (₹/m) + 4 popular quick chips. Submit routes to `/fabrics?category=<id>&composition=...&min_gsm=...&max_gsm=...&min_price=...&max_price=...` — passes the category ID (not name) per FabricsPage contract.
 - [x] **Live fabric counts on `/api/categories`**: Now computes counts via `$group` over fabrics collection on every call — no more stale `fabric_count` field.
 - [x] **`enquiry_router.py` extracted**: 4 endpoints (create/list/update-status/delete) moved out of server.py with Zapier + campaigns.locofast.com push side-effects intact. Response model loosened (`email` optional) to tolerate legacy supplier-profile enquiry docs that lack email.
-- [x] server.py size: 2304 → **2227** lines
-- [ ] **Deferred**: `article_router` and `fabric_router` extraction — both share `normalize_fabric` (~120 LOC), which should first move to a new `fabric_utils.py`. Scheduled as Phase 20.
+
+### Phase 20: Fabric + Article Router Extraction (Complete - Apr 2026)
+- [x] **`fabric_utils.py`** — new module holding `normalize_fabric()`, `generate_fabric_code()`, `generate_seller_code()`, `generate_article_code()`. Used by fabric_router, article_router, and collection_router.
+- [x] **`fabric_router.py`** — 10 endpoints, 659 lines:
+  - `/api/fabrics` (list + booking-priority sort + ounce-range pipeline)
+  - `/api/fabrics/count`, `/api/fabrics/filter-options`
+  - `/api/fabrics/{id_or_slug}` (with slug-prefix fallback)
+  - `POST/PUT/DELETE /api/fabrics`
+  - `/api/fabrics/bulk-assign-seller`, `/api/fabrics/reassign-seller`
+  - `/api/fabrics/{id}/other-sellers`
+  - Extracted a shared `_build_fabric_query()` + `_oz_pipeline_stages()` helper so list and count stay in sync
+- [x] **`article_router.py`** — 6 endpoints, 225 lines (list/get/variants/CRUD)
+- [x] **`server.py`**: **2304 → 1040 lines** (55% reduction from session start). collection_router updated to use `fabric_utils.normalize_fabric`. All dead model classes (Fabric/FabricCreate/FabricUpdate/CompositionItem/Article*/Enquiry*) removed.
+- [x] **Testing agent verified**: 37/37 backend tests passed, all frontend flows green (Home HeroSearchCard, /fabrics listing, detail page, Admin Denim form auto-generate). One regression fixed during testing: HeroSearchCard was passing category name → fixed to pass category id.
 
 ## Backlog
 
