@@ -39,6 +39,8 @@ NORMALISE = [
     ("org cotton","Cotton Fabrics"),
     ("polyester", "Polyester Fabrics"),
     ("poly",      "Polyester Fabrics"),
+    ("pc blend",  "Polyester Fabrics"),   # PC = Polyester/Cotton, P is dominant
+    ("p/c",       "Polyester Fabrics"),
     ("viscose",   "Viscose"),
     ("rayon",     "Viscose"),
     ("linen",     "Linen"),
@@ -59,21 +61,32 @@ def route(material: str) -> str | None:
     return None
 
 
-def dominant_target(comp) -> tuple[str | None, str]:
-    """Return (target_category_name, reason) for a composition list."""
-    if not isinstance(comp, list) or not comp:
-        return None, "no composition"
-    ranked = sorted(
-        comp,
-        key=lambda x: float(x.get("percentage") or 0),
-        reverse=True,
-    )
-    for item in ranked:
-        mat = item.get("material") or ""
-        target = route(mat)
-        if target:
-            return target, f"{mat.strip()} {item.get('percentage')}%"
-    return None, f"no known material in {comp}"
+def dominant_target(comp, name: str = "") -> tuple[str | None, str]:
+    """Return (target_category_name, reason) for a composition list.
+    Falls back to parsing the fabric NAME if composition is missing.
+    """
+    if isinstance(comp, list) and comp:
+        ranked = sorted(
+            comp,
+            key=lambda x: float(x.get("percentage") or 0),
+            reverse=True,
+        )
+        for item in ranked:
+            mat = item.get("material") or ""
+            target = route(mat)
+            if target:
+                return target, f"{mat.strip()} {item.get('percentage')}%"
+        return None, f"no known material in {comp}"
+    # Fallback: parse the fabric NAME, preserve word order
+    low = (name or "").lower()
+    best, best_pos = None, 1e9
+    for key, target in NORMALISE:
+        pos = low.find(key)
+        if pos != -1 and pos < best_pos:
+            best, best_pos = target, pos
+    if best:
+        return best, f"(inferred from name '{name}')"
+    return None, "no composition + no hint in name"
 
 
 async def main():
@@ -123,7 +136,7 @@ async def main():
     stays = 0
     rows = []
     for f in fabrics:
-        target_name, reason = dominant_target(f.get("composition"))
+        target_name, reason = dominant_target(f.get("composition"), f.get("name", ""))
         if not target_name or target_name == "Blended Fabrics":
             rows.append((f["id"][:8], f.get("name", "")[:38], "-- stays --", reason))
             stays += 1
@@ -156,7 +169,7 @@ async def main():
     print("\nApplying updates...")
     updated = 0
     for f in fabrics:
-        target_name, _ = dominant_target(f.get("composition"))
+        target_name, _ = dominant_target(f.get("composition"), f.get("name", ""))
         if not target_name or target_name == "Blended Fabrics":
             continue
         target = by_name.get(target_name)
@@ -179,6 +192,14 @@ async def main():
             {"id": cat["id"]}, {"$set": {"fabric_count": count}}
         )
         print(f"  [{cat_name}] fabric_count = {count}")
+
+    # --- 5. Delete the now-empty Blended Fabrics category --------------
+    remaining = await db.fabrics.count_documents({"category_id": blended_id})
+    if remaining == 0:
+        del_res = await db.categories.delete_one({"id": blended_id})
+        print(f"\n[CLEANUP] Deleted 'Blended Fabrics' category (removed={del_res.deleted_count})")
+    else:
+        print(f"\n[CLEANUP] 'Blended Fabrics' still has {remaining} fabric(s) — not deleted.")
 
     print(f"\nDone. {updated} fabrics reassigned.")
 
