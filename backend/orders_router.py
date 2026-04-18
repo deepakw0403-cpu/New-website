@@ -1310,7 +1310,7 @@ def generate_pi_pdf(order: dict) -> io.BytesIO:
     elements.append(Spacer(1, 3*mm))
 
     # Bangladesh charges
-    bd = order.get('bangladesh_charges', {})
+    bd = order.get('bangladesh_charges') or {}
     border = bd.get('border_logistics', 0)
     export_doc = bd.get('export_documentation', 0)
     customs = bd.get('custom_clearance', 0)
@@ -1381,8 +1381,25 @@ def generate_pi_pdf(order: dict) -> io.BytesIO:
     for i, tc in enumerate(tc_items, 1):
         elements.append(Paragraph(f"{i}. {tc}", small_style))
 
-    elements.append(Spacer(1, 3*mm))
-    elements.append(Paragraph("<i>This is a computer generated invoice, hence does not require signature.</i>", ParagraphStyle('Italic', parent=small_style, fontName='Helvetica-Oblique', textColor=colors.HexColor('#94a3b8'))))
+    elements.append(Spacer(1, 5*mm))
+
+    # Authorized Signature
+    sig_style = ParagraphStyle('SigLabel', parent=small_style, alignment=2, fontSize=8)  # RIGHT aligned
+    elements.append(Paragraph("For Locofast Online Services Private Limited", sig_style))
+    elements.append(Spacer(1, 2*mm))
+
+    # Add signature image
+    import os
+    sig_path = os.path.join(os.path.dirname(__file__), 'assets', 'signature.png')
+    if os.path.exists(sig_path):
+        from reportlab.lib.utils import ImageReader
+        from reportlab.platypus import Image as RLImage
+        sig_img = RLImage(sig_path, width=40*mm, height=20*mm)
+        sig_img.hAlign = 'RIGHT'
+        elements.append(sig_img)
+    elements.append(Spacer(1, 1*mm))
+    elements.append(Paragraph("Director", sig_style))
+    elements.append(Paragraph("Authorized Signature", ParagraphStyle('AuthSig', parent=small_style, alignment=2, fontSize=7, fontName='Helvetica-Bold')))
 
     doc.build(elements)
     buffer.seek(0)
@@ -1414,6 +1431,21 @@ async def confirm_export_order(order_data: OrderCreate, request: Request):
     if not usd_rate:
         from agent_router import get_usd_rate
         usd_rate = await get_usd_rate()
+
+    # Calculate Bangladesh charges if not from shared cart
+    if not bangladesh_charges:
+        subtotal = totals["subtotal"]
+        border_logistics = round(subtotal * 0.01, 2)
+        export_documentation = round(subtotal * 0.004, 2)
+        custom_clearance = round(subtotal * 0.0105, 2)
+        bangladesh_charges = {
+            "border_logistics_pct": 1.0, "border_logistics": border_logistics,
+            "export_documentation_pct": 0.40, "export_documentation": export_documentation,
+            "custom_clearance_pct": 1.05, "custom_clearance": custom_clearance,
+            "total_extra_charges": round(border_logistics + export_documentation + custom_clearance, 2),
+            "inr_to_usd_rate": usd_rate, "subtotal_inr": subtotal,
+            "subtotal_usd": round(subtotal * usd_rate, 2),
+        }
 
     order_doc = {
         "id": order_id,

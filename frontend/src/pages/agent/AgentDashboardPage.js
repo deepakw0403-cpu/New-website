@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAgentAuth } from "../../context/AgentAuthContext";
-import { Search, ShoppingCart, Send, Package, LogOut, Plus, Minus, Trash2, ExternalLink, Copy, Loader2, Eye, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Search, ShoppingCart, Send, Package, LogOut, Plus, Minus, Trash2, ExternalLink, Copy, Loader2, Eye, Clock, CheckCircle, XCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
@@ -38,6 +38,14 @@ const AgentDashboardPage = () => {
   const [uploading, setUploading] = useState(false);
   const [dispatchCountry, setDispatchCountry] = useState("india");
   const [usdRate, setUsdRate] = useState(null);
+  // PI buyer fields (Bangladesh)
+  const [showPIForm, setShowPIForm] = useState(false);
+  const [piGenerating, setPiGenerating] = useState(false);
+  const [buyerInfo, setBuyerInfo] = useState({
+    name: "", company: "", email: "", phone: "",
+    address: "", city: "", state: "", pincode: "",
+    shipping_name: "", shipping_address: "", shipping_city: "", shipping_state: "",
+  });
 
   const fetchFabrics = useCallback(async () => {
     setFabricsLoading(true);
@@ -151,7 +159,7 @@ const AgentDashboardPage = () => {
     setUploading(false);
   };
 
-  const handleShareCart = async () => {
+  const handleShareCart = async (shareType = "quote") => {
     if (!cart.length) return;
     setSharing(true);
     try {
@@ -164,7 +172,7 @@ const AgentDashboardPage = () => {
       if (!res.ok) throw new Error(data.detail || "Failed");
       const link = `${window.location.origin}/shared-cart/${data.token}`;
       try { await navigator.clipboard.writeText(link); } catch { /* clipboard may fail */ }
-      toast.success(`Cart shared! Link: ${link}`);
+      toast.success(`Quote link: ${link}`);
       setCart([]);
       setCustomerEmail("");
       setPaymentProofUrl("");
@@ -176,6 +184,56 @@ const AgentDashboardPage = () => {
     }
     setSharing(false);
   };
+
+  const handleGeneratePI = async () => {
+    if (!cart.length) return;
+    if (!buyerInfo.name || !buyerInfo.company) {
+      toast.error("Buyer name and company are required for PI");
+      return;
+    }
+    setPiGenerating(true);
+    try {
+      const res = await fetch(`${API}/api/orders/confirm-export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart.map((i) => ({
+            fabric_id: i.fabric_id, fabric_name: i.fabric_name, fabric_code: i.fabric_code || "",
+            category_name: i.category_name || "", seller_id: i.seller_id || "", seller_company: i.seller_company || "",
+            quantity: i.quantity, price_per_meter: i.price_per_meter, order_type: i.order_type || "bulk", hsn_code: i.hsn_code || "",
+          })),
+          customer: {
+            name: buyerInfo.name, email: buyerInfo.email, phone: buyerInfo.phone,
+            company: buyerInfo.company, address: buyerInfo.address, city: buyerInfo.city,
+            state: buyerInfo.state, pincode: buyerInfo.pincode, gst_number: "",
+            shipping_name: buyerInfo.shipping_name || buyerInfo.name,
+            shipping_address: buyerInfo.shipping_address || buyerInfo.address,
+            shipping_city: buyerInfo.shipping_city || buyerInfo.city,
+            shipping_state: buyerInfo.shipping_state || buyerInfo.state,
+          },
+          shared_cart_token: "",
+          agent_id: agent?.id || "", agent_email: agent?.email || "", agent_name: agent?.name || "",
+          dispatch_country: "bangladesh",
+        }),
+      });
+      const text = await res.text();
+      const data = JSON.parse(text);
+      if (!res.ok) throw new Error(data.detail || "Failed to generate PI");
+      toast.success(`PI Generated: ${data.pi_number}`);
+      // Download PI PDF
+      window.open(`${API}/api/orders/${data.order_id}/proforma-invoice`, "_blank");
+      setCart([]);
+      setShowPIForm(false);
+      setBuyerInfo({ name: "", company: "", email: "", phone: "", address: "", city: "", state: "", pincode: "", shipping_name: "", shipping_address: "", shipping_city: "", shipping_state: "" });
+      setDispatchCountry("india");
+      setActiveTab("orders");
+      fetchOrders();
+    } catch (err) {
+      toast.error(err.message);
+    }
+    setPiGenerating(false);
+  };
+
 
   const copyLink = (token) => {
     navigator.clipboard.writeText(`${window.location.origin}/shared-cart/${token}`);
@@ -441,15 +499,39 @@ const AgentDashboardPage = () => {
                         )}
                       </div>
                     </div>
-                    <button
-                      onClick={handleShareCart}
-                      disabled={sharing || !cart.length}
-                      className="w-full flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                      data-testid="agent-share-cart-btn"
-                    >
-                      {sharing ? <Loader2 size={18} className="animate-spin" /> : <><Send size={16} />Generate & Copy Link</>}
-                    </button>
-                    <p className="text-xs text-gray-400 text-center mt-3">Link will be copied to clipboard. Share it with the customer for payment.</p>
+                    {dispatchCountry === "bangladesh" ? (
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => handleShareCart("quote")}
+                          disabled={sharing || !cart.length}
+                          className="w-full flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                          data-testid="agent-share-quote-btn"
+                        >
+                          {sharing ? <Loader2 size={18} className="animate-spin" /> : <><Send size={16} />Share Quote</>}
+                        </button>
+                        <button
+                          onClick={() => setShowPIForm(true)}
+                          disabled={!cart.length}
+                          className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                          data-testid="agent-share-pi-btn"
+                        >
+                          <FileText size={16} />Share PI
+                        </button>
+                        <p className="text-xs text-gray-400 text-center">Quote = link for customer to review. PI = signed Proforma Invoice PDF.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleShareCart("quote")}
+                          disabled={sharing || !cart.length}
+                          className="w-full flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                          data-testid="agent-share-cart-btn"
+                        >
+                          {sharing ? <Loader2 size={18} className="animate-spin" /> : <><Send size={16} />Generate & Copy Link</>}
+                        </button>
+                        <p className="text-xs text-gray-400 text-center mt-3">Link will be copied to clipboard. Share it with the customer for payment.</p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -563,6 +645,88 @@ const AgentDashboardPage = () => {
           )}
         </div>
       </main>
+
+      {/* PI Form Modal */}
+      {showPIForm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowPIForm(false)}>
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()} data-testid="pi-form-modal">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-lg font-semibold">Generate Proforma Invoice</h3>
+                <p className="text-sm text-gray-500">Fill buyer details to create a signed PI</p>
+              </div>
+              <button onClick={() => setShowPIForm(false)} className="p-1 text-gray-400 hover:text-gray-600"><Trash2 size={18} /></button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm font-medium text-blue-800">Cart: {cart.length} item{cart.length !== 1 ? "s" : ""} · ₹{cartTotal.toLocaleString()} · ${grandTotalUSD} USD</p>
+              </div>
+
+              <h4 className="font-medium text-gray-900 text-sm">Bill To</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Buyer Name *</label>
+                  <input type="text" value={buyerInfo.name} onChange={(e) => setBuyerInfo({ ...buyerInfo, name: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Contact person" data-testid="pi-buyer-name" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Company Name *</label>
+                  <input type="text" value={buyerInfo.company} onChange={(e) => setBuyerInfo({ ...buyerInfo, company: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Dhaka Textiles Ltd" data-testid="pi-buyer-company" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Email</label>
+                  <input type="email" value={buyerInfo.email} onChange={(e) => setBuyerInfo({ ...buyerInfo, email: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="buyer@company.com" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Phone</label>
+                  <input type="tel" value={buyerInfo.phone} onChange={(e) => setBuyerInfo({ ...buyerInfo, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="+880..." />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs text-gray-500 mb-1">Address</label>
+                  <input type="text" value={buyerInfo.address} onChange={(e) => setBuyerInfo({ ...buyerInfo, address: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Street address" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">City</label>
+                  <input type="text" value={buyerInfo.city} onChange={(e) => setBuyerInfo({ ...buyerInfo, city: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Dhaka" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">State/Division</label>
+                  <input type="text" value={buyerInfo.state} onChange={(e) => setBuyerInfo({ ...buyerInfo, state: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Dhaka" />
+                </div>
+              </div>
+
+              <h4 className="font-medium text-gray-900 text-sm pt-2">Ship To</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Shipping Name</label>
+                  <input type="text" value={buyerInfo.shipping_name} onChange={(e) => setBuyerInfo({ ...buyerInfo, shipping_name: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Same as billing if empty" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Shipping City</label>
+                  <input type="text" value={buyerInfo.shipping_city} onChange={(e) => setBuyerInfo({ ...buyerInfo, shipping_city: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Dhaka" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs text-gray-500 mb-1">Shipping Address</label>
+                  <input type="text" value={buyerInfo.shipping_address} onChange={(e) => setBuyerInfo({ ...buyerInfo, shipping_address: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Same as billing if empty" />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowPIForm(false)} className="flex-1 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 text-sm font-medium">Cancel</button>
+              <button
+                onClick={handleGeneratePI}
+                disabled={piGenerating}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50"
+                data-testid="pi-generate-btn"
+              >
+                {piGenerating ? <Loader2 size={16} className="animate-spin" /> : <><FileText size={16} />Generate Signed PI</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );
