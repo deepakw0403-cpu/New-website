@@ -778,16 +778,11 @@ async def get_fabrics(
     if width:
         query['width'] = {'$regex': width, '$options': 'i'}
     if min_weight_oz is not None or max_weight_oz is not None:
-        # Filter ounce field — stored as strings like "12", "6.50 OZ", "11.5"
-        # Use regex + post-filter via aggregation is complex, so use $expr with numeric extraction
-        # Simpler approach: filter ounce as string regex for range
-        oz_conditions = []
-        if min_weight_oz is not None:
-            oz_conditions.append({'ounce': {'$exists': True, '$ne': ''}})
-        if max_weight_oz is not None:
-            oz_conditions.append({'ounce': {'$exists': True, '$ne': ''}})
-        if oz_conditions:
-            and_conditions.extend(oz_conditions)
+        # ounce is stored as messy strings ("6.50 OZ", "4.5 OZS", "9.5(+-3%)")
+        # Just require ounce field exists; we post-filter in Python after the query
+        and_conditions.append({'ounce': {'$exists': True, '$ne': ''}})
+    _oz_min = min_weight_oz
+    _oz_max = max_weight_oz
     if min_price is not None or max_price is not None:
         price_q = {}
         if min_price is not None:
@@ -832,6 +827,24 @@ async def get_fabrics(
     
     pipeline = [
         {'$match': query},
+    ]
+    
+    # Add oz numeric filter as pipeline stage if needed
+    if _oz_min is not None or _oz_max is not None:
+        pipeline.append({'$addFields': {
+            '_oz_match': {'$regexFind': {'input': {'$ifNull': ['$ounce', '0']}, 'regex': r'^[\d.]+'}}
+        }})
+        pipeline.append({'$addFields': {
+            '_oz_num': {'$convert': {'input': '$_oz_match.match', 'to': 'double', 'onError': 0, 'onNull': 0}}
+        }})
+        oz_cond = {}
+        if _oz_min is not None:
+            oz_cond['$gte'] = _oz_min
+        if _oz_max is not None:
+            oz_cond['$lte'] = _oz_max
+        pipeline.append({'$match': {'_oz_num': oz_cond}})
+    
+    pipeline.extend([
         {'$addFields': {
             'booking_priority': {
                 '$switch': {
@@ -876,8 +889,8 @@ async def get_fabrics(
         {'$sort': {'booking_priority': 1, 'created_at': -1}},
         {'$skip': skip},
         {'$limit': limit},
-        {'$project': {'_id': 0, 'booking_priority': 0}}
-    ]
+        {'$project': {'_id': 0, 'booking_priority': 0, '_oz_match': 0, '_oz_num': 0}}
+    ])
     
     fabrics = await db.fabrics.aggregate(pipeline).to_list(limit)
     
@@ -996,13 +1009,9 @@ async def get_fabrics_count(
     if width:
         query['width'] = {'$regex': width, '$options': 'i'}
     if min_weight_oz is not None or max_weight_oz is not None:
-        oz_conditions = []
-        if min_weight_oz is not None:
-            oz_conditions.append({'ounce': {'$exists': True, '$ne': ''}})
-        if max_weight_oz is not None:
-            oz_conditions.append({'ounce': {'$exists': True, '$ne': ''}})
-        if oz_conditions:
-            and_conditions.extend(oz_conditions)
+        and_conditions.append({'ounce': {'$exists': True, '$ne': ''}})
+    _count_oz_min = min_weight_oz
+    _count_oz_max = max_weight_oz
     if min_price is not None or max_price is not None:
         price_q = {}
         if min_price is not None:
@@ -1033,7 +1042,26 @@ async def get_fabrics_count(
     if and_conditions:
         query['$and'] = and_conditions
     
-    count = await db.fabrics.count_documents(query)
+    # Use aggregation if oz filter is active (need regex parsing)
+    if _count_oz_min is not None or _count_oz_max is not None:
+        count_pipeline = [{'$match': query}]
+        count_pipeline.append({'$addFields': {
+            '_oz_match': {'$regexFind': {'input': {'$ifNull': ['$ounce', '0']}, 'regex': r'^[\d.]+'}}
+        }})
+        count_pipeline.append({'$addFields': {
+            '_oz_num': {'$convert': {'input': '$_oz_match.match', 'to': 'double', 'onError': 0, 'onNull': 0}}
+        }})
+        oz_cond = {}
+        if _count_oz_min is not None:
+            oz_cond['$gte'] = _count_oz_min
+        if _count_oz_max is not None:
+            oz_cond['$lte'] = _count_oz_max
+        count_pipeline.append({'$match': {'_oz_num': oz_cond}})
+        count_pipeline.append({'$count': 'total'})
+        result = await db.fabrics.aggregate(count_pipeline).to_list(1)
+        count = result[0]['total'] if result else 0
+    else:
+        count = await db.fabrics.count_documents(query)
     return {'count': count}
 
 @api_router.get("/fabrics/{fabric_id_or_slug}", response_model=Fabric)
