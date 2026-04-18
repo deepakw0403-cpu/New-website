@@ -563,10 +563,9 @@ def normalize_fabric(fabric: dict) -> dict:
     # Status field (legacy fabrics don't have it)
     if 'status' not in fabric or fabric.get('status') is None:
         fabric['status'] = None
-    # Slug field
+    # Slug field — use stored slug or fall back to fabric ID (never generate random)
     if 'slug' not in fabric or not fabric.get('slug'):
-        from slug_utils import generate_slug
-        fabric['slug'] = generate_slug(fabric.get('name', 'fabric'))
+        fabric['slug'] = fabric.get('id', '')
     
     return fabric
 
@@ -1018,10 +1017,15 @@ async def get_fabrics_count(
 
 @api_router.get("/fabrics/{fabric_id_or_slug}", response_model=Fabric)
 async def get_fabric(fabric_id_or_slug: str):
-    # Try by ID first, then by slug
+    # Try by ID first, then by exact slug
     fabric = await db.fabrics.find_one({'id': fabric_id_or_slug}, {'_id': 0})
     if not fabric:
         fabric = await db.fabrics.find_one({'slug': fabric_id_or_slug}, {'_id': 0})
+    # Fallback: partial slug match (strip last 6-char suffix and regex match)
+    if not fabric and len(fabric_id_or_slug) > 7 and '-' in fabric_id_or_slug:
+        slug_prefix = fabric_id_or_slug.rsplit('-', 1)[0]
+        if slug_prefix:
+            fabric = await db.fabrics.find_one({'slug': {'$regex': f'^{slug_prefix}'}}, {'_id': 0})
     if not fabric:
         raise HTTPException(status_code=404, detail='Fabric not found')
     
@@ -1061,7 +1065,7 @@ async def create_fabric(data: FabricCreate, admin=Depends(get_current_admin)):
     
     # Generate SEO-friendly slug
     from slug_utils import generate_slug
-    slug = generate_slug(data.name)
+    slug = generate_slug(data.name, fabric_id)
     
     fabric_doc = {
         'id': fabric_id,
@@ -1086,7 +1090,7 @@ async def update_fabric(fabric_id: str, data: FabricUpdate, admin=Depends(get_cu
     # Regenerate slug if name changed
     if 'name' in update_data:
         from slug_utils import generate_slug
-        update_data['slug'] = generate_slug(update_data['name'])
+        update_data['slug'] = generate_slug(update_data['name'], fabric_id)
     
     if 'category_id' in update_data:
         category = await db.categories.find_one({'id': update_data['category_id']}, {'_id': 0})
@@ -1825,7 +1829,7 @@ async def migrate_slugs(admin=Depends(get_current_admin)):
     ).to_list(10000)
     count = 0
     for f in fabrics:
-        slug = generate_slug(f.get('name', 'fabric'))
+        slug = generate_slug(f.get('name', 'fabric'), f['id'])
         await db.fabrics.update_one({'id': f['id']}, {'$set': {'slug': slug}})
         count += 1
     return {'migrated': count}
