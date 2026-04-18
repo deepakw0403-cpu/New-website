@@ -24,6 +24,7 @@ const FabricDetailPage = () => {
   const [showRfqModal, setShowRfqModal] = useState(false);
   
   const [orderModalType, setOrderModalType] = useState(null); // 'sample' | 'bulk' | null
+  const [showBookModal, setShowBookModal] = useState(false);
   const [sampleQty, setSampleQty] = useState(1);
   const [bulkQty, setBulkQty] = useState("");
   const [orderForm, setOrderForm] = useState({
@@ -99,6 +100,9 @@ const FabricDetailPage = () => {
     }
     return null;
   };
+
+  const bulkPrice = useMemo(() => calculateBulkPrice(bulkQty), [bulkQty, fabric]);
+
 
   // Cart value calculation
   const cartValue = useMemo(() => {
@@ -786,10 +790,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   {actions.canBookBulk && (
                     <div>
                       <button
-                        onClick={() => {
-                          trackAddToCart(fabric, 'bulk', fabric.moq || 100, fabric.rate_per_meter || 0);
-                          navigate(`/checkout/?fabric_id=${fabric.id}&type=bulk&qty=${fabric.moq || 100}`);
-                        }}
+                        onClick={() => { setOrderModalType("bulk"); setBulkQty(fabric.moq || "100"); setShowBookModal(true); }}
                         className="w-full bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors inline-flex items-center justify-center gap-2"
                         data-testid="book-bulk-btn"
                       >
@@ -801,10 +802,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   )}
                   {actions.canBookSample && (
                     <button
-                      onClick={() => {
-                        trackAddToCart(fabric, 'sample', 1, actions.samplePrice || 0);
-                        navigate(`/checkout/?fabric_id=${fabric.id}&type=sample&qty=1`);
-                      }}
+                      onClick={() => { setOrderModalType("sample"); setSampleQty(1); setShowBookModal(true); }}
                       className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-2"
                       data-testid="book-sample-btn"
                     >
@@ -1055,7 +1053,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
         />
 
         {/* Order Modal (Sample/Bulk) - Simple Enquiry Form */}
-        {orderModalType && (
+        {orderModalType && !showBookModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={closeOrderModal}>
             <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl" onClick={(e) => e.stopPropagation()}>
               <div className="p-6 border-b border-gray-100">
@@ -1219,6 +1217,103 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
           </div>
         )}
       </main>
+
+      {/* Quantity Picker Modal */}
+      {showBookModal && orderModalType && fabric && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowBookModal(false)}>
+          <div className="bg-white rounded-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()} data-testid="book-modal">
+            <h3 className="text-lg font-semibold mb-1">
+              {orderModalType === "sample" ? "Book Sample" : "Book Bulk Order"}
+            </h3>
+            <p className="text-sm text-gray-500 mb-5">{fabric.name}</p>
+
+            {orderModalType === "bulk" ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Quantity ({unit.plural})
+                  </label>
+                  <input
+                    type="number"
+                    value={bulkQty}
+                    onChange={(e) => setBulkQty(e.target.value)}
+                    min={fabric.moq || 1}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg font-semibold focus:border-emerald-500 focus:outline-none"
+                    placeholder={`Min ${fabric.moq || 100}`}
+                    autoFocus
+                    data-testid="bulk-qty-input"
+                  />
+                  {fabric.moq && <p className="text-xs text-gray-400 mt-1">Minimum order: {fabric.moq}</p>}
+                </div>
+                {bulkPrice && (
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Rate</span>
+                      <span className="font-medium">₹{bulkPrice.pricePerMeter}/{unit.short}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Tier</span>
+                      <span className="text-xs text-gray-400">{bulkPrice.tierLabel}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold pt-2 border-t">
+                      <span>Estimated Total</span>
+                      <span className="text-emerald-600">₹{bulkPrice.totalPrice?.toLocaleString()}</span>
+                    </div>
+                  </div>
+                )}
+                {fabric.quantity_available > 0 && (
+                  <p className="text-xs text-gray-400">Available stock: {fabric.quantity_available?.toLocaleString()} {unit.plural}</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Sample Quantity ({getUnit(fabric).plural})
+                  </label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 5].map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => setSampleQty(q)}
+                        className={`flex-1 py-3 rounded-lg border text-sm font-semibold transition-all ${sampleQty === q ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600 hover:border-gray-300"}`}
+                        data-testid={`sample-qty-${q}`}
+                      >
+                        {q}{unit.short}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between font-semibold">
+                    <span>Sample Price</span>
+                    <span className="text-blue-600">₹{((actions.samplePrice || 0) * sampleQty).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowBookModal(false)} className="flex-1 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-sm">Cancel</button>
+              <button
+                onClick={() => {
+                  const qty = orderModalType === "sample" ? sampleQty : parseInt(bulkQty) || fabric.moq || 100;
+                  const price = orderModalType === "sample" ? (actions.samplePrice || 0) : (fabric.rate_per_meter || 0);
+                  trackAddToCart(fabric, orderModalType, qty, price);
+                  navigate(`/checkout/?fabric_id=${fabric.id}&type=${orderModalType}&qty=${qty}`);
+                }}
+                disabled={orderModalType === "bulk" && (!bulkQty || parseInt(bulkQty) < 1)}
+                className={`flex-1 px-4 py-3 text-white rounded-lg font-medium text-sm disabled:opacity-50 ${orderModalType === "sample" ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
+                data-testid="proceed-checkout-btn"
+              >
+                Proceed to Checkout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );
