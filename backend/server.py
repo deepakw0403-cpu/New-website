@@ -267,55 +267,52 @@ class Fabric(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
     slug: str = ""
-    fabric_code: str = ""  # Unique ID like LF-XXXXX
-    name: str
-    category_id: str
+    fabric_code: str = ""
+    name: str = ""
+    category_id: str = ""
     category_name: str = ""
     seller_id: str = ""
     seller_name: str = ""
     seller_company: str = ""
-    seller_code: str = ""  # Seller's unique code
-    article_id: str = ""  # Parent article for color variants
-    fabric_type: str
+    seller_code: str = ""
+    article_id: str = ""
+    fabric_type: str = ""
     pattern: str = "Solid"
     composition: List[CompositionItem] = []
     gsm: Optional[int] = None
     ounce: str = ""
     weight_unit: str = "gsm"
-    width: str
+    width: str = ""
     warp_count: str = ""
     weft_count: str = ""
     yarn_count: str = ""
     denier: Optional[int] = None
-    color: str
+    color: str = ""
     finish: str = ""
-    moq: str
+    moq: str = ""
     starting_price: str = ""
     availability: List[str] = []
-    stock_type: str = "ready_stock"  # ready_stock or made_to_order
-    description: str
+    stock_type: str = "ready_stock"
+    description: str = ""
     tags: List[str] = []
     images: List[str] = []
     videos: List[str] = []
-    # Inventory fields
     quantity_available: Optional[int] = None
     rate_per_meter: Optional[float] = None
     dispatch_timeline: str = ""
     sample_delivery_days: str = ""
     bulk_delivery_days: str = ""
     is_bookable: bool = False
-    # Pricing fields
     sample_price: Optional[float] = None
     pricing_tiers: List[dict] = []
-    # Denim-specific fields
     weft_shrinkage: Optional[float] = None
     stretch_percentage: Optional[float] = None
     seller_sku: str = ""
     hsn_code: str = ""
     has_multiple_colors: bool = False
     color_variants: List[dict] = []
-    status: Optional[str] = None  # pending, approved, rejected (None for legacy/admin fabrics)
-    created_at: str
+    status: Optional[str] = None
+    created_at: str = ""
 
 class EnquiryCreate(BaseModel):
     name: str
@@ -563,6 +560,30 @@ def normalize_fabric(fabric: dict) -> dict:
     # Status field (legacy fabrics don't have it)
     if 'status' not in fabric or fabric.get('status') is None:
         fabric['status'] = None
+    # Fabric type
+    if 'fabric_type' not in fabric:
+        fabric['fabric_type'] = ''
+    # HSN code
+    if 'hsn_code' not in fabric:
+        fabric['hsn_code'] = ''
+    # Multi-color fields
+    if 'has_multiple_colors' not in fabric:
+        fabric['has_multiple_colors'] = False
+    if 'color_variants' not in fabric:
+        fabric['color_variants'] = []
+    # Color, moq, description, width defaults
+    if 'color' not in fabric:
+        fabric['color'] = ''
+    if 'moq' not in fabric:
+        fabric['moq'] = ''
+    if 'description' not in fabric:
+        fabric['description'] = ''
+    if 'width' not in fabric:
+        fabric['width'] = ''
+    if 'finish' not in fabric:
+        fabric['finish'] = ''
+    if 'created_at' not in fabric:
+        fabric['created_at'] = ''
     # Slug field — use stored slug or fall back to fabric ID (never generate random)
     if 'slug' not in fabric or not fabric.get('slug'):
         fabric['slug'] = fabric.get('id', '')
