@@ -1884,6 +1884,176 @@ async def migrate_slugs(admin=Depends(get_current_admin)):
     return {'migrated': count}
 
 
+# ==================== MIGRATION: Dissolve "Blended Fabrics" ====================
+# Reassigns every fabric in the Blended category to the category whose material
+# has the highest percentage in its composition. Falls back to parsing the
+# fabric name when composition is empty. Deletes Blended when empty.
+
+_BLENDED_MAT_MAP = [
+    ("cotton",    "Cotton Fabrics"),
+    ("coitton",   "Cotton Fabrics"),       # seen typo in prod/preview
+    ("org cotton","Cotton Fabrics"),
+    ("polyester", "Polyester Fabrics"),
+    ("poly",      "Polyester Fabrics"),
+    ("pc blend",  "Polyester Fabrics"),    # P/C → Polyester is dominant
+    ("p/c",       "Polyester Fabrics"),
+    ("viscose",   "Viscose"),
+    ("rayon",     "Viscose"),
+    ("linen",     "Linen"),
+    ("hemp",      "Sustainable Fabrics"),
+    ("recycled",  "Sustainable Fabrics"),
+    ("organic",   "Sustainable Fabrics"),
+]
+
+def _route_material(material: str):
+    m = (material or "").strip().lower()
+    if not m:
+        return None
+    for key, target in _BLENDED_MAT_MAP:
+        if key in m:
+            return target
+    return None
+
+def _dominant_target(comp, name: str):
+    """Return (target_category_name, reason_str)."""
+    if isinstance(comp, list) and comp:
+        ranked = sorted(comp, key=lambda x: float(x.get("percentage") or 0), reverse=True)
+        for item in ranked:
+            mat = item.get("material") or ""
+            tgt = _route_material(mat)
+            if tgt:
+                return tgt, f"{mat.strip()} {item.get('percentage')}%"
+        return None, f"no known material in composition"
+    # Name fallback
+    low = (name or "").lower()
+    best, best_pos = None, 10**9
+    for key, target in _BLENDED_MAT_MAP:
+        pos = low.find(key)
+        if pos != -1 and pos < best_pos:
+            best, best_pos = target, pos
+    if best:
+        return best, f"(inferred from name)"
+    return None, "no composition + no hint in name"
+
+
+@api_router.post("/migrate/blended")
+async def migrate_blended(apply: bool = Query(False), admin=Depends(get_current_admin)):
+    """Dissolve the 'Blended Fabrics' category.
+    - GET-like dry run: POST /api/migrate/blended (apply=false) → returns the plan.
+    - Apply:            POST /api/migrate/blended?apply=true   → runs and deletes Blended.
+    Idempotent — safe to re-run.
+    """
+    cats = await db.categories.find({}, {"_id": 0}).to_list(length=500)
+    by_name = {c["name"]: c for c in cats}
+    blended = by_name.get("Blended Fabrics")
+    if not blended:
+        return {
+            "apply": apply,
+            "status": "noop",
+            "message": "No 'Blended Fabrics' category present — nothing to migrate.",
+            "plan": [],
+            "summary": {},
+        }
+
+    # Ensure Linen exists (create only on apply)
+    linen_created = False
+    if "Linen" not in by_name:
+        linen_doc = {
+            "id": "cat-linen",
+            "name": "Linen",
+            "slug": "linen",
+            "description": "Natural linen fabrics — breathable, durable, elegant.",
+            "image_url": "",
+            "fabric_count": 0,
+        }
+        if apply:
+            await db.categories.insert_one(linen_doc.copy())
+            linen_created = True
+        by_name["Linen"] = linen_doc
+
+    blended_id = blended["id"]
+    fabrics = await db.fabrics.find(
+        {"category_id": blended_id}, {"_id": 0}
+    ).to_list(length=5000)
+
+    plan = []
+    summary = {}
+    stays = 0
+    for f in fabrics:
+        target_name, reason = _dominant_target(f.get("composition"), f.get("name", ""))
+        target = by_name.get(target_name) if target_name and target_name != "Blended Fabrics" else None
+        plan.append({
+            "id": f["id"],
+            "name": f.get("name", ""),
+            "target": target_name if target else "-- stays --",
+            "reason": reason,
+            "target_exists": bool(target),
+        })
+        if target:
+            summary[target_name] = summary.get(target_name, 0) + 1
+        else:
+            stays += 1
+    summary["__stays_in_blended"] = stays
+
+    if not apply:
+        return {
+            "apply": False,
+            "status": "dry_run",
+            "blended_fabrics_total": len(fabrics),
+            "summary": summary,
+            "linen_will_be_created": "Linen" not in [c["name"] for c in cats],
+            "plan": plan,
+        }
+
+    # APPLY
+    updated = 0
+    for f in fabrics:
+        target_name, _ = _dominant_target(f.get("composition"), f.get("name", ""))
+        if not target_name or target_name == "Blended Fabrics":
+            continue
+        target = by_name.get(target_name)
+        if not target:
+            continue
+        res = await db.fabrics.update_one(
+            {"id": f["id"]},
+            {"$set": {"category_id": target["id"], "category_name": target_name}},
+        )
+        if res.modified_count:
+            updated += 1
+
+    # Refresh fabric_count on affected categories
+    counts_after = {}
+    for cat_name in list(summary.keys()) + ["Blended Fabrics"]:
+        if cat_name.startswith("__"):
+            continue
+        cat = by_name.get(cat_name)
+        if not cat:
+            continue
+        c = await db.fabrics.count_documents({"category_id": cat["id"]})
+        await db.categories.update_one(
+            {"id": cat["id"]}, {"$set": {"fabric_count": c}}
+        )
+        counts_after[cat_name] = c
+
+    deleted_blended = False
+    remaining = await db.fabrics.count_documents({"category_id": blended_id})
+    if remaining == 0:
+        r = await db.categories.delete_one({"id": blended_id})
+        deleted_blended = bool(r.deleted_count)
+
+    return {
+        "apply": True,
+        "status": "applied",
+        "blended_fabrics_total": len(fabrics),
+        "reassigned": updated,
+        "linen_created": linen_created,
+        "summary": summary,
+        "counts_after": counts_after,
+        "blended_deleted": deleted_blended,
+        "blended_remaining": remaining,
+    }
+
+
 # ==================== SITEMAP ====================
 
 from fastapi.responses import Response
