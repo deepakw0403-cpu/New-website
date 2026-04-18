@@ -46,6 +46,11 @@ class Category(BaseModel):
 @router.get("/categories", response_model=List[Category])
 async def get_categories():
     categories = await db.categories.find({}, {'_id': 0}).to_list(100)
+    # Compute live fabric counts in one aggregation, then merge
+    pipeline = [{"$group": {"_id": "$category_id", "n": {"$sum": 1}}}]
+    counts = {row["_id"]: row["n"] async for row in db.fabrics.aggregate(pipeline)}
+    for c in categories:
+        c['fabric_count'] = counts.get(c['id'], 0)
     return categories
 
 

@@ -142,6 +142,13 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
   - **Auto-generate Name** button: produces `M1 M2 M3, Weave type, Weight, Color: Color name` (e.g. `Cotton Polyester Lycra, 3/1 RHT, 10oz, Color: Indigo x White`)
   - All other categories keep the existing free-text color + no weave constraint
 
+### Phase 19: HeroSearchCard + Live Category Counts + Router Cleanup (Complete - Apr 2026)
+- [x] **HeroSearchCard on HomePage**: Glass-morphism card replacing the two hero CTAs. Pulls live category counts; any category with < 20 SKUs gets a "COMING SOON" flag (`components/HeroSearchCard.js`). Filters: composition, weight bucket (GSM), price bucket (₹/m) + 4 popular quick chips. Submit routes to `/fabrics?category=...&composition=...&min_gsm=...` using the existing query-string contract.
+- [x] **Live fabric counts on `/api/categories`**: Now computes counts via `$group` over fabrics collection on every call — no more stale `fabric_count` field.
+- [x] **`enquiry_router.py` extracted**: 4 endpoints (create/list/update-status/delete) moved out of server.py with Zapier + campaigns.locofast.com push side-effects intact. Response model loosened (`email` optional) to tolerate legacy supplier-profile enquiry docs that lack email.
+- [x] server.py size: 2304 → **2227** lines
+- [ ] **Deferred**: `article_router` and `fabric_router` extraction — both share `normalize_fabric` (~120 LOC), which should first move to a new `fabric_utils.py`. Scheduled as Phase 20.
+
 ## Backlog
 
 ### P1 (High Priority)

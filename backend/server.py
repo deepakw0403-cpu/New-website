@@ -1492,86 +1492,6 @@ async def get_other_sellers_for_fabric(fabric_id: str):
 
 # ==================== ENQUIRY ROUTES ====================
 
-@api_router.post("/enquiries", response_model=Enquiry)
-async def create_enquiry(data: EnquiryCreate):
-    enquiry_id = str(uuid.uuid4())
-    enquiry_doc = {
-        'id': enquiry_id,
-        **data.model_dump(),
-        'status': 'new',
-        'created_at': datetime.now(timezone.utc).isoformat()
-    }
-    await db.enquiries.insert_one(enquiry_doc)
-    
-    # Send email notifications (best effort - don't block on failure)
-    try:
-        from email_router import send_enquiry_emails
-        import asyncio
-        asyncio.create_task(send_enquiry_emails(enquiry_doc))
-    except Exception as e:
-        logging.warning(f"Failed to queue enquiry emails: {str(e)}")
-    
-    # Send to Zapier webhook (best effort - don't block on failure)
-    try:
-        from zapier_webhook import send_enquiry_to_zapier
-        import asyncio
-        asyncio.create_task(send_enquiry_to_zapier(enquiry_doc))
-    except Exception as e:
-        logging.warning(f"Failed to send to Zapier: {str(e)}")
-    
-    # Push supplier queries to campaigns.locofast.com
-    try:
-        import httpx as httpx_client
-        campaign_name = 'Vendor Signup' if enquiry_doc.get('enquiry_type') == 'supplier_signup' else 'Website RFQ'
-        # Extract company_type from enquiry data
-        company_type = enquiry_doc.get('company_type', '')
-        if not company_type:
-            # Try to extract fabric categories from message for supplier signups
-            msg = enquiry_doc.get('message', '')
-            if 'Fabric Categories:' in msg:
-                cat_line = [l for l in msg.split('\n') if 'Fabric Categories:' in l]
-                if cat_line:
-                    company_type = cat_line[0].split('Fabric Categories:')[-1].strip()
-            if not company_type:
-                company_type = 'Supplier' if enquiry_doc.get('enquiry_type') == 'supplier_signup' else 'Buyer'
-        async with httpx_client.AsyncClient(timeout=10) as client:
-            await client.post('https://campaigns.locofast.com/api/leads', json={
-                'name': enquiry_doc.get('name', ''),
-                'company': enquiry_doc.get('company', ''),
-                'email': enquiry_doc.get('email', ''),
-                'phone': enquiry_doc.get('phone', ''),
-                'company_type': company_type,
-                'message': enquiry_doc.get('message', ''),
-                'campaign': campaign_name,
-            })
-            logging.info(f"Enquiry pushed to campaigns admin: {enquiry_doc.get('name', '')} ({campaign_name})")
-    except Exception as e:
-        logging.warning(f"Failed to push enquiry to campaigns: {str(e)}")
-    
-    return Enquiry(**enquiry_doc)
-
-@api_router.get("/enquiries", response_model=List[Enquiry])
-async def get_enquiries(admin=Depends(get_current_admin)):
-    enquiries = await db.enquiries.find({}, {'_id': 0}).sort('created_at', -1).to_list(500)
-    return enquiries
-
-@api_router.put("/enquiries/{enquiry_id}/status")
-async def update_enquiry_status(enquiry_id: str, status: str = Query(...), admin=Depends(get_current_admin)):
-    result = await db.enquiries.update_one({'id': enquiry_id}, {'$set': {'status': status}})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail='Enquiry not found')
-    return {'message': 'Status updated'}
-
-@api_router.delete("/enquiries/{enquiry_id}")
-async def delete_enquiry(enquiry_id: str, admin=Depends(get_current_admin)):
-    """Delete an enquiry"""
-    result = await db.enquiries.delete_one({'id': enquiry_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail='Enquiry not found')
-    return {'message': 'Enquiry deleted'}
-
-# ==================== REVIEWS CMS ====================
-
 @api_router.post("/reviews")
 async def create_review(data: dict, admin=Depends(get_current_admin)):
     """Admin creates a review for a seller (from ERP data)"""
@@ -2247,6 +2167,10 @@ app.include_router(seller_router.router)
 import collection_router
 collection_router.set_db(db, normalize_fn=normalize_fabric)
 app.include_router(collection_router.router)
+
+import enquiry_router
+enquiry_router.set_db(db)
+app.include_router(enquiry_router.router)
 
 import credit_router
 credit_router.set_db(db)

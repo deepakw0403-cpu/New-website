@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, MessageCircle, Shield, Clock, Users, ChevronDown, ChevronUp, Sparkles, Factory, Store, Layers, Building2, ShieldCheck } from "lucide-react";
 import Navbar from "../components/Navbar";
 import RFQModal from "../components/RFQModal";
+import HeroSearchCard from "../components/HeroSearchCard";
 import { getCollections } from "../lib/api";
 import { trackRFQIntent } from "../lib/analytics";
 import CreditApplicationSection from "../components/CreditApplicationSection";
@@ -174,25 +175,8 @@ const HomePage = () => {
               <p className="text-lg md:text-xl text-white/80 leading-relaxed mb-10 max-w-2xl mx-auto">
                 Connect directly with 500+ verified seller partners. Get instant access to quality fabrics with transparent pricing, clear MOQs, and secure payments.
               </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link
-                  to="/fabrics"
-                  className="inline-flex items-center justify-center gap-2 bg-white text-[#2563EB] px-8 py-4 rounded-lg font-medium hover:bg-blue-50 transition-all hover:gap-3 shadow-lg shadow-blue-900/20"
-                  data-testid="hero-cta-primary"
-                >
-                  Instant Booking
-                  <ArrowRight size={18} />
-                </Link>
-                <button
-                  onClick={() => { trackRFQIntent('', 'homepage_hero'); setShowRfqModal(true); }}
-                  className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-medium hover:bg-white/20 transition-colors border border-white/20"
-                  data-testid="hero-cta-secondary"
-                >
-                  <MessageCircle size={18} />
-                  Request a Quote
-                </button>
-              </div>
+
+              <HeroSearchCard />
 
               {/* Trust indicators */}
               <div className="flex flex-wrap justify-center gap-8 mt-16 pt-8 border-t border-white/10">
