@@ -132,6 +132,16 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
   - `models.py` — Shared Pydantic models
   - `slug_utils.py` — Reusable slug generation utility
 
+### Phase 18: Denim Taxonomy + Blended Migration (Complete - Apr 2026)
+- [x] **Dissolved "Blended Fabrics" category**: Every fabric auto-reassigned to the category whose material has the highest composition % (with name-based fallback). Linen created as a new category for `Linen Cotton AOP` (55% Linen). Preview DB: 32 blended → 26 Cotton + 5 Polyester + 1 Linen; category then deleted.
+  - Standalone script: `/app/backend/scripts/migrate_blended.py` (dry-run default, `--apply` to write)
+  - Admin endpoint: `POST /api/migrate/blended` (dry-run) + `?apply=true` — idempotent, guarded by `get_current_admin`, returns per-fabric plan + counts_after
+- [x] **Denim-specific form fields in Admin Fabrics** (when category is Denim):
+  - **Color dropdown** (8 options): Black x White, Black x Black, Indigo x White, Indigo x Black, Ecru, RFD, IBST, SBIT — applies to single color & multi-color variants
+  - **Weave Type dropdown** (7 options): 2/1 RHT, 2/1 LHT, 3/1 RHT, 3/1 LHT, 4/1 Satin, Dobby, Herringbone
+  - **Auto-generate Name** button: produces `M1 M2 M3, Weave type, Weight, Color: Color name` (e.g. `Cotton Polyester Lycra, 3/1 RHT, 10oz, Color: Indigo x White`)
+  - All other categories keep the existing free-text color + no weave constraint
+
 ## Backlog
 
 ### P1 (High Priority)

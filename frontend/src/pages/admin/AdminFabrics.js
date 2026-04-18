@@ -44,6 +44,7 @@ const AdminFabrics = () => {
     article_id: "",
     fabric_type: "woven",
     pattern: "Solid",
+    weave_type: "",
     composition: emptyComposition,
     gsm: "",
     ounce: "",
@@ -100,6 +101,37 @@ const AdminFabrics = () => {
   const fabricTypes = ["woven", "knitted", "non-woven"];
   const patternOptions = ["Solid", "Print", "Stripes", "Checks", "Floral", "Geometric", "Digital", "Random", "Others"];
   const finishOptions = ["", "Bio", "Double Bio", "Silicon", "Double Silicon", "Enzyme Wash", "Sulphur Wash", "Acid Wash", "Normal Wash", "Stone Wash"];
+
+  // ===== Denim-specific dropdown values =====
+  const DENIM_CATEGORY_ID = "cat-denim";
+  const isDenim = () => form.category_id === DENIM_CATEGORY_ID;
+  const denimColorOptions = [
+    "", "Black x White", "Black x Black", "Indigo x White", "Indigo x Black",
+    "Ecru", "RFD", "IBST (Indigo bottom, Sulphur top)", "SBIT (Sulphur bottom, Indigo top)",
+  ];
+  const denimWeaveOptions = [
+    "", "2/1 RHT", "2/1 LHT", "3/1 RHT", "3/1 LHT", "4/1 Satin", "Dobby", "Herringbone",
+  ];
+
+  // Auto-generate a denim fabric name in the format:
+  //   "M1 M2 M3, Weave type, Weight, Color: Color name"
+  // Pulls top 3 materials (in composition order, not %), weave_type, weight, and color.
+  const buildDenimName = () => {
+    const mats = (form.composition || [])
+      .map((c) => (c.material || "").trim())
+      .filter(Boolean)
+      .slice(0, 3)
+      .join(" ");
+    const weave = (form.weave_type || "").trim();
+    const weight = form.weight_unit === "ounce"
+      ? (form.ounce ? `${form.ounce}oz` : "")
+      : (form.gsm ? `${form.gsm} GSM` : "");
+    const color = (form.color || "").trim();
+    const parts = [mats, weave, weight].filter(Boolean);
+    const base = parts.join(", ");
+    if (!base) return "";
+    return color ? `${base}, Color: ${color}` : base;
+  };
   
   // Standard fabric/dye colors
   const colorOptions = [
@@ -373,6 +405,7 @@ const AdminFabrics = () => {
       seller_id: fabric.seller_id || "",
       article_id: fabric.article_id || "",
       pattern: fabric.pattern || "Solid",
+      weave_type: fabric.weave_type || "",
       composition: compositionData,
       gsm: fabric.gsm ? fabric.gsm.toString() : "",
       ounce: fabric.ounce || "",
@@ -843,13 +876,32 @@ const AdminFabrics = () => {
                 {/* Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Name *</label>
+                    <label className="block text-sm font-medium mb-2 flex items-center justify-between">
+                      <span>Name *</span>
+                      {isDenim() && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const n = buildDenimName();
+                            if (!n) { toast.error("Add composition, weave, weight & color first"); return; }
+                            setForm({ ...form, name: n });
+                            toast.success("Name generated");
+                          }}
+                          className="text-xs font-medium text-[#2563EB] hover:underline"
+                          data-testid="fabric-generate-name-btn"
+                          title="Auto-generate name from composition, weave, weight & color"
+                        >
+                          Auto-generate
+                        </button>
+                      )}
+                    </label>
                     <input
                       type="text"
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-200 rounded"
                       required
+                      placeholder={isDenim() ? "Cotton Polyester Lycra, 3/1 RHT, 10oz, Color: Indigo x White" : ""}
                       data-testid="fabric-name-input"
                     />
                   </div>
@@ -900,6 +952,21 @@ const AdminFabrics = () => {
                       ))}
                     </select>
                   </div>
+                  {isDenim() && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Weave Type *</label>
+                      <select
+                        value={form.weave_type}
+                        onChange={(e) => setForm({ ...form, weave_type: e.target.value })}
+                        className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                        data-testid="fabric-weave-type-select"
+                      >
+                        {denimWeaveOptions.map((w) => (
+                          <option key={w} value={w}>{w || "-- Select Weave --"}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {/* Weight: GSM or Ounce */}
@@ -1137,7 +1204,7 @@ const AdminFabrics = () => {
                       className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
                       data-testid="fabric-color-select"
                     >
-                      {colorOptions.map((c) => (
+                      {(isDenim() ? denimColorOptions : colorOptions).map((c) => (
                         <option key={c} value={c}>{c || "-- Select Color --"}</option>
                       ))}
                     </select>
@@ -1196,18 +1263,35 @@ const AdminFabrics = () => {
                               className="w-8 h-8 rounded cursor-pointer border-0"
                               title="Pick color"
                             />
-                            <input
-                              type="text"
-                              value={cv.color_name || ""}
-                              onChange={(e) => {
-                                const updated = [...form.color_variants];
-                                updated[idx] = { ...cv, color_name: e.target.value };
-                                setForm({ ...form, color_variants: updated });
-                              }}
-                              placeholder="Color name (e.g., Khaki)"
-                              className="flex-1 px-3 py-2 border border-gray-200 rounded text-sm font-medium"
-                              data-testid={`cv-name-${idx}`}
-                            />
+                            {isDenim() ? (
+                              <select
+                                value={cv.color_name || ""}
+                                onChange={(e) => {
+                                  const updated = [...form.color_variants];
+                                  updated[idx] = { ...cv, color_name: e.target.value };
+                                  setForm({ ...form, color_variants: updated });
+                                }}
+                                className="flex-1 px-3 py-2 border border-gray-200 rounded text-sm font-medium bg-white"
+                                data-testid={`cv-name-${idx}`}
+                              >
+                                {denimColorOptions.map((c) => (
+                                  <option key={c} value={c}>{c || "-- Select Color --"}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                value={cv.color_name || ""}
+                                onChange={(e) => {
+                                  const updated = [...form.color_variants];
+                                  updated[idx] = { ...cv, color_name: e.target.value };
+                                  setForm({ ...form, color_variants: updated });
+                                }}
+                                placeholder="Color name (e.g., Khaki)"
+                                className="flex-1 px-3 py-2 border border-gray-200 rounded text-sm font-medium"
+                                data-testid={`cv-name-${idx}`}
+                              />
+                            )}
                             <button
                               type="button"
                               onClick={() => setForm({ ...form, color_variants: form.color_variants.filter((_, i) => i !== idx) })}
