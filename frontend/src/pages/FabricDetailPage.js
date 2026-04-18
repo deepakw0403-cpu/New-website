@@ -269,11 +269,11 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
       "category": fabric.category_name,
       "brand": {
         "@type": "Brand",
-        "name": fabric.seller_company || "Locofast"
+        "name": "Locofast"
       },
       "manufacturer": {
         "@type": "Organization",
-        "name": fabric.seller_company || "Locofast"
+        "name": "Locofast"
       },
       "material": fabric.composition?.map(c => c.material).join(', ') || undefined,
       "color": fabric.color || undefined,
@@ -303,7 +303,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
           : "https://schema.org/PreOrder",
         "seller": {
           "@type": "Organization",
-          "name": fabric.seller_company || "Locofast"
+          "name": "Locofast"
         }
       };
     }
@@ -632,11 +632,6 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
               <div className="mb-6">
                 <p className="subheading mb-2">{fabric.category_name}</p>
                 <div className="flex items-center gap-3 flex-wrap mb-4">
-                  {fabric.seller_company && (
-                    <span className="text-sm text-gray-500">
-                      by <span className="font-medium text-gray-700">{fabric.seller_company}</span>
-                    </span>
-                  )}
                 </div>
               </div>
 
@@ -789,17 +784,20 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                 
                 <div className="flex flex-col gap-3">
                   {actions.canBookBulk && (
-                    <button
-                      onClick={() => {
-                        trackAddToCart(fabric, 'bulk', fabric.moq || 100, fabric.rate_per_meter || 0);
-                        navigate(`/checkout/?fabric_id=${fabric.id}&type=bulk&qty=${fabric.moq || 100}`);
-                      }}
-                      className="w-full bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors inline-flex items-center justify-center gap-2"
-                      data-testid="book-bulk-btn"
-                    >
-                      <ShoppingCart size={18} />
-                      Book Bulk Now
-                    </button>
+                    <div>
+                      <button
+                        onClick={() => {
+                          trackAddToCart(fabric, 'bulk', fabric.moq || 100, fabric.rate_per_meter || 0);
+                          navigate(`/checkout/?fabric_id=${fabric.id}&type=bulk&qty=${fabric.moq || 100}`);
+                        }}
+                        className="w-full bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors inline-flex items-center justify-center gap-2"
+                        data-testid="book-bulk-btn"
+                      >
+                        <ShoppingCart size={18} />
+                        Book Bulk Now
+                      </button>
+                      <p className="text-xs text-emerald-600 text-center mt-1.5 font-medium">Dispatch in 1-2 days (standard shipping timelines apply)</p>
+                    </div>
                   )}
                   {actions.canBookSample && (
                     <button
@@ -931,14 +929,12 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
           {/* Other Sellers — Compare Prices */}
           {otherSellers.length > 0 && (
             <div className="border-t border-gray-200 pt-12 mt-12" data-testid="other-sellers">
-              <h2 className="text-2xl font-semibold mb-2">Compare Prices from Other Sellers</h2>
-              <p className="text-gray-500 text-sm mb-6">{otherSellers.length} other seller{otherSellers.length > 1 ? 's' : ''} offer this fabric</p>
+              <h2 className="text-2xl font-semibold mb-2">Compare Prices</h2>
+              <p className="text-gray-500 text-sm mb-6">{otherSellers.length} other option{otherSellers.length > 1 ? 's' : ''} available for this fabric</p>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border border-gray-200 rounded-lg overflow-hidden">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Seller</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Location</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Price</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">MOQ</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Delivery</th>
@@ -948,12 +944,6 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   <tbody className="divide-y divide-gray-100">
                     {otherSellers.map((s) => (
                       <tr key={s.id} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-sm text-gray-900">{s.seller_company || s.seller_name || 'Verified Seller'}</p>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {s.seller_city ? `${s.seller_city}, ${s.seller_state || ''}` : '—'}
-                        </td>
                         <td className="px-4 py-3">
                           {s.rate_per_meter ? (
                             <span className="font-semibold text-emerald-700">₹{s.rate_per_meter}/{s.category_id === 'cat-knits' ? 'kg' : 'm'}</span>
