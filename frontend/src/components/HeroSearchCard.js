@@ -75,8 +75,10 @@ const HeroSearchCard = () => {
 
   const search = (overrides = {}) => {
     const params = new URLSearchParams();
-    const cat = overrides.category ?? active;
-    if (cat) params.set("category", cat);
+    const catName = overrides.category ?? active;
+    // Find category ID from name for proper API filtering
+    const catObj = categories.find((c) => c.name === catName);
+    if (catObj) params.set("category", catObj.id);
     const comp = overrides.composition ?? composition;
     if (comp) params.set("composition", comp);
     const w = overrides.weight ?? (weightIdx !== "" ? WEIGHT_BUCKETS[weightIdx] : null);
