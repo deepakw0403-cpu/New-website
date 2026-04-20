@@ -5,15 +5,6 @@ import { getCategories } from "../lib/api";
 
 const COMING_SOON_THRESHOLD = 20;
 
-const COMPOSITIONS = [
-  "100% Cotton",
-  "100% Polyester",
-  "Cotton-Polyester",
-  "100% Viscose",
-  "Cotton-Lycra",
-  "100% Linen",
-];
-
 const WEIGHT_BUCKETS = [
   { label: "Light (< 150 GSM)", min_gsm: "", max_gsm: "150" },
   { label: "Medium (150–250 GSM)", min_gsm: "150", max_gsm: "250" },
@@ -36,14 +27,8 @@ const SWATCH = {
   "Linen": "#c9b48a",
   "Knits": "#cfd6e1",
   "Sustainable Fabrics": "#6aa463",
+  "Blended Fabrics": "#a8957a",
 };
-
-const POPULAR = [
-  { label: "Raw selvedge", params: { category: "Denim", composition: "100% Cotton" } },
-  { label: "Organic cotton", params: { category: "Cotton Fabrics", composition: "100% Cotton" } },
-  { label: "Cotton-Lycra", params: { composition: "Cotton-Lycra" } },
-  { label: "Recycled polyester", params: { category: "Sustainable Fabrics" } },
-];
 
 const HIDDEN_NAMES = new Set(["Greige", "TEST_Refactor Category", "TEST_Debug Category"]);
 
@@ -51,7 +36,6 @@ const HeroSearchCard = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [active, setActive] = useState(null); // active category NAME (or null = all)
-  const [composition, setComposition] = useState("");
   const [weightIdx, setWeightIdx] = useState("");
   const [priceIdx, setPriceIdx] = useState("");
 
@@ -73,20 +57,16 @@ const HeroSearchCard = () => {
     [categories, active]
   );
 
-  const search = (overrides = {}) => {
+  const search = () => {
     const params = new URLSearchParams();
-    const catName = overrides.category ?? active;
-    // Find category ID from name for proper API filtering
-    const catObj = categories.find((c) => c.name === catName);
+    const catObj = categories.find((c) => c.name === active);
     if (catObj) params.set("category", catObj.id);
-    const comp = overrides.composition ?? composition;
-    if (comp) params.set("composition", comp);
-    const w = overrides.weight ?? (weightIdx !== "" ? WEIGHT_BUCKETS[weightIdx] : null);
+    const w = weightIdx !== "" ? WEIGHT_BUCKETS[weightIdx] : null;
     if (w) {
       if (w.min_gsm) params.set("min_gsm", w.min_gsm);
       if (w.max_gsm) params.set("max_gsm", w.max_gsm);
     }
-    const p = overrides.price ?? (priceIdx !== "" ? PRICE_BUCKETS[priceIdx] : null);
+    const p = priceIdx !== "" ? PRICE_BUCKETS[priceIdx] : null;
     if (p) {
       if (p.min_price) params.set("min_price", p.min_price);
       if (p.max_price) params.set("max_price", p.max_price);
@@ -139,17 +119,8 @@ const HeroSearchCard = () => {
         })}
       </div>
 
-      {/* Filter row */}
-      <div className="grid grid-cols-1 md:grid-cols-[1.1fr_1fr_1fr_auto] gap-2 pt-3">
-        <FieldSelect
-          label="Composition"
-          value={composition}
-          onChange={setComposition}
-          options={[{ value: "", label: "Any composition" }].concat(
-            COMPOSITIONS.map((c) => ({ value: c, label: c }))
-          )}
-          testid="hero-composition"
-        />
+      {/* Filter row — GSM + Price + Search */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 pt-3">
         <FieldSelect
           label="Weight · GSM"
           value={weightIdx}
@@ -170,7 +141,7 @@ const HeroSearchCard = () => {
         />
         <button
           type="button"
-          onClick={() => search()}
+          onClick={search}
           data-testid="hero-search-submit"
           className="inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl px-6 py-3 transition-all hover:-translate-y-px shadow-lg shadow-orange-900/20"
         >
@@ -179,28 +150,8 @@ const HeroSearchCard = () => {
         </button>
       </div>
 
-      {/* Popular chips */}
-      <div className="flex flex-wrap items-center gap-2 pt-3 pb-1 text-[11px] text-white/55">
-        <span className="uppercase tracking-wider">Popular</span>
-        {POPULAR.map((p) => (
-          <button
-            key={p.label}
-            type="button"
-            onClick={() => {
-              if (p.params.category) setActive(p.params.category);
-              if (p.params.composition) setComposition(p.params.composition);
-              search({ category: p.params.category, composition: p.params.composition });
-            }}
-            data-testid={`hero-popular-${p.label.toLowerCase().replace(/\s+/g, "-")}`}
-            className="px-3 py-1 rounded-full bg-white/5 hover:bg-white/15 text-white/85 border border-white/10 text-xs transition"
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
       {activeCategory && (activeCategory.fabric_count || 0) < COMING_SOON_THRESHOLD && (
-        <p className="pt-2 text-xs text-white/60" data-testid="hero-coming-soon-note">
+        <p className="pt-3 text-xs text-white/60" data-testid="hero-coming-soon-note">
           {activeCategory.name.replace(/ Fabrics$/, "")} is rolling out soon — we're listing more SKUs every week.
         </p>
       )}
