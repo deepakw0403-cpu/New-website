@@ -207,14 +207,40 @@ const AdminFabrics = () => {
     }
   };
 
+  // Materials that share the stretch-fibre class and use the 0.5→20% dropdown
+  const STRETCH_FIBRES = ['spandex', 'elastane', 'lycra', 'stretch'];
+  const isStretchFibre = (material) =>
+    STRETCH_FIBRES.some((f) => (material || '').toLowerCase().includes(f));
+
+  // 0.5, 1, 1.5, … 20  (40 steps)
+  const stretchPercentOptions = Array.from({ length: 40 }, (_, i) => (i + 1) * 0.5);
+
   const updateComposition = (index, field, value) => {
     const newComp = [...form.composition];
-    newComp[index] = { ...newComp[index], [field]: field === 'percentage' ? parseInt(value) || 0 : value };
+    let next;
+    if (field === 'percentage') {
+      const n = parseFloat(value);
+      next = Number.isFinite(n) ? n : 0;
+    } else {
+      next = value;
+      // If the row was a stretch fibre with a 0.5-step value that now isn't allowed
+      // under the regular dropdown, snap it to the nearest integer so the control
+      // still reflects a selectable value.
+      const prev = newComp[index] || {};
+      const wasStretch = isStretchFibre(prev.material);
+      const isStretchNow = isStretchFibre(value);
+      if (wasStretch && !isStretchNow && prev.percentage && !Number.isInteger(prev.percentage)) {
+        newComp[index] = { ...prev, percentage: Math.round(prev.percentage) };
+      }
+    }
+    newComp[index] = { ...newComp[index], [field]: next };
     setForm({ ...form, composition: newComp });
   };
 
   const getCompositionTotal = () => {
-    return form.composition.reduce((sum, c) => sum + (c.percentage || 0), 0);
+    const n = form.composition.reduce((sum, c) => sum + (Number(c.percentage) || 0), 0);
+    // Avoid floating-point UI noise like 99.99999999 when 2 + 2 + 96 is entered
+    return Math.round(n * 10) / 10;
   };
 
   useEffect(() => {
@@ -1025,31 +1051,39 @@ const AdminFabrics = () => {
                     </span>
                   </label>
                   <div className="space-y-2" data-testid="fabric-composition-editor">
-                    {form.composition.map((comp, idx) => (
-                      <div key={idx} className="flex gap-2">
-                        <input
-                          type="text"
-                          value={comp.material}
-                          onChange={(e) => updateComposition(idx, 'material', e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded text-sm"
-                          placeholder={`Material ${idx + 1} (e.g., Cotton)`}
-                          data-testid={`composition-material-${idx}`}
-                        />
-                        <select
-                          value={comp.percentage || ''}
-                          onChange={(e) => updateComposition(idx, 'percentage', e.target.value)}
-                          className="w-24 px-2 py-2 border border-gray-200 rounded text-sm bg-white"
-                          data-testid={`composition-percentage-${idx}`}
-                        >
-                          <option value="">%</option>
-                          {percentageOptions.map((n) => (
-                            <option key={n} value={n}>{n}%</option>
-                          ))}
-                        </select>
-                      </div>
-                    ))}
+                    {form.composition.map((comp, idx) => {
+                      const stretch = isStretchFibre(comp.material);
+                      const opts = stretch ? stretchPercentOptions : percentageOptions;
+                      const label = (v) => (stretch ? `${v}%` : `${v}%`);
+                      return (
+                        <div key={idx} className="flex gap-2">
+                          <input
+                            type="text"
+                            value={comp.material}
+                            onChange={(e) => updateComposition(idx, 'material', e.target.value)}
+                            className={`flex-1 px-3 py-2 border rounded text-sm ${stretch ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}
+                            placeholder={`Material ${idx + 1} (e.g., Cotton)`}
+                            data-testid={`composition-material-${idx}`}
+                          />
+                          <select
+                            value={comp.percentage ?? ''}
+                            onChange={(e) => updateComposition(idx, 'percentage', e.target.value)}
+                            className={`w-28 px-2 py-2 border rounded text-sm bg-white font-medium ${stretch ? 'border-amber-400 bg-amber-50 text-amber-900' : 'border-gray-200'}`}
+                            data-testid={`composition-percentage-${idx}`}
+                            title={stretch ? 'Stretch fibres use 0.5% steps (0.5 – 20%)' : undefined}
+                          >
+                            <option value="">%</option>
+                            {opts.map((n) => (
+                              <option key={n} value={n}>{label(n)}</option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">E.g., Cotton 78%, Polyester 21%, Spandex 1%</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    E.g., Cotton 78%, Polyester 20%, Spandex 2%. Stretch fibres (<b>Spandex / Elastane / Lycra / Stretch</b>) use 0.5% steps from 0.5% to 20%.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

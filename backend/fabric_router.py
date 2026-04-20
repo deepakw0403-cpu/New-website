@@ -27,7 +27,8 @@ def set_db(database):
 
 class CompositionItem(BaseModel):
     material: str
-    percentage: int
+    # Percentage supports fractional values (e.g., Spandex 2.5%)
+    percentage: float
 
 
 class FabricCreate(BaseModel):
