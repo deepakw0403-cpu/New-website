@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2, X, Search, Package, Loader2, Upload, Video, Check } from "lucide-react";
 import VendorLayout from "../../components/vendor/VendorLayout";
-import { getVendorFabrics, createVendorFabric, updateVendorFabric, deleteVendorFabric, getVendorCategories, getArticles, uploadToCloudinary, uploadVideoToCloudinary } from "../../lib/api";
+import api, { getVendorFabrics, createVendorFabric, updateVendorFabric, deleteVendorFabric, getVendorCategories, getArticles, uploadToCloudinary, uploadVideoToCloudinary } from "../../lib/api";
 import { toast } from "sonner";
 
 const fabricTypes = ["woven", "knitted", "non-woven"];
@@ -100,6 +100,8 @@ const VendorInventory = () => {
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [form, setForm] = useState(emptyForm);
+  const [commissionMap, setCommissionMap] = useState({});        // { fabricId: { commission_pct, commission_amount, rule_applied } }
+  const [modalCommission, setModalCommission] = useState(null);  // Live commission preview inside the modal
 
   const isKnitsCategory = (catId) => catId === "cat-knits";
   const unit = isKnitsCategory(form.category_id) ? "kg" : "m";
@@ -117,9 +119,63 @@ const VendorInventory = () => {
       setFabrics(fabRes.data);
       setCategories(catRes.data);
       setArticles(artRes.data || []);
+      fetchCommissions(fabRes.data);
     } catch { toast.error("Failed to load inventory"); }
     setLoading(false);
   };
+
+  // Query platform commission for every fabric in parallel.
+  // Uses the existing /api/commission/calculate-preview endpoint which honours
+  // vendor > category > slab > default priority.
+  const fetchCommissions = async (list) => {
+    const sample = list.filter((f) => f.rate_per_meter > 0);
+    if (sample.length === 0) return;
+    const results = await Promise.all(
+      sample.map((f) =>
+        api
+          .post("/commission/calculate-preview", {
+            items: [{
+              quantity: f.moq ? parseInt(f.moq) || 100 : 100,
+              price_per_meter: f.rate_per_meter,
+              seller_id: f.seller_id || "",
+              category_name: f.category_name || "",
+            }],
+          })
+          .then((r) => [f.id, r.data])
+          .catch(() => [f.id, null])
+      )
+    );
+    setCommissionMap((prev) => {
+      const next = { ...prev };
+      for (const [id, data] of results) if (data) next[id] = data;
+      return next;
+    });
+  };
+
+  // Live preview inside the Add/Edit modal — fires on category/price/MOQ change
+  useEffect(() => {
+    if (!showModal) return;
+    const price = parseFloat(form.rate_per_meter);
+    if (!form.category_id || !price || price <= 0) {
+      setModalCommission(null);
+      return;
+    }
+    const cat = categories.find((c) => c.id === form.category_id);
+    const t = setTimeout(() => {
+      api
+        .post("/commission/calculate-preview", {
+          items: [{
+            quantity: form.moq ? parseInt(form.moq) || 100 : 100,
+            price_per_meter: price,
+            seller_id: editingFabric?.seller_id || "",
+            category_name: cat?.name || "",
+          }],
+        })
+        .then((r) => setModalCommission(r.data))
+        .catch(() => setModalCommission(null));
+    }, 280);
+    return () => clearTimeout(t);
+  }, [showModal, form.category_id, form.rate_per_meter, form.moq, categories, editingFabric]);
 
   const isPolyester = () => form.composition.some(c => c.material?.toLowerCase().includes('polyester'));
   const isDenim = () => form.category_id === DENIM_CATEGORY_ID;
@@ -380,6 +436,7 @@ const VendorInventory = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bulk Price</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sample Price</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" data-testid="col-commission">Platform commission</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
@@ -401,6 +458,19 @@ const VendorInventory = () => {
                     <td className="px-4 py-4"><span className={`font-medium ${fabric.quantity_available > 0 ? "text-emerald-600" : "text-gray-400"}`}>{fabric.quantity_available || 0}{getFabricUnit(fabric)}</span></td>
                     <td className="px-4 py-4">₹{fabric.rate_per_meter?.toLocaleString() || 0}/{getFabricUnit(fabric)}</td>
                     <td className="px-4 py-4">{fabric.sample_price ? `₹${fabric.sample_price.toLocaleString()}/${getFabricUnit(fabric)}` : "-"}</td>
+                    <td className="px-4 py-4" data-testid={`commission-cell-${fabric.id}`}>
+                      {commissionMap[fabric.id] ? (
+                        <span
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 text-orange-800 border border-orange-200 rounded-full text-xs font-semibold"
+                          title={commissionMap[fabric.id].rule_applied || "Default platform commission"}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                          {commissionMap[fabric.id].commission_pct}%
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-4">
                       <span className={`px-2 py-1 text-xs rounded-full ${fabric.status === "approved" ? "bg-emerald-100 text-emerald-700" : fabric.status === "pending" ? "bg-yellow-100 text-yellow-700" : fabric.status === "rejected" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"}`}>
                         {fabric.status === "approved" ? "Live" : fabric.status === "pending" ? "Pending Approval" : fabric.status === "rejected" ? "Rejected" : "Draft"}
@@ -712,6 +782,31 @@ const VendorInventory = () => {
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg" placeholder={`500 ${unitLabel}`} />
                     </div>
                   </div>
+
+                  {/* Live platform commission */}
+                  {modalCommission && parseFloat(form.rate_per_meter) > 0 && (
+                    <div className="mb-4 rounded-xl border border-orange-200 bg-gradient-to-r from-orange-50 to-orange-100 px-4 py-3 flex items-center justify-between gap-4"
+                         data-testid="modal-commission-box">
+                      <div className="flex items-center gap-3">
+                        <span className="inline-flex items-center justify-center bg-orange-500 text-white text-xs font-bold rounded-full px-3 py-1 min-w-[44px]">
+                          {modalCommission.commission_pct}%
+                        </span>
+                        <div className="text-[13px] text-orange-900 leading-tight">
+                          <div className="font-semibold">Platform commission: {modalCommission.commission_pct}%</div>
+                          <div className="text-[11px] text-orange-800 mt-0.5">
+                            {modalCommission.rule_applied || "Applies on every sale of this fabric"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right text-[11px] text-gray-600 leading-tight">
+                        <div className="line-through text-gray-400">₹{parseFloat(form.rate_per_meter).toFixed(2)}/{unit}</div>
+                        <div className="text-emerald-700 font-bold text-base leading-tight">
+                          ₹{(parseFloat(form.rate_per_meter) * (1 - modalCommission.commission_pct / 100)).toFixed(2)}/{unit}
+                        </div>
+                        <div>your payout after commission</div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Delivery Days */}
                   <div className="grid grid-cols-2 gap-4 mb-4">
