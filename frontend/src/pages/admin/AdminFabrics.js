@@ -102,9 +102,11 @@ const AdminFabrics = () => {
   const patternOptions = ["Solid", "Print", "Stripes", "Checks", "Floral", "Geometric", "Digital", "Random", "Others"];
   const finishOptions = ["", "Bio", "Double Bio", "Silicon", "Double Silicon", "Enzyme Wash", "Sulphur Wash", "Acid Wash", "Normal Wash", "Stone Wash"];
 
-  // ===== Denim-specific dropdown values =====
+  // ===== Category-specific dropdown values =====
   const DENIM_CATEGORY_ID = "cat-denim";
+  const COTTON_CATEGORY_ID = "cat-cotton";
   const isDenim = () => form.category_id === DENIM_CATEGORY_ID;
+  const isCotton = () => form.category_id === COTTON_CATEGORY_ID;
   const denimColorOptions = [
     "", "Black x White", "Black x Black", "Indigo x White", "Indigo x Black",
     "Ecru", "RFD", "IBST (Indigo bottom, Sulphur top)", "SBIT (Sulphur bottom, Indigo top)",
@@ -112,6 +114,16 @@ const AdminFabrics = () => {
   const denimWeaveOptions = [
     "", "2/1 RHT", "2/1 LHT", "3/1 RHT", "3/1 LHT", "4/1 Satin", "Dobby", "Herringbone",
   ];
+  const cottonWeaveOptions = [
+    "", "Voile", "Cambric", "Poplin", "2/1 Twill", "3/1 Twill", "2/2 Twill", "4/1 Satin",
+    "Dobby", "Herringbone", "-Slub", "+Slub", "Double Cloth", "Oxford", "Canvas",
+    "Sheeting", "Casement", "Lurex",
+  ];
+  const weaveOptionsForCategory = () => {
+    if (isDenim()) return denimWeaveOptions;
+    if (isCotton()) return cottonWeaveOptions;
+    return null; // no weave control for other categories
+  };
 
   // Auto-generate a denim fabric name in the format:
   //   "M1 M2 M3, Weave type, Weight, Color: Color name"
@@ -976,16 +988,18 @@ const AdminFabrics = () => {
                       ))}
                     </select>
                   </div>
-                  {isDenim() && (
+                  {weaveOptionsForCategory() && (
                     <div>
-                      <label className="block text-sm font-medium mb-2">Weave Type *</label>
+                      <label className="block text-sm font-medium mb-2">
+                        Weave Type {isDenim() ? "*" : ""}
+                      </label>
                       <select
                         value={form.weave_type}
                         onChange={(e) => setForm({ ...form, weave_type: e.target.value })}
                         className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
                         data-testid="fabric-weave-type-select"
                       >
-                        {denimWeaveOptions.map((w) => (
+                        {weaveOptionsForCategory().map((w) => (
                           <option key={w} value={w}>{w || "-- Select Weave --"}</option>
                         ))}
                       </select>

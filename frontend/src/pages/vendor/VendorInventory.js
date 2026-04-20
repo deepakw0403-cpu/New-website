@@ -7,6 +7,25 @@ import { toast } from "sonner";
 const fabricTypes = ["woven", "knitted", "non-woven"];
 const patternOptions = ["Solid", "Print", "Stripes", "Checks", "Floral", "Geometric", "Digital", "Random", "Others"];
 const finishOptions = ["", "Bio", "Double Bio", "Silicon", "Double Silicon", "Enzyme Wash", "Sulphur Wash", "Acid Wash", "Normal Wash", "Stone Wash"];
+
+// ===== Category-specific dropdown values =====
+const DENIM_CATEGORY_ID = "cat-denim";
+const COTTON_CATEGORY_ID = "cat-cotton";
+const denimColorOptions = [
+  "", "Black x White", "Black x Black", "Indigo x White", "Indigo x Black",
+  "Ecru", "RFD", "IBST (Indigo bottom, Sulphur top)", "SBIT (Sulphur bottom, Indigo top)",
+];
+const denimWeaveOptions = [
+  "", "2/1 RHT", "2/1 LHT", "3/1 RHT", "3/1 LHT", "4/1 Satin", "Dobby", "Herringbone",
+];
+const cottonWeaveOptions = [
+  "", "Voile", "Cambric", "Poplin", "2/1 Twill", "3/1 Twill", "2/2 Twill", "4/1 Satin",
+  "Dobby", "Herringbone", "-Slub", "+Slub", "Double Cloth", "Oxford", "Canvas",
+  "Sheeting", "Casement", "Lurex",
+];
+const STRETCH_FIBRES = ['spandex', 'elastane', 'lycra', 'stretch'];
+const isStretchFibre = (m) => STRETCH_FIBRES.some((f) => (m || '').toLowerCase().includes(f));
+const stretchPercentOptions = Array.from({ length: 40 }, (_, i) => (i + 1) * 0.5);
 const colorOptions = [
   "", "White", "Off-White", "Cream", "Ivory", "Beige", "Tan", "Brown", "Dark Brown", "Chocolate",
   "Black", "Charcoal", "Grey", "Light Grey", "Silver",
@@ -44,7 +63,7 @@ const emptyComposition = [
 
 const emptyForm = {
   name: "", fabric_code: "", category_id: "", description: "",
-  fabric_type: "woven", pattern: "Solid",
+  fabric_type: "woven", pattern: "Solid", weave_type: "",
   composition: [...emptyComposition],
   gsm: "", ounce: "", weight_unit: "gsm", width: "",
   warp_ply: "1", warp_count: "", weft_ply: "1", weft_count: "",
@@ -103,11 +122,53 @@ const VendorInventory = () => {
   };
 
   const isPolyester = () => form.composition.some(c => c.material?.toLowerCase().includes('polyester'));
-  const getCompositionTotal = () => form.composition.reduce((sum, c) => sum + (c.percentage || 0), 0);
+  const isDenim = () => form.category_id === DENIM_CATEGORY_ID;
+  const isCotton = () => form.category_id === COTTON_CATEGORY_ID;
+  const weaveOptionsForCategory = () => {
+    if (isDenim()) return denimWeaveOptions;
+    if (isCotton()) return cottonWeaveOptions;
+    return null;
+  };
+
+  // Auto-generate name: "M1 M2 M3, [Weave], Weight, Color: <color>"
+  const buildFabricName = () => {
+    const mats = (form.composition || [])
+      .map((c) => (c.material || "").trim())
+      .filter(Boolean)
+      .slice(0, 3)
+      .join(" ");
+    const weave = (form.weave_type || "").trim();
+    const weight = form.weight_unit === "ounce"
+      ? (form.ounce ? `${form.ounce}oz` : "")
+      : (form.gsm ? `${form.gsm} GSM` : "");
+    const color = (form.color || "").trim();
+    const parts = [mats, weave, weight].filter(Boolean);
+    const base = parts.join(", ");
+    if (!base) return "";
+    return color ? `${base}, Color: ${color}` : base;
+  };
+
+  const getCompositionTotal = () => {
+    const n = form.composition.reduce((sum, c) => sum + (Number(c.percentage) || 0), 0);
+    return Math.round(n * 10) / 10;
+  };
 
   const updateComposition = (index, field, value) => {
     const newComp = [...form.composition];
-    newComp[index] = { ...newComp[index], [field]: field === 'percentage' ? parseInt(value) || 0 : value };
+    let next;
+    if (field === 'percentage') {
+      const n = parseFloat(value);
+      next = Number.isFinite(n) ? n : 0;
+    } else {
+      next = value;
+      const prev = newComp[index] || {};
+      const wasStretch = isStretchFibre(prev.material);
+      const isStretchNow = isStretchFibre(value);
+      if (wasStretch && !isStretchNow && prev.percentage && !Number.isInteger(prev.percentage)) {
+        newComp[index] = { ...prev, percentage: Math.round(prev.percentage) };
+      }
+    }
+    newComp[index] = { ...newComp[index], [field]: next };
     setForm({ ...form, composition: newComp });
   };
 
@@ -179,7 +240,7 @@ const VendorInventory = () => {
       ...emptyForm,
       name: fabric.name || "", fabric_code: fabric.fabric_code || "", category_id: fabric.category_id || "",
       description: fabric.description || "", fabric_type: fabric.fabric_type || "woven",
-      pattern: fabric.pattern || "Solid", composition: compositionData,
+      pattern: fabric.pattern || "Solid", weave_type: fabric.weave_type || "", composition: compositionData,
       gsm: fabric.gsm ? fabric.gsm.toString() : "", ounce: fabric.ounce || "",
       weight_unit: fabric.weight_unit || "gsm", width: fabric.width || "",
       warp_ply: fabric.warp_count?.includes('/') ? fabric.warp_count.split('/')[0] : "1",
@@ -232,6 +293,7 @@ const VendorInventory = () => {
       const payload = {
         name: form.name, fabric_code: form.fabric_code, category_id: form.category_id,
         description: form.description, fabric_type: form.fabric_type, pattern: form.pattern,
+        weave_type: form.weave_type || "",
         composition: cleanComp, gsm: form.gsm ? parseInt(form.gsm) : null, ounce: form.ounce,
         weight_unit: form.weight_unit, width: form.width,
         warp_count: warpFormatted, weft_count: weftFormatted,
@@ -372,9 +434,27 @@ const VendorInventory = () => {
                   <h3 className="text-sm font-semibold text-gray-800 mb-3 uppercase tracking-wide">Basic Information</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Fabric Name *</label>
+                      <label className="flex items-center justify-between text-sm font-medium text-gray-700 mb-1">
+                        <span>Fabric Name *</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const n = buildFabricName();
+                            if (!n) { toast.error("Add composition, weight & color first"); return; }
+                            setForm({ ...form, name: n });
+                            toast.success("Name generated");
+                          }}
+                          className="text-xs font-medium text-[#2563EB] hover:underline"
+                          data-testid="fabric-generate-name-btn"
+                          title="Auto-generate name from composition, weave (if set), weight & color"
+                        >
+                          Auto-generate
+                        </button>
+                      </label>
                       <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg" data-testid="fabric-name-input" />
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg"
+                        placeholder={isDenim() ? "Cotton Polyester Lycra, 3/1 RHT, 10oz, Color: Indigo x White" : "e.g., Cotton Polyester, 200 GSM, Color: Navy"}
+                        data-testid="fabric-name-input" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Seller SKU</label>
@@ -395,7 +475,7 @@ const VendorInventory = () => {
                 {/* Section 2: Fabric Specs */}
                 <div className="border-t border-gray-100 pt-6">
                   <h3 className="text-sm font-semibold text-gray-800 mb-3 uppercase tracking-wide">Fabric Specifications</h3>
-                  <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className={`grid ${weaveOptionsForCategory() ? 'grid-cols-4' : 'grid-cols-3'} gap-4 mb-4`}>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Fabric Type *</label>
                       <select value={form.fabric_type} onChange={e => setForm({ ...form, fabric_type: e.target.value })}
@@ -410,11 +490,22 @@ const VendorInventory = () => {
                         {patternOptions.map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
                     </div>
+                    {weaveOptionsForCategory() && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Weave Type {isDenim() ? "*" : ""}
+                        </label>
+                        <select value={form.weave_type} onChange={e => setForm({ ...form, weave_type: e.target.value })}
+                          className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white" data-testid="weave-type-select">
+                          {weaveOptionsForCategory().map(w => <option key={w} value={w}>{w || "-- Select --"}</option>)}
+                        </select>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
                       <select value={form.color} onChange={e => setForm({ ...form, color: e.target.value })}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white" data-testid="color-select">
-                        {colorOptions.map(c => <option key={c} value={c}>{c || "-- Select --"}</option>)}
+                        {(isDenim() ? denimColorOptions : colorOptions).map(c => <option key={c} value={c}>{c || "-- Select --"}</option>)}
                       </select>
                     </div>
                   </div>
@@ -467,17 +558,23 @@ const VendorInventory = () => {
                       </span>
                     </label>
                     <div className="space-y-2" data-testid="composition-editor">
-                      {form.composition.map((comp, idx) => (
-                        <div key={idx} className="flex gap-2">
-                          <input type="text" value={comp.material} onChange={e => updateComposition(idx, 'material', e.target.value)}
-                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder={`Material ${idx + 1} (e.g., Cotton)`} />
-                          <select value={comp.percentage || ''} onChange={e => updateComposition(idx, 'percentage', e.target.value)}
-                            className="w-24 px-2 py-2 border border-gray-200 rounded-lg text-sm bg-white">
-                            <option value="">%</option>
-                            {percentageOptions.map(n => <option key={n} value={n}>{n}%</option>)}
-                          </select>
-                        </div>
-                      ))}
+                      {form.composition.map((comp, idx) => {
+                        const stretch = isStretchFibre(comp.material);
+                        const opts = stretch ? stretchPercentOptions : percentageOptions;
+                        return (
+                          <div key={idx} className="flex gap-2">
+                            <input type="text" value={comp.material} onChange={e => updateComposition(idx, 'material', e.target.value)}
+                              className={`flex-1 px-3 py-2 border rounded-lg text-sm ${stretch ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}
+                              placeholder={`Material ${idx + 1} (e.g., Cotton)`} />
+                            <select value={comp.percentage ?? ''} onChange={e => updateComposition(idx, 'percentage', e.target.value)}
+                              className={`w-28 px-2 py-2 border rounded-lg text-sm bg-white font-medium ${stretch ? 'border-amber-400 bg-amber-50 text-amber-900' : 'border-gray-200'}`}
+                              title={stretch ? 'Stretch fibres use 0.5% steps (0.5 – 20%)' : undefined}>
+                              <option value="">%</option>
+                              {opts.map(n => <option key={n} value={n}>{n}%</option>)}
+                            </select>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
