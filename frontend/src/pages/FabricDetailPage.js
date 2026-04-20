@@ -707,7 +707,10 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   {fabric.width && (
                     <div className="border-b border-gray-100 pb-3">
                       <p className="text-xs text-gray-400 mb-1">Width</p>
-                      <p className="font-medium">{fabric.width}</p>
+                      <p className="font-medium">
+                        {fabric.width}{typeof fabric.width === 'number' || /^\d+$/.test(String(fabric.width)) ? '"' : ''}
+                        {fabric.width_type ? ` (${fabric.width_type})` : ''}
+                      </p>
                     </div>
                   )}
                   {fabric.color && (

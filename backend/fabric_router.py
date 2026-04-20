@@ -44,6 +44,7 @@ class FabricCreate(BaseModel):
     ounce: Optional[str] = ""
     weight_unit: str = "gsm"
     width: str
+    width_type: Optional[str] = ""  # "Open Width" or "Circular" — for knitted fabrics
     warp_count: Optional[str] = ""
     weft_count: Optional[str] = ""
     yarn_count: Optional[str] = ""
@@ -87,6 +88,7 @@ class FabricUpdate(BaseModel):
     ounce: Optional[str] = None
     weight_unit: Optional[str] = None
     width: Optional[str] = None
+    width_type: Optional[str] = None
     warp_count: Optional[str] = None
     weft_count: Optional[str] = None
     yarn_count: Optional[str] = None
@@ -139,6 +141,7 @@ class Fabric(BaseModel):
     ounce: str = ""
     weight_unit: str = "gsm"
     width: str = ""
+    width_type: str = ""
     warp_count: str = ""
     weft_count: str = ""
     yarn_count: str = ""

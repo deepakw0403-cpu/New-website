@@ -51,6 +51,7 @@ const AdminFabrics = () => {
     ounce: "",
     weight_unit: "gsm",
     width: "",
+    width_type: "",
     // Count fields for non-polyester (ply/count format)
     warp_ply: "1",
     warp_count: "",
@@ -1103,9 +1104,7 @@ const AdminFabrics = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Width {isKnittedForm() ? "" : "(inches)"}
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Width (inches)</label>
                     <select
                       value={form.width}
                       onChange={(e) => setForm({ ...form, width: e.target.value })}
@@ -1113,18 +1112,26 @@ const AdminFabrics = () => {
                       data-testid="fabric-width-select"
                     >
                       <option value="">-- Select Width --</option>
-                      {isKnittedForm() ? (
-                        <>
-                          <option value="Open Width">Open Width</option>
-                          <option value="Circular">Circular</option>
-                        </>
-                      ) : (
-                        widthOptions.map((n) => (
-                          <option key={n} value={n}>{n}"</option>
-                        ))
-                      )}
+                      {widthOptions.map((n) => (
+                        <option key={n} value={n}>{n}"</option>
+                      ))}
                     </select>
                   </div>
+                  {isKnittedForm() && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Width Type</label>
+                      <select
+                        value={form.width_type}
+                        onChange={(e) => setForm({ ...form, width_type: e.target.value })}
+                        className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                        data-testid="fabric-width-type-select"
+                      >
+                        <option value="">-- Select --</option>
+                        <option value="Open Width">Open Width</option>
+                        <option value="Circular">Circular</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {/* Count Fields - Conditional: hidden for knitted fabrics (not applicable) */}

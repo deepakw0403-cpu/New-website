@@ -53,6 +53,7 @@ class FabricCreate(BaseModel):
     gsm: Optional[int] = None
     ounce: str = ""
     width: Optional[str] = ""
+    width_type: Optional[str] = ""  # "Open Width" or "Circular" — for knitted fabrics
     finish: str = ""
     tags: object = ""  # Can be string or list
     images: List[str] = []
@@ -91,6 +92,7 @@ class FabricUpdate(BaseModel):
     gsm: Optional[int] = None
     ounce: Optional[str] = None
     width: Optional[str] = None
+    width_type: Optional[str] = None
     finish: Optional[str] = None
     tags: Optional[object] = None
     images: Optional[List[str]] = None
