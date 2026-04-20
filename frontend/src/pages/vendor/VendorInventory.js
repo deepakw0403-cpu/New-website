@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, X, Search, Package, Loader2, Upload, Video, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Search, Package, Loader2, Upload, Video, Check, HelpCircle } from "lucide-react";
 import VendorLayout from "../../components/vendor/VendorLayout";
+import CommissionHelpModal from "../../components/vendor/CommissionHelpModal";
 import api, { getVendorFabrics, createVendorFabric, updateVendorFabric, deleteVendorFabric, getVendorCategories, getArticles, uploadToCloudinary, uploadVideoToCloudinary } from "../../lib/api";
 import { toast } from "sonner";
 
@@ -102,6 +103,7 @@ const VendorInventory = () => {
   const [form, setForm] = useState(emptyForm);
   const [commissionMap, setCommissionMap] = useState({});        // { fabricId: { commission_pct, commission_amount, rule_applied } }
   const [modalCommission, setModalCommission] = useState(null);  // Live commission preview inside the modal
+  const [commissionHelp, setCommissionHelp] = useState(null);    // { categoryName, sellerId, pct } | null
 
   const isKnitsCategory = (catId) => catId === "cat-knits";
   const unit = isKnitsCategory(form.category_id) ? "kg" : "m";
@@ -436,7 +438,20 @@ const VendorInventory = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bulk Price</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sample Price</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" data-testid="col-commission">Platform commission</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" data-testid="col-commission">
+                    <div className="inline-flex items-center gap-1">
+                      Platform commission
+                      <button
+                        type="button"
+                        onClick={() => setCommissionHelp({ sellerId: fabrics[0]?.seller_id || "", categoryName: "", pct: null })}
+                        className="text-gray-400 hover:text-orange-500 transition-colors"
+                        data-testid="col-commission-help"
+                        title="How is commission calculated?"
+                      >
+                        <HelpCircle size={13} />
+                      </button>
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
@@ -460,13 +475,19 @@ const VendorInventory = () => {
                     <td className="px-4 py-4">{fabric.sample_price ? `₹${fabric.sample_price.toLocaleString()}/${getFabricUnit(fabric)}` : "-"}</td>
                     <td className="px-4 py-4" data-testid={`commission-cell-${fabric.id}`}>
                       {commissionMap[fabric.id] ? (
-                        <span
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 text-orange-800 border border-orange-200 rounded-full text-xs font-semibold"
-                          title={commissionMap[fabric.id].rule_applied || "Default platform commission"}
+                        <button
+                          type="button"
+                          onClick={() => setCommissionHelp({
+                            sellerId: fabric.seller_id || "",
+                            categoryName: fabric.category_name || "",
+                            pct: commissionMap[fabric.id].commission_pct,
+                          })}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 text-orange-800 border border-orange-200 rounded-full text-xs font-semibold hover:bg-orange-100 transition-colors"
+                          title={`${commissionMap[fabric.id].rule_applied || "Default"} — click for details`}
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
                           {commissionMap[fabric.id].commission_pct}%
-                        </span>
+                        </button>
                       ) : (
                         <span className="text-xs text-gray-400">—</span>
                       )}
@@ -807,6 +828,25 @@ const VendorInventory = () => {
                       </div>
                     </div>
                   )}
+                  {modalCommission && parseFloat(form.rate_per_meter) > 0 && (
+                    <div className="mb-4 -mt-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cat = categories.find((c) => c.id === form.category_id);
+                          setCommissionHelp({
+                            sellerId: editingFabric?.seller_id || "",
+                            categoryName: cat?.name || "",
+                            pct: modalCommission.commission_pct,
+                          });
+                        }}
+                        className="text-xs text-orange-700 hover:text-orange-900 underline underline-offset-2 flex items-center gap-1"
+                        data-testid="modal-commission-help"
+                      >
+                        <HelpCircle size={12} /> How is this calculated?
+                      </button>
+                    </div>
+                  )}
 
                   {/* Delivery Days */}
                   <div className="grid grid-cols-2 gap-4 mb-4">
@@ -911,6 +951,13 @@ const VendorInventory = () => {
           </div>
         )}
       </div>
+      <CommissionHelpModal
+        open={!!commissionHelp}
+        onClose={() => setCommissionHelp(null)}
+        sellerId={commissionHelp?.sellerId}
+        categoryName={commissionHelp?.categoryName}
+        appliedPct={commissionHelp?.pct}
+      />
     </VendorLayout>
   );
 };
