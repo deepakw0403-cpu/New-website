@@ -659,10 +659,15 @@ def _dominant_target(comp, name: str):
 
 
 @api_router.post("/migrate/blended")
-async def migrate_blended(apply: bool = Query(False), admin=Depends(get_current_admin)):
+async def migrate_blended(
+    apply: bool = Query(False),
+    mode: str = Query("smart", description="'smart' (auto-route by material) or 'all_to_linen' (bulk move)"),
+    admin=Depends(get_current_admin),
+):
     """Dissolve the 'Blended Fabrics' category.
-    - GET-like dry run: POST /api/migrate/blended (apply=false) → returns the plan.
-    - Apply:            POST /api/migrate/blended?apply=true   → runs and deletes Blended.
+    - Dry run: POST /api/migrate/blended (apply=false) → returns the plan.
+    - Apply:   POST /api/migrate/blended?apply=true   → runs and deletes Blended.
+    - mode=all_to_linen: bulk-move every blended fabric to Linen (simple dumb path).
     Idempotent — safe to re-run.
     """
     cats = await db.categories.find({}, {"_id": 0}).to_list(length=500)
@@ -671,6 +676,7 @@ async def migrate_blended(apply: bool = Query(False), admin=Depends(get_current_
     if not blended:
         return {
             "apply": apply,
+            "mode": mode,
             "status": "noop",
             "message": "No 'Blended Fabrics' category present — nothing to migrate.",
             "plan": [],
@@ -702,7 +708,11 @@ async def migrate_blended(apply: bool = Query(False), admin=Depends(get_current_
     summary = {}
     stays = 0
     for f in fabrics:
-        target_name, reason = _dominant_target(f.get("composition"), f.get("name", ""))
+        if mode == "all_to_linen":
+            target_name = "Linen"
+            reason = "bulk-move (all_to_linen mode)"
+        else:
+            target_name, reason = _dominant_target(f.get("composition"), f.get("name", ""))
         target = by_name.get(target_name) if target_name and target_name != "Blended Fabrics" else None
         plan.append({
             "id": f["id"],
@@ -730,7 +740,10 @@ async def migrate_blended(apply: bool = Query(False), admin=Depends(get_current_
     # APPLY
     updated = 0
     for f in fabrics:
-        target_name, _ = _dominant_target(f.get("composition"), f.get("name", ""))
+        if mode == "all_to_linen":
+            target_name = "Linen"
+        else:
+            target_name, _ = _dominant_target(f.get("composition"), f.get("name", ""))
         if not target_name or target_name == "Blended Fabrics":
             continue
         target = by_name.get(target_name)

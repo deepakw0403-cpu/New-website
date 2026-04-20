@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2, X, Upload } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { getCategories, createCategory, updateCategory, deleteCategory, uploadImage } from "../../lib/api";
+import api, { getCategories, createCategory, updateCategory, deleteCategory, uploadImage } from "../../lib/api";
 
 const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -102,15 +102,52 @@ const AdminCategories = () => {
     }
   };
 
+  const hasBlended = categories.some((c) => c.name === "Blended Fabrics");
+
+  const migrateBlended = async (mode) => {
+    const label = mode === "all_to_linen" ? "move all Blended → Linen" : "smart-migrate Blended";
+    if (!window.confirm(`This will ${label} and delete the Blended category. Proceed?`)) return;
+    try {
+      // Dry run first so we can show counts in the confirm
+      const dryRes = await api.post(`/migrate/blended?mode=${mode}`);
+      const total = dryRes.data?.blended_fabrics_total || 0;
+      if (total === 0) {
+        toast.info(dryRes.data?.message || "Nothing to migrate");
+        fetchCategories();
+        return;
+      }
+      if (!window.confirm(`Found ${total} Blended fabrics. Apply the migration?`)) return;
+      const res = await api.post(`/migrate/blended?apply=true&mode=${mode}`);
+      toast.success(`Migrated ${res.data?.reassigned || 0} fabrics. Blended deleted: ${res.data?.blended_deleted}`);
+      fetchCategories();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Migration failed");
+    }
+  };
+
   return (
     <AdminLayout>
       <div data-testid="admin-categories-page">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-semibold">Categories</h1>
-          <button onClick={openCreateModal} className="btn-primary inline-flex items-center gap-2" data-testid="add-category-btn">
-            <Plus size={18} />
-            Add Category
-          </button>
+          <div className="flex items-center gap-2">
+            {hasBlended && (
+              <>
+                <button
+                  onClick={() => migrateBlended("all_to_linen")}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded border border-orange-300 bg-orange-50 text-orange-900 text-sm font-medium hover:bg-orange-100"
+                  data-testid="migrate-blended-linen-btn"
+                  title="Bulk-move every Blended fabric to Linen, then delete the Blended category"
+                >
+                  Move Blended → Linen
+                </button>
+              </>
+            )}
+            <button onClick={openCreateModal} className="btn-primary inline-flex items-center gap-2" data-testid="add-category-btn">
+              <Plus size={18} />
+              Add Category
+            </button>
+          </div>
         </div>
 
         {loading ? (
