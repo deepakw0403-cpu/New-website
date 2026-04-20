@@ -904,22 +904,20 @@ const AdminFabrics = () => {
                   <div>
                     <label className="block text-sm font-medium mb-2 flex items-center justify-between">
                       <span>Name *</span>
-                      {isDenim() && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const n = buildDenimName();
-                            if (!n) { toast.error("Add composition, weave, weight & color first"); return; }
-                            setForm({ ...form, name: n });
-                            toast.success("Name generated");
-                          }}
-                          className="text-xs font-medium text-[#2563EB] hover:underline"
-                          data-testid="fabric-generate-name-btn"
-                          title="Auto-generate name from composition, weave, weight & color"
-                        >
-                          Auto-generate
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const n = buildDenimName();
+                          if (!n) { toast.error("Add composition, weight & color first"); return; }
+                          setForm({ ...form, name: n });
+                          toast.success("Name generated");
+                        }}
+                        className="text-xs font-medium text-[#2563EB] hover:underline"
+                        data-testid="fabric-generate-name-btn"
+                        title="Auto-generate name from composition, weave (if set), weight & color"
+                      >
+                        Auto-generate
+                      </button>
                     </label>
                     <input
                       type="text"
@@ -927,7 +925,7 @@ const AdminFabrics = () => {
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-200 rounded"
                       required
-                      placeholder={isDenim() ? "Cotton Polyester Lycra, 3/1 RHT, 10oz, Color: Indigo x White" : ""}
+                      placeholder={isDenim() ? "Cotton Polyester Lycra, 3/1 RHT, 10oz, Color: Indigo x White" : "e.g., Cotton Polyester, 200 GSM, Color: Navy"}
                       data-testid="fabric-name-input"
                     />
                   </div>
