@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import { getCategories } from "../lib/api";
 
-const COMING_SOON_THRESHOLD = 20;
+const COMING_SOON_THRESHOLD = 10;
 
 const WEIGHT_BUCKETS = [
   { label: "Light (< 150 GSM)", min_gsm: "", max_gsm: "150" },
@@ -52,11 +52,6 @@ const HeroSearchCard = () => {
       .catch(() => setCategories([]));
   }, []);
 
-  const activeCategory = useMemo(
-    () => categories.find((c) => c.name === active) || null,
-    [categories, active]
-  );
-
   const search = () => {
     const params = new URLSearchParams();
     const catObj = categories.find((c) => c.name === active);
@@ -90,12 +85,17 @@ const HeroSearchCard = () => {
             <button
               key={c.id}
               type="button"
-              onClick={() => setActive(c.name)}
+              disabled={comingSoon}
+              onClick={() => { if (!comingSoon) setActive(c.name); }}
               data-testid={`hero-cat-${c.slug || c.name.toLowerCase().replace(/\s+/g, "-")}`}
+              aria-disabled={comingSoon}
+              title={comingSoon ? `${c.name} — coming soon` : undefined}
               className={`relative inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs md:text-sm font-medium border transition-all ${
-                isActive
-                  ? "bg-white text-neutral-900 border-white"
-                  : `text-white/80 border-transparent hover:bg-white/10 ${comingSoon ? "opacity-75" : ""}`
+                comingSoon
+                  ? "text-white/50 border-transparent cursor-not-allowed opacity-60"
+                  : isActive
+                    ? "bg-white text-neutral-900 border-white"
+                    : "text-white/80 border-transparent hover:bg-white/10"
               }`}
             >
               {comingSoon && (
@@ -111,7 +111,7 @@ const HeroSearchCard = () => {
                 style={{ background: SWATCH[c.name] || "#94a3b8" }}
               />
               {c.name.replace(/ Fabrics$/, "")}
-              <span className={isActive ? "text-neutral-500 text-[11px] ml-0.5" : "text-white/50 text-[11px] ml-0.5"}>
+              <span className={`${isActive && !comingSoon ? "text-neutral-500" : "text-white/45"} text-[11px] ml-0.5`}>
                 {count}
               </span>
             </button>
@@ -150,11 +150,6 @@ const HeroSearchCard = () => {
         </button>
       </div>
 
-      {activeCategory && (activeCategory.fabric_count || 0) < COMING_SOON_THRESHOLD && (
-        <p className="pt-3 text-xs text-white/60" data-testid="hero-coming-soon-note">
-          {activeCategory.name.replace(/ Fabrics$/, "")} is rolling out soon — we're listing more SKUs every week.
-        </p>
-      )}
     </div>
   );
 };
