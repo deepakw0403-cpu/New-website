@@ -103,6 +103,7 @@ const AdminCategories = () => {
   };
 
   const hasBlended = categories.some((c) => c.name === "Blended Fabrics");
+  const hasKnits = categories.some((c) => c.name === "Knits");
 
   const migrateBlended = async (mode) => {
     const label = mode === "all_to_linen" ? "move all Blended → Linen" : "smart-migrate Blended";
@@ -119,6 +120,25 @@ const AdminCategories = () => {
       if (!window.confirm(`Found ${total} Blended fabrics. Apply the migration?`)) return;
       const res = await api.post(`/migrate/blended?apply=true&mode=${mode}`);
       toast.success(`Migrated ${res.data?.reassigned || 0} fabrics. Blended deleted: ${res.data?.blended_deleted}`);
+      fetchCategories();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Migration failed");
+    }
+  };
+
+  const migrateKnits = async () => {
+    if (!window.confirm("This will move every Knits fabric → Polyester Fabrics and delete the Knits category. Proceed?")) return;
+    try {
+      const dryRes = await api.post("/migrate/knits");
+      const total = dryRes.data?.knits_fabrics_total || 0;
+      if (total === 0) {
+        toast.info(dryRes.data?.message || "Nothing to migrate");
+        fetchCategories();
+        return;
+      }
+      if (!window.confirm(`Found ${total} Knits fabrics. Move them all to Polyester Fabrics and delete the Knits category?`)) return;
+      const res = await api.post("/migrate/knits?apply=true");
+      toast.success(`Migrated ${res.data?.reassigned || 0} fabrics → Polyester. Knits deleted: ${res.data?.knits_deleted}`);
       fetchCategories();
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Migration failed");
@@ -142,6 +162,16 @@ const AdminCategories = () => {
                   Move Blended → Linen
                 </button>
               </>
+            )}
+            {hasKnits && (
+              <button
+                onClick={migrateKnits}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded border border-purple-300 bg-purple-50 text-purple-900 text-sm font-medium hover:bg-purple-100"
+                data-testid="migrate-knits-polyester-btn"
+                title="Bulk-move every Knits fabric to Polyester Fabrics, then delete the Knits category"
+              >
+                Move Knits → Polyester
+              </button>
             )}
             <button onClick={openCreateModal} className="btn-primary inline-flex items-center gap-2" data-testid="add-category-btn">
               <Plus size={18} />

@@ -25,11 +25,12 @@ const AdminFabrics = () => {
   const [filterAvailability, setFilterAvailability] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
-  // Unit helper: Knits category uses kg, everything else uses meters
-  const isKnitsCategory = (catId) => catId === "cat-knits";
-  const getFormUnit = () => isKnitsCategory(form?.category_id) ? "kg" : "m";
-  const getFormUnitLabel = () => isKnitsCategory(form?.category_id) ? "kilograms" : "meters";
-  const getFabricUnit = (fabric) => isKnitsCategory(fabric?.category_id) ? "kg" : "m";
+  // Unit helper: Knitted fabrics (by fabric_type) use kg, everything else uses meters
+  const isKnittedForm = () => (form?.fabric_type || "").toLowerCase() === "knitted";
+  const isKnittedFabric = (fabric) => (fabric?.fabric_type || "").toLowerCase() === "knitted";
+  const getFormUnit = () => isKnittedForm() ? "kg" : "m";
+  const getFormUnitLabel = () => isKnittedForm() ? "kilograms" : "meters";
+  const getFabricUnit = (fabric) => isKnittedFabric(fabric) ? "kg" : "m";
 
   const emptyComposition = [
     { material: "", percentage: 0 },
@@ -530,16 +531,18 @@ const AdminFabrics = () => {
       comp.material && comp.material.toLowerCase().includes('polyester')
     );
 
-    // Validate count fields
-    if (hasPolyester) {
-      if (!form.denier) {
-        toast.error("Please enter Denier value for polyester fabric");
-        return;
-      }
-    } else {
-      if (!form.warp_count && !form.weft_count) {
-        toast.error("Please enter at least Warp Count or Weft Count");
-        return;
+    // Validate count fields (skip entirely for knitted fabrics — count is not applicable)
+    if (!isKnittedForm()) {
+      if (hasPolyester) {
+        if (!form.denier) {
+          toast.error("Please enter Denier value for polyester fabric");
+          return;
+        }
+      } else {
+        if (!form.warp_count && !form.weft_count) {
+          toast.error("Please enter at least Warp Count or Weft Count");
+          return;
+        }
       }
     }
 
@@ -1100,7 +1103,9 @@ const AdminFabrics = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Width (inches)</label>
+                    <label className="block text-sm font-medium mb-2">
+                      Width {isKnittedForm() ? "" : "(inches)"}
+                    </label>
                     <select
                       value={form.width}
                       onChange={(e) => setForm({ ...form, width: e.target.value })}
@@ -1108,15 +1113,22 @@ const AdminFabrics = () => {
                       data-testid="fabric-width-select"
                     >
                       <option value="">-- Select Width --</option>
-                      {widthOptions.map((n) => (
-                        <option key={n} value={n}>{n}"</option>
-                      ))}
+                      {isKnittedForm() ? (
+                        <>
+                          <option value="Open Width">Open Width</option>
+                          <option value="Circular">Circular</option>
+                        </>
+                      ) : (
+                        widthOptions.map((n) => (
+                          <option key={n} value={n}>{n}"</option>
+                        ))
+                      )}
                     </select>
                   </div>
                 </div>
 
-                {/* Count Fields - Conditional based on composition */}
-                {!isPolyester() ? (
+                {/* Count Fields - Conditional: hidden for knitted fabrics (not applicable) */}
+                {isKnittedForm() ? null : (!isPolyester() ? (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Warp Count (Ply/Count) */}
@@ -1207,7 +1219,7 @@ const AdminFabrics = () => {
                       </div>
                     </div>
                   </>
-                )}
+                ))}
 
                 {/* Shrinkage & Stretch Fields - Available for all fabrics */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

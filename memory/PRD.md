@@ -168,6 +168,15 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Backend**: `OrderItem` model in `orders_router.py` gained `color_name` + `color_hex` fields. Razorpay description, invoice PDF and customer order email (`email_router.py`) all now surface the selected color.
 - [x] **Smoke-tested**: Selecting "Black" (300m stock) in the Bulk modal on the `Test Vendor Fabric` SKU correctly propagates through URL → Checkout pill → order item payload.
 
+### Phase 22: Knits Category Removal + Knitted Form Rules (Complete - Feb 2026)
+- [x] **Migration endpoint** `POST /api/migrate/knits` (+ `?apply=true`): dry-run returns plan; apply moves every fabric in `cat-knits` → `cat-polyester`, refreshes fabric_count, then deletes the Knits category. Idempotent.
+- [x] **Admin UI button** "Move Knits → Polyester" (purple pill on `/admin/categories`) auto-shows only when Knits still exists in the DB. Runs dry-run first, confirms count, then applies.
+- [x] **Dev DB migrated**: 2 Knits fabrics moved to Polyester Fabrics (16 → 18), Knits category deleted. Seed in `server.py` no longer creates Knits.
+- [x] **Width dropdown is fabric-type-aware**: For `fabric_type === "knitted"` the Admin + Vendor forms show `["Open Width", "Circular"]` instead of 1–100" numeric inches. Label drops the "(inches)" suffix.
+- [x] **Count fields hidden for knitted fabrics**: Warp/Weft Count (and Denier) are completely hidden for `fabric_type === "knitted"`. Admin form validation no longer requires them. Ply/count formatting still works for woven fabrics.
+- [x] **Unit logic** (`kg` vs `m`) in `FabricDetailPage.js`, `AdminFabrics.js`, `VendorInventory.js` now keys off `fabric_type === "knitted"` instead of the deleted `cat-knits` category.
+- [x] **Smoke-tested**: Admin Add Fabric modal → set Fabric Type to Knitted → Width dropdown shows only Open Width / Circular; Warp/Weft fields vanish.
+
 ## Backlog
 
 ### P1 (High Priority)

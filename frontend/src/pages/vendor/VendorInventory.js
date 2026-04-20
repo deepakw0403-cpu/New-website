@@ -105,10 +105,11 @@ const VendorInventory = () => {
   const [modalCommission, setModalCommission] = useState(null);  // Live commission preview inside the modal
   const [commissionHelp, setCommissionHelp] = useState(null);    // { categoryName, sellerId, pct } | null
 
-  const isKnitsCategory = (catId) => catId === "cat-knits";
-  const unit = isKnitsCategory(form.category_id) ? "kg" : "m";
-  const unitLabel = isKnitsCategory(form.category_id) ? "kilograms" : "meters";
-  const getFabricUnit = (fabric) => isKnitsCategory(fabric.category_id) ? "kg" : "m";
+  const isKnittedForm = () => (form?.fabric_type || "").toLowerCase() === "knitted";
+  const isKnittedFabric = (fabric) => (fabric?.fabric_type || "").toLowerCase() === "knitted";
+  const unit = isKnittedForm() ? "kg" : "m";
+  const unitLabel = isKnittedForm() ? "kilograms" : "meters";
+  const getFabricUnit = (fabric) => isKnittedFabric(fabric) ? "kg" : "m";
 
   useEffect(() => { fetchData(); }, []);
 
@@ -631,11 +632,20 @@ const VendorInventory = () => {
                       </div>
                     )}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Width (inches)</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Width {isKnittedForm() ? "" : "(inches)"}
+                      </label>
                       <select value={form.width} onChange={e => setForm({ ...form, width: e.target.value })}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white" data-testid="width-select">
                         <option value="">-- Select --</option>
-                        {widthOptions.map(n => <option key={n} value={n}>{n}"</option>)}
+                        {isKnittedForm() ? (
+                          <>
+                            <option value="Open Width">Open Width</option>
+                            <option value="Circular">Circular</option>
+                          </>
+                        ) : (
+                          widthOptions.map(n => <option key={n} value={n}>{n}"</option>)
+                        )}
                       </select>
                     </div>
                   </div>
@@ -669,8 +679,8 @@ const VendorInventory = () => {
                     </div>
                   </div>
 
-                  {/* Count Fields */}
-                  {!isPolyester() ? (
+                  {/* Count Fields — hidden for knitted fabrics (not applicable) */}
+                  {isKnittedForm() ? null : (!isPolyester() ? (
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Warp Count</label>
@@ -710,7 +720,7 @@ const VendorInventory = () => {
                         </select>
                       </div>
                     </div>
-                  )}
+                  ))}
 
                   {/* Shrinkage, Stretch, Finish */}
                   <div className="grid grid-cols-3 gap-4">
