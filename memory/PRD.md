@@ -161,17 +161,24 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **`server.py`**: **2304 → 1040 lines** (55% reduction from session start). collection_router updated to use `fabric_utils.normalize_fabric`. All dead model classes (Fabric/FabricCreate/FabricUpdate/CompositionItem/Article*/Enquiry*) removed.
 - [x] **Testing agent verified**: 37/37 backend tests passed, all frontend flows green (Home HeroSearchCard, /fabrics listing, detail page, Admin Denim form auto-generate). One regression fixed during testing: HeroSearchCard was passing category name → fixed to pass category id.
 
+### Phase 21: Buyer-side Color Picker in Sample/Bulk Booking (Complete - Feb 2026)
+- [x] **`FabricDetailPage.js`**: Book Bulk / Book Sample modals now render a color-variant picker when the fabric has `has_multiple_colors=true`. Each swatch shows color name + per-variant `quantity_available` (bulk) or "Sample available" (sample). Out-of-stock variants are disabled, sample-only filter hides variants without `sample_available=true`. First in-stock/sampleable variant is auto-selected.
+- [x] **Quantity auto-cap**: Bulk qty input now reads `min(fabric.moq, selectedVariant.quantity_available)` as its max; shows inline red warning when exceeded; disables "Proceed to Checkout".
+- [x] **URL carries color**: `/checkout/?fabric_id=...&type=...&qty=...&color=<name>&color_hex=<hex>`. `CheckoutPage.js` reads these, renders a pill in the Order Summary, and forwards `color_name`/`color_hex` into the order items payload.
+- [x] **Backend**: `OrderItem` model in `orders_router.py` gained `color_name` + `color_hex` fields. Razorpay description, invoice PDF and customer order email (`email_router.py`) all now surface the selected color.
+- [x] **Smoke-tested**: Selecting "Black" (300m stock) in the Bulk modal on the `Test Vendor Fabric` SKU correctly propagates through URL → Checkout pill → order item payload.
+
 ## Backlog
 
 ### P1 (High Priority)
-- [ ] Multi-Color SKU System: Add color variants per fabric with separate photos and inventory per color
+- [ ] Run `backfill_denim_names.py` on production to standardize legacy denim names/weaves/ounce formatting
 
 ### P2 (Medium Priority)
-- [ ] SEO-Friendly Fabric URLs (slugs)
-- [ ] server.py refactoring into separate routers
+- [ ] Further `server.py` refactoring (extract Review/Blog/Order routers; target <800 lines)
+- [ ] Audit the 103 soft-404 pages from Google Search Console
 
 ### P3 (Low Priority)
-- [ ] Wishlist/Favorites
+- [ ] Wishlist/Favorites for B2B buyers
 - [ ] Advanced Analytics Dashboard
 
 ## Credentials

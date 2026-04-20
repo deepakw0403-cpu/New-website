@@ -72,6 +72,9 @@ class OrderItem(BaseModel):
     image_url: str = ""
     hsn_code: str = ""
     dispatch_timeline: str = ""
+    # Buyer-selected color variant (for multi-color SKUs)
+    color_name: str = ""
+    color_hex: str = ""
 
 class CustomerInfo(BaseModel):
     name: str
@@ -1017,6 +1020,8 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
         description = f"{item.get('fabric_name', 'Fabric')}"
         if item.get('fabric_code'):
             description += f"\nCode: {item.get('fabric_code')}"
+        if item.get('color_name'):
+            description += f"\nColor: {item.get('color_name')}"
         if order_type:
             description += f"\nType: {order_type.title()}"
         
@@ -1286,8 +1291,10 @@ def generate_pi_pdf(order: dict) -> io.BytesIO:
         amount_usd = round(qty_yards * rate_usd_yard, 2)
         total_usd += amount_usd
 
+        # Build color suffix if present (multi-color SKU selections)
+        _color_suffix = f" | Color: {item.get('color_name')}" if item.get('color_name') else ""
         table_data.append([
-            Paragraph(f"{item.get('fabric_name', '')}<br/><font size='6' color='#64748b'>{item.get('category_name', '')} | {item.get('fabric_code', '')}</font>", small_style),
+            Paragraph(f"{item.get('fabric_name', '')}<br/><font size='6' color='#64748b'>{item.get('category_name', '')} | {item.get('fabric_code', '')}{_color_suffix}</font>", small_style),
             item.get('hsn_code', ''),
             f"{qty_yards:,.2f}",
             f"${rate_usd_yard:,.4f}",

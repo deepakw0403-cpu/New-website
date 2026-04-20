@@ -27,6 +27,8 @@ const FabricDetailPage = () => {
   const [showBookModal, setShowBookModal] = useState(false);
   const [sampleQty, setSampleQty] = useState(1);
   const [bulkQty, setBulkQty] = useState("");
+  // Buyer-side color selection for Sample / Bulk booking (null = none picked yet)
+  const [bookingVariantIdx, setBookingVariantIdx] = useState(null);
   const [orderForm, setOrderForm] = useState({
     name: "", email: "", phone: "", gst_number: ""
   });
@@ -102,6 +104,41 @@ const FabricDetailPage = () => {
   };
 
   const bulkPrice = useMemo(() => calculateBulkPrice(bulkQty), [bulkQty, fabric]);
+
+  // ── Buyer-side color variant helpers ──────────────────────────────────────
+  const hasColorVariants = !!(fabric?.has_multiple_colors && fabric?.color_variants?.length > 0);
+
+  // Variants available for the current order type (filter sample-only variants for sample flow)
+  const bookableVariants = useMemo(() => {
+    if (!hasColorVariants) return [];
+    if (orderModalType === "sample") {
+      return fabric.color_variants.filter(cv => cv.sample_available);
+    }
+    return fabric.color_variants;
+  }, [fabric, hasColorVariants, orderModalType]);
+
+  // Map bookable index (in filtered list) back to the original color_variants index
+  const bookableToOriginalIdx = useMemo(() => {
+    if (!hasColorVariants) return [];
+    if (orderModalType === "sample") {
+      const map = [];
+      fabric.color_variants.forEach((cv, i) => { if (cv.sample_available) map.push(i); });
+      return map;
+    }
+    return fabric.color_variants.map((_, i) => i);
+  }, [fabric, hasColorVariants, orderModalType]);
+
+  const selectedBookingVariant = (bookingVariantIdx != null && fabric?.color_variants)
+    ? fabric.color_variants[bookingVariantIdx]
+    : null;
+
+  // Max quantity allowed for bulk when a color variant is selected (falls back to fabric.quantity_available)
+  const maxBulkQty = useMemo(() => {
+    if (hasColorVariants && selectedBookingVariant?.quantity_available != null) {
+      return selectedBookingVariant.quantity_available;
+    }
+    return fabric?.quantity_available || null;
+  }, [hasColorVariants, selectedBookingVariant, fabric]);
 
 
   // Cart value calculation
@@ -790,7 +827,18 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   {actions.canBookBulk && (
                     <div>
                       <button
-                        onClick={() => { setOrderModalType("bulk"); setBulkQty(fabric.moq || "100"); setShowBookModal(true); }}
+                        onClick={() => {
+                          setOrderModalType("bulk");
+                          setBulkQty(fabric.moq || "100");
+                          // Default-pick first in-stock variant (if any), else null → user must choose
+                          if (fabric.has_multiple_colors && fabric.color_variants?.length > 0) {
+                            const firstInStock = fabric.color_variants.findIndex(cv => (cv.quantity_available || 0) > 0);
+                            setBookingVariantIdx(firstInStock >= 0 ? firstInStock : null);
+                          } else {
+                            setBookingVariantIdx(null);
+                          }
+                          setShowBookModal(true);
+                        }}
                         className="w-full bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors inline-flex items-center justify-center gap-2"
                         data-testid="book-bulk-btn"
                       >
@@ -802,7 +850,18 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   )}
                   {actions.canBookSample && (
                     <button
-                      onClick={() => { setOrderModalType("sample"); setSampleQty(1); setShowBookModal(true); }}
+                      onClick={() => {
+                        setOrderModalType("sample");
+                        setSampleQty(1);
+                        // Default-pick first sample-available variant (if any)
+                        if (fabric.has_multiple_colors && fabric.color_variants?.length > 0) {
+                          const firstSampleable = fabric.color_variants.findIndex(cv => cv.sample_available);
+                          setBookingVariantIdx(firstSampleable >= 0 ? firstSampleable : null);
+                        } else {
+                          setBookingVariantIdx(null);
+                        }
+                        setShowBookModal(true);
+                      }}
                       className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-2"
                       data-testid="book-sample-btn"
                     >
@@ -1221,11 +1280,65 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
       {/* Quantity Picker Modal */}
       {showBookModal && orderModalType && fabric && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowBookModal(false)}>
-          <div className="bg-white rounded-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()} data-testid="book-modal">
+          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()} data-testid="book-modal">
             <h3 className="text-lg font-semibold mb-1">
               {orderModalType === "sample" ? "Book Sample" : "Book Bulk Order"}
             </h3>
             <p className="text-sm text-gray-500 mb-5">{fabric.name}</p>
+
+            {/* Color variant picker (multi-color SKUs only) */}
+            {hasColorVariants && (
+              <div className="mb-5" data-testid="booking-color-picker">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Color {selectedBookingVariant && <span className="text-gray-400 font-normal">— {selectedBookingVariant.color_name}</span>}
+                </label>
+                {bookableVariants.length === 0 ? (
+                  <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    No colors available for {orderModalType === "sample" ? "samples" : "bulk ordering"} right now. Please use "Request a Quote".
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {bookableVariants.map((cv, bIdx) => {
+                      const origIdx = bookableToOriginalIdx[bIdx];
+                      const stock = cv.quantity_available || 0;
+                      const isOOS = orderModalType === "bulk" && stock <= 0;
+                      const isSelected = bookingVariantIdx === origIdx;
+                      return (
+                        <button
+                          key={origIdx}
+                          type="button"
+                          disabled={isOOS}
+                          onClick={() => !isOOS && setBookingVariantIdx(origIdx)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all text-left ${
+                            isSelected
+                              ? "border-blue-500 bg-blue-50 shadow-sm"
+                              : isOOS
+                                ? "border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed"
+                                : "border-gray-200 hover:border-gray-400"
+                          }`}
+                          data-testid={`booking-color-${origIdx}`}
+                        >
+                          <span
+                            className="w-5 h-5 rounded-full border border-gray-300 flex-shrink-0"
+                            style={{ backgroundColor: cv.color_hex || '#ccc' }}
+                          />
+                          <span className="flex flex-col leading-tight">
+                            <span className="text-sm font-medium text-gray-800">{cv.color_name}</span>
+                            {orderModalType === "bulk" ? (
+                              <span className={`text-[11px] ${isOOS ? "text-red-500" : "text-gray-500"}`}>
+                                {isOOS ? "Out of Stock" : `${stock.toLocaleString()}${unit.short} in stock`}
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-blue-600">Sample available</span>
+                            )}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {orderModalType === "bulk" ? (
               <div className="space-y-4">
@@ -1238,12 +1351,25 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                     value={bulkQty}
                     onChange={(e) => setBulkQty(e.target.value)}
                     min={fabric.moq || 1}
+                    max={maxBulkQty || undefined}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg font-semibold focus:border-emerald-500 focus:outline-none"
                     placeholder={`Min ${fabric.moq || 100}`}
                     autoFocus
                     data-testid="bulk-qty-input"
                   />
-                  {fabric.moq && <p className="text-xs text-gray-400 mt-1">Minimum order: {fabric.moq}</p>}
+                  <div className="flex flex-wrap items-center justify-between gap-2 mt-1">
+                    {fabric.moq && <p className="text-xs text-gray-400">Minimum order: {fabric.moq}</p>}
+                    {maxBulkQty != null && (
+                      <p className="text-xs text-gray-400">
+                        Available: {maxBulkQty.toLocaleString()} {unit.plural}
+                      </p>
+                    )}
+                  </div>
+                  {maxBulkQty != null && parseInt(bulkQty) > maxBulkQty && (
+                    <p className="text-xs text-red-600 mt-1">
+                      Quantity exceeds stock for {selectedBookingVariant?.color_name || "this variant"} ({maxBulkQty.toLocaleString()} {unit.plural} available).
+                    </p>
+                  )}
                 </div>
                 {bulkPrice && (
                   <div className="bg-gray-50 rounded-lg p-4 space-y-2">
@@ -1260,9 +1386,6 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                       <span className="text-emerald-600">₹{bulkPrice.totalPrice?.toLocaleString()}</span>
                     </div>
                   </div>
-                )}
-                {fabric.quantity_available > 0 && (
-                  <p className="text-xs text-gray-400">Available stock: {fabric.quantity_available?.toLocaleString()} {unit.plural}</p>
                 )}
               </div>
             ) : (
@@ -1298,13 +1421,25 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
               <button onClick={() => setShowBookModal(false)} className="flex-1 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-sm">Cancel</button>
               <button
                 onClick={() => {
+                  if (hasColorVariants && bookingVariantIdx == null) {
+                    toast.error("Please select a color first");
+                    return;
+                  }
                   const qty = orderModalType === "sample" ? sampleQty : parseInt(bulkQty) || fabric.moq || 100;
                   const price = orderModalType === "sample" ? (actions.samplePrice || 0) : (fabric.rate_per_meter || 0);
                   trackAddToCart(fabric, orderModalType, qty, price);
-                  navigate(`/checkout/?fabric_id=${fabric.id}&type=${orderModalType}&qty=${qty}`);
+                  const colorQuery = selectedBookingVariant
+                    ? `&color=${encodeURIComponent(selectedBookingVariant.color_name)}&color_hex=${encodeURIComponent(selectedBookingVariant.color_hex || '')}`
+                    : '';
+                  navigate(`/checkout/?fabric_id=${fabric.id}&type=${orderModalType}&qty=${qty}${colorQuery}`);
                 }}
-                disabled={orderModalType === "bulk" && (!bulkQty || parseInt(bulkQty) < 1)}
-                className={`flex-1 px-4 py-3 text-white rounded-lg font-medium text-sm disabled:opacity-50 ${orderModalType === "sample" ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
+                disabled={
+                  (orderModalType === "bulk" && (!bulkQty || parseInt(bulkQty) < 1)) ||
+                  (orderModalType === "bulk" && maxBulkQty != null && parseInt(bulkQty) > maxBulkQty) ||
+                  (hasColorVariants && bookableVariants.length === 0) ||
+                  (hasColorVariants && bookingVariantIdx == null)
+                }
+                className={`flex-1 px-4 py-3 text-white rounded-lg font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed ${orderModalType === "sample" ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
                 data-testid="proceed-checkout-btn"
               >
                 Proceed to Checkout

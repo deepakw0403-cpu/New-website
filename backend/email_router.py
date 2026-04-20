@@ -186,11 +186,18 @@ def get_order_received_admin_email(order: dict) -> str:
         order_type = item.get('order_type', 'bulk')
         type_label = 'Sample' if order_type == 'sample' else 'Bulk'
         fabric_url = f"{SITE_URL}/fabrics/{item.get('fabric_id', '')}"
+        _color = item.get('color_name') or ''
+        _color_hex = item.get('color_hex') or '#ccc'
+        _color_chip = (
+            f'<span style="display: inline-flex; align-items: center; gap: 4px; background: #f3f4f6; color: #374151; padding: 2px 6px; border-radius: 10px; font-size: 11px; margin-left: 6px;">'
+            f'<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: {_color_hex}; border: 1px solid #d1d5db;"></span>{_color}'
+            f'</span>'
+        ) if _color else ''
         
         items_html += f"""
         <tr>
             <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                <a href="{fabric_url}" style="color: #2563EB; font-weight: 600; text-decoration: none;">{item.get('fabric_name', 'Fabric')}</a><br>
+                <a href="{fabric_url}" style="color: #2563EB; font-weight: 600; text-decoration: none;">{item.get('fabric_name', 'Fabric')}</a>{_color_chip}<br>
                 <span style="color: #666; font-size: 12px;">Code: {item.get('fabric_code', 'N/A')} | Seller: {item.get('seller_company', 'N/A')}</span>
             </td>
             <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">

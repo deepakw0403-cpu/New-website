@@ -28,6 +28,9 @@ const CheckoutPage = () => {
   const fabricId = searchParams.get("fabric_id");
   const orderType = searchParams.get("type") || "bulk"; // sample or bulk
   const quantity = parseInt(searchParams.get("qty") || "1");
+  // Color variant (for multi-color SKUs)
+  const colorName = searchParams.get("color") || "";
+  const colorHex = searchParams.get("color_hex") || "";
   
   // Agent-assisted booking params
   const sharedCartToken = searchParams.get("shared_cart") || "";
@@ -286,6 +289,8 @@ const CheckoutPage = () => {
           order_type: orderType,
           image_url: fabric.images?.[0] || "",
           hsn_code: fabric.hsn_code || "",
+          color_name: colorName || "",
+          color_hex: colorHex || "",
           dispatch_timeline: fabric.dispatch_timeline || (orderType === 'bulk' ? '15-20 days' : 'Ready Stock')
         }],
         customer: { ...customer, gst_number: gstNumber },
@@ -483,13 +488,22 @@ const CheckoutPage = () => {
                       {fabric.seller_company && (
                         <p className="text-sm text-gray-500">by {fabric.seller_company}</p>
                       )}
-                      <div className="mt-2 flex items-center gap-4 text-sm">
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           orderType === "sample" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
                         }`}>
                           {orderType === "sample" ? "Sample Order" : "Bulk Order"}
                         </span>
                         <span className="text-gray-600">{quantity} {getUnit(fabric).plural}</span>
+                        {colorName && (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700" data-testid="checkout-selected-color">
+                            <span
+                              className="w-3 h-3 rounded-full border border-gray-300"
+                              style={{ backgroundColor: colorHex || '#ccc' }}
+                            />
+                            {colorName}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
