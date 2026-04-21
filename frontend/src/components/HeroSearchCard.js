@@ -11,6 +11,13 @@ const WEIGHT_BUCKETS = [
   { label: "Heavy (> 250 GSM)", min_gsm: "250", max_gsm: "" },
 ];
 
+// Denim is always spec'd in oz/yd². Classic weight-classes:
+const OZ_WEIGHT_BUCKETS = [
+  { label: "Lightweight (< 9 oz)", min_oz: "", max_oz: "9" },
+  { label: "Medium (9–12 oz)", min_oz: "9", max_oz: "12" },
+  { label: "Heavyweight (> 12 oz)", min_oz: "12", max_oz: "" },
+];
+
 const PRICE_BUCKETS = [
   { label: "Under ₹200/m", min_price: "", max_price: "200" },
   { label: "₹200 – ₹400/m", min_price: "200", max_price: "400" },
@@ -39,6 +46,16 @@ const HeroSearchCard = () => {
   const [weightIdx, setWeightIdx] = useState("");
   const [priceIdx, setPriceIdx] = useState("");
 
+  const isDenim = active === "Denim";
+  const weightBuckets = isDenim ? OZ_WEIGHT_BUCKETS : WEIGHT_BUCKETS;
+  const weightLabel = isDenim ? "Weight · OZ" : "Weight · GSM";
+
+  // Reset the weight bucket whenever the category flips between Denim and non-Denim,
+  // otherwise a stale index could map to a wrong label.
+  useEffect(() => {
+    setWeightIdx("");
+  }, [isDenim]);
+
   useEffect(() => {
     getCategories()
       .then((res) => {
@@ -56,10 +73,15 @@ const HeroSearchCard = () => {
     const params = new URLSearchParams();
     const catObj = categories.find((c) => c.name === active);
     if (catObj) params.set("category", catObj.id);
-    const w = weightIdx !== "" ? WEIGHT_BUCKETS[weightIdx] : null;
+    const w = weightIdx !== "" ? weightBuckets[weightIdx] : null;
     if (w) {
-      if (w.min_gsm) params.set("min_gsm", w.min_gsm);
-      if (w.max_gsm) params.set("max_gsm", w.max_gsm);
+      if (isDenim) {
+        if (w.min_oz) params.set("min_oz", w.min_oz);
+        if (w.max_oz) params.set("max_oz", w.max_oz);
+      } else {
+        if (w.min_gsm) params.set("min_gsm", w.min_gsm);
+        if (w.max_gsm) params.set("max_gsm", w.max_gsm);
+      }
     }
     const p = priceIdx !== "" ? PRICE_BUCKETS[priceIdx] : null;
     if (p) {
@@ -122,11 +144,11 @@ const HeroSearchCard = () => {
       {/* Filter row — GSM + Price + Search */}
       <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 pt-3">
         <FieldSelect
-          label="Weight · GSM"
+          label={weightLabel}
           value={weightIdx}
           onChange={setWeightIdx}
           options={[{ value: "", label: "Any weight" }].concat(
-            WEIGHT_BUCKETS.map((b, i) => ({ value: String(i), label: b.label }))
+            weightBuckets.map((b, i) => ({ value: String(i), label: b.label }))
           )}
           testid="hero-weight"
         />

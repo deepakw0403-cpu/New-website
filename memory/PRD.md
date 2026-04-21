@@ -180,7 +180,8 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 ### Phase 23: Denim → Ounce-Only Weight Unit (Complete - Feb 2026)
 - [x] **Admin + Vendor forms** (`AdminFabrics.js`, `VendorInventory.js`) — When Category = Denim, the Weight Unit toggle is hidden and the form forces `weight_unit = "ounce"` via a `useEffect` on `form.category_id`. Only the Ounce (oz/yd²) dropdown is rendered, with an amber hint "Denim is always measured in oz".
 - [x] **Stale GSM cleanup** — Switching a fabric to Denim clears `form.gsm = ""` so no stale GSM leaks into the payload.
-- [x] **Smoke-tested**: Switching Category to Denim → Weight Unit toggle count = 0, GSM hidden, Ounce dropdown visible. Switching back to Cotton → toggle returns, buyer can switch freely.
+- [x] **Home Hero Search** (`HeroSearchCard.js`) — Weight bucket dropdown flips from GSM to oz when Denim pill is active. New OZ buckets: *Lightweight (< 9 oz)*, *Medium (9–12 oz)*, *Heavyweight (> 12 oz)*. Weight label toggles `WEIGHT · GSM` ↔ `WEIGHT · OZ`. Submit emits `min_oz`/`max_oz` URL params (aligned with existing FabricsPage URL scheme) and `weightIdx` resets when user flips between Denim and non-Denim.
+- [x] **Smoke-tested**: Selecting Denim pill → oz options appear; picking Medium → URL `/fabrics?category=cat-denim&min_oz=9&max_oz=12` correctly returns 4 denim SKUs in the 9–12 oz band.
 
 ## Backlog
 
