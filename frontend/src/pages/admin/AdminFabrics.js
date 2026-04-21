@@ -127,6 +127,15 @@ const AdminFabrics = () => {
     return null; // no weave control for other categories
   };
 
+  // Denim fabrics are always spec'd in ounces — auto-force weight_unit = "ounce"
+  // and clear any stale GSM value. Kicks in whenever the category flips to Denim.
+  useEffect(() => {
+    if (isDenim() && form.weight_unit !== "ounce") {
+      setForm((prev) => ({ ...prev, weight_unit: "ounce", gsm: "" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.category_id]);
+
   // Auto-generate a denim fabric name in the format:
   //   "M1 M2 M3, Weave type, Weight, Color: Color name"
   // Pulls top 3 materials (in composition order, not %), weave_type, weight, and color.
@@ -1011,21 +1020,41 @@ const AdminFabrics = () => {
                   )}
                 </div>
 
-                {/* Weight: GSM or Ounce */}
+                {/* Weight: GSM or Ounce (Denim is always ounce-only) */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Weight Unit *</label>
-                    <select
-                      value={form.weight_unit}
-                      onChange={(e) => setForm({ ...form, weight_unit: e.target.value })}
-                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
-                      data-testid="fabric-weight-unit-select"
-                    >
-                      <option value="gsm">GSM</option>
-                      <option value="ounce">Ounce</option>
-                    </select>
-                  </div>
-                  {form.weight_unit === "gsm" ? (
+                  {!isDenim() && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Weight Unit *</label>
+                      <select
+                        value={form.weight_unit}
+                        onChange={(e) => setForm({ ...form, weight_unit: e.target.value })}
+                        className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                        data-testid="fabric-weight-unit-select"
+                      >
+                        <option value="gsm">GSM</option>
+                        <option value="ounce">Ounce</option>
+                      </select>
+                    </div>
+                  )}
+                  {isDenim() || form.weight_unit === "ounce" ? (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Ounce (oz/yd²) *
+                        {isDenim() && <span className="ml-2 text-xs font-normal text-amber-700">Denim is always measured in oz</span>}
+                      </label>
+                      <select
+                        value={form.ounce}
+                        onChange={(e) => setForm({ ...form, ounce: e.target.value })}
+                        className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
+                        data-testid="fabric-ounce-select"
+                      >
+                        <option value="">-- Select Ounce --</option>
+                        {ounceOptions.map((n) => (
+                          <option key={n} value={n}>{n} oz</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
                     <div>
                       <label className="block text-sm font-medium mb-2">GSM *</label>
                       <select
@@ -1037,21 +1066,6 @@ const AdminFabrics = () => {
                         <option value="">-- Select GSM --</option>
                         {gsmOptions.map((n) => (
                           <option key={n} value={n}>{n}</option>
-                        ))}
-                      </select>
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Ounce *</label>
-                      <select
-                        value={form.ounce}
-                        onChange={(e) => setForm({ ...form, ounce: e.target.value })}
-                        className="w-full px-4 py-2 border border-neutral-200 rounded-sm bg-white"
-                        data-testid="fabric-ounce-select"
-                      >
-                        <option value="">-- Select Ounce --</option>
-                        {ounceOptions.map((n) => (
-                          <option key={n} value={n}>{n} oz</option>
                         ))}
                       </select>
                     </div>

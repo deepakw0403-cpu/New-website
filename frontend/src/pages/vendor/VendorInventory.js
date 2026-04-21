@@ -189,6 +189,14 @@ const VendorInventory = () => {
     return null;
   };
 
+  // Denim is always measured in ounces — auto-force weight_unit when Denim is chosen
+  useEffect(() => {
+    if (isDenim() && form.weight_unit !== "ounce") {
+      setForm((prev) => ({ ...prev, weight_unit: "ounce", gsm: "" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.category_id]);
+
   // Auto-generate name: "M1 M2 M3, [Weave], Weight, Color: <color>"
   const buildFabricName = () => {
     const mats = (form.composition || [])
@@ -604,30 +612,35 @@ const VendorInventory = () => {
 
                   {/* Weight */}
                   <div className="grid grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Weight Unit *</label>
-                      <select value={form.weight_unit} onChange={e => setForm({ ...form, weight_unit: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white" data-testid="weight-unit-select">
-                        <option value="gsm">GSM</option>
-                        <option value="ounce">Ounce</option>
-                      </select>
-                    </div>
-                    {form.weight_unit === "gsm" ? (
+                    {!isDenim() && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Weight Unit *</label>
+                        <select value={form.weight_unit} onChange={e => setForm({ ...form, weight_unit: e.target.value })}
+                          className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white" data-testid="weight-unit-select">
+                          <option value="gsm">GSM</option>
+                          <option value="ounce">Ounce</option>
+                        </select>
+                      </div>
+                    )}
+                    {isDenim() || form.weight_unit === "ounce" ? (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Ounce (oz/yd²) *
+                          {isDenim() && <span className="ml-2 text-[11px] font-normal text-amber-700">Denim is always in oz</span>}
+                        </label>
+                        <select value={form.ounce} onChange={e => setForm({ ...form, ounce: e.target.value })}
+                          className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white" data-testid="ounce-select">
+                          <option value="">-- Select --</option>
+                          {ounceOptions.map(n => <option key={n} value={n}>{n} oz</option>)}
+                        </select>
+                      </div>
+                    ) : (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">GSM *</label>
                         <select value={form.gsm} onChange={e => setForm({ ...form, gsm: e.target.value })}
                           className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white" data-testid="gsm-select">
                           <option value="">-- Select --</option>
                           {gsmOptions.map(n => <option key={n} value={n}>{n}</option>)}
-                        </select>
-                      </div>
-                    ) : (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Ounce *</label>
-                        <select value={form.ounce} onChange={e => setForm({ ...form, ounce: e.target.value })}
-                          className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white" data-testid="ounce-select">
-                          <option value="">-- Select --</option>
-                          {ounceOptions.map(n => <option key={n} value={n}>{n} oz</option>)}
                         </select>
                       </div>
                     )}

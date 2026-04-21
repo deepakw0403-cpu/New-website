@@ -177,6 +177,11 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Unit logic** (`kg` vs `m`) in `FabricDetailPage.js`, `AdminFabrics.js`, `VendorInventory.js` now keys off `fabric_type === "knitted"` instead of the deleted `cat-knits` category.
 - [x] **Smoke-tested**: Admin Add Fabric modal → set Fabric Type to Knitted → Width dropdown shows only Open Width / Circular; Warp/Weft fields vanish.
 
+### Phase 23: Denim → Ounce-Only Weight Unit (Complete - Feb 2026)
+- [x] **Admin + Vendor forms** (`AdminFabrics.js`, `VendorInventory.js`) — When Category = Denim, the Weight Unit toggle is hidden and the form forces `weight_unit = "ounce"` via a `useEffect` on `form.category_id`. Only the Ounce (oz/yd²) dropdown is rendered, with an amber hint "Denim is always measured in oz".
+- [x] **Stale GSM cleanup** — Switching a fabric to Denim clears `form.gsm = ""` so no stale GSM leaks into the payload.
+- [x] **Smoke-tested**: Switching Category to Denim → Weight Unit toggle count = 0, GSM hidden, Ounce dropdown visible. Switching back to Cotton → toggle returns, buyer can switch freely.
+
 ## Backlog
 
 ### P1 (High Priority)
