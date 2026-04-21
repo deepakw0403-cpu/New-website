@@ -177,7 +177,7 @@ const SharedCartPage = () => {
                 {item.image_url && <img src={item.image_url} alt={item.fabric_name} className="w-20 h-20 object-cover rounded-lg" />}
                 <div className="flex-1">
                   <h3 className="font-medium text-gray-900">{item.fabric_name}</h3>
-                  <p className="text-xs text-gray-500">{item.category_name}{item.seller_company ? ` · ${item.seller_company}` : ""}</p>
+                  <p className="text-xs text-gray-500">{item.category_name}</p>
                   <div className="mt-2 flex items-center gap-4 text-sm">
                     <span className="text-gray-600">{item.quantity} meters</span>
                     <span className="text-gray-600">@ ₹{item.price_per_meter}/m</span>

@@ -189,6 +189,13 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **B2C parity** — Change is agent-only. Public `FabricDetailPage` / `FabricsPage` continue to hide vendor names (confidential to buyers by design).
 - [x] **Smoke-tested end-to-end**: Logged in as `agent@locofast.com` → catalog card shows amber pill `🏪 LOSPL, Fabric Manufacturer, Gurugram`; added to cart → same pill persists on cart line items.
 
+### Phase 25: Hide Vendor on Customer-Facing Pages (Complete - Feb 2026)
+- [x] **`SharedCartPage.js`** — The page a customer opens from an agent's shared-cart link no longer shows `seller_company` next to the category. Customer only sees fabric name, category, qty, price, type — vendor is hidden.
+- [x] **`CheckoutPage.js`** — Removed the `by {seller_company}` subtitle from the Order Summary so B2C buyers (direct + shared-cart recipients) never see supplier identity.
+- [x] **`OrderConfirmationPage.js`** — Same removal for the post-purchase confirmation view.
+- [x] **Customer confirmation email** already does NOT leak vendor (line 309 of `email_router.py` only shows `Code | Category`). Admin notification email (separate template, line 201) retains `Seller:` which is correct.
+- [x] **Smoke-tested**: Created a real shared-cart token via `/api/agent/shared-cart`, opened `/shared-cart/<token>` — Playwright body-text check confirms `"LOSPL" not in page`. Agent attribution banner ("Assisted booking by Test Agent") still renders.
+
 ## Backlog
 
 ### P1 (High Priority)

@@ -485,9 +485,6 @@ const CheckoutPage = () => {
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">{fabric.name}</h3>
                       <p className="text-sm text-gray-600">{fabric.category_name}</p>
-                      {fabric.seller_company && (
-                        <p className="text-sm text-gray-500">by {fabric.seller_company}</p>
-                      )}
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           orderType === "sample" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"

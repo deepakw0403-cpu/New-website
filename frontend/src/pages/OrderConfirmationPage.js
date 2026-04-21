@@ -137,9 +137,6 @@ const OrderConfirmationPage = () => {
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900">{item.fabric_name}</h4>
                           <p className="text-sm text-gray-600">{item.category_name}</p>
-                          {item.seller_company && (
-                            <p className="text-sm text-gray-500">by {item.seller_company}</p>
-                          )}
                           <div className="mt-1 flex items-center gap-3 text-sm">
                             <span className={`px-2 py-0.5 rounded text-xs ${
                               item.order_type === "sample" 
