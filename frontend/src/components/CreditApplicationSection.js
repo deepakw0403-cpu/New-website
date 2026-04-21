@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { CheckCircle, ArrowRight, ArrowLeft, Upload, Loader2, FileText } from "lucide-react";
-import { applyForCredit } from "../lib/api";
+import { CheckCircle, ArrowRight, ArrowLeft, Upload, Loader2, FileText, X, Plus } from "lucide-react";
+import { applyForCredit, uploadToCloudinary } from "../lib/api";
 import { toast } from "sonner";
 
 const COMPANY_TYPES = [
@@ -13,14 +13,14 @@ const TURNOVER_OPTIONS = [
   "2-5 Cr", "5-10 Cr", "10-25 Cr", "25-50 Cr", "50-100 Cr", "100 Cr+"
 ];
 
-// Document checklist by company type — from the credit team's requirements
+// Document checklist by company type — from the credit team's requirements.
+// Each upload header now supports MULTIPLE files (e.g. 12 monthly bank statements).
 const DOCUMENTS = {
   proprietorship: [
-    { key: "gst_otp", label: "GST OTP Validation", required: true, type: "auto" },
     { key: "gst_cert", label: "GST Certificate", required: true, type: "upload" },
     { key: "kyc_prop", label: "KYC (Aadhaar + PAN) of Proprietor", required: true, type: "upload" },
     { key: "bank_stmt", label: "Bank Statement (1 year)", required: true, type: "upload" },
-    { key: "cibil_consent", label: "CIBIL Consent", required: true, type: "checkbox" },
+    { key: "balance_sheet", label: "Balance Sheet (Last 2 Years)", required: true, type: "upload" },
     { key: "co_app_kyc", label: "Co-Applicant KYC (Aadhaar & PAN)", required: false, type: "upload" },
     { key: "msme_cert", label: "MSME Certificate", required: false, type: "upload" },
     { key: "ownership_proof", label: "Ownership Proof (Residence + Office)", required: false, type: "upload" },
@@ -29,12 +29,10 @@ const DOCUMENTS = {
     { key: "udc_nach", label: "UDC & NACH", required: true, type: "checkbox" },
   ],
   partnership_llp: [
-    { key: "gst_otp", label: "GST OTP Validation", required: true, type: "auto" },
     { key: "gst_cert", label: "GST Certificate", required: true, type: "upload" },
     { key: "kyc_partner", label: "KYC (Aadhaar + PAN) of Partner", required: true, type: "upload" },
     { key: "partnership_deed", label: "Partnership Deed", required: true, type: "upload" },
     { key: "bank_stmt", label: "Bank Statement (1 year)", required: true, type: "upload" },
-    { key: "cibil_consent", label: "CIBIL Consent", required: true, type: "checkbox" },
     { key: "company_pan", label: "Company PAN", required: true, type: "upload" },
     { key: "br", label: "Board Resolution (BR)", required: false, type: "upload" },
     { key: "msme_cert", label: "MSME Certificate", required: false, type: "upload" },
@@ -45,12 +43,10 @@ const DOCUMENTS = {
     { key: "udc_nach", label: "UDC & NACH", required: true, type: "checkbox" },
   ],
   pvt_ltd: [
-    { key: "gst_otp", label: "GST OTP Validation", required: true, type: "auto" },
     { key: "gst_cert", label: "GST Certificate", required: true, type: "upload" },
     { key: "kyc_director", label: "KYC (Aadhaar + PAN) of Director", required: true, type: "upload" },
     { key: "shareholding", label: "Shareholding Pattern, List of Directors, CoI, AoA & MoA", required: true, type: "upload" },
     { key: "bank_stmt", label: "Bank Statement (1 year)", required: true, type: "upload" },
-    { key: "cibil_consent", label: "CIBIL Consent", required: true, type: "checkbox" },
     { key: "company_pan", label: "Company PAN", required: true, type: "upload" },
     { key: "br", label: "Board Resolution (BR)", required: false, type: "upload" },
     { key: "msme_cert", label: "MSME Certificate", required: false, type: "upload" },
@@ -63,31 +59,53 @@ const DOCUMENTS = {
 };
 
 const CreditApplicationSection = () => {
-  const [step, setStep] = useState(1); // 1: company type, 2: details, 3: documents, 4: success
+  const [step, setStep] = useState(1);
   const [companyType, setCompanyType] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingKey, setUploadingKey] = useState(null); // which header is currently uploading
   const [form, setForm] = useState({
     name: "", email: "", phone: "", company: "", gst_number: "", turnover: "",
   });
-  const [docChecks, setDocChecks] = useState({}); // key -> true/false for checkboxes
-  const [docNames, setDocNames] = useState({}); // key -> filename for uploads
+  const [docChecks, setDocChecks] = useState({}); // key -> boolean
+  // docFiles[key] = [{ name, url }, ...] — multiple files per header
+  const [docFiles, setDocFiles] = useState({});
 
-  const handleFileSelect = (key, e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setDocNames(prev => ({ ...prev, [key]: file.name }));
+  const handleFileSelect = async (key, e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setUploadingKey(key);
+    const uploaded = [];
+    for (const file of files) {
+      if (file.size > 15 * 1024 * 1024) {
+        toast.error(`${file.name} is larger than 15MB. Please compress and retry.`);
+        continue;
+      }
+      try {
+        const res = await uploadToCloudinary(file, `credit-applications/${key}`);
+        uploaded.push({ name: file.name, url: res.url });
+      } catch (err) {
+        toast.error(`Failed to upload ${file.name}`);
+      }
     }
+    setDocFiles(prev => ({ ...prev, [key]: [...(prev[key] || []), ...uploaded] }));
+    setUploadingKey(null);
+    // Reset input so same file can be re-selected if removed
+    e.target.value = "";
   };
 
-  const toggleDoc = (key) => {
-    setDocChecks(prev => ({ ...prev, [key]: !prev[key] }));
+  const removeFile = (key, idx) => {
+    setDocFiles(prev => ({
+      ...prev,
+      [key]: (prev[key] || []).filter((_, i) => i !== idx),
+    }));
   };
+
+  const toggleDoc = (key) => setDocChecks(prev => ({ ...prev, [key]: !prev[key] }));
 
   const requiredDocs = companyType ? DOCUMENTS[companyType]?.filter(d => d.required) || [] : [];
   const allRequiredDone = requiredDocs.every(d => {
-    if (d.type === "auto") return true;
     if (d.type === "checkbox") return docChecks[d.key];
-    return docNames[d.key];
+    return (docFiles[d.key] || []).length > 0;
   });
 
   const handleSubmit = async () => {
@@ -97,8 +115,11 @@ const CreditApplicationSection = () => {
         key: d.key,
         label: d.label,
         required: d.required,
-        provided: d.type === "auto" ? true : d.type === "checkbox" ? !!docChecks[d.key] : !!docNames[d.key],
-        filename: docNames[d.key] || "",
+        type: d.type,
+        provided: d.type === "checkbox"
+          ? !!docChecks[d.key]
+          : (docFiles[d.key] || []).length > 0,
+        files: d.type === "upload" ? (docFiles[d.key] || []) : [],
       }));
       await applyForCredit({
         ...form,
@@ -249,47 +270,94 @@ const CreditApplicationSection = () => {
                 <p className="text-sm text-neutral-500 mb-1">
                   Step 3: Upload documents for <span className="font-medium text-emerald-600">{COMPANY_TYPES.find(c => c.value === companyType)?.label}</span>
                 </p>
-                <p className="text-xs text-gray-400 mb-6">Fields marked * are mandatory</p>
+                <p className="text-xs text-gray-400 mb-6">Fields marked * are mandatory. You can upload multiple files per section.</p>
 
-                <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
-                  {(DOCUMENTS[companyType] || []).map(doc => (
-                    <div key={doc.key} className={`p-3 rounded-lg border ${doc.type === "auto" ? "bg-emerald-50 border-emerald-200" : docNames[doc.key] || docChecks[doc.key] ? "bg-emerald-50/50 border-emerald-200" : "bg-white border-gray-200"}`}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <FileText size={14} className={`flex-shrink-0 ${docNames[doc.key] || docChecks[doc.key] || doc.type === "auto" ? "text-emerald-600" : "text-gray-400"}`} />
-                          <span className="text-sm text-gray-800 truncate">
-                            {doc.label} {doc.required && <span className="text-red-400">*</span>}
-                          </span>
+                <div className="space-y-3 max-h-[460px] overflow-y-auto pr-2">
+                  {(DOCUMENTS[companyType] || []).map(doc => {
+                    const files = docFiles[doc.key] || [];
+                    const hasFiles = files.length > 0;
+                    const isDone = doc.type === "checkbox" ? !!docChecks[doc.key] : hasFiles;
+                    return (
+                      <div
+                        key={doc.key}
+                        className={`p-3 rounded-lg border ${isDone ? "bg-emerald-50/50 border-emerald-200" : "bg-white border-gray-200"}`}
+                        data-testid={`doc-row-${doc.key}`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <FileText size={14} className={`flex-shrink-0 ${isDone ? "text-emerald-600" : "text-gray-400"}`} />
+                            <span className="text-sm text-gray-800 truncate">
+                              {doc.label} {doc.required && <span className="text-red-400">*</span>}
+                              {doc.type === "upload" && hasFiles && (
+                                <span className="ml-2 text-xs text-emerald-600 font-medium">
+                                  {files.length} file{files.length > 1 ? "s" : ""}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+
+                          {doc.type === "checkbox" && (
+                            <label className="flex items-center gap-2 flex-shrink-0 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={!!docChecks[doc.key]}
+                                onChange={() => toggleDoc(doc.key)}
+                                className="w-4 h-4 text-emerald-600 rounded"
+                                data-testid={`doc-check-${doc.key}`}
+                              />
+                              <span className="text-xs text-gray-500">I consent</span>
+                            </label>
+                          )}
+
+                          {doc.type === "upload" && (
+                            <label className={`text-xs border border-gray-300 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium text-gray-600 flex-shrink-0 ${uploadingKey === doc.key ? "bg-gray-100 cursor-not-allowed" : "bg-white hover:bg-gray-50 cursor-pointer"}`}>
+                              {uploadingKey === doc.key ? (
+                                <><Loader2 size={12} className="animate-spin" /> Uploading...</>
+                              ) : hasFiles ? (
+                                <><Plus size={12} /> Add more</>
+                              ) : (
+                                <><Upload size={12} /> Upload</>
+                              )}
+                              <input
+                                type="file"
+                                multiple
+                                className="hidden"
+                                disabled={uploadingKey === doc.key}
+                                onChange={(e) => handleFileSelect(doc.key, e)}
+                                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                                data-testid={`doc-upload-${doc.key}`}
+                              />
+                            </label>
+                          )}
                         </div>
 
-                        {doc.type === "auto" && (
-                          <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-medium flex-shrink-0">Auto-verified</span>
-                        )}
-
-                        {doc.type === "checkbox" && (
-                          <label className="flex items-center gap-2 flex-shrink-0 cursor-pointer">
-                            <input type="checkbox" checked={!!docChecks[doc.key]} onChange={() => toggleDoc(doc.key)} className="w-4 h-4 text-emerald-600 rounded" />
-                            <span className="text-xs text-gray-500">I consent</span>
-                          </label>
-                        )}
-
-                        {doc.type === "upload" && (
-                          <div className="flex-shrink-0">
-                            {docNames[doc.key] ? (
-                              <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
-                                <CheckCircle size={12} /> {docNames[doc.key].length > 20 ? docNames[doc.key].slice(0, 20) + '...' : docNames[doc.key]}
-                              </span>
-                            ) : (
-                              <label className="text-xs bg-white border border-gray-300 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-gray-50 flex items-center gap-1 font-medium text-gray-600">
-                                <Upload size={12} /> Upload
-                                <input type="file" className="hidden" onChange={(e) => handleFileSelect(doc.key, e)} accept=".pdf,.jpg,.jpeg,.png" />
-                              </label>
-                            )}
+                        {/* Uploaded file chips list */}
+                        {doc.type === "upload" && hasFiles && (
+                          <div className="mt-2 flex flex-wrap gap-1.5 pl-5">
+                            {files.map((f, idx) => (
+                              <div
+                                key={idx}
+                                className="inline-flex items-center gap-1 bg-white border border-emerald-200 rounded-md px-2 py-0.5 text-[11px] text-gray-700"
+                                data-testid={`doc-file-${doc.key}-${idx}`}
+                              >
+                                <CheckCircle size={10} className="text-emerald-600" />
+                                <span className="truncate max-w-[180px]" title={f.name}>{f.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeFile(doc.key, idx)}
+                                  className="text-gray-400 hover:text-red-500"
+                                  aria-label={`Remove ${f.name}`}
+                                  data-testid={`doc-file-remove-${doc.key}-${idx}`}
+                                >
+                                  <X size={11} />
+                                </button>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="flex gap-3 mt-6">
@@ -298,7 +366,7 @@ const CreditApplicationSection = () => {
                   </button>
                   <button
                     onClick={handleSubmit}
-                    disabled={submitting || !allRequiredDone}
+                    disabled={submitting || !allRequiredDone || !!uploadingKey}
                     className="flex-1 bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 disabled:opacity-40 flex items-center justify-center gap-2"
                     data-testid="credit-submit-btn"
                   >
@@ -317,7 +385,7 @@ const CreditApplicationSection = () => {
                 <p className="text-neutral-600 mb-2">
                   Your credit application for <span className="font-medium">{COMPANY_TYPES.find(c => c.value === companyType)?.label}</span> has been received.
                 </p>
-                <p className="text-sm text-neutral-500">Our credit team will review your documents and contact you within 24-48 hours with your credit limit.</p>
+                <p className="text-sm text-neutral-500">Our credit team at <span className="font-medium">credit@locofast.com</span> will review your documents and contact you within 24-48 hours with your credit limit.</p>
               </div>
             )}
           </div>

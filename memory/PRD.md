@@ -202,6 +202,13 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Stored under the same `weave_type` field** on the fabric — no schema change needed (the field is effectively "weave-or-knit structure").
 - [x] **Smoke-tested**: Admin Add Fabric modal → Fabric Type = Knitted → dropdown label "Knit Type", 30 options (29 + placeholder), includes Single Jersey, Terry, Bubble Crepe.
 
+### Phase 27: Credit Application Form Overhaul (Complete - Feb 2026)
+- [x] **Multiple files per document header** (`CreditApplicationSection.js`) — state refactored from `docNames[key] = filename` to `docFiles[key] = [{name, url}, ...]`. File input uses `multiple` + uploads each to Cloudinary under `credit-applications/{key}`. Uploaded files render as chip list with per-file X-remove. Button swaps from "Upload" → "Add more" once at least one file is attached.
+- [x] **Balance Sheet added for Proprietorship** — new required `balance_sheet` entry "Balance Sheet (Last 2 Years)" placed 4th in the checklist (right after Bank Statement), matching the Partnership/Pvt-Ltd treatment.
+- [x] **Removed GST OTP validation + CIBIL Consent entries** from all 3 company-type document lists. Step 2 still collects GST Number (business data, not consent).
+- [x] **Email to `credit@locofast.com`** — new `_send_credit_team_email()` in `credit_router.py` fires via Resend after DB insert. Email contains applicant summary + HSN-style table of every document with clickable hyperlinks to each uploaded file (Cloudinary URL). `reply_to` set to the applicant's email so the credit team can reply directly. `CREDIT_TEAM_EMAIL` env var overrides default `credit@locofast.com`.
+- [x] **Smoke-tested**: POST `/api/credit/apply` with 5 docs (4 upload with 1–2 files each, 1 checkbox) → DB insert + backend log confirms `Credit application email sent to credit@locofast.com`. Playwright verified proprietorship Step 3 shows Balance Sheet, no GST OTP, multi-upload helper text.
+
 ## Backlog
 
 ### P1 (High Priority)
