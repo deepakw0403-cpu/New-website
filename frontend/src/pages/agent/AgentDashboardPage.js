@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAgentAuth } from "../../context/AgentAuthContext";
-import { Search, ShoppingCart, Send, Package, LogOut, Plus, Minus, Trash2, ExternalLink, Copy, Loader2, Eye, Clock, CheckCircle, XCircle, FileText } from "lucide-react";
+import { Search, ShoppingCart, Send, Package, LogOut, Plus, Minus, Trash2, ExternalLink, Copy, Loader2, Eye, Clock, CheckCircle, XCircle, FileText, Store } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
@@ -321,7 +321,23 @@ const AgentDashboardPage = () => {
                       <img src={f.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=300"} alt={f.name} className="w-full h-40 object-cover" loading="lazy" />
                       <div className="p-4">
                         <h3 className="font-medium text-sm text-gray-900 truncate">{f.name}</h3>
-                        <p className="text-xs text-gray-500 mt-0.5">{f.category_name} {f.seller_company ? `· ${f.seller_company}` : ""}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{f.category_name}</p>
+                        {/* Vendor pill — prominent on Agent platform (hidden on B2C) */}
+                        {f.seller_company ? (
+                          <div
+                            className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-medium max-w-full"
+                            data-testid={`agent-vendor-${f.id}`}
+                            title={f.seller_company}
+                          >
+                            <Store size={11} className="flex-shrink-0" />
+                            <span className="truncate">{f.seller_company}</span>
+                          </div>
+                        ) : (
+                          <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 border border-gray-200 text-gray-500 text-[11px] font-medium">
+                            <Store size={11} />
+                            <span>Locofast direct</span>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between mt-3">
                           <span className="text-lg font-semibold text-[#2563EB]">₹{f.rate_per_meter?.toLocaleString()}<span className="text-xs font-normal text-gray-500">/m</span></span>
                           <div className="flex gap-1">
@@ -374,7 +390,18 @@ const AgentDashboardPage = () => {
                         {item.image_url && <img src={item.image_url} alt={item.fabric_name} className="w-20 h-20 object-cover rounded-lg" />}
                         <div className="flex-1">
                           <h3 className="font-medium text-gray-900">{item.fabric_name}</h3>
-                          <p className="text-xs text-gray-500">{item.category_name}{item.seller_company ? ` · ${item.seller_company}` : ""}</p>
+                          <p className="text-xs text-gray-500">{item.category_name}</p>
+                          {/* Vendor pill — agent must know which vendor to coordinate with */}
+                          {item.seller_company ? (
+                            <div
+                              className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-medium"
+                              data-testid={`cart-vendor-${item.fabric_id}`}
+                              title={item.seller_company}
+                            >
+                              <Store size={10} />
+                              <span className="truncate max-w-[200px]">{item.seller_company}</span>
+                            </div>
+                          ) : null}
                           <div className="flex items-center gap-2 mt-1.5">
                             <select
                               value={item.order_type}

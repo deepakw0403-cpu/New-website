@@ -183,6 +183,12 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Home Hero Search** (`HeroSearchCard.js`) — Weight bucket dropdown flips from GSM to oz when Denim pill is active. New OZ buckets: *Lightweight (< 9 oz)*, *Medium (9–12 oz)*, *Heavyweight (> 12 oz)*. Weight label toggles `WEIGHT · GSM` ↔ `WEIGHT · OZ`. Submit emits `min_oz`/`max_oz` URL params (aligned with existing FabricsPage URL scheme) and `weightIdx` resets when user flips between Denim and non-Denim.
 - [x] **Smoke-tested**: Selecting Denim pill → oz options appear; picking Medium → URL `/fabrics?category=cat-denim&min_oz=9&max_oz=12` correctly returns 4 denim SKUs in the 9–12 oz band.
 
+### Phase 24: Vendor Name — Prominent on Agent Platform (Complete - Feb 2026)
+- [x] **`AgentDashboardPage.js`** — Vendor (`seller_company`) is now rendered as a distinct **amber pill** with a `Store` icon on every fabric card in the catalog and every line item in the cart. Previously it was a tiny grey suffix crammed with the category name (`Cotton · LOSPL, …`). Now it occupies its own row with border and icon, so agents immediately see which supplier each SKU belongs to.
+- [x] **Locofast-direct fallback** — SKUs without a seller now show a grey `Store` pill "Locofast direct" so there's never ambiguity.
+- [x] **B2C parity** — Change is agent-only. Public `FabricDetailPage` / `FabricsPage` continue to hide vendor names (confidential to buyers by design).
+- [x] **Smoke-tested end-to-end**: Logged in as `agent@locofast.com` → catalog card shows amber pill `🏪 LOSPL, Fabric Manufacturer, Gurugram`; added to cart → same pill persists on cart line items.
+
 ## Backlog
 
 ### P1 (High Priority)
