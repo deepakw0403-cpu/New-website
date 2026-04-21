@@ -111,10 +111,11 @@ const AdminFabrics = () => {
   const isCotton = () => form.category_id === COTTON_CATEGORY_ID;
   const denimColorOptions = [
     "", "Black x White", "Black x Black", "Indigo x White", "Indigo x Black",
+    "Indigo x Brown", "Dark Indigo x White",
     "Ecru", "RFD", "IBST (Indigo bottom, Sulphur top)", "SBIT (Sulphur bottom, Indigo top)",
   ];
   const denimWeaveOptions = [
-    "", "2/1 RHT", "2/1 LHT", "3/1 RHT", "3/1 LHT", "4/1 Satin", "Dobby", "Herringbone",
+    "", "2/1 RHT", "2/1 LHT", "3/1 RHT", "3/1 LHT", "4/1 Satin", "4/1 Satin RHT", "4/1 Satin LHT", "Dobby", "Herringbone",
   ];
   const cottonWeaveOptions = [
     "", "Voile", "Cambric", "Poplin", "2/1 Twill", "3/1 Twill", "2/2 Twill", "4/1 Satin",
