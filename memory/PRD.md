@@ -219,6 +219,11 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Vendor backend support** — added `has_multiple_colors: bool` and `color_variants: List[dict]` to `FabricCreate`/`FabricUpdate` in `vendor_router.py`; `width_type` also wired into the POST handler (was dropped earlier). Update handler already uses `model_dump()` → picks new fields automatically.
 - [x] **Smoke-tested**: vendor login → edit MC fabric created via API → UI shows multi-color checkbox ticked + both variants rendered with correct name/qty/sample flags. Backend persist round-trip verified via curl.
 
+### Phase 29: Polyester + Woven Weave Types (Complete - Feb 2026)
+- [x] **Admin + Vendor forms** — new `polyesterWovenWeaveOptions` list kicks in when Category = Polyester Fabrics (and fabric_type is Woven, i.e. not Knitted): `1x1 Plain, 2x1 Twill, 3x1 Twill, 2x2 Twill, 4x1 Satin, Dobby, Jacquard, -Slub, +Slub, Magic Slub`.
+- [x] **Priority order** (both Admin + Vendor): Knitted type > Denim > Polyester > Cotton > (no dropdown). So a Polyester+Knitted fabric still correctly shows Knit Types; only Polyester+Woven gets the new list.
+- [x] **Smoke-tested**: Admin Add Fabric → Category=Polyester Fabrics + Fabric Type=Woven → Weave Type dropdown shows all 10 new options (verified via Playwright option-text enumeration + screenshot).
+
 ## Backlog
 
 ### P1 (High Priority)

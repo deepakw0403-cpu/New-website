@@ -12,6 +12,7 @@ const finishOptions = ["", "Bio", "Double Bio", "Silicon", "Double Silicon", "En
 // ===== Category-specific dropdown values =====
 const DENIM_CATEGORY_ID = "cat-denim";
 const COTTON_CATEGORY_ID = "cat-cotton";
+const POLYESTER_CATEGORY_ID = "cat-polyester";
 const denimColorOptions = [
   "", "Black x White", "Black x Black", "Indigo x White", "Indigo x Black",
   "Indigo x Brown", "Dark Indigo x White",
@@ -24,6 +25,11 @@ const cottonWeaveOptions = [
   "", "Voile", "Cambric", "Poplin", "2/1 Twill", "3/1 Twill", "2/2 Twill", "4/1 Satin",
   "Dobby", "Herringbone", "-Slub", "+Slub", "Double Cloth", "Oxford", "Canvas",
   "Sheeting", "Casement", "Lurex",
+];
+// For Woven + Polyester category
+const polyesterWovenWeaveOptions = [
+  "", "1x1 Plain", "2x1 Twill", "3x1 Twill", "2x2 Twill", "4x1 Satin",
+  "Dobby", "Jacquard", "-Slub", "+Slub", "Magic Slub",
 ];
 // For knitted fabrics, the "weave" field stores the knit structure instead.
 const knitTypeOptions = [
@@ -193,10 +199,12 @@ const VendorInventory = () => {
   const isPolyester = () => form.composition.some(c => c.material?.toLowerCase().includes('polyester'));
   const isDenim = () => form.category_id === DENIM_CATEGORY_ID;
   const isCotton = () => form.category_id === COTTON_CATEGORY_ID;
+  const isPolyesterCategory = () => form.category_id === POLYESTER_CATEGORY_ID;
   const isKnittedType = () => (form.fabric_type || "").toLowerCase() === "knitted";
   const weaveOptionsForCategory = () => {
     if (isKnittedType()) return knitTypeOptions;  // fabric_type wins over category
     if (isDenim()) return denimWeaveOptions;
+    if (isPolyesterCategory()) return polyesterWovenWeaveOptions;
     if (isCotton()) return cottonWeaveOptions;
     return null;
   };
