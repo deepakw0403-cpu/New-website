@@ -196,6 +196,12 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Customer confirmation email** already does NOT leak vendor (line 309 of `email_router.py` only shows `Code | Category`). Admin notification email (separate template, line 201) retains `Seller:` which is correct.
 - [x] **Smoke-tested**: Created a real shared-cart token via `/api/agent/shared-cart`, opened `/shared-cart/<token>` — Playwright body-text check confirms `"LOSPL" not in page`. Agent attribution banner ("Assisted booking by Test Agent") still renders.
 
+### Phase 26: "Knit Type" Dropdown for Knitted Fabrics (Complete - Feb 2026)
+- [x] **New `knitTypeOptions` list** (29 entries) added to `AdminFabrics.js` and `VendorInventory.js`: Single Jersey, Interlock, Rice Knit, Dot Knit, Mesh, Pique, Honeycomb Pique, Waffle, Fleece, Terry, Baby Terry, 1x1 Rib, 2x2 Rib, 3D Jacquard, Dobby, 4-Way Lycra, 2-Way Lycra, Tin Tin, Sap Matty, Micro PP, Jacquard Zombie, Taiwan Lycra, Football Knit, Nirmal Knit, Reebok Knit, Adidas Knit, Super Malai, Micro Crepe, Bubble Crepe.
+- [x] **`fabric_type === "knitted"` wins over category** — when the fabric is knitted, the dropdown shows Knit Type options (label relabeled to "Knit Type") regardless of whether the category is Cotton/Polyester/etc. Denim + Cotton woven dropdowns unchanged.
+- [x] **Stored under the same `weave_type` field** on the fabric — no schema change needed (the field is effectively "weave-or-knit structure").
+- [x] **Smoke-tested**: Admin Add Fabric modal → Fabric Type = Knitted → dropdown label "Knit Type", 30 options (29 + placeholder), includes Single Jersey, Terry, Bubble Crepe.
+
 ## Backlog
 
 ### P1 (High Priority)

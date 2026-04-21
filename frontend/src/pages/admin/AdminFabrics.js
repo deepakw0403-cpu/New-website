@@ -121,11 +121,22 @@ const AdminFabrics = () => {
     "Dobby", "Herringbone", "-Slub", "+Slub", "Double Cloth", "Oxford", "Canvas",
     "Sheeting", "Casement", "Lurex",
   ];
+  // For knitted fabrics, the "weave" field stores the knit structure instead.
+  const knitTypeOptions = [
+    "", "Single Jersey", "Interlock", "Rice Knit", "Dot Knit", "Mesh", "Pique",
+    "Honeycomb Pique", "Waffle", "Fleece", "Terry", "Baby Terry", "1x1 Rib", "2x2 Rib",
+    "3D Jacquard", "Dobby", "4-Way Lycra", "2-Way Lycra", "Tin Tin", "Sap Matty",
+    "Micro PP", "Jacquard Zombie", "Taiwan Lycra", "Football Knit", "Nirmal Knit",
+    "Reebok Knit", "Adidas Knit", "Super Malai", "Micro Crepe", "Bubble Crepe",
+  ];
+  const isKnittedType = () => (form.fabric_type || "").toLowerCase() === "knitted";
   const weaveOptionsForCategory = () => {
+    if (isKnittedType()) return knitTypeOptions;  // fabric_type wins over category
     if (isDenim()) return denimWeaveOptions;
     if (isCotton()) return cottonWeaveOptions;
     return null; // no weave control for other categories
   };
+  const weaveFieldLabel = () => (isKnittedType() ? "Knit Type" : "Weave Type");
 
   // Denim fabrics are always spec'd in ounces — auto-force weight_unit = "ounce"
   // and clear any stale GSM value. Kicks in whenever the category flips to Denim.
@@ -1004,7 +1015,7 @@ const AdminFabrics = () => {
                   {weaveOptionsForCategory() && (
                     <div>
                       <label className="block text-sm font-medium mb-2">
-                        Weave Type {isDenim() ? "*" : ""}
+                        {weaveFieldLabel()} {isDenim() ? "*" : ""}
                       </label>
                       <select
                         value={form.weave_type}
@@ -1013,7 +1024,7 @@ const AdminFabrics = () => {
                         data-testid="fabric-weave-type-select"
                       >
                         {weaveOptionsForCategory().map((w) => (
-                          <option key={w} value={w}>{w || "-- Select Weave --"}</option>
+                          <option key={w} value={w}>{w || `-- Select ${weaveFieldLabel()} --`}</option>
                         ))}
                       </select>
                     </div>

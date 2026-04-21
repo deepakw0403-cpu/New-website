@@ -24,6 +24,14 @@ const cottonWeaveOptions = [
   "Dobby", "Herringbone", "-Slub", "+Slub", "Double Cloth", "Oxford", "Canvas",
   "Sheeting", "Casement", "Lurex",
 ];
+// For knitted fabrics, the "weave" field stores the knit structure instead.
+const knitTypeOptions = [
+  "", "Single Jersey", "Interlock", "Rice Knit", "Dot Knit", "Mesh", "Pique",
+  "Honeycomb Pique", "Waffle", "Fleece", "Terry", "Baby Terry", "1x1 Rib", "2x2 Rib",
+  "3D Jacquard", "Dobby", "4-Way Lycra", "2-Way Lycra", "Tin Tin", "Sap Matty",
+  "Micro PP", "Jacquard Zombie", "Taiwan Lycra", "Football Knit", "Nirmal Knit",
+  "Reebok Knit", "Adidas Knit", "Super Malai", "Micro Crepe", "Bubble Crepe",
+];
 const STRETCH_FIBRES = ['spandex', 'elastane', 'lycra', 'stretch'];
 const isStretchFibre = (m) => STRETCH_FIBRES.some((f) => (m || '').toLowerCase().includes(f));
 const stretchPercentOptions = Array.from({ length: 40 }, (_, i) => (i + 1) * 0.5);
@@ -183,11 +191,14 @@ const VendorInventory = () => {
   const isPolyester = () => form.composition.some(c => c.material?.toLowerCase().includes('polyester'));
   const isDenim = () => form.category_id === DENIM_CATEGORY_ID;
   const isCotton = () => form.category_id === COTTON_CATEGORY_ID;
+  const isKnittedType = () => (form.fabric_type || "").toLowerCase() === "knitted";
   const weaveOptionsForCategory = () => {
+    if (isKnittedType()) return knitTypeOptions;  // fabric_type wins over category
     if (isDenim()) return denimWeaveOptions;
     if (isCotton()) return cottonWeaveOptions;
     return null;
   };
+  const weaveFieldLabel = () => (isKnittedType() ? "Knit Type" : "Weave Type");
 
   // Denim is always measured in ounces — auto-force weight_unit when Denim is chosen
   useEffect(() => {
@@ -593,11 +604,11 @@ const VendorInventory = () => {
                     {weaveOptionsForCategory() && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Weave Type {isDenim() ? "*" : ""}
+                          {weaveFieldLabel()} {isDenim() ? "*" : ""}
                         </label>
                         <select value={form.weave_type} onChange={e => setForm({ ...form, weave_type: e.target.value })}
                           className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white" data-testid="weave-type-select">
-                          {weaveOptionsForCategory().map(w => <option key={w} value={w}>{w || "-- Select --"}</option>)}
+                          {weaveOptionsForCategory().map(w => <option key={w} value={w}>{w || `-- Select ${weaveFieldLabel()} --`}</option>)}
                         </select>
                       </div>
                     )}
