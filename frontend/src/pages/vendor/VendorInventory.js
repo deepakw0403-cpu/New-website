@@ -95,6 +95,7 @@ const emptyForm = {
     { min_qty: 5001, max_qty: 10000, price: "" },
   ],
   seller_sku: "", article_id: "",
+  has_multiple_colors: false, color_variants: [],
 };
 
 const VendorInventory = () => {
@@ -346,6 +347,8 @@ const VendorInventory = () => {
         ? fabric.pricing_tiers.map(t => ({ min_qty: t.min_qty || 0, max_qty: t.max_qty || 0, price: t.price_per_meter ? t.price_per_meter.toString() : "" }))
         : emptyForm.pricing_tiers,
       seller_sku: fabric.seller_sku || "", article_id: fabric.article_id || "",
+      has_multiple_colors: !!fabric.has_multiple_colors,
+      color_variants: fabric.color_variants || [],
     });
     setShowModal(true);
   };
@@ -394,6 +397,8 @@ const VendorInventory = () => {
           min_qty: parseInt(t.min_qty) || 0, max_qty: parseInt(t.max_qty) || 0, price_per_meter: parseFloat(t.price) || 0
         })),
         seller_sku: form.seller_sku, article_id: form.article_id,
+        has_multiple_colors: !!form.has_multiple_colors,
+        color_variants: form.has_multiple_colors ? (form.color_variants || []) : [],
       };
 
       if (editingFabric) {
@@ -774,6 +779,160 @@ const VendorInventory = () => {
                         {finishOptions.map(f => <option key={f} value={f}>{f || "-- Select --"}</option>)}
                       </select>
                     </div>
+                  </div>
+                </div>
+
+                {/* Section 2b: Multi-Color Variants */}
+                <div className="border-t border-gray-100 pt-6">
+                  <div className="p-4 bg-violet-50 border border-violet-100 rounded" data-testid="color-variants-section">
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-medium text-violet-800">Color Variants</label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!!form.has_multiple_colors}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            let variants = form.color_variants || [];
+                            if (checked && variants.length === 0 && form.color) {
+                              variants = [{
+                                color_name: form.color, color_hex: "#000000", image_url: "",
+                                quantity_available: form.quantity_available ? parseInt(form.quantity_available) : null,
+                                sample_available: !!form.is_bookable,
+                              }];
+                            }
+                            setForm({ ...form, has_multiple_colors: checked, color_variants: variants });
+                          }}
+                          className="rounded border-violet-300 text-violet-600 focus:ring-violet-500"
+                          data-testid="has-multiple-colors-checkbox"
+                        />
+                        <span className="text-sm text-violet-700 font-medium">This SKU has multiple colors</span>
+                      </label>
+                    </div>
+                    {form.has_multiple_colors && (
+                      <div className="space-y-3">
+                        {(form.color_variants || []).map((cv, idx) => (
+                          <div key={idx} className="bg-white p-4 rounded-lg border border-violet-200 space-y-3" data-testid={`color-variant-${idx}`}>
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="color"
+                                value={cv.color_hex || "#000000"}
+                                onChange={(e) => {
+                                  const updated = [...form.color_variants];
+                                  updated[idx] = { ...cv, color_hex: e.target.value };
+                                  setForm({ ...form, color_variants: updated });
+                                }}
+                                className="w-8 h-8 rounded cursor-pointer border-0"
+                                title="Pick color"
+                              />
+                              {isDenim() ? (
+                                <select
+                                  value={cv.color_name || ""}
+                                  onChange={(e) => {
+                                    const updated = [...form.color_variants];
+                                    updated[idx] = { ...cv, color_name: e.target.value };
+                                    setForm({ ...form, color_variants: updated });
+                                  }}
+                                  className="flex-1 px-3 py-2 border border-gray-200 rounded text-sm font-medium bg-white"
+                                  data-testid={`cv-name-${idx}`}
+                                >
+                                  {denimColorOptions.map((c) => (
+                                    <option key={c} value={c}>{c || "-- Select Color --"}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={cv.color_name || ""}
+                                  onChange={(e) => {
+                                    const updated = [...form.color_variants];
+                                    updated[idx] = { ...cv, color_name: e.target.value };
+                                    setForm({ ...form, color_variants: updated });
+                                  }}
+                                  placeholder="Color name (e.g., Khaki)"
+                                  className="flex-1 px-3 py-2 border border-gray-200 rounded text-sm font-medium"
+                                  data-testid={`cv-name-${idx}`}
+                                />
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setForm({ ...form, color_variants: form.color_variants.filter((_, i) => i !== idx) })}
+                                className="p-1.5 text-red-400 hover:text-red-600"
+                                aria-label={`Remove ${cv.color_name || 'variant'}`}
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">Photo</label>
+                                {cv.image_url ? (
+                                  <div className="relative w-full h-20 rounded border overflow-hidden group">
+                                    <img src={cv.image_url} alt={cv.color_name} className="w-full h-full object-cover" />
+                                    <button type="button" onClick={() => { const updated = [...form.color_variants]; updated[idx] = { ...cv, image_url: "" }; setForm({ ...form, color_variants: updated }); }} className="absolute inset-0 bg-black/50 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">Remove</button>
+                                  </div>
+                                ) : (
+                                  <label className="flex items-center justify-center w-full h-20 border-2 border-dashed border-violet-200 rounded cursor-pointer hover:border-violet-400 hover:bg-violet-50 transition-colors">
+                                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      try {
+                                        const res = await uploadToCloudinary(file, "fabrics");
+                                        const updated = [...form.color_variants];
+                                        updated[idx] = { ...cv, image_url: res.data.url };
+                                        setForm({ ...form, color_variants: updated });
+                                        toast.success(`${cv.color_name || 'Color'} image uploaded`);
+                                      } catch { toast.error("Upload failed"); }
+                                    }} />
+                                    <Upload size={16} className="text-violet-400" />
+                                  </label>
+                                )}
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">Inventory ({unit})</label>
+                                <input
+                                  type="number"
+                                  value={cv.quantity_available ?? ""}
+                                  onChange={(e) => {
+                                    const updated = [...form.color_variants];
+                                    updated[idx] = { ...cv, quantity_available: e.target.value ? parseInt(e.target.value) : null };
+                                    setForm({ ...form, color_variants: updated });
+                                  }}
+                                  placeholder="Stock"
+                                  className="w-full px-3 py-2 border border-gray-200 rounded text-sm"
+                                  data-testid={`cv-stock-${idx}`}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">Sample</label>
+                                <label className="flex items-center gap-2 mt-1.5 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={!!cv.sample_available}
+                                    onChange={(e) => {
+                                      const updated = [...form.color_variants];
+                                      updated[idx] = { ...cv, sample_available: e.target.checked };
+                                      setForm({ ...form, color_variants: updated });
+                                    }}
+                                    className="rounded"
+                                    data-testid={`cv-sample-${idx}`}
+                                  />
+                                  <span className="text-xs text-gray-600">Available</span>
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setForm({ ...form, color_variants: [...(form.color_variants || []), { color_name: "", color_hex: "#000000", image_url: "", quantity_available: null, sample_available: false }] })}
+                          className="w-full py-2 border-2 border-dashed border-violet-300 rounded-lg text-sm font-medium text-violet-600 hover:bg-violet-50 flex items-center justify-center gap-1"
+                          data-testid="add-color-variant-btn"
+                        >
+                          <Plus size={14} /> Add Color Variant
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 

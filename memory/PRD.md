@@ -209,6 +209,16 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Email to `credit@locofast.com`** — new `_send_credit_team_email()` in `credit_router.py` fires via Resend after DB insert. Email contains applicant summary + HSN-style table of every document with clickable hyperlinks to each uploaded file (Cloudinary URL). `reply_to` set to the applicant's email so the credit team can reply directly. `CREDIT_TEAM_EMAIL` env var overrides default `credit@locofast.com`.
 - [x] **Smoke-tested**: POST `/api/credit/apply` with 5 docs (4 upload with 1–2 files each, 1 checkbox) → DB insert + backend log confirms `Credit application email sent to credit@locofast.com`. Playwright verified proprietorship Step 3 shows Balance Sheet, no GST OTP, multi-upload helper text.
 
+### Phase 28: Denim additions + Multi-Color on Vendor Portal (Complete - Feb 2026)
+- [x] **Denim colors** — added `Indigo x Brown` and `Dark Indigo x White` to `denimColorOptions` in both Admin (`AdminFabrics.js`) and Vendor (`VendorInventory.js`) forms.
+- [x] **Denim weaves** — added `4/1 Satin RHT` and `4/1 Satin LHT` to `denimWeaveOptions` in both forms.
+- [x] **Vendor Multi-Color UI** — ported the entire Color Variants section from Admin to `VendorInventory.js`:
+  - "This SKU has multiple colors" checkbox; auto-seeds first variant from base `color` + `quantity_available` when first enabled.
+  - Per-variant: color hex picker + name input (denim uses the dropdown), Cloudinary photo upload, inventory qty (unit-aware — kg for knitted, m otherwise), Sample Available toggle, remove-variant X.
+  - "+ Add Color Variant" button at the bottom.
+- [x] **Vendor backend support** — added `has_multiple_colors: bool` and `color_variants: List[dict]` to `FabricCreate`/`FabricUpdate` in `vendor_router.py`; `width_type` also wired into the POST handler (was dropped earlier). Update handler already uses `model_dump()` → picks new fields automatically.
+- [x] **Smoke-tested**: vendor login → edit MC fabric created via API → UI shows multi-color checkbox ticked + both variants rendered with correct name/qty/sample flags. Backend persist round-trip verified via curl.
+
 ## Backlog
 
 ### P1 (High Priority)

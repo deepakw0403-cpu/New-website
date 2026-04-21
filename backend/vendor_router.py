@@ -83,6 +83,8 @@ class FabricCreate(BaseModel):
     sample_delivery_days: str = ""
     bulk_delivery_days: str = ""
     pricing_tiers: List[dict] = []
+    has_multiple_colors: bool = False
+    color_variants: List[dict] = []
 
 class FabricUpdate(BaseModel):
     name: Optional[str] = None
@@ -122,6 +124,8 @@ class FabricUpdate(BaseModel):
     sample_delivery_days: Optional[str] = None
     bulk_delivery_days: Optional[str] = None
     pricing_tiers: Optional[List[dict]] = None
+    has_multiple_colors: Optional[bool] = None
+    color_variants: Optional[List[dict]] = None
 
 # ==================== AUTH HELPERS ====================
 
@@ -284,6 +288,9 @@ async def create_vendor_fabric(data: FabricCreate, vendor=Depends(get_current_ve
         'sample_delivery_days': data.sample_delivery_days,
         'bulk_delivery_days': data.bulk_delivery_days,
         'pricing_tiers': data.pricing_tiers,
+        'width_type': data.width_type,
+        'has_multiple_colors': data.has_multiple_colors,
+        'color_variants': data.color_variants,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     
