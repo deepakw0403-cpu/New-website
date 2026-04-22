@@ -612,16 +612,40 @@ const FabricsPage = () => {
                   >
                     <Link to={`/fabrics/${fabric.slug || fabric.id}`} className="block">
                       <div className="aspect-[3/4] overflow-hidden bg-gray-100 relative">
-                        <img
-                          src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600"}
-                          alt={`${fabric.name} - ${fabric.composition?.map(c => c.material).join(', ') || fabric.category_name} fabric${fabric.color ? ` in ${fabric.color}` : ''}`}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600";
-                          }}
-                        />
+                        {fabric.videos?.[0] && !(fabric.videos[0].includes('youtube.com') || fabric.videos[0].includes('youtu.be') || fabric.videos[0].includes('vimeo.com')) ? (
+                          <video
+                            src={fabric.videos[0]}
+                            poster={fabric.images?.[0]}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            preload="metadata"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            data-testid={`fabric-video-${fabric.id}`}
+                            aria-label={`${fabric.name} product video`}
+                            onError={(e) => {
+                              // If the video fails to load, swap the element for the poster image
+                              const fallback = document.createElement('img');
+                              fallback.src = fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600";
+                              fallback.alt = fabric.name;
+                              fallback.className = e.target.className;
+                              fallback.loading = "lazy";
+                              e.target.replaceWith(fallback);
+                            }}
+                          />
+                        ) : (
+                          <img
+                            src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600"}
+                            alt={`${fabric.name} - ${fabric.composition?.map(c => c.material).join(', ') || fabric.category_name} fabric${fabric.color ? ` in ${fabric.color}` : ''}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600";
+                            }}
+                          />
+                        )}
                         <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col gap-1">
                           {fabric.is_bookable && fabric.quantity_available > 0 && (
                             <span className="badge bg-emerald-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
