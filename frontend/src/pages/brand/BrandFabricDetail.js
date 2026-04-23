@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useBrandAuth } from "../../context/BrandAuthContext";
 import BrandLayout from "./BrandLayout";
-import { Loader2, ArrowLeft, Package, CheckCircle } from "lucide-react";
+import { Loader2, ArrowLeft, Package, CheckCircle, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import RFQModal from "../../components/RFQModal";
+import { fmtLacs, fmtINR, fmtCount } from "../../lib/inr";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -19,6 +21,7 @@ const BrandFabricDetail = () => {
   const [placing, setPlacing] = useState(false);
   const [success, setSuccess] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [showRfq, setShowRfq] = useState(false);
 
   useEffect(() => {
     if (!token) { navigate("/brand/login"); return; }
@@ -47,8 +50,6 @@ const BrandFabricDetail = () => {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, token, user]);
-
-  const fmtINR = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
   const rate = Number(fabric?.rate_per_meter || fabric?.price_per_meter || 0);
   const samplePrice = Number(fabric?.sample_price || 100);
@@ -226,18 +227,32 @@ const BrandFabricDetail = () => {
             <div className="flex justify-between pt-2 border-t border-gray-200 font-semibold text-gray-900"><span>Total</span><span data-testid="brand-total">{fmtINR(total)}</span></div>
           </div>
 
-          {/* Balance + CTA */}
-          <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
-            <span>
-              {orderType === "sample"
-                ? <>Sample credits available: <strong data-testid="brand-balance-sample">{availableSample}</strong></>
-                : <>Credit available: <strong data-testid="brand-balance-credit">{fmtINR(availableCredit)}</strong></>}
-            </span>
-            <Link to="/brand/account" className="text-emerald-700 hover:underline">Manage</Link>
-          </div>
+          {/* Balance panel — distinct visuals for Credit Limit vs Sample Credits */}
+          {orderType === "sample" ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2 flex items-center justify-between" data-testid="brand-balance-sample-card">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Sample Credits</p>
+                <p className="text-sm text-gray-900 mt-0.5">
+                  <strong data-testid="brand-balance-sample">{fmtCount(availableSample)}</strong> credits available
+                </p>
+              </div>
+              <Link to="/brand/account" className="text-xs text-amber-700 hover:underline">Top up</Link>
+            </div>
+          ) : (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-2 flex items-center justify-between" data-testid="brand-balance-credit-card">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Credit Limit</p>
+                <p className="text-sm text-gray-900 mt-0.5">
+                  <strong data-testid="brand-balance-credit-lacs">{fmtLacs(availableCredit)}</strong>
+                  <span className="text-gray-500 text-xs ml-1.5" data-testid="brand-balance-credit">({fmtINR(availableCredit)})</span>
+                </p>
+              </div>
+              <Link to="/brand/account" className="text-xs text-emerald-700 hover:underline">View ledger</Link>
+            </div>
+          )}
           {!enough && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2 mb-3" data-testid="brand-insufficient">
-              Insufficient {orderType === "sample" ? "sample credits" : "credit"}. Contact your RM or top up.
+              Insufficient {orderType === "sample" ? "sample credits" : "credit"}. Contact your RM, top up, or request a quote below.
             </div>
           )}
           <button
@@ -250,6 +265,15 @@ const BrandFabricDetail = () => {
             Place order · {fmtINR(total)}
           </button>
 
+          {/* Request a Quote — always available, works for every category (incl. Denim) */}
+          <button
+            onClick={() => setShowRfq(true)}
+            className="w-full mt-2 border border-gray-300 text-gray-700 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-50 flex items-center justify-center gap-2"
+            data-testid="brand-request-quote"
+          >
+            <MessageSquare size={14} /> Request a Quote
+          </button>
+
           {fabric.description && (
             <div className="mt-6 pt-5 border-t border-gray-200">
               <h3 className="text-sm font-semibold mb-2">Description</h3>
@@ -258,6 +282,12 @@ const BrandFabricDetail = () => {
           )}
         </div>
       </div>
+      <RFQModal
+        open={showRfq}
+        onClose={() => setShowRfq(false)}
+        fabricUrl={typeof window !== "undefined" ? window.location.href : ""}
+        fabricName={fabric?.name || ""}
+      />
     </BrandLayout>
   );
 };

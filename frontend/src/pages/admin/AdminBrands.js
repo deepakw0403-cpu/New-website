@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
-import api from "../../lib/api";
+import api, { uploadToCloudinary } from "../../lib/api";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { Plus, Building2, Users, X, Loader2, Trash2, Copy, Wallet, ShieldCheck } from "lucide-react";
+import { Plus, Building2, Users, X, Loader2, Trash2, Copy, Wallet, ShieldCheck, Upload, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 const LENDERS = ["Stride", "Muthoot", "Mintifi"];
+const DESIGNATIONS = [
+  "Management",
+  "Procurement Manager",
+  "Fabric Merchandiser",
+  "Merchandiser",
+];
 
 const AdminBrands = () => {
   const [brands, setBrands] = useState([]);
@@ -18,10 +24,12 @@ const AdminBrands = () => {
 
   const [form, setForm] = useState({
     name: "", gst: "", address: "", phone: "",
-    admin_user_email: "", admin_user_name: "",
+    logo_url: "",
+    admin_user_email: "", admin_user_name: "", admin_user_designation: "Management",
     allowed_category_ids: [],
   });
   const [creating, setCreating] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
   const [tempPw, setTempPw] = useState(null);
 
   // Credit-line OTP flow state
@@ -94,7 +102,7 @@ const AdminBrands = () => {
       const res = await api.post("/admin/brands", form);
       setTempPw({ email: form.admin_user_email, password: res.data.temporary_password_for_reference });
       toast.success("Brand created — welcome email sent");
-      setForm({ name: "", gst: "", address: "", phone: "", admin_user_email: "", admin_user_name: "", allowed_category_ids: [] });
+      setForm({ name: "", gst: "", address: "", phone: "", logo_url: "", admin_user_email: "", admin_user_name: "", admin_user_designation: "Management", allowed_category_ids: [] });
       await load();
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Create failed");
@@ -110,12 +118,29 @@ const AdminBrands = () => {
     } catch { toast.error("Delete failed"); }
   };
 
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) return toast.error("Logo must be under 3 MB");
+    setLogoUploading(true);
+    try {
+      const res = await uploadToCloudinary(file, "brand-logos");
+      const url = res?.data?.url;
+      if (!url) throw new Error("Upload failed");
+      setForm((f) => ({ ...f, logo_url: url }));
+      toast.success("Logo uploaded");
+    } catch (err) { toast.error(err.message || "Upload failed"); }
+    setLogoUploading(false);
+  };
+
   const addUserToBrand = async () => {
     const email = window.prompt("New user email:"); if (!email) return;
     const name = window.prompt("User full name:"); if (!name) return;
-    const role = window.prompt("Role (brand_admin or brand_user):", "brand_user") || "brand_user";
+    const designation = window.prompt(`Designation? One of: ${DESIGNATIONS.join(", ")}`, "Merchandiser") || "Merchandiser";
+    if (!DESIGNATIONS.includes(designation)) return toast.error("Invalid designation");
+    const role = window.prompt("Access level (brand_admin or brand_user):", "brand_user") || "brand_user";
     try {
-      const res = await api.post(`/admin/brands/${selected.id}/users`, { email, name, role });
+      const res = await api.post(`/admin/brands/${selected.id}/users`, { email, name, role, designation });
       toast.success("User created — welcome email sent");
       refreshDetail();
       alert(`Temporary password (save this, emailed too):\n${res.data.temporary_password_for_reference}`);
@@ -251,8 +276,19 @@ const AdminBrands = () => {
                 {brands.map((b) => (
                   <tr key={b.id} className="hover:bg-gray-50" data-testid={`brand-row-${b.id}`}>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">{b.name}</div>
-                      <div className="text-xs text-gray-500">{b.phone || b.address || "—"}</div>
+                      <div className="flex items-center gap-3">
+                        {b.logo_url ? (
+                          <img src={b.logo_url} alt={b.name} className="w-8 h-8 rounded-md object-cover border border-gray-200 flex-shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <Building2 size={14} className="text-gray-400" />
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-medium text-gray-900">{b.name}</div>
+                          <div className="text-xs text-gray-500">{b.phone || b.address || "—"}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-gray-600 text-xs">{b.gst || "—"}</td>
                     <td className="px-4 py-3 text-gray-600">
@@ -284,6 +320,37 @@ const AdminBrands = () => {
                 <button onClick={() => setShowCreate(false)}><X size={18} /></button>
               </div>
               <form onSubmit={submit} className="space-y-3">
+                {/* Logo uploader — the personal touch */}
+                <div>
+                  <p className="text-xs font-medium text-gray-600 mb-1.5">Brand Logo <span className="text-gray-400 font-normal">(optional — shows in the brand portal header)</span></p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-16 h-16 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0" data-testid="create-brand-logo-preview">
+                      {form.logo_url ? (
+                        <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon className="text-gray-300" size={22} />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-xs cursor-pointer ${logoUploading ? "bg-gray-50 border-gray-200 text-gray-400" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`}>
+                        {logoUploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                        {logoUploading ? "Uploading…" : form.logo_url ? "Replace" : "Upload logo"}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                          className="hidden"
+                          onChange={handleLogoUpload}
+                          disabled={logoUploading}
+                          data-testid="create-brand-logo-upload"
+                        />
+                      </label>
+                      {form.logo_url && (
+                        <button type="button" onClick={() => setForm((f) => ({ ...f, logo_url: "" }))} className="text-xs text-red-500 hover:text-red-700">Remove</button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <input required placeholder="Brand Name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" data-testid="create-brand-name" />
                   <input placeholder="GST Number" value={form.gst} onChange={(e) => setForm({ ...form, gst: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
@@ -296,6 +363,9 @@ const AdminBrands = () => {
                     <input required type="email" placeholder="Admin Email *" value={form.admin_user_email} onChange={(e) => setForm({ ...form, admin_user_email: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" data-testid="create-brand-admin-email" />
                     <input required placeholder="Admin Full Name *" value={form.admin_user_name} onChange={(e) => setForm({ ...form, admin_user_name: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" data-testid="create-brand-admin-name" />
                   </div>
+                  <select value={form.admin_user_designation} onChange={(e) => setForm({ ...form, admin_user_designation: e.target.value })} className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" data-testid="create-brand-admin-designation">
+                    {DESIGNATIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
                 </div>
                 <div className="border-t border-gray-100 pt-3">
                   <p className="text-xs font-medium text-gray-600 mb-2">Allowed Categories</p>
@@ -336,7 +406,16 @@ const AdminBrands = () => {
           <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-end" onClick={() => { setSelected(null); setDetail(null); }}>
             <div className="bg-white w-full max-w-2xl h-full overflow-y-auto p-6" onClick={(e) => e.stopPropagation()} data-testid="brand-detail-panel">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">{detail.brand?.name}</h2>
+                <div className="flex items-center gap-3">
+                  {detail.brand?.logo_url ? (
+                    <img src={detail.brand.logo_url} alt={detail.brand.name} className="w-10 h-10 rounded-md object-cover border border-gray-200" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center">
+                      <Building2 size={16} className="text-gray-400" />
+                    </div>
+                  )}
+                  <h2 className="text-lg font-semibold">{detail.brand?.name}</h2>
+                </div>
                 <button onClick={() => { setSelected(null); setDetail(null); }}><X size={18} /></button>
               </div>
 
@@ -443,7 +522,7 @@ const AdminBrands = () => {
                     <div key={u.id} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded border border-gray-100 text-xs">
                       <div>
                         <p className="font-medium text-gray-900">{u.name}</p>
-                        <p className="text-gray-500">{u.email} · {u.role} · {u.status}</p>
+                        <p className="text-gray-500">{u.email} · {u.designation || "—"} · <span className="uppercase tracking-wide">{u.role === "brand_admin" ? "Admin" : "Buyer"}</span> · {u.status}</p>
                       </div>
                       {u.status === "active" && (
                         <button onClick={() => removeUser(u.id)} className="text-red-500 hover:text-red-700"><Trash2 size={12} /></button>

@@ -48,10 +48,12 @@ class BrandCreate(BaseModel):
     gst: Optional[str] = ""
     address: Optional[str] = ""
     phone: Optional[str] = ""
+    logo_url: Optional[str] = ""
     allowed_category_ids: List[str] = []
     # Initial admin user for the brand
     admin_user_email: EmailStr
     admin_user_name: str
+    admin_user_designation: Optional[str] = "Management"
 
 
 class BrandUpdate(BaseModel):
@@ -59,14 +61,26 @@ class BrandUpdate(BaseModel):
     gst: Optional[str] = None
     address: Optional[str] = None
     phone: Optional[str] = None
+    logo_url: Optional[str] = None
     allowed_category_ids: Optional[List[str]] = None
     status: Optional[str] = None
+
+
+# Job titles surfaced in the invite-user dropdown. Permission level is still
+# controlled by `role` (brand_admin | brand_user) — designation is display-only.
+BRAND_DESIGNATIONS = [
+    "Management",
+    "Procurement Manager",
+    "Fabric Merchandiser",
+    "Merchandiser",
+]
 
 
 class BrandUserCreate(BaseModel):
     email: EmailStr
     name: str
     role: str = "brand_user"  # brand_admin | brand_user
+    designation: Optional[str] = "Merchandiser"
 
 
 class BrandLoginRequest(BaseModel):
@@ -185,6 +199,7 @@ async def create_brand(data: BrandCreate, admin=Depends(auth_helpers.get_current
         "gst": data.gst or "",
         "address": data.address or "",
         "phone": data.phone or "",
+        "logo_url": data.logo_url or "",
         "allowed_category_ids": data.allowed_category_ids or [],
         "status": "active",
         "sample_credits_total": 0,
@@ -201,6 +216,7 @@ async def create_brand(data: BrandCreate, admin=Depends(auth_helpers.get_current
         "brand_id": brand_id,
         "email": data.admin_user_email.lower(),
         "name": data.admin_user_name,
+        "designation": data.admin_user_designation or "Management",
         "password_hash": _hash(temp_pw),
         "role": "brand_admin",
         "status": "active",
@@ -285,6 +301,8 @@ async def _add_brand_user_internal(brand_id: str, data: BrandUserCreate, actor_i
 
     if data.role not in ("brand_admin", "brand_user"):
         raise HTTPException(status_code=400, detail="Invalid role")
+    if data.designation and data.designation not in BRAND_DESIGNATIONS:
+        raise HTTPException(status_code=400, detail=f"Invalid designation. Must be one of {BRAND_DESIGNATIONS}")
 
     temp_pw = _gen_password()
     user_doc = {
@@ -292,6 +310,7 @@ async def _add_brand_user_internal(brand_id: str, data: BrandUserCreate, actor_i
         "brand_id": brand_id,
         "email": data.email.lower(),
         "name": data.name,
+        "designation": data.designation or "Merchandiser",
         "password_hash": _hash(temp_pw),
         "role": data.role,
         "status": "active",
@@ -329,8 +348,10 @@ async def brand_login(data: BrandLoginRequest):
             "email": user["email"],
             "name": user["name"],
             "role": user["role"],
+            "designation": user.get("designation", ""),
             "brand_id": user["brand_id"],
             "brand_name": brand["name"],
+            "brand_logo_url": brand.get("logo_url", ""),
             "must_reset_password": user.get("must_reset_password", False),
         },
     }
@@ -387,9 +408,26 @@ async def brand_remove_user(user_id: str, user=Depends(get_current_brand_user)):
     return {"message": "User suspended"}
 
 
+@router.get("/brand/designations")
+async def brand_list_designations():
+    return {"options": list(BRAND_DESIGNATIONS)}
+
+
 # ───── BRAND-FACING — Filtered Catalog ─────
 @router.get("/brand/fabrics")
-async def brand_list_fabrics(user=Depends(get_current_brand_user)):
+async def brand_list_fabrics(
+    user=Depends(get_current_brand_user),
+    search: Optional[str] = None,
+    category_id: Optional[str] = None,
+    fabric_type: Optional[str] = None,
+    composition: Optional[str] = None,
+    pattern: Optional[str] = None,
+    color: Optional[str] = None,
+    width: Optional[str] = None,
+    gsm_min: Optional[int] = None,
+    gsm_max: Optional[int] = None,
+    availability: Optional[str] = None,  # bookable | sample | instant | enquiry
+):
     brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")
@@ -398,10 +436,49 @@ async def brand_list_fabrics(user=Depends(get_current_brand_user)):
     if not allowed:
         return []  # No categories unlocked yet
 
-    fabrics = await db.fabrics.find(
-        {"category_id": {"$in": allowed}, "status": {"$ne": "draft"}},
-        {"_id": 0},
-    ).to_list(length=1000)
+    # Build filter: scope ALWAYS stays inside brand's allowed categories
+    scope_cat_ids = allowed
+    if category_id and category_id in allowed:
+        scope_cat_ids = [category_id]
+
+    query = {"category_id": {"$in": scope_cat_ids}, "status": {"$ne": "draft"}}
+    if fabric_type:
+        query["fabric_type"] = fabric_type
+    if pattern:
+        query["pattern"] = pattern
+    if color:
+        query["color"] = {"$regex": f"^{color}$", "$options": "i"}
+    if width:
+        query["width"] = width
+    if gsm_min is not None or gsm_max is not None:
+        gsm_q = {}
+        if gsm_min is not None:
+            gsm_q["$gte"] = gsm_min
+        if gsm_max is not None:
+            gsm_q["$lte"] = gsm_max
+        query["gsm"] = gsm_q
+    if composition:
+        query["composition.material"] = composition
+    if search:
+        safe = search.replace("\\", "\\\\").replace(".", "\\.").replace("*", "\\*")
+        query["$or"] = [
+            {"name": {"$regex": safe, "$options": "i"}},
+            {"fabric_code": {"$regex": safe, "$options": "i"}},
+        ]
+    if availability == "bookable":
+        query["is_bookable"] = True
+        query["quantity_available"] = {"$gt": 0}
+    elif availability == "sample":
+        query["sample_price"] = {"$gt": 0}
+    elif availability == "instant":
+        query["is_bookable"] = True
+        query["quantity_available"] = {"$gt": 0}
+        query["sample_price"] = {"$gt": 0}
+    elif availability == "enquiry":
+        # Prefer fabrics without numeric pricing (quote-driven)
+        query["$or"] = [{"rate_per_meter": {"$in": [None, 0]}}, {"rate_per_meter": {"$exists": False}}]
+
+    fabrics = await db.fabrics.find(query, {"_id": 0}).sort("created_at", -1).to_list(length=1000)
 
     # Attach category names
     cats = await db.categories.find({"id": {"$in": allowed}}, {"_id": 0}).to_list(length=50)
@@ -409,6 +486,51 @@ async def brand_list_fabrics(user=Depends(get_current_brand_user)):
     for f in fabrics:
         f["category_name"] = cat_map.get(f.get("category_id"), "")
     return fabrics
+
+
+@router.get("/brand/fabrics/filter-options")
+async def brand_filter_options(user=Depends(get_current_brand_user)):
+    """Categories + filter facets scoped to the brand's allowed catalog."""
+    brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
+    allowed = brand.get("allowed_category_ids") or []
+    if not allowed:
+        return {"categories": [], "colors": [], "patterns": [], "widths": [], "compositions": [], "fabric_types": []}
+
+    cats = await db.categories.find({"id": {"$in": allowed}}, {"_id": 0, "id": 1, "name": 1, "slug": 1}).to_list(length=50)
+    fabrics = await db.fabrics.find(
+        {"category_id": {"$in": allowed}, "status": {"$ne": "draft"}},
+        {"_id": 0, "color": 1, "pattern": 1, "width": 1, "composition": 1, "fabric_type": 1},
+    ).to_list(length=2000)
+
+    from composition_utils import CANONICAL_COMPOSITIONS, normalize_material
+    colors, patterns, widths, compositions, fabric_types = set(), set(), set(), set(), set()
+    for f in fabrics:
+        if f.get("color"):
+            colors.add(str(f["color"]).strip())
+        if f.get("pattern"):
+            patterns.add(str(f["pattern"]).strip())
+        if f.get("width"):
+            widths.add(str(f["width"]).strip())
+        if f.get("fabric_type"):
+            fabric_types.add(str(f["fabric_type"]).strip())
+        comp = f.get("composition")
+        if isinstance(comp, list):
+            for item in comp:
+                mat = (item.get("material") or "").strip()
+                if mat:
+                    compositions.add(normalize_material(mat))
+
+    canon = set(CANONICAL_COMPOSITIONS)
+    compositions = {c for c in compositions if c in canon}
+
+    return {
+        "categories": cats,
+        "colors": sorted(colors, key=str.lower),
+        "patterns": sorted(patterns, key=str.lower),
+        "widths": sorted(widths, key=str.lower),
+        "compositions": sorted(compositions, key=str.lower),
+        "fabric_types": sorted(fabric_types, key=str.lower),
+    }
 
 
 @router.get("/brand/fabrics/{fabric_id_or_slug}")

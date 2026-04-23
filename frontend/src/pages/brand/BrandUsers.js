@@ -7,13 +7,20 @@ import { toast } from "sonner";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
+const DESIGNATIONS = [
+  "Management",
+  "Procurement Manager",
+  "Fabric Merchandiser",
+  "Merchandiser",
+];
+
 const BrandUsers = () => {
   const { user, token } = useBrandAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ email: "", name: "", role: "brand_user" });
+  const [form, setForm] = useState({ email: "", name: "", role: "brand_user", designation: "Merchandiser" });
   const [busy, setBusy] = useState(false);
   const [tempPw, setTempPw] = useState(null);
 
@@ -46,7 +53,7 @@ const BrandUsers = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Create failed");
       setTempPw({ email: form.email, password: data.temporary_password_for_reference });
-      setForm({ email: "", name: "", role: "brand_user" });
+      setForm({ email: "", name: "", role: "brand_user", designation: "Merchandiser" });
       load();
     } catch (err) { toast.error(err.message); }
     setBusy(false);
@@ -90,7 +97,8 @@ const BrandUsers = () => {
               <tr>
                 <th className="px-4 py-2 text-left">Name</th>
                 <th className="px-4 py-2 text-left">Email</th>
-                <th className="px-4 py-2 text-left">Role</th>
+                <th className="px-4 py-2 text-left">Designation</th>
+                <th className="px-4 py-2 text-left">Access</th>
                 <th className="px-4 py-2 text-left">Status</th>
                 <th className="px-4 py-2"></th>
               </tr>
@@ -100,7 +108,12 @@ const BrandUsers = () => {
                 <tr key={u.id} data-testid={`brand-user-${u.id}`}>
                   <td className="px-4 py-3 font-medium text-gray-900">{u.name}</td>
                   <td className="px-4 py-3 text-gray-600">{u.email}</td>
-                  <td className="px-4 py-3 text-gray-600">{u.role}</td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">{u.designation || "—"}</td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${u.role === "brand_admin" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-gray-100 text-gray-700"}`}>
+                      {u.role === "brand_admin" ? "Admin" : "Buyer"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-600"}`}>{u.status}</span>
                   </td>
@@ -126,10 +139,19 @@ const BrandUsers = () => {
             <form onSubmit={submit} className="space-y-3">
               <input required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" data-testid="brand-invite-email" />
               <input required placeholder="Full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" data-testid="brand-invite-name" />
-              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" data-testid="brand-invite-role">
-                <option value="brand_user">Buyer (brand_user)</option>
-                <option value="brand_admin">Admin (brand_admin)</option>
-              </select>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Designation</label>
+                <select value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" data-testid="brand-invite-designation">
+                  {DESIGNATIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Access Level</label>
+                <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" data-testid="brand-invite-role">
+                  <option value="brand_user">Buyer — can browse + place orders</option>
+                  <option value="brand_admin">Admin — can also invite users</option>
+                </select>
+              </div>
               <button type="submit" disabled={busy} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-semibold text-sm disabled:opacity-50" data-testid="brand-invite-submit">
                 {busy ? "Creating..." : "Send invite"}
               </button>
