@@ -3,6 +3,7 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, MessageSquare, Package, ShoppingCart, Clock } from "lucide-react";
 import { toWebVideoUrl, videoPosterUrl } from "../lib/videoUrl";
+import { displayFabricName } from "../lib/fabricDisplay";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import RFQModal from "../components/RFQModal";
@@ -307,15 +308,18 @@ const FabricsPage = () => {
   };
 
   const pageMeta = getPageMeta();
+  const selectedCategoryObj = categories.find((c) => c.id === selectedCategory);
+  const categorySeoTitle = selectedCategoryObj?.seo_title;
+  const categorySeoMeta = selectedCategoryObj?.seo_meta_description;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
       <Helmet>
-        <title>{pageMeta.title}</title>
-        <meta name="description" content={pageMeta.description} />
-        <meta property="og:title" content={pageMeta.title} />
-        <meta property="og:description" content={pageMeta.description} />
-        <link rel="canonical" href="https://locofast.com/fabrics" />
+        <title>{categorySeoTitle ? `${categorySeoTitle} | Locofast` : pageMeta.title}</title>
+        <meta name="description" content={categorySeoMeta || pageMeta.description} />
+        <meta property="og:title" content={categorySeoTitle || pageMeta.title} />
+        <meta property="og:description" content={categorySeoMeta || pageMeta.description} />
+        <link rel="canonical" href={`https://locofast.com/fabrics${selectedCategoryObj ? `?category=${selectedCategoryObj.id}` : ""}`} />
       </Helmet>
       <Navbar />
       <main className="flex-grow pt-20" data-testid="fabrics-page">
@@ -323,7 +327,12 @@ const FabricsPage = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-6 sm:mb-8">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-semibold mb-1">Fabric Catalog</h1>
+              <h1 className="text-2xl sm:text-3xl font-semibold mb-1">
+                {(() => {
+                  const c = categories.find(x => x.id === selectedCategory);
+                  return c?.seo_title || c?.name || "Fabric Catalog";
+                })()}
+              </h1>
               <p className="text-sm sm:text-base text-gray-500">
                 {loading ? "Loading..." : `${totalCount} fabrics available`}
               </p>
@@ -602,6 +611,15 @@ const FabricsPage = () => {
               </button>
             </div>
           ) : (
+            <>
+            {/* Category SEO intro — renders above the grid when a category is selected */}
+            {selectedCategoryObj?.seo_intro && (
+              <section
+                className="mb-6 bg-white border border-gray-200 rounded-xl p-5 sm:p-6 prose prose-sm max-w-none text-gray-700"
+                data-testid="category-seo-intro"
+                dangerouslySetInnerHTML={{ __html: selectedCategoryObj.seo_intro }}
+              />
+            )}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6" data-testid="fabrics-grid">
               {fabrics.map((fabric) => {
                 const actions = getAvailableActions(fabric);
@@ -661,7 +679,7 @@ const FabricsPage = () => {
                       <p className="text-[10px] sm:text-xs font-medium text-[#2563EB] mb-0.5 sm:mb-1 truncate">{fabric.category_name}</p>
                       <Link to={`/fabrics/${fabric.slug || fabric.id}`}>
                         <h3 className="font-semibold text-gray-900 text-sm sm:text-base mb-1 group-hover:text-[#2563EB] transition-colors line-clamp-2">
-                          {fabric.name}
+                          {displayFabricName(fabric)}
                         </h3>
                       </Link>
                       
@@ -728,6 +746,15 @@ const FabricsPage = () => {
                 );
               })}
             </div>
+            {/* Applications / use-cases SEO block below the grid */}
+            {selectedCategoryObj?.seo_applications && (
+              <section
+                className="mt-10 bg-white border border-gray-200 rounded-xl p-5 sm:p-6 prose prose-sm max-w-none text-gray-700"
+                data-testid="category-seo-applications"
+                dangerouslySetInnerHTML={{ __html: selectedCategoryObj.seo_applications }}
+              />
+            )}
+            </>
           )}
 
           {/* Pagination */}

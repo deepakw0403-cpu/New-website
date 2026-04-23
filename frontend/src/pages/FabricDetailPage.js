@@ -9,6 +9,7 @@ import ExpandableText from "../components/ExpandableText";
 import RFQModal from "../components/RFQModal";
 import { getFabric, createEnquiry, getFabricSEO, getRelatedFabrics, getOtherSellers } from "../lib/api";
 import { toWebVideoUrl, videoPosterUrl } from "../lib/videoUrl";
+import { displayFabricName } from "../lib/fabricDisplay";
 import { trackViewItem, trackAddToCart, trackRFQIntent } from "../lib/analytics";
 
 const FabricDetailPage = () => {
@@ -490,7 +491,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
               <span>/</span>
               <Link to="/fabrics" className="hover:text-neutral-900">Fabrics</Link>
               <span>/</span>
-              <span className="text-neutral-900">{fabric.name}</span>
+              <span className="text-neutral-900">{displayFabricName(fabric)}</span>
             </nav>
           </div>
         </div>
@@ -499,7 +500,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
           {/* Top Section: H1 + Intro */}
           <div className="mb-12">
             <h1 className="text-3xl md:text-4xl font-semibold mb-4" data-testid="fabric-h1">
-              {seoContent?.seo_h1 || fabric.name}
+              {seoContent?.seo_h1 || displayFabricName(fabric)}
             </h1>
             {(seoContent?.seo_intro || fabric.description) && (
               <div className="max-w-4xl" data-testid="seo-intro">

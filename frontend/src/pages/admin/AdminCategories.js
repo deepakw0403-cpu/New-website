@@ -11,7 +11,7 @@ const AdminCategories = () => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [uploading, setUploading] = useState(false);
 
-  const emptyForm = { name: "", description: "", image_url: "" };
+  const emptyForm = { name: "", description: "", image_url: "", seo_title: "", seo_meta_description: "", seo_intro: "", seo_applications: "" };
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
@@ -63,8 +63,12 @@ const AdminCategories = () => {
     setEditingCategory(category);
     setForm({
       name: category.name,
-      description: category.description,
-      image_url: category.image_url,
+      description: category.description || "",
+      image_url: category.image_url || "",
+      seo_title: category.seo_title || "",
+      seo_meta_description: category.seo_meta_description || "",
+      seo_intro: category.seo_intro || "",
+      seo_applications: category.seo_applications || "",
     });
     setShowModal(true);
   };
@@ -307,6 +311,29 @@ const AdminCategories = () => {
                     data-testid="category-description-input"
                   />
                 </div>
+
+                {/* SEO fields — rendered above/below the grid on /fabrics?category=X */}
+                <details className="border border-gray-200 rounded-lg">
+                  <summary className="px-4 py-2.5 cursor-pointer text-sm font-medium text-gray-800 bg-gray-50 rounded-lg">SEO Content (shown on /fabrics listing)</summary>
+                  <div className="p-4 space-y-3 border-t border-gray-200">
+                    <div>
+                      <label className="block text-xs font-medium mb-1">SEO Title (browser tab)</label>
+                      <input type="text" value={form.seo_title} onChange={(e) => setForm({ ...form, seo_title: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="e.g. Buy Premium Cotton Fabrics Online" data-testid="category-seo-title" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Meta Description</label>
+                      <textarea value={form.seo_meta_description} onChange={(e) => setForm({ ...form, seo_meta_description: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-200 rounded text-sm resize-none" placeholder="1-2 sentences. Shows in Google search results." data-testid="category-seo-meta" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Intro (HTML allowed) — shown ABOVE the grid</label>
+                      <textarea value={form.seo_intro} onChange={(e) => setForm({ ...form, seo_intro: e.target.value })} rows={5} className="w-full px-3 py-2 border border-gray-200 rounded text-sm font-mono" placeholder="<h2>About Cotton Fabrics</h2><p>Cotton is a natural...</p>" data-testid="category-seo-intro" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Applications / Use Cases (HTML allowed) — shown BELOW the grid</label>
+                      <textarea value={form.seo_applications} onChange={(e) => setForm({ ...form, seo_applications: e.target.value })} rows={5} className="w-full px-3 py-2 border border-gray-200 rounded text-sm font-mono" placeholder="<h3>Popular Uses</h3><ul><li>Shirting</li>...</ul>" data-testid="category-seo-applications" />
+                    </div>
+                  </div>
+                </details>
 
                 {/* Image Upload */}
                 <div>

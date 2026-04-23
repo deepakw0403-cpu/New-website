@@ -7,6 +7,7 @@ import { Loader2, ArrowLeft, ShoppingCart, Beaker, MessageSquare } from "lucide-
 import { toast } from "sonner";
 import RFQModal from "../../components/RFQModal";
 import { fmtLacs, fmtINR, fmtCount } from "../../lib/inr";
+import { displayFabricName } from "../../lib/fabricDisplay";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -141,7 +142,7 @@ const BrandFabricDetail = () => {
         {/* Info + Booking */}
         <div>
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{fabric.category_name}</p>
-          <h1 className="text-2xl font-semibold text-gray-900 mb-2">{fabric.name}</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 mb-2">{displayFabricName(fabric)}</h1>
           <div className="flex items-center gap-3 text-sm text-gray-600 mb-4 flex-wrap">
             {fabric.fabric_code && <span className="font-mono bg-gray-100 px-2 py-0.5 rounded">{fabric.fabric_code}</span>}
             {moqValue > 0 && <span>MOQ: {moqValue} {unit}</span>}

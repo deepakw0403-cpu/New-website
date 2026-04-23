@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useBrandAuth } from "../../context/BrandAuthContext";
 import BrandLayout from "./BrandLayout";
 import { Package, Loader2, ShoppingCart, Beaker, MessageSquare, Search, SlidersHorizontal, X } from "lucide-react";
+import { displayFabricName } from "../../lib/fabricDisplay";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -40,7 +41,7 @@ const FabricCard = ({ f, onOpen }) => {
       <div className="p-4 flex flex-col flex-1">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 mb-1">{f.category_name || "Fabric"}</p>
         <Link to={detailUrl} className="hover:text-emerald-700">
-          <h3 className="font-medium text-sm text-gray-900 line-clamp-2 min-h-[40px]">{f.name}</h3>
+          <h3 className="font-medium text-sm text-gray-900 line-clamp-2 min-h-[40px]">{displayFabricName(f)}</h3>
         </Link>
         {(oz || width) && (
           <div className="flex items-center gap-1.5 mt-2 flex-wrap">
