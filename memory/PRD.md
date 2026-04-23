@@ -231,6 +231,29 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Denim knits stay in meters** — `shouldUseKgUnit` rule updated in `AdminFabrics.js`, `VendorInventory.js`, `FabricsPage.js`, and `FabricDetailPage.js`: `knitted && category !== 'cat-denim' → kg`, otherwise `m`.
 - [x] **Smoke-tested**: Playwright verified all 4 changes.
 
+### Phase 31: Brand Portal — Enterprise B2B tier (Complete - Feb 2026)
+Embedded multi-lender credit lines + curated catalogue for brand-tier B2B customers (10-100 Cr turnover). End-to-end tested via the testing agent: **30/30 backend tests + all frontend UI tests passed, zero issues**.
+
+- [x] **Slice 1 — Brands + Users + Catalog**
+  - New Mongo collections: `brands`, `brand_users`, `brand_credit_lines`, `brand_credit_ledger`, `admin_otps`
+  - Backend `brand_router.py` (≈650 lines): `/api/admin/brands` CRUD, `/api/admin/brands/{id}/users` CRUD, brand auth (`/api/brand/login`, `/me`, `/reset-password`), filtered catalog (`/api/brand/fabrics`, `/api/brand/fabrics/{id_or_slug}`).
+  - Welcome email via Resend with temp password (forced reset on first login)
+  - Brand admin role (`brand_admin`) can manage users; `brand_user` is buyer-only
+  - Frontend: `BrandAuthContext` (localStorage `lf_brand_token`), `BrandLayout` with top nav, pages `BrandLogin`, `BrandResetPassword`, `BrandFabrics`, `BrandFabricDetail`, `BrandAccount`, `BrandUsers`, `BrandOrders`
+  - Admin UI: `/admin/brands` wrapped in `AdminLayout` — list, detail side-panel with category chips + user CRUD + credit lines + sample credits + ledger sections. "Brands" added to admin sidebar.
+
+- [x] **Slice 2 — Multi-Lender Credit Lines (Stride/Muthoot/Mintifi) + OTP + FIFO**
+  - `/api/admin/brands/{id}/credit-lines/otp` — generates a 6-digit OTP, emails acting admin via Resend, stores bcrypt-hashed code with 10-minute expiry + binding to `{brand_id, lender, amount}`.
+  - `/api/admin/brands/{id}/credit-lines` — creates credit line only after valid OTP + matching payload. Writes `credit_allocated` ledger entry. Rejects reused/expired OTP or tampered amount/lender.
+  - `/api/brand/orders` (bulk) — debits brand credit lines **FIFO** (oldest line fully drained before next). Writes `debit_order` ledger entry with per-line breakdown array. Rejects orders over available, below MOQ, or in disallowed categories.
+  - Verified: 1500m × ₹132 = ₹198,000 → total ₹213,840 drained Stride (₹100k) fully and Muthoot ₹113,840. Available credit updates instantly.
+
+- [x] **Slice 3 — Sample Credits + Razorpay Top-up**
+  - `/api/admin/brands/{id}/sample-credits` — admin delta adjust (cannot reduce below used). ₹1 = 1 credit.
+  - `/api/brand/orders` (sample) — debits brand `sample_credits` directly (1:1 INR). Writes `sample_credit_used` ledger entry.
+  - `/api/brand/sample-credits/topup/create-order` + `/verify` — Razorpay self-serve top-up. Signature verification with `hmac.compare_digest`.
+  - Brand Account page: "Pay & add" CTA opens Razorpay checkout, adds credits instantly on success.
+
 ## Backlog
 
 ### P1 (High Priority)
