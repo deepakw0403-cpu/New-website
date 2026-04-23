@@ -104,6 +104,7 @@ const AdminCategories = () => {
 
   const hasBlended = categories.some((c) => c.name === "Blended Fabrics");
   const hasKnits = categories.some((c) => c.name === "Knits");
+  const hasGreige = categories.some((c) => c.name === "Greige");
 
   const migrateBlended = async (mode) => {
     const label = mode === "all_to_linen" ? "move all Blended → Linen" : "smart-migrate Blended";
@@ -145,6 +146,30 @@ const AdminCategories = () => {
     }
   };
 
+  const deleteGreige = async () => {
+    try {
+      const dryRes = await api.post("/migrate/greige");
+      const count = dryRes.data?.fabrics_in_greige ?? 0;
+      if (dryRes.data?.status === "noop") {
+        toast.info(dryRes.data?.message || "No Greige category to delete");
+        fetchCategories();
+        return;
+      }
+      if (count > 0) {
+        toast.error(
+          `Cannot delete: ${count} fabric(s) still use Greige as category. Re-classify them to another category first (use /admin/fabrics → Edit).`
+        );
+        return;
+      }
+      if (!window.confirm("Greige is empty. Delete the category? (Greige is now available as a Pattern, not a Category.)")) return;
+      const res = await api.post("/migrate/greige?apply=true");
+      toast.success(res.data?.greige_deleted ? "Greige category deleted." : "Nothing changed.");
+      fetchCategories();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Delete failed");
+    }
+  };
+
   return (
     <AdminLayout>
       <div data-testid="admin-categories-page">
@@ -171,6 +196,16 @@ const AdminCategories = () => {
                 title="Bulk-move every Knits fabric to Polyester Fabrics, then delete the Knits category"
               >
                 Move Knits → Polyester
+              </button>
+            )}
+            {hasGreige && (
+              <button
+                onClick={deleteGreige}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded border border-rose-300 bg-rose-50 text-rose-900 text-sm font-medium hover:bg-rose-100"
+                data-testid="delete-greige-btn"
+                title="Greige is now a Pattern, not a Category. Delete the category if empty."
+              >
+                Delete Greige Category
               </button>
             )}
             <button onClick={openCreateModal} className="btn-primary inline-flex items-center gap-2" data-testid="add-category-btn">

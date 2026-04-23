@@ -862,6 +862,59 @@ async def migrate_knits(
     }
 
 
+@api_router.post("/migrate/greige")
+async def migrate_greige(
+    apply: bool = Query(False),
+    admin=Depends(get_current_admin),
+):
+    """Delete the 'Greige' category (now used as a pattern, not a category).
+
+    Safety: will NOT delete if any fabrics still reference `category_id=<greige>`.
+    If fabrics exist, returns them in the response so the admin can decide how to
+    re-classify them before re-running with ?apply=true.
+    Idempotent — safe to re-run.
+    """
+    greige = await db.categories.find_one({"name": "Greige"}, {"_id": 0})
+    if not greige:
+        return {
+            "apply": apply,
+            "status": "noop",
+            "message": "No 'Greige' category present — nothing to delete.",
+            "greige_deleted": False,
+        }
+
+    greige_id = greige["id"]
+    fabrics = await db.fabrics.find({"category_id": greige_id}, {"_id": 0, "id": 1, "name": 1}).to_list(length=5000)
+
+    if not apply:
+        return {
+            "apply": False,
+            "status": "dry_run",
+            "greige_id": greige_id,
+            "fabrics_in_greige": len(fabrics),
+            "fabrics": fabrics[:20],  # preview
+            "deletable": len(fabrics) == 0,
+            "message": (
+                "Safe to delete — no fabrics in Greige."
+                if len(fabrics) == 0
+                else f"{len(fabrics)} fabric(s) still in Greige. Re-classify them first."
+            ),
+        }
+
+    if len(fabrics) > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete Greige — {len(fabrics)} fabric(s) still reference it. Re-classify them first.",
+        )
+
+    r = await db.categories.delete_one({"id": greige_id})
+    return {
+        "apply": True,
+        "status": "applied",
+        "greige_deleted": bool(r.deleted_count),
+    }
+
+
 # ==================== SITEMAP ====================
 
 from fastapi.responses import Response
