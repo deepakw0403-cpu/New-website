@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, X, Search, Package, Loader2, Upload, Video, Check
 import VendorLayout from "../../components/vendor/VendorLayout";
 import CommissionHelpModal from "../../components/vendor/CommissionHelpModal";
 import api, { getVendorFabrics, createVendorFabric, updateVendorFabric, deleteVendorFabric, getVendorCategories, getArticles, uploadToCloudinary, uploadVideoToCloudinary } from "../../lib/api";
+import useCompositionOptions from "../../hooks/useCompositionOptions";
 import { toast } from "sonner";
 
 const fabricTypes = ["woven", "knitted", "non-woven"];
@@ -109,6 +110,7 @@ const emptyForm = {
 };
 
 const VendorInventory = () => {
+  const compositionOptions = useCompositionOptions();
   const [fabrics, setFabrics] = useState([]);
   const [categories, setCategories] = useState([]);
   const [articles, setArticles] = useState([]);
@@ -729,9 +731,13 @@ const VendorInventory = () => {
                         const opts = stretch ? stretchPercentOptions : percentageOptions;
                         return (
                           <div key={idx} className="flex gap-2">
-                            <input type="text" value={comp.material} onChange={e => updateComposition(idx, 'material', e.target.value)}
-                              className={`flex-1 px-3 py-2 border rounded-lg text-sm ${stretch ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}
-                              placeholder={`Material ${idx + 1} (e.g., Cotton)`} />
+                            <select value={comp.material} onChange={e => updateComposition(idx, 'material', e.target.value)}
+                              className={`flex-1 px-3 py-2 border rounded-lg text-sm bg-white ${stretch ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}>
+                              <option value="">Material {idx + 1}</option>
+                              {compositionOptions.map((m) => (
+                                <option key={m} value={m}>{m}</option>
+                              ))}
+                            </select>
                             <select value={comp.percentage ?? ''} onChange={e => updateComposition(idx, 'percentage', e.target.value)}
                               className={`w-28 px-2 py-2 border rounded-lg text-sm bg-white font-medium ${stretch ? 'border-amber-400 bg-amber-50 text-amber-900' : 'border-gray-200'}`}
                               title={stretch ? 'Stretch fibres use 0.5% steps (0.5 – 20%)' : undefined}>

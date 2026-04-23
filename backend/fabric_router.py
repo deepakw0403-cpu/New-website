@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict
 import auth_helpers
 import fabric_utils
 from slug_utils import generate_slug
+from composition_utils import CANONICAL_COMPOSITIONS, normalize_material
 
 router = APIRouter(prefix="/api", tags=["fabrics"])
 db = None
@@ -303,9 +304,13 @@ def _oz_pipeline_stages(oz_min, oz_max):
 
 @router.get("/fabrics/filter-options")
 async def get_fabric_filter_options():
-    """Distinct values for color, pattern, width, composition from approved fabrics."""
+    """Distinct values for color, pattern, width, composition from visible fabrics."""
     fabrics = await db.fabrics.find(
-        {'status': 'approved'},
+        {'$or': [
+            {'status': 'approved'},
+            {'status': {'$exists': False}},
+            {'status': None},
+        ]},
         {'_id': 0, 'color': 1, 'name': 1, 'pattern': 1, 'width': 1, 'composition': 1, 'category_name': 1},
     ).to_list(5000)
 
@@ -329,15 +334,19 @@ async def get_fabric_filter_options():
             for item in comp:
                 mat = (item.get('material') or '').strip()
                 if mat:
-                    compositions.add(mat)
+                    compositions.add(normalize_material(mat))
         elif isinstance(comp, str) and comp.strip():
             for part in comp.split(','):
                 mat = re_mod.sub(r'\d+%?\s*', '', part).strip()
                 if mat:
-                    compositions.add(mat)
+                    compositions.add(normalize_material(mat))
         cat = (f.get('category_name') or '').lower()
         if 'denim' in cat:
             has_denim = True
+    # Only surface compositions from the canonical whitelist — prevents
+    # stray typos or unknown materials leaking into the B2C dropdown.
+    canonical_set = set(CANONICAL_COMPOSITIONS)
+    compositions = {c for c in compositions if c in canonical_set}
     return {
         'colors': sorted(colors, key=str.lower),
         'patterns': sorted(patterns, key=str.lower),
@@ -345,6 +354,12 @@ async def get_fabric_filter_options():
         'compositions': sorted(compositions, key=str.lower),
         'has_denim': has_denim,
     }
+
+
+@router.get("/composition/options")
+async def get_composition_options():
+    """Canonical composition list used by all forms (Admin, Vendor). Code-owned."""
+    return {"options": list(CANONICAL_COMPOSITIONS)}
 
 
 @router.get("/fabrics", response_model=List[Fabric])
@@ -523,11 +538,17 @@ async def create_fabric(data: FabricCreate, admin=Depends(auth_helpers.get_curre
     fabric_code = await fabric_utils.generate_fabric_code()
     slug = generate_slug(data.name, fabric_id)
 
+    payload = data.model_dump()
+    # Normalise every composition material to canonical form on write
+    if payload.get('composition'):
+        from composition_utils import canonicalize_composition
+        payload['composition'] = canonicalize_composition(payload['composition'])
+
     fabric_doc = {
         'id': fabric_id,
         'fabric_code': fabric_code,
         'slug': slug,
-        **data.model_dump(),
+        **payload,
         'created_at': datetime.now(timezone.utc).isoformat(),
     }
     await db.fabrics.insert_one(fabric_doc)
@@ -547,6 +568,11 @@ async def update_fabric(fabric_id: str, data: FabricUpdate, admin=Depends(auth_h
 
     if 'name' in update_data:
         update_data['slug'] = generate_slug(update_data['name'], fabric_id)
+
+    # Normalise composition on every write so the DB stays clean going forward
+    if 'composition' in update_data:
+        from composition_utils import canonicalize_composition
+        update_data['composition'] = canonicalize_composition(update_data['composition'])
 
     if 'category_id' in update_data:
         category = await db.categories.find_one({'id': update_data['category_id']}, {'_id': 0})
@@ -663,3 +689,50 @@ async def get_other_sellers_for_fabric(fabric_id: str):
 
     others.sort(key=lambda x: x.get('rate_per_meter') or 999999)
     return others
+
+
+@router.post("/migrate/compositions")
+async def migrate_compositions(apply: bool = Query(False), admin=Depends(auth_helpers.get_current_admin)):
+    """
+    Normalise every fabric's `composition` field to the canonical list.
+    Dry-run by default — returns the plan of changes.
+    Pass `?apply=true` to actually write the updates.
+    """
+    from composition_utils import canonicalize_composition, CANONICAL_COMPOSITIONS
+    fabrics = await db.fabrics.find({}, {'_id': 0, 'id': 1, 'name': 1, 'composition': 1}).to_list(length=10000)
+    plan = []
+    unchanged = 0
+    for f in fabrics:
+        original = f.get('composition') or []
+        canonical = canonicalize_composition(original)
+        # Compare normalized JSON representations
+        before_key = str(sorted(
+            [(i.get('material', ''), i.get('percentage', 0)) for i in original]
+            if isinstance(original, list) else []
+        ))
+        after_key = str(sorted([(i['material'], i['percentage']) for i in canonical]))
+        if before_key != after_key:
+            plan.append({
+                'fabric_id': f['id'],
+                'name': f.get('name', ''),
+                'before': original,
+                'after': canonical,
+            })
+        else:
+            unchanged += 1
+
+    if apply and plan:
+        for change in plan:
+            await db.fabrics.update_one(
+                {'id': change['fabric_id']},
+                {'$set': {'composition': change['after']}},
+            )
+    return {
+        'total_fabrics': len(fabrics),
+        'unchanged': unchanged,
+        'changes_count': len(plan),
+        'applied': apply,
+        'sample_changes': plan[:20],
+        'canonical_compositions': list(CANONICAL_COMPOSITIONS),
+    }
+

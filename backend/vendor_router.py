@@ -11,6 +11,17 @@ import jwt
 import bcrypt
 from datetime import datetime, timezone, timedelta
 from motor.motor_asyncio import AsyncIOMotorClient
+from composition_utils import canonicalize_composition
+
+
+def _canon_comp_or_raw(comp):
+    """Normalize composition on vendor writes; pass through empty/None untouched."""
+    if comp in (None, "", []):
+        return comp
+    try:
+        return canonicalize_composition(comp)
+    except Exception:
+        return comp
 
 router = APIRouter(prefix="/api/vendor", tags=["vendor"])
 
@@ -259,7 +270,7 @@ async def create_vendor_fabric(data: FabricCreate, vendor=Depends(get_current_ve
         'category_id': data.category_id,
         'category_name': category_name,
         'description': data.description,
-        'composition': data.composition,
+        'composition': _canon_comp_or_raw(data.composition),
         'gsm': data.gsm,
         'ounce': data.ounce,
         'width': data.width,
@@ -318,6 +329,9 @@ async def update_vendor_fabric(fabric_id: str, data: FabricUpdate, vendor=Depend
     
     if not update_data:
         raise HTTPException(status_code=400, detail='No data to update')
+
+    if 'composition' in update_data:
+        update_data['composition'] = _canon_comp_or_raw(update_data['composition'])
     
     await db.fabrics.update_one({'id': fabric_id}, {'$set': update_data})
     

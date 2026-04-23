@@ -3,8 +3,10 @@ import { Plus, Pencil, Trash2, X, Upload, Check, Video, Package, DollarSign, Sea
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { getFabrics, getCategories, getSellers, getArticles, createFabric, updateFabric, deleteFabric, uploadToCloudinary, uploadVideoToCloudinary, approveFabric, rejectFabric } from "../../lib/api";
+import useCompositionOptions from "../../hooks/useCompositionOptions";
 
 const AdminFabrics = () => {
+  const compositionOptions = useCompositionOptions();
   const [fabrics, setFabrics] = useState([]);
   const [filteredFabrics, setFilteredFabrics] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -1140,14 +1142,17 @@ const AdminFabrics = () => {
                       const label = (v) => (stretch ? `${v}%` : `${v}%`);
                       return (
                         <div key={idx} className="flex gap-2">
-                          <input
-                            type="text"
+                          <select
                             value={comp.material}
                             onChange={(e) => updateComposition(idx, 'material', e.target.value)}
-                            className={`flex-1 px-3 py-2 border rounded text-sm ${stretch ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}
-                            placeholder={`Material ${idx + 1} (e.g., Cotton)`}
+                            className={`flex-1 px-3 py-2 border rounded text-sm bg-white ${stretch ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}
                             data-testid={`composition-material-${idx}`}
-                          />
+                          >
+                            <option value="">Material {idx + 1}</option>
+                            {compositionOptions.map((m) => (
+                              <option key={m} value={m}>{m}</option>
+                            ))}
+                          </select>
                           <select
                             value={comp.percentage ?? ''}
                             onChange={(e) => updateComposition(idx, 'percentage', e.target.value)}
