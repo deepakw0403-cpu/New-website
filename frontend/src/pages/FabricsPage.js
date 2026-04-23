@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, MessageSquare, Package, ShoppingCart, Clock } from "lucide-react";
+import { toWebVideoUrl, videoPosterUrl } from "../lib/videoUrl";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import RFQModal from "../components/RFQModal";
@@ -614,8 +615,8 @@ const FabricsPage = () => {
                       <div className="aspect-[3/4] overflow-hidden bg-gray-100 relative">
                         {fabric.videos?.[0] && !(fabric.videos[0].includes('youtube.com') || fabric.videos[0].includes('youtu.be') || fabric.videos[0].includes('vimeo.com')) ? (
                           <video
-                            src={fabric.videos[0]}
-                            poster={fabric.images?.[0]}
+                            src={toWebVideoUrl(fabric.videos[0])}
+                            poster={fabric.images?.[0] || videoPosterUrl(fabric.videos[0])}
                             autoPlay
                             muted
                             loop
@@ -625,7 +626,7 @@ const FabricsPage = () => {
                             data-testid={`fabric-video-${fabric.id}`}
                             aria-label={`${fabric.name} product video`}
                             onError={(e) => {
-                              // If the video fails to load, swap the element for the poster image
+                              // If the transcoded video fails, swap to the poster image
                               const fallback = document.createElement('img');
                               fallback.src = fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600";
                               fallback.alt = fabric.name;

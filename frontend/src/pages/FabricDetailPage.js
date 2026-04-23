@@ -8,6 +8,7 @@ import Footer from "../components/Footer";
 import ExpandableText from "../components/ExpandableText";
 import RFQModal from "../components/RFQModal";
 import { getFabric, createEnquiry, getFabricSEO, getRelatedFabrics, getOtherSellers } from "../lib/api";
+import { toWebVideoUrl, videoPosterUrl } from "../lib/videoUrl";
 import { trackViewItem, trackAddToCart, trackRFQIntent } from "../lib/analytics";
 
 const FabricDetailPage = () => {
@@ -655,11 +656,20 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                           />
                         ) : (
                           <video
-                            src={videoUrl}
+                            src={toWebVideoUrl(videoUrl)}
                             controls
+                            playsInline
+                            poster={videoPosterUrl(videoUrl)}
                             className="w-full h-full"
                             preload="metadata"
+                            onError={(e) => {
+                              // Fallback to the original untransformed URL if the rewritten one 404s
+                              if (e.currentTarget.src !== videoUrl) {
+                                e.currentTarget.src = videoUrl;
+                              }
+                            }}
                           >
+                            <source src={toWebVideoUrl(videoUrl)} type="video/mp4" />
                             Your browser does not support the video tag.
                           </video>
                         )}
