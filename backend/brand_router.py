@@ -18,6 +18,7 @@ import resend
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
+from pymongo import ReturnDocument
 import auth_helpers  # for get_current_admin
 import uuid
 
@@ -417,4 +418,501 @@ async def brand_get_fabric(fabric_id_or_slug: str, user=Depends(get_current_bran
     f = await db.fabrics.find_one({"$or": [{"id": fabric_id_or_slug}, {"slug": fabric_id_or_slug}]}, {"_id": 0})
     if not f or f.get("category_id") not in allowed:
         raise HTTPException(status_code=404, detail="Fabric not available for your brand")
+    # Attach category name
+    cat = await db.categories.find_one({"id": f.get("category_id")}, {"_id": 0, "name": 1})
+    if cat:
+        f["category_name"] = cat.get("name", "")
     return f
+
+
+# ════════════════════════════════════════════════════════════════════
+# SLICE 2 — Credit Lines (multi-lender), OTP, Ledger, FIFO Debit
+# SLICE 3 — Sample Credits + Razorpay Top-up
+# ════════════════════════════════════════════════════════════════════
+
+LENDER_OPTIONS = {"Stride", "Muthoot", "Mintifi"}
+
+
+class BrandCreditOtpRequest(BaseModel):
+    lender_name: str
+    amount_inr: float
+    note: Optional[str] = ""
+
+
+class BrandCreditLineCreate(BaseModel):
+    otp_request_id: str
+    otp_code: str
+    lender_name: str
+    amount_inr: float
+    screenshot_url: Optional[str] = ""
+    note: Optional[str] = ""
+
+
+class SampleCreditAdjust(BaseModel):
+    delta: int  # positive to add, negative to remove
+    note: Optional[str] = ""
+
+
+class BrandOrderItemIn(BaseModel):
+    fabric_id: str
+    quantity: int
+    color_name: Optional[str] = ""
+    color_hex: Optional[str] = ""
+
+
+class BrandOrderCreate(BaseModel):
+    items: List[BrandOrderItemIn]
+    order_type: str  # "sample" | "bulk"
+    notes: Optional[str] = ""
+    ship_to_address: Optional[str] = ""
+    ship_to_city: Optional[str] = ""
+    ship_to_state: Optional[str] = ""
+    ship_to_pincode: Optional[str] = ""
+
+
+class BrandTopupCreate(BaseModel):
+    amount_inr: int  # must be whole rupees (1 rupee = 1 credit)
+
+
+class BrandTopupVerify(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+
+
+# ───── Helpers ─────
+async def _write_ledger(brand_id: str, entry_type: str, amount: float, actor_id: str, **extra):
+    doc = {
+        "id": str(uuid.uuid4()),
+        "brand_id": brand_id,
+        "type": entry_type,
+        "amount": round(float(amount), 2),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": actor_id,
+        **extra,
+    }
+    await db.brand_credit_ledger.insert_one(doc)
+    return doc
+
+
+def _send_otp_email_sync(to_email: str, code: str, brand_name: str, amount_inr: float, lender_name: str):
+    if not RESEND_API_KEY:
+        logging.warning(f"RESEND_API_KEY missing — OTP for {to_email}: {code}")
+        return
+    html = f"""
+      <div style="font-family:-apple-system,Segoe UI,Helvetica,sans-serif;max-width:560px;margin:0 auto;">
+        <div style="background:#111827;color:#fff;padding:20px 24px;border-radius:10px 10px 0 0;">
+          <h2 style="margin:0;font-size:18px;">Confirm credit line payment upload</h2>
+        </div>
+        <div style="padding:24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;">
+          <p style="color:#374151;font-size:14px;margin:0 0 16px 0;">
+            You're recording a <strong>₹{amount_inr:,.2f}</strong> payment from <strong>{lender_name}</strong> to brand <strong>{brand_name}</strong>.
+          </p>
+          <p style="font-size:13px;color:#64748b;margin:0 0 8px 0;">Enter this OTP to confirm:</p>
+          <div style="font-size:32px;font-weight:700;letter-spacing:6px;color:#059669;background:#ecfdf5;padding:14px 0;text-align:center;border-radius:8px;font-family:monospace;">
+            {code}
+          </div>
+          <p style="font-size:12px;color:#94a3b8;margin:16px 0 0 0;">
+            This code expires in 10 minutes. If you didn't initiate this, ignore the email and report it to security@locofast.com.
+          </p>
+        </div>
+      </div>
+    """
+    try:
+        resend.Emails.send({
+            "from": SENDER_EMAIL,
+            "to": [to_email],
+            "subject": f"OTP: Confirm ₹{amount_inr:,.0f} credit line for {brand_name}",
+            "html": html,
+        })
+    except Exception as e:
+        logging.error(f"OTP email failed to {to_email}: {e}")
+
+
+# ───── ADMIN — Credit Line OTP + Upload ─────
+@router.post("/admin/brands/{brand_id}/credit-lines/otp")
+async def request_credit_line_otp(brand_id: str, data: BrandCreditOtpRequest, admin=Depends(auth_helpers.get_current_admin)):
+    if data.lender_name not in LENDER_OPTIONS:
+        raise HTTPException(status_code=400, detail=f"Lender must be one of {sorted(LENDER_OPTIONS)}")
+    if data.amount_inr <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+    brand = await db.brands.find_one({"id": brand_id, "status": "active"}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found or inactive")
+
+    code = "".join(secrets.choice(string.digits) for _ in range(6))
+    otp_id = str(uuid.uuid4())
+    otp_doc = {
+        "id": otp_id,
+        "admin_id": admin.get("id"),
+        "admin_email": admin.get("email"),
+        "purpose": "brand_credit_upload",
+        "brand_id": brand_id,
+        "lender_name": data.lender_name,
+        "amount_inr": float(data.amount_inr),
+        "code_hash": _hash(code),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat(),
+        "consumed": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.admin_otps.insert_one(otp_doc)
+    await asyncio.to_thread(_send_otp_email_sync, admin.get("email"), code, brand["name"], data.amount_inr, data.lender_name)
+    return {"otp_request_id": otp_id, "sent_to": admin.get("email"), "expires_in_minutes": 10}
+
+
+@router.post("/admin/brands/{brand_id}/credit-lines")
+async def create_credit_line(brand_id: str, data: BrandCreditLineCreate, admin=Depends(auth_helpers.get_current_admin)):
+    if data.lender_name not in LENDER_OPTIONS:
+        raise HTTPException(status_code=400, detail=f"Lender must be one of {sorted(LENDER_OPTIONS)}")
+    if data.amount_inr <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+
+    otp = await db.admin_otps.find_one({
+        "id": data.otp_request_id,
+        "admin_id": admin.get("id"),
+        "purpose": "brand_credit_upload",
+        "brand_id": brand_id,
+        "consumed": False,
+    }, {"_id": 0})
+    if not otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP request")
+    if datetime.now(timezone.utc) > datetime.fromisoformat(otp["expires_at"]):
+        raise HTTPException(status_code=400, detail="OTP expired — request a new one")
+    if abs(float(otp["amount_inr"]) - float(data.amount_inr)) > 0.01 or otp["lender_name"] != data.lender_name:
+        raise HTTPException(status_code=400, detail="OTP does not match this lender/amount — request a new one")
+    if not _verify(data.otp_code, otp["code_hash"]):
+        raise HTTPException(status_code=400, detail="Invalid OTP code")
+
+    line_id = str(uuid.uuid4())
+    line_doc = {
+        "id": line_id,
+        "brand_id": brand_id,
+        "lender_name": data.lender_name,
+        "amount_inr": round(float(data.amount_inr), 2),
+        "utilized_inr": 0.0,
+        "status": "active",
+        "screenshot_url": data.screenshot_url or "",
+        "note": data.note or "",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": admin.get("id"),
+        "created_by_email": admin.get("email"),
+    }
+    await db.brand_credit_lines.insert_one(line_doc)
+    await db.admin_otps.update_one({"id": otp["id"]}, {"$set": {"consumed": True, "consumed_at": datetime.now(timezone.utc).isoformat()}})
+    await _write_ledger(
+        brand_id, "credit_allocated", data.amount_inr, admin.get("id"),
+        line_id=line_id, lender_name=data.lender_name, screenshot_url=data.screenshot_url or "", note=data.note or "",
+    )
+    return {"id": line_id, "message": "Credit line created"}
+
+
+@router.get("/admin/brands/{brand_id}/credit-lines")
+async def list_credit_lines(brand_id: str, admin=Depends(auth_helpers.get_current_admin)):
+    lines = await db.brand_credit_lines.find({"brand_id": brand_id}, {"_id": 0}).sort("created_at", 1).to_list(length=200)
+    return lines
+
+
+@router.get("/admin/brands/{brand_id}/ledger")
+async def admin_list_ledger(brand_id: str, admin=Depends(auth_helpers.get_current_admin)):
+    entries = await db.brand_credit_ledger.find({"brand_id": brand_id}, {"_id": 0}).sort("created_at", -1).to_list(length=500)
+    return entries
+
+
+@router.post("/admin/brands/{brand_id}/sample-credits")
+async def admin_adjust_sample_credits(brand_id: str, data: SampleCreditAdjust, admin=Depends(auth_helpers.get_current_admin)):
+    brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+    new_total = int(brand.get("sample_credits_total", 0)) + int(data.delta)
+    if new_total < int(brand.get("sample_credits_used", 0)):
+        raise HTTPException(status_code=400, detail="Cannot reduce below already-used credits")
+    await db.brands.update_one({"id": brand_id}, {"$set": {"sample_credits_total": new_total}})
+    await _write_ledger(
+        brand_id,
+        "sample_credit_added" if data.delta >= 0 else "sample_credit_removed",
+        abs(int(data.delta)), admin.get("id"),
+        note=data.note or "Admin adjustment",
+    )
+    return {"sample_credits_total": new_total}
+
+
+# ───── BRAND — Credit Summary + Ledger ─────
+@router.get("/brand/credit-summary")
+async def brand_credit_summary(user=Depends(get_current_brand_user)):
+    brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+    lines = await db.brand_credit_lines.find({"brand_id": user["brand_id"], "status": "active"}, {"_id": 0}).sort("created_at", 1).to_list(length=200)
+    total_allocated = sum(float(l.get("amount_inr", 0)) for l in lines)
+    total_utilized = sum(float(l.get("utilized_inr", 0)) for l in lines)
+    available = round(total_allocated - total_utilized, 2)
+    sample_total = int(brand.get("sample_credits_total", 0))
+    sample_used = int(brand.get("sample_credits_used", 0))
+    return {
+        "credit": {
+            "total_allocated": round(total_allocated, 2),
+            "total_utilized": round(total_utilized, 2),
+            "available": available,
+            "lines": lines,
+        },
+        "sample_credits": {
+            "total": sample_total,
+            "used": sample_used,
+            "available": sample_total - sample_used,
+        },
+    }
+
+
+@router.get("/brand/ledger")
+async def brand_ledger(user=Depends(get_current_brand_user)):
+    entries = await db.brand_credit_ledger.find({"brand_id": user["brand_id"]}, {"_id": 0}).sort("created_at", -1).to_list(length=500)
+    return entries
+
+
+# ───── BRAND — Order Placement with FIFO debit ─────
+async def _debit_credit_fifo(brand_id: str, amount: float, order_id: str, actor_id: str):
+    """Debit brand's credit lines FIFO (oldest first). Raises if insufficient."""
+    lines = await db.brand_credit_lines.find({"brand_id": brand_id, "status": "active"}, {"_id": 0}).sort("created_at", 1).to_list(length=200)
+    total_avail = sum(float(l.get("amount_inr", 0)) - float(l.get("utilized_inr", 0)) for l in lines)
+    if total_avail + 0.01 < amount:
+        raise HTTPException(status_code=400, detail=f"Insufficient credit: available ₹{total_avail:,.2f}, required ₹{amount:,.2f}")
+    remaining = float(amount)
+    debits = []
+    for line in lines:
+        if remaining <= 0.001:
+            break
+        avail = float(line["amount_inr"]) - float(line["utilized_inr"])
+        if avail <= 0:
+            continue
+        take = round(min(avail, remaining), 2)
+        await db.brand_credit_lines.update_one({"id": line["id"]}, {"$inc": {"utilized_inr": take}})
+        debits.append({"line_id": line["id"], "lender_name": line["lender_name"], "amount": take})
+        remaining = round(remaining - take, 2)
+    await _write_ledger(
+        brand_id, "debit_order", amount, actor_id,
+        order_id=order_id, debits=debits,
+    )
+    return debits
+
+
+async def _debit_sample_credits(brand_id: str, amount: int, order_id: str, actor_id: str):
+    brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
+    avail = int(brand.get("sample_credits_total", 0)) - int(brand.get("sample_credits_used", 0))
+    if avail < amount:
+        raise HTTPException(status_code=400, detail=f"Insufficient sample credits: available {avail}, required {amount}")
+    await db.brands.update_one({"id": brand_id}, {"$inc": {"sample_credits_used": int(amount)}})
+    await _write_ledger(
+        brand_id, "sample_credit_used", amount, actor_id,
+        order_id=order_id,
+    )
+
+
+@router.post("/brand/orders")
+async def brand_create_order(data: BrandOrderCreate, user=Depends(get_current_brand_user)):
+    if data.order_type not in ("sample", "bulk"):
+        raise HTTPException(status_code=400, detail="order_type must be 'sample' or 'bulk'")
+    if not data.items:
+        raise HTTPException(status_code=400, detail="No items")
+
+    brand = await db.brands.find_one({"id": user["brand_id"], "status": "active"}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=403, detail="Brand inactive")
+    allowed = brand.get("allowed_category_ids") or []
+
+    # Load fabrics + validate catalogue rules
+    priced_items = []
+    subtotal = 0.0
+    for it in data.items:
+        if it.quantity <= 0:
+            raise HTTPException(status_code=400, detail="Quantity must be > 0")
+        f = await db.fabrics.find_one({"id": it.fabric_id}, {"_id": 0})
+        if not f:
+            raise HTTPException(status_code=404, detail=f"Fabric {it.fabric_id} not found")
+        if f.get("category_id") not in allowed:
+            raise HTTPException(status_code=403, detail=f"Fabric '{f.get('name')}' not available for your brand")
+        if data.order_type == "sample":
+            sample_price = float(f.get("sample_price") or 100)
+            line_total = sample_price * it.quantity
+            price_per_unit = sample_price
+        else:
+            rate = float(f.get("rate_per_meter") or f.get("price_per_meter") or 0)
+            if rate <= 0:
+                raise HTTPException(status_code=400, detail=f"Fabric '{f.get('name')}' has no price")
+            # MOQ can be an int or a string like "500 meters" / "1500MTR" — extract leading digits
+            moq_raw = f.get("moq")
+            moq = 1
+            if isinstance(moq_raw, (int, float)):
+                moq = int(moq_raw)
+            elif isinstance(moq_raw, str):
+                import re as _re
+                m = _re.match(r"\s*(\d+)", moq_raw)
+                if m:
+                    moq = int(m.group(1))
+            if it.quantity < moq:
+                raise HTTPException(status_code=400, detail=f"{f.get('name')}: qty {it.quantity} below MOQ {moq}")
+            line_total = rate * it.quantity
+            price_per_unit = rate
+        subtotal += line_total
+        priced_items.append({
+            "fabric_id": it.fabric_id,
+            "fabric_name": f.get("name", ""),
+            "fabric_code": f.get("fabric_code", ""),
+            "category_name": f.get("category_name", ""),
+            "seller_company": f.get("seller_company", ""),
+            "seller_id": f.get("seller_id", ""),
+            "quantity": it.quantity,
+            "price_per_meter": price_per_unit,
+            "order_type": data.order_type,
+            "image_url": (f.get("images") or [""])[0] if f.get("images") else "",
+            "hsn_code": f.get("hsn_code", ""),
+            "color_name": it.color_name or "",
+            "color_hex": it.color_hex or "",
+            "line_total": round(line_total, 2),
+        })
+
+    # Charges
+    tax = round(subtotal * 0.05, 2)
+    if data.order_type == "bulk":
+        packaging_charge = sum(it["quantity"] * 1 for it in priced_items)  # ₹1/m
+        logistics_total = max(round(subtotal * 0.03, 2), 3000.0)
+        logistics_only = round(logistics_total - packaging_charge, 2)
+        if logistics_only < 0:
+            logistics_only = 0
+            logistics_total = packaging_charge
+    else:
+        packaging_charge = 0
+        logistics_only = 0
+        logistics_total = 100.0  # flat ₹100 for samples
+    total = round(subtotal + tax + logistics_total, 2)
+
+    # Debit BEFORE creating order; on failure nothing is committed
+    order_id = str(uuid.uuid4())
+    if data.order_type == "sample":
+        # Sample credits equate to INR (1 rupee = 1 credit)
+        await _debit_sample_credits(user["brand_id"], int(round(total)), order_id, user["id"])
+    else:
+        await _debit_credit_fifo(user["brand_id"], total, order_id, user["id"])
+
+    # Order number
+    counter = await db.counters.find_one_and_update(
+        {"_id": "invoice_number"}, {"$inc": {"seq": 1}}, upsert=True, return_document=ReturnDocument.AFTER
+    )
+    seq = counter.get("seq", 1)
+    order_number = f"LF/ORD/{seq:03d}"
+
+    order_doc = {
+        "id": order_id,
+        "order_number": order_number,
+        "items": priced_items,
+        "customer": {
+            "name": user["name"],
+            "email": user["email"],
+            "phone": brand.get("phone", ""),
+            "company": brand["name"],
+            "gst_number": brand.get("gst", ""),
+            "address": data.ship_to_address or brand.get("address", ""),
+            "city": data.ship_to_city or "",
+            "state": data.ship_to_state or "",
+            "pincode": data.ship_to_pincode or "",
+        },
+        "subtotal": round(subtotal, 2),
+        "tax": tax,
+        "discount": 0,
+        "total": total,
+        "currency": "INR",
+        "logistics_charge": logistics_total,
+        "packaging_charge": packaging_charge,
+        "logistics_only_charge": logistics_only,
+        "status": "paid",
+        "payment_status": "paid",
+        "payment_method": "brand_credit" if data.order_type == "bulk" else "sample_credit",
+        "booking_type": "brand",
+        "brand_id": user["brand_id"],
+        "brand_name": brand["name"],
+        "brand_user_id": user["id"],
+        "brand_user_email": user["email"],
+        "order_type": data.order_type,
+        "notes": data.notes or "",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "paid_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.orders.insert_one(order_doc)
+    order_doc.pop("_id", None)
+    return {
+        "id": order_id,
+        "order_number": order_number,
+        "total": total,
+        "message": "Order placed via brand credit",
+    }
+
+
+@router.get("/brand/orders")
+async def brand_list_orders(user=Depends(get_current_brand_user)):
+    orders = await db.orders.find(
+        {"brand_id": user["brand_id"]},
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(length=200)
+    return orders
+
+
+# ───── BRAND — Razorpay sample-credit top-up (Slice 3) ─────
+def _razorpay_client():
+    try:
+        import razorpay
+        key_id = os.environ.get("RAZORPAY_KEY_ID")
+        key_secret = os.environ.get("RAZORPAY_KEY_SECRET")
+        if not key_id or not key_secret:
+            return None
+        return razorpay.Client(auth=(key_id, key_secret))
+    except Exception:
+        return None
+
+
+@router.post("/brand/sample-credits/topup/create-order")
+async def brand_sample_topup_create(data: BrandTopupCreate, user=Depends(get_current_brand_user)):
+    if data.amount_inr < 100:
+        raise HTTPException(status_code=400, detail="Minimum top-up is ₹100")
+    client = _razorpay_client()
+    if not client:
+        raise HTTPException(status_code=503, detail="Payment gateway not configured")
+    rp_order = await asyncio.to_thread(client.order.create, {
+        "amount": int(data.amount_inr) * 100,
+        "currency": "INR",
+        "notes": {
+            "brand_id": user["brand_id"],
+            "brand_user_id": user["id"],
+            "purpose": "sample_credit_topup",
+        },
+    })
+    return {
+        "razorpay_order_id": rp_order["id"],
+        "amount_inr": int(data.amount_inr),
+        "amount_paise": int(data.amount_inr) * 100,
+        "currency": "INR",
+        "key_id": os.environ.get("RAZORPAY_KEY_ID", ""),
+    }
+
+
+@router.post("/brand/sample-credits/topup/verify")
+async def brand_sample_topup_verify(data: BrandTopupVerify, user=Depends(get_current_brand_user)):
+    # Verify signature
+    import hmac, hashlib
+    key_secret = os.environ.get("RAZORPAY_KEY_SECRET", "")
+    expected = hmac.new(key_secret.encode(), f"{data.razorpay_order_id}|{data.razorpay_payment_id}".encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, data.razorpay_signature):
+        raise HTTPException(status_code=400, detail="Invalid payment signature")
+    client = _razorpay_client()
+    if not client:
+        raise HTTPException(status_code=503, detail="Payment gateway not configured")
+    rp_order = await asyncio.to_thread(client.order.fetch, data.razorpay_order_id)
+    if rp_order.get("notes", {}).get("brand_id") != user["brand_id"]:
+        raise HTTPException(status_code=403, detail="Order does not belong to your brand")
+    credits = int(rp_order["amount"]) // 100  # ₹1 = 1 credit
+    await db.brands.update_one({"id": user["brand_id"]}, {"$inc": {"sample_credits_total": credits}})
+    await _write_ledger(
+        user["brand_id"], "sample_credit_added", credits, user["id"],
+        razorpay_order_id=data.razorpay_order_id,
+        razorpay_payment_id=data.razorpay_payment_id,
+        note="Self-serve Razorpay top-up",
+    )
+    return {"message": f"Added {credits} sample credits", "credits": credits}

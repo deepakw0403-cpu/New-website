@@ -5,6 +5,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { VendorAuthProvider } from "./context/VendorAuthContext";
 import { CustomerAuthProvider } from "./context/CustomerAuthContext";
 import { AgentAuthProvider } from "./context/AgentAuthContext";
+import { BrandAuthProvider } from "./context/BrandAuthContext";
 import WhatsAppChat from "./components/WhatsAppChat";
 import { useEffect, lazy, Suspense } from "react";
 
@@ -94,6 +95,15 @@ const SharedCartPage = lazy(() => import("./pages/SharedCartPage"));
 const AgentLoginPage = lazy(() => import("./pages/agent/AgentLoginPage"));
 const AgentDashboardPage = lazy(() => import("./pages/agent/AgentDashboardPage"));
 
+// Brand portal pages
+const BrandLogin = lazy(() => import("./pages/brand/BrandLogin"));
+const BrandResetPassword = lazy(() => import("./pages/brand/BrandResetPassword"));
+const BrandFabrics = lazy(() => import("./pages/brand/BrandFabrics"));
+const BrandFabricDetail = lazy(() => import("./pages/brand/BrandFabricDetail"));
+const BrandAccount = lazy(() => import("./pages/brand/BrandAccount"));
+const BrandUsers = lazy(() => import("./pages/brand/BrandUsers"));
+const BrandOrders = lazy(() => import("./pages/brand/BrandOrders"));
+
 // Vendor pages
 const VendorLogin = lazy(() => import("./pages/vendor/VendorLogin"));
 const VendorDashboard = lazy(() => import("./pages/vendor/VendorDashboard"));
@@ -132,6 +142,7 @@ const AdminSellerDetail = lazy(() => import("./pages/admin/AdminSellerDetail"));
 const AdminCreditApplications = lazy(() => import("./pages/admin/AdminCreditApplications"));
 const AdminAgents = lazy(() => import("./pages/admin/AdminAgents"));
 const AdminCommission = lazy(() => import("./pages/admin/AdminCommission"));
+const AdminBrands = lazy(() => import("./pages/admin/AdminBrands"));
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
 
 // SEO Landing Pages
@@ -162,6 +173,7 @@ function App() {
     <HelmetProvider>
     <CustomerAuthProvider>
     <AgentAuthProvider>
+    <BrandAuthProvider>
     <VendorAuthProvider>
       <AuthProvider>
         <BrowserRouter>
@@ -273,6 +285,17 @@ function App() {
           <Route path="/admin/credit" element={<ProtectedRoute><AdminCreditApplications /></ProtectedRoute>} />
           <Route path="/admin/agents" element={<ProtectedRoute><AdminAgents /></ProtectedRoute>} />
           <Route path="/admin/commission" element={<ProtectedRoute><AdminCommission /></ProtectedRoute>} />
+          <Route path="/admin/brands" element={<ProtectedRoute><AdminBrands /></ProtectedRoute>} />
+
+          {/* Brand Portal routes */}
+          <Route path="/brand/login" element={<BrandLogin />} />
+          <Route path="/brand/reset-password" element={<BrandResetPassword />} />
+          <Route path="/brand/fabrics" element={<BrandFabrics />} />
+          <Route path="/brand/fabrics/:id" element={<BrandFabricDetail />} />
+          <Route path="/brand/account" element={<BrandAccount />} />
+          <Route path="/brand/users" element={<BrandUsers />} />
+          <Route path="/brand/orders" element={<BrandOrders />} />
+          <Route path="/brand" element={<Navigate to="/brand/fabrics" replace />} />
 
           {/* Vendor routes */}
           <Route path="/vendor/login" element={<VendorLogin />} />
@@ -285,6 +308,7 @@ function App() {
       </BrowserRouter>
     </AuthProvider>
     </VendorAuthProvider>
+    </BrandAuthProvider>
     </AgentAuthProvider>
     </CustomerAuthProvider>
     </HelmetProvider>
