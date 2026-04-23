@@ -1093,6 +1093,10 @@ import agent_router
 agent_router.set_db(db)
 app.include_router(agent_router.router)
 
+import brand_router
+brand_router.set_db(db)
+app.include_router(brand_router.router, prefix="/api")
+
 import commission_router
 commission_router.set_db(db)
 app.include_router(commission_router.router)
