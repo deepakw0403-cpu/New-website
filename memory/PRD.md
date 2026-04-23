@@ -254,14 +254,32 @@ Embedded multi-lender credit lines + curated catalogue for brand-tier B2B custom
   - `/api/brand/sample-credits/topup/create-order` + `/verify` — Razorpay self-serve top-up. Signature verification with `hmac.compare_digest`.
   - Brand Account page: "Pay & add" CTA opens Razorpay checkout, adds credits instantly on success.
 
+### Phase 32: Fabric Display Names + Category SEO Block (Complete - Feb 2026)
+- Injected `count` and `construction` into fabric display names via `/app/frontend/src/lib/fabricDisplay.js`.
+- Added `seo_title`, `seo_intro`, `seo_applications` on Category model; Admin modal forms + FabricsPage rendering above the grid for category-filtered pages.
+- Verified: `/fabrics?category=cat-cotton` now shows SEO H1 "Buy Premium Cotton Fabrics Online — Wholesale Prices" and the direct-from-mills intro block.
+
+### Phase 33: Cloudinary Image Optimization + server.py Refactor + Buy Box (Complete - Feb 2026)
+- **Cloudinary optimization**: New `/app/frontend/src/lib/imageUrl.js` with `thumbImage` (w_400), `mediumImage` (w_800), `largeImage` (w_1600) — injects `f_auto,q_auto,w_X` into Cloudinary URLs. Applied to FabricsPage cards, FabricDetailPage gallery/related, Brand Fabrics/Detail/Cart, CollectionsPage and CollectionDetailPage. Expected 50-70% bandwidth savings.
+- **server.py refactor**: 1183 → 633 lines (46% reduction). Extracted to:
+  - `/app/backend/migrations_router.py` — /api/migrate/slugs, /migrate/blended, /migrate/knits, /migrate/greige
+  - `/app/backend/sitemap_router.py` — /api/sitemap.xml
+  - `/app/backend/reviews_router.py` — /api/reviews CRUD
+  - `/app/backend/upload_router.py` — /api/upload, /api/upload/video
+- **Buy Box (Multi-vendor dedupe)**: `GET /api/fabrics?dedupe_by_article=true` collapses fabrics sharing a non-empty `article_id`, returning only the cheapest `rate_per_meter` SKU per article + a `vendor_count` field. `GET /api/fabrics/count` accepts the same param. FabricsPage now passes `dedupe_by_article=true` by default and renders a blue "+N more vendors" badge on cards with `vendor_count > 1`. No visible change until admin populates `article_id`s — forward-compatible.
+- **Backend testing**: 100% (21/21 tests passed, iteration_35.json).
+
 ## Backlog
 
 ### P1 (High Priority)
 - [ ] Run `backfill_denim_names.py` on production to standardize legacy denim names/weaves/ounce formatting
+- [ ] Run `POST /api/migrate/compositions?apply=true` on production
+- [ ] Admin workflow: populate `article_id` on existing fabric SKUs so Buy Box dedupe becomes visible on listing
 
 ### P2 (Medium Priority)
-- [ ] Further `server.py` refactoring (extract Review/Blog/Order routers; target <800 lines)
 - [ ] Audit the 103 soft-404 pages from Google Search Console
+- [ ] Homepage redesign modules: Block CMS, Deal Wall Manager, Live Auctions, Trending Rankings
+- [ ] Further `server.py` slimming (GST, Stats, Seed, RFQ-lead still inline; target <400 lines)
 
 ### P3 (Low Priority)
 - [ ] Wishlist/Favorites for B2B buyers
