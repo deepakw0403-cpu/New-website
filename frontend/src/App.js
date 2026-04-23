@@ -6,6 +6,7 @@ import { VendorAuthProvider } from "./context/VendorAuthContext";
 import { CustomerAuthProvider } from "./context/CustomerAuthContext";
 import { AgentAuthProvider } from "./context/AgentAuthContext";
 import { BrandAuthProvider } from "./context/BrandAuthContext";
+import { BrandCartProvider } from "./context/BrandCartContext";
 import WhatsAppChat from "./components/WhatsAppChat";
 import { useEffect, lazy, Suspense } from "react";
 
@@ -103,6 +104,7 @@ const BrandFabricDetail = lazy(() => import("./pages/brand/BrandFabricDetail"));
 const BrandAccount = lazy(() => import("./pages/brand/BrandAccount"));
 const BrandUsers = lazy(() => import("./pages/brand/BrandUsers"));
 const BrandOrders = lazy(() => import("./pages/brand/BrandOrders"));
+const BrandCart = lazy(() => import("./pages/brand/BrandCart"));
 
 // Vendor pages
 const VendorLogin = lazy(() => import("./pages/vendor/VendorLogin"));
@@ -174,6 +176,7 @@ function App() {
     <CustomerAuthProvider>
     <AgentAuthProvider>
     <BrandAuthProvider>
+    <BrandCartProvider>
     <VendorAuthProvider>
       <AuthProvider>
         <BrowserRouter>
@@ -295,6 +298,7 @@ function App() {
           <Route path="/brand/account" element={<BrandAccount />} />
           <Route path="/brand/users" element={<BrandUsers />} />
           <Route path="/brand/orders" element={<BrandOrders />} />
+          <Route path="/brand/cart" element={<BrandCart />} />
           <Route path="/brand" element={<Navigate to="/brand/fabrics" replace />} />
 
           {/* Vendor routes */}
@@ -308,6 +312,7 @@ function App() {
       </BrowserRouter>
     </AuthProvider>
     </VendorAuthProvider>
+    </BrandCartProvider>
     </BrandAuthProvider>
     </AgentAuthProvider>
     </CustomerAuthProvider>

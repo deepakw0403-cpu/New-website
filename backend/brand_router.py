@@ -379,6 +379,23 @@ async def brand_me(user=Depends(get_current_brand_user)):
     return {"user": user, "brand": brand}
 
 
+@router.post("/brand/default-ship-to")
+async def brand_save_default_ship_to(data: dict, user=Depends(get_current_brand_user)):
+    """Persist this address as the brand's default shipping destination."""
+    if user["role"] != "brand_admin":
+        raise HTTPException(status_code=403, detail="Only brand admins can save defaults")
+    address = {
+        "name": (data.get("name") or "")[:100],
+        "phone": (data.get("phone") or "")[:20],
+        "address": (data.get("address") or "")[:500],
+        "city": (data.get("city") or "")[:100],
+        "state": (data.get("state") or "")[:100],
+        "pincode": (data.get("pincode") or "")[:10],
+    }
+    await db.brands.update_one({"id": user["brand_id"]}, {"$set": {"default_ship_to": address}})
+    return {"message": "Default shipping address saved"}
+
+
 # ───── BRAND-FACING — Users (brand_admin can manage) ─────
 @router.get("/brand/users")
 async def brand_list_users(user=Depends(get_current_brand_user)):
@@ -411,6 +428,17 @@ async def brand_remove_user(user_id: str, user=Depends(get_current_brand_user)):
 @router.get("/brand/designations")
 async def brand_list_designations():
     return {"options": list(BRAND_DESIGNATIONS)}
+
+
+@router.get("/brand/support")
+async def brand_support_contact():
+    """Support contact placeholder surfaced in the brand portal footer/help widget."""
+    return {
+        "email": os.environ.get("LOCOFAST_SUPPORT_EMAIL", "support@locofast.com"),
+        "phone": os.environ.get("LOCOFAST_SUPPORT_PHONE", "+91 120 4938200"),
+        "hours": "Mon–Sat, 9:30 AM – 7:00 PM IST",
+        "escalation_email": os.environ.get("LOCOFAST_OPS_INBOX", "orders@locofast.com"),
+    }
 
 
 # ───── BRAND-FACING — Filtered Catalog ─────
@@ -570,8 +598,15 @@ class BrandCreditLineCreate(BaseModel):
     note: Optional[str] = ""
 
 
+class SampleCreditOtpRequest(BaseModel):
+    delta: int
+    note: Optional[str] = ""
+
+
 class SampleCreditAdjust(BaseModel):
-    delta: int  # positive to add, negative to remove
+    otp_request_id: str
+    otp_code: str
+    delta: int
     note: Optional[str] = ""
 
 
@@ -740,15 +775,89 @@ async def admin_list_ledger(brand_id: str, admin=Depends(auth_helpers.get_curren
     return entries
 
 
+@router.post("/admin/brands/{brand_id}/sample-credits/otp")
+async def request_sample_credit_otp(brand_id: str, data: SampleCreditOtpRequest, admin=Depends(auth_helpers.get_current_admin)):
+    if data.delta == 0:
+        raise HTTPException(status_code=400, detail="Delta must be non-zero")
+    brand = await db.brands.find_one({"id": brand_id, "status": "active"}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+
+    code = "".join(secrets.choice(string.digits) for _ in range(6))
+    otp_id = str(uuid.uuid4())
+    otp_doc = {
+        "id": otp_id,
+        "admin_id": admin.get("id"),
+        "admin_email": admin.get("email"),
+        "purpose": "brand_sample_credit_adjust",
+        "brand_id": brand_id,
+        "delta": int(data.delta),
+        "code_hash": _hash(code),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat(),
+        "consumed": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.admin_otps.insert_one(otp_doc)
+
+    # Reuse the credit-line OTP email helper with sample-specific messaging
+    try:
+        if RESEND_API_KEY:
+            action = "add" if data.delta > 0 else "remove"
+            resend.Emails.send({
+                "from": SENDER_EMAIL,
+                "to": [admin.get("email")],
+                "subject": f"OTP: Confirm {action} {abs(data.delta)} sample credits for {brand['name']}",
+                "html": f"""
+                  <div style="font-family:-apple-system,Segoe UI,Helvetica,sans-serif;max-width:560px;margin:0 auto;">
+                    <div style="background:#111827;color:#fff;padding:20px 24px;border-radius:10px 10px 0 0;">
+                      <h2 style="margin:0;font-size:18px;">Confirm sample-credit adjustment</h2>
+                    </div>
+                    <div style="padding:24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;">
+                      <p style="color:#374151;font-size:14px;margin:0 0 16px 0;">
+                        You're about to <strong>{action} {abs(data.delta)}</strong> sample credits for brand <strong>{brand['name']}</strong>.
+                      </p>
+                      <p style="font-size:13px;color:#64748b;margin:0 0 8px 0;">Enter this OTP to confirm:</p>
+                      <div style="font-size:32px;font-weight:700;letter-spacing:6px;color:#d97706;background:#fef3c7;padding:14px 0;text-align:center;border-radius:8px;font-family:monospace;">
+                        {code}
+                      </div>
+                      <p style="font-size:12px;color:#94a3b8;margin:16px 0 0 0;">This code expires in 10 minutes.</p>
+                    </div>
+                  </div>
+                """,
+            })
+    except Exception as e:
+        logging.error(f"Sample OTP email failed: {e}")
+
+    return {"otp_request_id": otp_id, "sent_to": admin.get("email"), "expires_in_minutes": 10}
+
+
 @router.post("/admin/brands/{brand_id}/sample-credits")
 async def admin_adjust_sample_credits(brand_id: str, data: SampleCreditAdjust, admin=Depends(auth_helpers.get_current_admin)):
     brand = await db.brands.find_one({"id": brand_id}, {"_id": 0})
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")
+
+    otp = await db.admin_otps.find_one({
+        "id": data.otp_request_id,
+        "admin_id": admin.get("id"),
+        "purpose": "brand_sample_credit_adjust",
+        "brand_id": brand_id,
+        "consumed": False,
+    }, {"_id": 0})
+    if not otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP request")
+    if datetime.now(timezone.utc) > datetime.fromisoformat(otp["expires_at"]):
+        raise HTTPException(status_code=400, detail="OTP expired — request a new one")
+    if int(otp.get("delta", 0)) != int(data.delta):
+        raise HTTPException(status_code=400, detail="OTP delta does not match — request a new one")
+    if not _verify(data.otp_code, otp["code_hash"]):
+        raise HTTPException(status_code=400, detail="Invalid OTP code")
+
     new_total = int(brand.get("sample_credits_total", 0)) + int(data.delta)
     if new_total < int(brand.get("sample_credits_used", 0)):
         raise HTTPException(status_code=400, detail="Cannot reduce below already-used credits")
     await db.brands.update_one({"id": brand_id}, {"$set": {"sample_credits_total": new_total}})
+    await db.admin_otps.update_one({"id": otp["id"]}, {"$set": {"consumed": True, "consumed_at": datetime.now(timezone.utc).isoformat()}})
     await _write_ledger(
         brand_id,
         "sample_credit_added" if data.delta >= 0 else "sample_credit_removed",
@@ -853,6 +962,9 @@ async def brand_create_order(data: BrandOrderCreate, user=Depends(get_current_br
         if f.get("category_id") not in allowed:
             raise HTTPException(status_code=403, detail=f"Fabric '{f.get('name')}' not available for your brand")
         if data.order_type == "sample":
+            # Sample orders are capped at 5 meters per line (industry swatch norm)
+            if it.quantity > 5:
+                raise HTTPException(status_code=400, detail=f"Sample orders are limited to 5 meters per line (requested {it.quantity} for '{f.get('name')}')")
             sample_price = float(f.get("sample_price") or 100)
             line_total = sample_price * it.quantity
             price_per_unit = sample_price
@@ -960,12 +1072,126 @@ async def brand_create_order(data: BrandOrderCreate, user=Depends(get_current_br
     }
     await db.orders.insert_one(order_doc)
     order_doc.pop("_id", None)
+
+    # Email fanout — fire-and-forget so slow Resend doesn't block checkout
+    asyncio.create_task(_notify_order_recipients(order_doc))
+
     return {
         "id": order_id,
         "order_number": order_number,
         "total": total,
         "message": "Order placed via brand credit",
     }
+
+
+# ────────────────────────────────────────────────────────────────
+#  Email fanout on brand order placement
+# ────────────────────────────────────────────────────────────────
+SUPPORT_EMAIL = os.environ.get("LOCOFAST_SUPPORT_EMAIL", "support@locofast.com")
+OPS_INBOX = os.environ.get("LOCOFAST_OPS_INBOX", "orders@locofast.com")
+
+
+def _order_items_html(order):
+    rows = []
+    for it in order.get("items", []):
+        rows.append(
+            f"<tr><td style='padding:8px 12px;border-bottom:1px solid #eef2f7;'>{it.get('fabric_name', '')}</td>"
+            f"<td style='padding:8px 12px;border-bottom:1px solid #eef2f7;'>{it.get('fabric_code', '')}</td>"
+            f"<td style='padding:8px 12px;border-bottom:1px solid #eef2f7;text-align:right;'>{it.get('quantity', 0)}</td>"
+            f"<td style='padding:8px 12px;border-bottom:1px solid #eef2f7;text-align:right;'>₹{it.get('line_total', 0):,.2f}</td></tr>"
+        )
+    return (
+        "<table style='width:100%;border-collapse:collapse;font-size:13px;margin:16px 0;border:1px solid #eef2f7;border-radius:6px;overflow:hidden;'>"
+        "<thead style='background:#f9fafb;text-align:left;'><tr>"
+        "<th style='padding:8px 12px;'>Fabric</th><th style='padding:8px 12px;'>Code</th>"
+        "<th style='padding:8px 12px;text-align:right;'>Qty</th><th style='padding:8px 12px;text-align:right;'>Amount</th>"
+        "</tr></thead><tbody>" + "".join(rows) + "</tbody></table>"
+    )
+
+
+def _order_email_html(order, audience_line, cta_html=""):
+    c = order.get("customer", {})
+    addr_parts = [c.get("address", ""), c.get("city", ""), c.get("state", ""), c.get("pincode", "")]
+    addr = ", ".join(p for p in addr_parts if p)
+    return f"""
+      <div style="font-family:-apple-system,Segoe UI,Helvetica,sans-serif;max-width:640px;margin:0 auto;color:#0f172a;">
+        <div style="background:#059669;color:#fff;padding:18px 22px;border-radius:10px 10px 0 0;">
+          <h2 style="margin:0;font-size:18px;">{"Sample" if order.get("order_type") == "sample" else "Bulk"} Order · {order.get("order_number")}</h2>
+          <p style="margin:4px 0 0 0;font-size:12px;opacity:0.9;">{audience_line}</p>
+        </div>
+        <div style="padding:22px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;background:#fff;">
+          <p style="font-size:14px;color:#334155;margin:0 0 8px 0;">
+            <strong>{c.get("company", "")}</strong> placed a {"sample" if order.get("order_type") == "sample" else "bulk"} order on Locofast.
+          </p>
+          <div style="background:#f8fafc;border:1px solid #eef2f7;border-radius:6px;padding:12px 14px;font-size:13px;color:#475569;margin:12px 0;">
+            <div><strong>Placed by:</strong> {c.get("name", "")} ({c.get("email", "")})</div>
+            <div><strong>Phone:</strong> {c.get("phone", "—")}</div>
+            {f"<div><strong>Ship to:</strong> {addr}</div>" if addr else ""}
+          </div>
+          {_order_items_html(order)}
+          <table style="width:100%;font-size:13px;color:#475569;">
+            <tr><td>Subtotal</td><td style="text-align:right;">₹{order.get("subtotal", 0):,.2f}</td></tr>
+            <tr><td>Tax (5%)</td><td style="text-align:right;">₹{order.get("tax", 0):,.2f}</td></tr>
+            <tr><td>Logistics</td><td style="text-align:right;">₹{order.get("logistics_charge", 0):,.2f}</td></tr>
+            <tr><td style="padding-top:10px;font-weight:700;color:#0f172a;">Total</td><td style="padding-top:10px;text-align:right;font-weight:700;color:#059669;">₹{order.get("total", 0):,.2f}</td></tr>
+          </table>
+          <p style="font-size:12px;color:#94a3b8;margin:18px 0 0 0;">Payment method: {order.get("payment_method", "")}. Any questions? Reply to this email or write to {SUPPORT_EMAIL}.</p>
+          {cta_html}
+        </div>
+      </div>
+    """
+
+
+def _send_email_sync(to_list, subject, html):
+    if not RESEND_API_KEY or not to_list:
+        logging.info(f"[email skipped] to={to_list} subject={subject}")
+        return
+    try:
+        resend.Emails.send({"from": SENDER_EMAIL, "to": to_list, "subject": subject, "html": html})
+    except Exception as e:
+        logging.error(f"Email failed to {to_list}: {e}")
+
+
+async def _notify_order_recipients(order):
+    """Send 4 targeted emails per new brand order: buyer, brand admins, sellers, ops."""
+    try:
+        brand_id = order.get("brand_id")
+        order_no = order.get("order_number", "")
+        o_type = order.get("order_type", "bulk")
+        subject_prefix = f"[Locofast] {o_type.title()} Order {order_no}"
+
+        # 1) Placer (brand user who checked out)
+        placer = order.get("brand_user_email")
+        if placer:
+            html = _order_email_html(order, "Your order has been placed successfully.")
+            await asyncio.to_thread(_send_email_sync, [placer], f"{subject_prefix} — Confirmation", html)
+
+        # 2) Brand admins for visibility
+        admin_emails = []
+        async for u in db.brand_users.find({"brand_id": brand_id, "role": "brand_admin", "status": "active"}, {"_id": 0, "email": 1}):
+            if u.get("email") and u["email"] != placer:
+                admin_emails.append(u["email"])
+        if admin_emails:
+            html = _order_email_html(order, f"New order by {order.get('customer', {}).get('name', 'a team member')}.")
+            await asyncio.to_thread(_send_email_sync, admin_emails, f"{subject_prefix} — New team order", html)
+
+        # 3) Sellers of each item (deduped)
+        seller_ids = list({(it.get("seller_id") or "") for it in order.get("items", []) if it.get("seller_id")})
+        if seller_ids:
+            seller_emails = []
+            async for s in db.sellers.find({"id": {"$in": seller_ids}}, {"_id": 0, "email": 1, "contact_email": 1}):
+                e = s.get("email") or s.get("contact_email")
+                if e:
+                    seller_emails.append(e)
+            if seller_emails:
+                html = _order_email_html(order, "A new order has been placed for your SKU(s). Please prepare dispatch.")
+                await asyncio.to_thread(_send_email_sync, seller_emails, f"{subject_prefix} — Action required", html)
+
+        # 4) Internal Locofast ops
+        html = _order_email_html(order, "Internal notification — route for fulfilment.")
+        await asyncio.to_thread(_send_email_sync, [OPS_INBOX], f"{subject_prefix} — Ops handoff", html)
+    except Exception as e:
+        logging.error(f"_notify_order_recipients failed: {e}")
 
 
 @router.get("/brand/orders")

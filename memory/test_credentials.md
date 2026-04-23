@@ -25,13 +25,27 @@
 
 ## Brand Portal (Test Brand Co)
 - Email: brandtest@locofast.com
-- Password: NewPassword123!  (reset from temp password GQRh59B87Zod)
+- Password: NewPassword123!
 - Login URL: /brand/login
 - Brand ID: 03b50566-e559-4a54-97f0-4cd1179615d4
-- Role: brand_admin
+- Role: brand_admin · Designation: Management
 - Allowed categories: Denim, Cotton
-- Credit lines pre-seeded: Stride ₹100,000 (fully utilised by LF/ORD/001), Muthoot ₹500,000 (partial)
-- Sample credits pre-seeded: 500 total (190 available — 310 used by LF/ORD/002)
+- Credit lines pre-seeded: Stride ₹100,000 (fully utilised), Muthoot ₹500,000 (₹3.86L available)
+- Sample credits pre-seeded: 500 total, 190 available
 
-## Brand OTP Testing Notes
-- Admin-side "Upload credit line" requires OTP emailed to the acting admin. In automated tests, the 6-digit code is stored bcrypt-hashed in `admin_otps`. To bypass email-reliant tests, re-hash the row directly: `bcrypt.hashpw(b"123456", bcrypt.gensalt()).decode()` and use `123456` as the OTP.
+## Brand OTP Testing (bypass email)
+Credit-line + sample-credit upload/adjust requires OTP emailed to admin. In tests, rehash directly:
+```python
+import pymongo, os, bcrypt
+from dotenv import load_dotenv
+load_dotenv('/app/backend/.env')
+c = pymongo.MongoClient(os.environ['MONGO_URL'])[os.environ['DB_NAME']]
+c.admin_otps.update_one({'id': '<otp_request_id>'}, {'$set': {'code_hash': bcrypt.hashpw(b'123456', bcrypt.gensalt()).decode()}})
+```
+Then use `123456` as the OTP. Applies to `purpose`: `brand_credit_upload` AND `brand_sample_credit_adjust`.
+
+## Locofast Support Placeholder
+- Email: support@locofast.com (env: `LOCOFAST_SUPPORT_EMAIL`)
+- Phone: +91 120 4938200 (env: `LOCOFAST_SUPPORT_PHONE`)
+- Ops inbox: orders@locofast.com (env: `LOCOFAST_OPS_INBOX`) — brand order notifications go here
+- Endpoint: `GET /api/brand/support`

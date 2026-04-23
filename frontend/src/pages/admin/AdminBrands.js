@@ -38,9 +38,11 @@ const AdminBrands = () => {
   const [otpCode, setOtpCode] = useState("");
   const [clBusy, setClBusy] = useState(false);
 
-  // Sample credit delta
+  // Sample credit OTP flow
   const [sampleDelta, setSampleDelta] = useState("");
   const [sampleNote, setSampleNote] = useState("");
+  const [sampleOtpSent, setSampleOtpSent] = useState(null);
+  const [sampleOtpCode, setSampleOtpCode] = useState("");
   const [sampleBusy, setSampleBusy] = useState(false);
 
   const load = async () => {
@@ -216,17 +218,32 @@ const AdminBrands = () => {
     } catch (err) { toast.error(err.message || "Upload failed"); }
   };
 
-  // === Sample credit adjust ===
-  const applySampleDelta = async () => {
+  // === Sample credit adjust (now OTP-gated) ===
+  const requestSampleOtp = async () => {
     const n = Number(sampleDelta);
     if (!n || Number.isNaN(n)) return toast.error("Enter a non-zero number");
     setSampleBusy(true);
     try {
-      await api.post(`/admin/brands/${selected.id}/sample-credits`, { delta: n, note: sampleNote || "" });
-      toast.success(`Sample credits ${n > 0 ? "added" : "removed"}`);
-      setSampleDelta(""); setSampleNote("");
-      refreshDetail();
-      await load();
+      const res = await api.post(`/admin/brands/${selected.id}/sample-credits/otp`, { delta: n, note: sampleNote || "" });
+      setSampleOtpSent(res.data);
+      toast.success(`OTP sent to ${res.data.sent_to}`);
+    } catch (err) { toast.error(err?.response?.data?.detail || "Failed"); }
+    setSampleBusy(false);
+  };
+
+  const confirmSampleAdjust = async () => {
+    if (!sampleOtpCode || sampleOtpCode.length < 4) return toast.error("Enter the OTP");
+    setSampleBusy(true);
+    try {
+      await api.post(`/admin/brands/${selected.id}/sample-credits`, {
+        otp_request_id: sampleOtpSent.otp_request_id,
+        otp_code: sampleOtpCode,
+        delta: Number(sampleDelta),
+        note: sampleNote || "",
+      });
+      toast.success(`Sample credits ${Number(sampleDelta) > 0 ? "added" : "removed"}`);
+      setSampleDelta(""); setSampleNote(""); setSampleOtpSent(null); setSampleOtpCode("");
+      refreshDetail(); await load();
     } catch (err) { toast.error(err?.response?.data?.detail || "Failed"); }
     setSampleBusy(false);
   };
@@ -502,13 +519,35 @@ const AdminBrands = () => {
                   </p>
                 </div>
                 <div className="flex gap-2 items-center bg-amber-50 p-3 rounded-lg">
-                  <input type="number" placeholder="Delta (+ or -)" value={sampleDelta} onChange={(e) => setSampleDelta(e.target.value)} className="w-32 px-2 py-1.5 border border-gray-300 rounded text-xs" data-testid="sample-delta" />
-                  <input placeholder="Note" value={sampleNote} onChange={(e) => setSampleNote(e.target.value)} className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs" />
-                  <button onClick={applySampleDelta} disabled={sampleBusy} className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded text-xs font-semibold disabled:opacity-50" data-testid="sample-apply">
-                    {sampleBusy ? "..." : "Apply"}
-                  </button>
+                  <input type="number" placeholder="Delta (+ or -)" value={sampleDelta} onChange={(e) => setSampleDelta(e.target.value)} className="w-32 px-2 py-1.5 border border-gray-300 rounded text-xs" data-testid="sample-delta" disabled={!!sampleOtpSent} />
+                  <input placeholder="Note" value={sampleNote} onChange={(e) => setSampleNote(e.target.value)} className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs" disabled={!!sampleOtpSent} />
+                  {!sampleOtpSent ? (
+                    <button onClick={requestSampleOtp} disabled={sampleBusy} className="bg-gray-900 hover:bg-black text-white px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 disabled:opacity-50" data-testid="sample-request-otp">
+                      <ShieldCheck size={11} /> OTP
+                    </button>
+                  ) : (
+                    <button onClick={() => { setSampleOtpSent(null); setSampleOtpCode(""); }} className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded text-xs">Cancel</button>
+                  )}
                 </div>
-                <p className="text-[10px] text-gray-500 mt-2">₹1 = 1 credit. Brands can also self-serve top-up via Razorpay in their portal.</p>
+                {sampleOtpSent && (
+                  <div className="mt-2 bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-center gap-2">
+                    <div className="flex-1">
+                      <p className="text-xs text-emerald-900 mb-1">OTP sent to <strong>{sampleOtpSent.sent_to}</strong></p>
+                      <input
+                        autoFocus
+                        placeholder="6-digit OTP"
+                        value={sampleOtpCode}
+                        onChange={(e) => setSampleOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        className="w-full px-3 py-1.5 border border-emerald-300 rounded text-sm font-mono tracking-widest text-center"
+                        data-testid="sample-otp-input"
+                      />
+                    </div>
+                    <button onClick={confirmSampleAdjust} disabled={sampleBusy} className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded text-xs font-semibold disabled:opacity-50" data-testid="sample-confirm">
+                      {sampleBusy ? "..." : "Confirm"}
+                    </button>
+                  </div>
+                )}
+                <p className="text-[10px] text-gray-500 mt-2">₹1 = 1 credit. OTP goes to your admin email. Brands can also self-serve top-up via Razorpay in their portal (no OTP needed there).</p>
               </div>
 
               {/* Users */}

@@ -1,25 +1,27 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useBrandAuth } from "../../context/BrandAuthContext";
+import { useBrandCart } from "../../context/BrandCartContext";
 import BrandLayout from "./BrandLayout";
-import { Loader2, ArrowLeft, Package, CheckCircle, MessageSquare } from "lucide-react";
+import { Loader2, ArrowLeft, ShoppingCart, Beaker, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import RFQModal from "../../components/RFQModal";
 import { fmtLacs, fmtINR, fmtCount } from "../../lib/inr";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
+const MAX_SAMPLE_METERS = 5;
+
 const BrandFabricDetail = () => {
   const { id } = useParams();
   const { user, token } = useBrandAuth();
+  const { addLine } = useBrandCart();
   const navigate = useNavigate();
   const [fabric, setFabric] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [orderType, setOrderType] = useState("bulk");
   const [qty, setQty] = useState(1);
-  const [placing, setPlacing] = useState(false);
-  const [success, setSuccess] = useState(null);
   const [summary, setSummary] = useState(null);
   const [showRfq, setShowRfq] = useState(false);
 
@@ -55,66 +57,62 @@ const BrandFabricDetail = () => {
   const samplePrice = Number(fabric?.sample_price || 100);
   const unit = fabric?.fabric_type === "knitted" && fabric?.category_id !== "cat-denim" ? "kg" : "m";
 
-  const lineTotal = orderType === "sample" ? samplePrice * qty : rate * qty;
-  const tax = +(lineTotal * 0.05).toFixed(2);
-  const logistics = orderType === "bulk" ? Math.max(lineTotal * 0.03, 3000) : 100;
-  const total = +(lineTotal + tax + logistics).toFixed(2);
+  const moqValue = (() => {
+    const m = fabric?.moq;
+    if (typeof m === "number") return m;
+    if (typeof m === "string") {
+      const match = m.match(/^\s*(\d+)/);
+      if (match) return Number(match[1]);
+    }
+    return 1;
+  })();
 
+  const lineTotal = orderType === "sample" ? samplePrice * qty : rate * qty;
   const availableCredit = summary?.credit?.available ?? 0;
   const availableSample = summary?.sample_credits?.available ?? 0;
-  const enough = orderType === "sample" ? availableSample >= total : availableCredit >= total;
 
-  const placeOrder = async () => {
-    if (qty <= 0) return toast.error("Enter a valid qty");
-    if (orderType === "bulk" && qty < Number(fabric?.moq || 1)) {
-      return toast.error(`MOQ is ${fabric?.moq}${unit}`);
+  const onQtyChange = (raw) => {
+    const v = Number(raw) || 1;
+    if (orderType === "sample") setQty(Math.max(1, Math.min(MAX_SAMPLE_METERS, v)));
+    else setQty(Math.max(1, v));
+  };
+
+  const addToCart = () => {
+    if (!fabric) return;
+    if (orderType === "bulk" && qty < moqValue) {
+      toast.error(`MOQ for bulk orders is ${moqValue}${unit}`);
+      return;
     }
-    if (!enough) return toast.error("Insufficient balance");
-    setPlacing(true);
-    try {
-      const payload = {
-        items: [{
-          fabric_id: fabric.id,
-          quantity: Number(qty),
-          color_name: selectedVariant?.color_name || "",
-          color_hex: selectedVariant?.hex || "",
-        }],
-        order_type: orderType,
-      };
-      const res = await fetch(`${API}/api/brand/orders`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Order failed");
-      setSuccess(data);
-    } catch (err) {
-      toast.error(err.message);
+    if (orderType === "sample" && qty > MAX_SAMPLE_METERS) {
+      toast.error(`Sample orders are capped at ${MAX_SAMPLE_METERS}${unit} per fabric`);
+      return;
     }
-    setPlacing(false);
+    if (orderType === "bulk" && rate <= 0) {
+      toast.error("Bulk price not listed — use Request a Quote");
+      return;
+    }
+    addLine({
+      fabric_id: fabric.id,
+      fabric_name: fabric.name,
+      fabric_code: fabric.fabric_code || "",
+      category_name: fabric.category_name || "",
+      image_url: (selectedVariant?.image_url || fabric.images?.[0]) || "",
+      seller_company: fabric.seller_company || "",
+      quantity: Number(qty),
+      unit,
+      color_name: selectedVariant?.color_name || "",
+      color_hex: selectedVariant?.hex || "",
+      order_type: orderType,
+      price_per_unit: orderType === "sample" ? samplePrice : rate,
+      moq: moqValue,
+    });
+    toast.success(`Added to cart · ${orderType === "sample" ? "Sample" : "Bulk"} · ${qty}${unit}`);
   };
 
   if (loading) {
     return <BrandLayout><div className="flex justify-center py-20"><Loader2 className="animate-spin text-emerald-600" /></div></BrandLayout>;
   }
   if (!fabric) return null;
-
-  if (success) {
-    return (
-      <BrandLayout>
-        <div className="max-w-md mx-auto bg-white border border-emerald-200 rounded-2xl p-8 text-center" data-testid="brand-order-success">
-          <CheckCircle size={48} className="mx-auto text-emerald-600 mb-3" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-1">Order placed</h2>
-          <p className="text-sm text-gray-500 mb-4">Order <span className="font-mono">{success.order_number}</span> · {fmtINR(success.total)} debited</p>
-          <div className="space-y-2">
-            <Link to="/brand/orders" className="block w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium">View my orders</Link>
-            <Link to="/brand/fabrics" className="block w-full bg-white border border-gray-300 py-2.5 rounded-lg text-sm">Back to catalog</Link>
-          </div>
-        </div>
-      </BrandLayout>
-    );
-  }
 
   return (
     <BrandLayout>
@@ -134,7 +132,7 @@ const BrandFabricDetail = () => {
           {(fabric.images || []).length > 1 && (
             <div className="grid grid-cols-5 gap-2 mt-3">
               {(fabric.images || []).slice(0, 5).map((img, i) => (
-                <img key={i} src={img} alt={i} className="aspect-square object-cover rounded border border-gray-200" />
+                <img key={i} src={img} alt={`${fabric.name} ${i + 1}`} className="aspect-square object-cover rounded border border-gray-200" />
               ))}
             </div>
           )}
@@ -144,9 +142,10 @@ const BrandFabricDetail = () => {
         <div>
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{fabric.category_name}</p>
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">{fabric.name}</h1>
-          <div className="flex items-center gap-3 text-sm text-gray-600 mb-4">
+          <div className="flex items-center gap-3 text-sm text-gray-600 mb-4 flex-wrap">
             {fabric.fabric_code && <span className="font-mono bg-gray-100 px-2 py-0.5 rounded">{fabric.fabric_code}</span>}
-            {fabric.moq && <span>MOQ: {fabric.moq} {unit}</span>}
+            {moqValue > 0 && <span>MOQ: {moqValue} {unit}</span>}
+            {fabric.seller_company && <span>by {fabric.seller_company}</span>}
           </div>
 
           {/* Color picker */}
@@ -156,21 +155,17 @@ const BrandFabricDetail = () => {
               <div className="flex flex-wrap gap-2">
                 {fabric.color_variants.map((v, i) => {
                   const qa = Number(v.quantity_available || 0);
-                  const disabled = orderType === "bulk" && qa <= 0;
                   const samplable = v.sample_available !== false;
-                  const disabledSample = orderType === "sample" && !samplable;
-                  const isDisabled = disabled || disabledSample;
+                  const disabled = (orderType === "bulk" && qa <= 0) || (orderType === "sample" && !samplable);
                   const selected = selectedVariant?.color_name === v.color_name;
                   return (
                     <button
                       key={i}
-                      disabled={isDisabled}
+                      disabled={disabled}
                       onClick={() => setSelectedVariant(v)}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs ${
-                        selected
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-800"
-                          : "border-gray-200 bg-white text-gray-700"
-                      } ${isDisabled ? "opacity-40 cursor-not-allowed" : "hover:border-gray-400"}`}
+                        selected ? "border-emerald-500 bg-emerald-50 text-emerald-800" : "border-gray-200 bg-white text-gray-700"
+                      } ${disabled ? "opacity-40 cursor-not-allowed" : "hover:border-gray-400"}`}
                       data-testid={`brand-variant-${v.color_name}`}
                     >
                       <span className="w-4 h-4 rounded-full border border-gray-300" style={{ background: v.hex || "#fff" }} />
@@ -189,45 +184,50 @@ const BrandFabricDetail = () => {
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => { setOrderType("sample"); setQty(1); }}
-                className={`p-3 border rounded-lg text-left ${orderType === "sample" ? "border-emerald-500 bg-emerald-50" : "border-gray-200"}`}
+                className={`p-3 border rounded-lg text-left ${orderType === "sample" ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
                 data-testid="brand-type-sample"
               >
                 <p className="text-sm font-medium">Sample</p>
-                <p className="text-xs text-gray-500">{fmtINR(samplePrice)} per sample</p>
+                <p className="text-xs text-gray-500">{fmtINR(samplePrice)}/{unit} · Max {MAX_SAMPLE_METERS}{unit}</p>
               </button>
               <button
-                onClick={() => { setOrderType("bulk"); setQty(Number(fabric.moq || 1)); }}
+                onClick={() => { setOrderType("bulk"); setQty(moqValue); }}
                 className={`p-3 border rounded-lg text-left ${orderType === "bulk" ? "border-emerald-500 bg-emerald-50" : "border-gray-200"}`}
                 data-testid="brand-type-bulk"
               >
                 <p className="text-sm font-medium">Bulk</p>
-                <p className="text-xs text-gray-500">{fmtINR(rate)} / {unit}</p>
+                <p className="text-xs text-gray-500">{rate > 0 ? `${fmtINR(rate)}/${unit}` : "On enquiry"}</p>
               </button>
             </div>
           </div>
 
           {/* Qty */}
           <div className="mb-5">
-            <p className="text-xs font-medium text-gray-600 mb-2">Quantity ({orderType === "sample" ? "samples" : unit})</p>
+            <p className="text-xs font-medium text-gray-600 mb-2">
+              Quantity ({unit})
+              {orderType === "sample" && <span className="ml-1.5 text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">max {MAX_SAMPLE_METERS}{unit}</span>}
+            </p>
             <input
               type="number"
               min={1}
+              max={orderType === "sample" ? MAX_SAMPLE_METERS : undefined}
               value={qty}
-              onChange={(e) => setQty(Number(e.target.value))}
+              onChange={(e) => onQtyChange(e.target.value)}
               className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm"
               data-testid="brand-qty-input"
             />
           </div>
 
-          {/* Summary */}
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4 text-sm space-y-1.5">
-            <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{fmtINR(lineTotal)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Tax (5%)</span><span>{fmtINR(tax)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">{orderType === "bulk" ? "Logistics (incl. packaging)" : "Courier"}</span><span>{fmtINR(logistics)}</span></div>
-            <div className="flex justify-between pt-2 border-t border-gray-200 font-semibold text-gray-900"><span>Total</span><span data-testid="brand-total">{fmtINR(total)}</span></div>
+          {/* Line preview */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Line total</span>
+              <span className="font-semibold text-gray-900" data-testid="brand-line-total">{fmtINR(lineTotal)}</span>
+            </div>
+            <p className="text-[11px] text-gray-500 mt-1">Taxes + logistics calculated at checkout</p>
           </div>
 
-          {/* Balance panel — distinct visuals for Credit Limit vs Sample Credits */}
+          {/* Balance info */}
           {orderType === "sample" ? (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2 flex items-center justify-between" data-testid="brand-balance-sample-card">
               <div>
@@ -250,22 +250,16 @@ const BrandFabricDetail = () => {
               <Link to="/brand/account" className="text-xs text-emerald-700 hover:underline">View ledger</Link>
             </div>
           )}
-          {!enough && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2 mb-3" data-testid="brand-insufficient">
-              Insufficient {orderType === "sample" ? "sample credits" : "credit"}. Contact your RM, top up, or request a quote below.
-            </div>
-          )}
-          <button
-            onClick={placeOrder}
-            disabled={placing || !enough}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
-            data-testid="brand-place-order"
-          >
-            {placing ? <Loader2 size={14} className="animate-spin" /> : <Package size={14} />}
-            Place order · {fmtINR(total)}
-          </button>
 
-          {/* Request a Quote — always available, works for every category (incl. Denim) */}
+          {/* Primary CTAs — Add to Cart + RFQ */}
+          <button
+            onClick={addToCart}
+            className={`w-full ${orderType === "sample" ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"} text-white py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2`}
+            data-testid="brand-add-to-cart"
+          >
+            {orderType === "sample" ? <Beaker size={14} /> : <ShoppingCart size={14} />}
+            Add {orderType === "sample" ? "Sample" : "Bulk Order"} to Cart
+          </button>
           <button
             onClick={() => setShowRfq(true)}
             className="w-full mt-2 border border-gray-300 text-gray-700 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-50 flex items-center justify-center gap-2"

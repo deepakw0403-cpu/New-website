@@ -13,29 +13,35 @@ const FabricCard = ({ f, onOpen }) => {
   const samplePrice = Number(f.sample_price || 0);
   const oz = f.ounce ? `${f.ounce} oz` : null;
   const width = f.width ? `${f.width}"` : null;
+  const detailUrl = `/brand/fabrics/${f.slug || f.id}`;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col" data-testid={`brand-fabric-${f.id}`}>
-      <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
-        <img
-          src={f.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=500"}
-          alt={f.name}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
-        {stock > 0 ? (
-          <span className="absolute top-2 right-2 bg-emerald-600 text-white text-[11px] font-semibold px-2 py-1 rounded-md">
-            {stock.toLocaleString("en-IN")}{unit} Available
-          </span>
-        ) : (
-          <span className="absolute top-2 right-2 bg-gray-900/80 text-white text-[11px] font-semibold px-2 py-1 rounded-md">
-            On Request
-          </span>
-        )}
-      </div>
+      {/* Image + title are both Links → click anywhere on upper half to open detail */}
+      <Link to={detailUrl} className="block" data-testid={`brand-fabric-card-link-${f.id}`}>
+        <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
+          <img
+            src={f.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=500"}
+            alt={f.name}
+            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+          {stock > 0 ? (
+            <span className="absolute top-2 right-2 bg-emerald-600 text-white text-[11px] font-semibold px-2 py-1 rounded-md">
+              {stock.toLocaleString("en-IN")}{unit} Available
+            </span>
+          ) : (
+            <span className="absolute top-2 right-2 bg-gray-900/80 text-white text-[11px] font-semibold px-2 py-1 rounded-md">
+              On Request
+            </span>
+          )}
+        </div>
+      </Link>
       <div className="p-4 flex flex-col flex-1">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 mb-1">{f.category_name || "Fabric"}</p>
-        <h3 className="font-medium text-sm text-gray-900 line-clamp-2 min-h-[40px]">{f.name}</h3>
+        <Link to={detailUrl} className="hover:text-emerald-700">
+          <h3 className="font-medium text-sm text-gray-900 line-clamp-2 min-h-[40px]">{f.name}</h3>
+        </Link>
         {(oz || width) && (
           <div className="flex items-center gap-1.5 mt-2 flex-wrap">
             {oz && <span className="text-[11px] bg-gray-100 text-gray-700 px-2 py-0.5 rounded">{oz}</span>}
@@ -59,7 +65,7 @@ const FabricCard = ({ f, onOpen }) => {
         <div className="mt-3 grid gap-1.5">
           {rate > 0 && stock > 0 ? (
             <button onClick={() => onOpen(f)} className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 rounded-md" data-testid={`brand-bulk-${f.id}`}>
-              <ShoppingCart size={12} /> Book Bulk Now
+              <ShoppingCart size={12} /> Order Bulk
             </button>
           ) : (
             <button onClick={() => onOpen(f)} className="w-full flex items-center justify-center gap-1.5 bg-gray-900 hover:bg-black text-white text-xs font-semibold py-2 rounded-md" data-testid={`brand-quote-${f.id}`}>
@@ -68,12 +74,12 @@ const FabricCard = ({ f, onOpen }) => {
           )}
           {samplePrice > 0 ? (
             <button onClick={() => onOpen(f)} className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 rounded-md" data-testid={`brand-sample-${f.id}`}>
-              <Beaker size={12} /> Book Sample
+              <Beaker size={12} /> Request Sample
             </button>
           ) : (
-            <button onClick={() => onOpen(f)} className="w-full flex items-center justify-center gap-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium py-2 rounded-md">
+            <Link to={detailUrl} className="w-full flex items-center justify-center gap-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium py-2 rounded-md">
               View details
-            </button>
+            </Link>
           )}
         </div>
       </div>
