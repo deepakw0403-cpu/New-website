@@ -25,12 +25,15 @@ const AdminFabrics = () => {
   const [filterAvailability, setFilterAvailability] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
-  // Unit helper: Knitted fabrics (by fabric_type) use kg, everything else uses meters
+  // Unit helper: Knitted fabrics (by fabric_type) use kg, EXCEPT Denim knits stay in meters
   const isKnittedForm = () => (form?.fabric_type || "").toLowerCase() === "knitted";
   const isKnittedFabric = (fabric) => (fabric?.fabric_type || "").toLowerCase() === "knitted";
-  const getFormUnit = () => isKnittedForm() ? "kg" : "m";
-  const getFormUnitLabel = () => isKnittedForm() ? "kilograms" : "meters";
-  const getFabricUnit = (fabric) => isKnittedFabric(fabric) ? "kg" : "m";
+  const isDenimFabric = (fabric) => fabric?.category_id === "cat-denim";
+  const shouldUseKgUnit = () => isKnittedForm() && !isDenim();
+  const shouldUseKgForFabric = (fabric) => isKnittedFabric(fabric) && !isDenimFabric(fabric);
+  const getFormUnit = () => shouldUseKgUnit() ? "kg" : "m";
+  const getFormUnitLabel = () => shouldUseKgUnit() ? "kilograms" : "meters";
+  const getFabricUnit = (fabric) => shouldUseKgForFabric(fabric) ? "kg" : "m";
 
   const emptyComposition = [
     { material: "", percentage: 0 },
@@ -46,6 +49,7 @@ const AdminFabrics = () => {
     fabric_type: "woven",
     pattern: "Solid",
     weave_type: "",
+    construction: "",
     composition: emptyComposition,
     gsm: "",
     ounce: "",
@@ -101,7 +105,7 @@ const AdminFabrics = () => {
   const [form, setForm] = useState(emptyForm);
 
   const fabricTypes = ["woven", "knitted", "non-woven"];
-  const patternOptions = ["Solid", "Print", "Stripes", "Checks", "Floral", "Geometric", "Digital", "Random", "Others"];
+  const patternOptions = ["Solid", "Print", "Stripes", "Checks", "Floral", "Geometric", "Digital", "Random", "Greige", "Others"];
   const finishOptions = ["", "Bio", "Double Bio", "Silicon", "Double Silicon", "Enzyme Wash", "Sulphur Wash", "Acid Wash", "Normal Wash", "Stone Wash"];
 
   // ===== Category-specific dropdown values =====
@@ -111,6 +115,11 @@ const AdminFabrics = () => {
   const isDenim = () => form.category_id === DENIM_CATEGORY_ID;
   const isCotton = () => form.category_id === COTTON_CATEGORY_ID;
   const isPolyesterCategory = () => form.category_id === POLYESTER_CATEGORY_ID;
+  const isViscose = () => {
+    const cat = categories.find((c) => c.id === form.category_id);
+    return (cat?.name || "").toLowerCase() === "viscose";
+  };
+  const showConstructionField = () => isCotton() || isViscose();
   const denimColorOptions = [
     "", "Black x White", "Black x Black", "Indigo x White", "Indigo x Black",
     "Indigo x Brown", "Dark Indigo x White",
@@ -129,6 +138,10 @@ const AdminFabrics = () => {
     "", "1x1 Plain", "2x1 Twill", "3x1 Twill", "2x2 Twill", "4x1 Satin",
     "Dobby", "Jacquard", "-Slub", "+Slub", "Magic Slub",
   ];
+  // Viscose weave options
+  const viscoseWeaveOptions = [
+    "", "1x1 Plain", "2/1 Twill", "3/1 Twill", "2/2 Twill", "Dobby", "4/1 Satin", "-Slub", "+Slub",
+  ];
   // For knitted fabrics, the "weave" field stores the knit structure instead.
   const knitTypeOptions = [
     "", "Single Jersey", "Interlock", "Rice Knit", "Dot Knit", "Mesh", "Pique",
@@ -142,6 +155,7 @@ const AdminFabrics = () => {
     if (isKnittedType()) return knitTypeOptions;  // fabric_type wins over category
     if (isDenim()) return denimWeaveOptions;
     if (isPolyesterCategory()) return polyesterWovenWeaveOptions;
+    if (isViscose()) return viscoseWeaveOptions;
     if (isCotton()) return cottonWeaveOptions;
     return null; // no weave control for other categories
   };
@@ -475,6 +489,7 @@ const AdminFabrics = () => {
       article_id: fabric.article_id || "",
       pattern: fabric.pattern || "Solid",
       weave_type: fabric.weave_type || "",
+      construction: fabric.construction || "",
       composition: compositionData,
       gsm: fabric.gsm ? fabric.gsm.toString() : "",
       ounce: fabric.ounce || "",
@@ -1091,6 +1106,24 @@ const AdminFabrics = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Construction (Cotton + Viscose only) */}
+                {showConstructionField() && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Construction
+                      <span className="ml-2 text-xs font-normal text-gray-400">e.g., 40 × 40 / 124 × 64</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={form.construction}
+                      onChange={(e) => setForm({ ...form, construction: e.target.value })}
+                      className="w-full px-4 py-2 border border-neutral-200 rounded-sm"
+                      placeholder="Construction (e.g., 40 x 40 / 124 x 64)"
+                      data-testid="fabric-construction-input"
+                    />
+                  </div>
+                )}
 
                 {/* Composition Editor */}
                 <div>

@@ -224,6 +224,13 @@ Build a CMS-driven B2B fabric sourcing platform ("locofast.com v 2.0"). Core req
 - [x] **Priority order** (both Admin + Vendor): Knitted type > Denim > Polyester > Cotton > (no dropdown). So a Polyester+Knitted fabric still correctly shows Knit Types; only Polyester+Woven gets the new list.
 - [x] **Smoke-tested**: Admin Add Fabric → Category=Polyester Fabrics + Fabric Type=Woven → Weave Type dropdown shows all 10 new options (verified via Playwright option-text enumeration + screenshot).
 
+### Phase 30: Viscose weaves + Greige reclassification + Construction field + Denim-Knit unit fix (Complete - Feb 2026)
+- [x] **Viscose weave types** — new `viscoseWeaveOptions` list: `1x1 Plain, 2/1 Twill, 3/1 Twill, 2/2 Twill, Dobby, 4/1 Satin, -Slub, +Slub`. Viscose is matched by category name (dynamic UUID). Priority: Knitted > Denim > Polyester > Viscose > Cotton > none. Applied to both Admin + Vendor forms.
+- [x] **Greige reclassification** — deleted empty `Greige` category from DB, added `"Greige"` to `patternOptions` in both forms.
+- [x] **Construction field** — new text input visible when Category = Cotton OR Viscose. Stored as `fabric.construction`. Wired through form state, edit loader, submit payload, Admin + Vendor Pydantic models, and vendor `fabric_doc` builder.
+- [x] **Denim knits stay in meters** — `shouldUseKgUnit` rule updated in `AdminFabrics.js`, `VendorInventory.js`, `FabricsPage.js`, and `FabricDetailPage.js`: `knitted && category !== 'cat-denim' → kg`, otherwise `m`.
+- [x] **Smoke-tested**: Playwright verified all 4 changes.
+
 ## Backlog
 
 ### P1 (High Priority)

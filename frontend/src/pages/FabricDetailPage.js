@@ -77,8 +77,10 @@ const FabricDetailPage = () => {
   // Helper function to get unit based on fabric_type
   const getUnit = () => {
     if (!fabric) return { singular: 'meter', plural: 'meters', short: 'm', priceLabel: '/m' };
-    // Knitted fabrics are priced by weight (kg), irrespective of category
-    if ((fabric.fabric_type || '').toLowerCase() === 'knitted') {
+    // Knitted fabrics are priced by weight (kg), EXCEPT Denim knits which stay in meters.
+    const isKnitted = (fabric.fabric_type || '').toLowerCase() === 'knitted';
+    const isDenimCat = fabric.category_id === 'cat-denim';
+    if (isKnitted && !isDenimCat) {
       return { singular: 'kg', plural: 'kg', short: 'kg', priceLabel: '/kg' };
     }
     return { singular: 'meter', plural: 'meters', short: 'm', priceLabel: '/m' };
@@ -1006,7 +1008,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                       <tr key={s.id} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-4 py-3">
                           {s.rate_per_meter ? (
-                            <span className="font-semibold text-emerald-700">₹{s.rate_per_meter}/{(s.fabric_type || '').toLowerCase() === 'knitted' ? 'kg' : 'm'}</span>
+                            <span className="font-semibold text-emerald-700">₹{s.rate_per_meter}/{((s.fabric_type || '').toLowerCase() === 'knitted' && s.category_id !== 'cat-denim') ? 'kg' : 'm'}</span>
                           ) : (
                             <span className="text-sm text-gray-400">On request</span>
                           )}

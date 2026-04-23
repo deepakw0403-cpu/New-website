@@ -6,7 +6,7 @@ import api, { getVendorFabrics, createVendorFabric, updateVendorFabric, deleteVe
 import { toast } from "sonner";
 
 const fabricTypes = ["woven", "knitted", "non-woven"];
-const patternOptions = ["Solid", "Print", "Stripes", "Checks", "Floral", "Geometric", "Digital", "Random", "Others"];
+const patternOptions = ["Solid", "Print", "Stripes", "Checks", "Floral", "Geometric", "Digital", "Random", "Greige", "Others"];
 const finishOptions = ["", "Bio", "Double Bio", "Silicon", "Double Silicon", "Enzyme Wash", "Sulphur Wash", "Acid Wash", "Normal Wash", "Stone Wash"];
 
 // ===== Category-specific dropdown values =====
@@ -30,6 +30,10 @@ const cottonWeaveOptions = [
 const polyesterWovenWeaveOptions = [
   "", "1x1 Plain", "2x1 Twill", "3x1 Twill", "2x2 Twill", "4x1 Satin",
   "Dobby", "Jacquard", "-Slub", "+Slub", "Magic Slub",
+];
+// Viscose weave options
+const viscoseWeaveOptions = [
+  "", "1x1 Plain", "2/1 Twill", "3/1 Twill", "2/2 Twill", "Dobby", "4/1 Satin", "-Slub", "+Slub",
 ];
 // For knitted fabrics, the "weave" field stores the knit structure instead.
 const knitTypeOptions = [
@@ -79,7 +83,7 @@ const emptyComposition = [
 
 const emptyForm = {
   name: "", fabric_code: "", category_id: "", description: "",
-  fabric_type: "woven", pattern: "Solid", weave_type: "",
+  fabric_type: "woven", pattern: "Solid", weave_type: "", construction: "",
   composition: [...emptyComposition],
   gsm: "", ounce: "", weight_unit: "gsm", width: "", width_type: "",
   warp_ply: "1", warp_count: "", weft_ply: "1", weft_count: "",
@@ -123,9 +127,12 @@ const VendorInventory = () => {
 
   const isKnittedForm = () => (form?.fabric_type || "").toLowerCase() === "knitted";
   const isKnittedFabric = (fabric) => (fabric?.fabric_type || "").toLowerCase() === "knitted";
-  const unit = isKnittedForm() ? "kg" : "m";
-  const unitLabel = isKnittedForm() ? "kilograms" : "meters";
-  const getFabricUnit = (fabric) => isKnittedFabric(fabric) ? "kg" : "m";
+  const isDenimFabric = (fabric) => fabric?.category_id === DENIM_CATEGORY_ID;
+  const shouldUseKgUnit = () => isKnittedForm() && !isDenim();
+  const shouldUseKgForFabric = (fabric) => isKnittedFabric(fabric) && !isDenimFabric(fabric);
+  const unit = shouldUseKgUnit() ? "kg" : "m";
+  const unitLabel = shouldUseKgUnit() ? "kilograms" : "meters";
+  const getFabricUnit = (fabric) => shouldUseKgForFabric(fabric) ? "kg" : "m";
 
   useEffect(() => { fetchData(); }, []);
 
@@ -200,11 +207,17 @@ const VendorInventory = () => {
   const isDenim = () => form.category_id === DENIM_CATEGORY_ID;
   const isCotton = () => form.category_id === COTTON_CATEGORY_ID;
   const isPolyesterCategory = () => form.category_id === POLYESTER_CATEGORY_ID;
+  const isViscose = () => {
+    const cat = categories.find((c) => c.id === form.category_id);
+    return (cat?.name || "").toLowerCase() === "viscose";
+  };
+  const showConstructionField = () => isCotton() || isViscose();
   const isKnittedType = () => (form.fabric_type || "").toLowerCase() === "knitted";
   const weaveOptionsForCategory = () => {
     if (isKnittedType()) return knitTypeOptions;  // fabric_type wins over category
     if (isDenim()) return denimWeaveOptions;
     if (isPolyesterCategory()) return polyesterWovenWeaveOptions;
+    if (isViscose()) return viscoseWeaveOptions;
     if (isCotton()) return cottonWeaveOptions;
     return null;
   };
@@ -328,7 +341,7 @@ const VendorInventory = () => {
       ...emptyForm,
       name: fabric.name || "", fabric_code: fabric.fabric_code || "", category_id: fabric.category_id || "",
       description: fabric.description || "", fabric_type: fabric.fabric_type || "woven",
-      pattern: fabric.pattern || "Solid", weave_type: fabric.weave_type || "", composition: compositionData,
+      pattern: fabric.pattern || "Solid", weave_type: fabric.weave_type || "", construction: fabric.construction || "", composition: compositionData,
       gsm: fabric.gsm ? fabric.gsm.toString() : "", ounce: fabric.ounce || "",
       weight_unit: fabric.weight_unit || "gsm", width: fabric.width || "", width_type: fabric.width_type || "",
       warp_ply: fabric.warp_count?.includes('/') ? fabric.warp_count.split('/')[0] : "1",
@@ -384,6 +397,7 @@ const VendorInventory = () => {
         name: form.name, fabric_code: form.fabric_code, category_id: form.category_id,
         description: form.description, fabric_type: form.fabric_type, pattern: form.pattern,
         weave_type: form.weave_type || "",
+        construction: form.construction || "",
         composition: cleanComp, gsm: form.gsm ? parseInt(form.gsm) : null, ounce: form.ounce,
         weight_unit: form.weight_unit, width: form.width, width_type: form.width_type || "",
         warp_count: warpFormatted, weft_count: weftFormatted,
@@ -624,6 +638,17 @@ const VendorInventory = () => {
                           className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white" data-testid="weave-type-select">
                           {weaveOptionsForCategory().map(w => <option key={w} value={w}>{w || `-- Select ${weaveFieldLabel()} --`}</option>)}
                         </select>
+                      </div>
+                    )}
+                    {showConstructionField() && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Construction <span className="text-xs font-normal text-gray-400">e.g., 40 x 40 / 124 x 64</span>
+                        </label>
+                        <input type="text" value={form.construction} onChange={e => setForm({ ...form, construction: e.target.value })}
+                          className="w-full px-4 py-2.5 border border-gray-200 rounded-lg"
+                          placeholder="Construction (e.g., 40 x 40 / 124 x 64)"
+                          data-testid="construction-input" />
                       </div>
                     )}
                     <div>

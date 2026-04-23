@@ -108,6 +108,8 @@ class FabricUpdate(BaseModel):
     # Comprehensive fields
     fabric_type: Optional[str] = None
     pattern: Optional[str] = None
+    weave_type: Optional[str] = None
+    construction: Optional[str] = None
     color: Optional[str] = None
     warp_count: Optional[str] = None
     weft_count: Optional[str] = None
@@ -272,6 +274,8 @@ async def create_vendor_fabric(data: FabricCreate, vendor=Depends(get_current_ve
         'status': 'pending',
         'fabric_type': data.fabric_type,
         'pattern': data.pattern,
+        'weave_type': data.weave_type,
+        'construction': data.construction,
         'color': data.color,
         'warp_count': data.warp_count,
         'weft_count': data.weft_count,

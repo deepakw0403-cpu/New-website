@@ -39,6 +39,7 @@ class FabricCreate(BaseModel):
     fabric_type: str
     pattern: str = "Solid"
     weave_type: Optional[str] = ""
+    construction: Optional[str] = ""
     composition: List[CompositionItem] = []
     gsm: Optional[int] = None
     ounce: Optional[str] = ""
@@ -83,6 +84,7 @@ class FabricUpdate(BaseModel):
     fabric_type: Optional[str] = None
     pattern: Optional[str] = None
     weave_type: Optional[str] = None
+    construction: Optional[str] = None
     composition: Optional[List[CompositionItem]] = None
     gsm: Optional[int] = None
     ounce: Optional[str] = None
@@ -136,6 +138,7 @@ class Fabric(BaseModel):
     fabric_type: str = ""
     pattern: str = "Solid"
     weave_type: str = ""
+    construction: str = ""
     composition: List[CompositionItem] = []
     gsm: Optional[int] = None
     ounce: str = ""
