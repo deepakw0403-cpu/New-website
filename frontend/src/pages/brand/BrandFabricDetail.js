@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import RFQModal from "../../components/RFQModal";
 import { fmtLacs, fmtINR, fmtCount } from "../../lib/inr";
 import { displayFabricName } from "../../lib/fabricDisplay";
+import { thumbImage, mediumImage } from "../../lib/imageUrl";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -125,15 +126,16 @@ const BrandFabricDetail = () => {
         <div>
           <div className="aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden">
             <img
-              src={(selectedVariant?.image_url || fabric.images?.[0]) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800"}
+              src={mediumImage(selectedVariant?.image_url || fabric.images?.[0]) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800"}
               alt={fabric.name}
               className="w-full h-full object-cover"
+              loading="lazy"
             />
           </div>
           {(fabric.images || []).length > 1 && (
             <div className="grid grid-cols-5 gap-2 mt-3">
               {(fabric.images || []).slice(0, 5).map((img, i) => (
-                <img key={i} src={img} alt={`${fabric.name} ${i + 1}`} className="aspect-square object-cover rounded border border-gray-200" />
+                <img key={i} src={thumbImage(img)} alt={`${fabric.name} ${i + 1}`} className="aspect-square object-cover rounded border border-gray-200" loading="lazy" />
               ))}
             </div>
           )}

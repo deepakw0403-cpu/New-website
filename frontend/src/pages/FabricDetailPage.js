@@ -9,6 +9,7 @@ import ExpandableText from "../components/ExpandableText";
 import RFQModal from "../components/RFQModal";
 import { getFabric, createEnquiry, getFabricSEO, getRelatedFabrics, getOtherSellers } from "../lib/api";
 import { toWebVideoUrl, videoPosterUrl } from "../lib/videoUrl";
+import { thumbImage, mediumImage, largeImage } from "../lib/imageUrl";
 import { displayFabricName } from "../lib/fabricDisplay";
 import { trackViewItem, trackAddToCart, trackRFQIntent } from "../lib/analytics";
 
@@ -470,7 +471,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
           )}
           
           <img
-            src={images[currentImage]}
+            src={largeImage(images[currentImage])}
             alt={fabric.name}
             className="max-w-full max-h-[90vh] object-contain"
             onClick={(e) => e.stopPropagation()}
@@ -521,7 +522,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                 onClick={() => setShowZoom(true)}
               >
                 <img
-                  src={selectedColorVariant >= 0 && fabric?.color_variants?.[selectedColorVariant]?.image_url ? fabric.color_variants[selectedColorVariant].image_url : images[currentImage]}
+                  src={mediumImage(selectedColorVariant >= 0 && fabric?.color_variants?.[selectedColorVariant]?.image_url ? fabric.color_variants[selectedColorVariant].image_url : images[currentImage])}
                   alt={`${fabric.name} - ${fabric.composition?.map(c => c.material).join(', ') || fabric.category_name} fabric${fabric.color ? ` in ${fabric.color}` : ''}${fabric.gsm ? `, ${fabric.gsm} GSM` : ''}`}
                   className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   data-testid="main-image"
@@ -571,7 +572,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                       aria-label={`View image ${idx + 1} of ${images.length}`}
                     >
                       <img 
-                        src={img} 
+                        src={thumbImage(img)} 
                         alt={`${fabric.name} thumbnail ${idx + 1}`} 
                         className="w-full h-full object-cover" 
                         loading="lazy"
@@ -1056,9 +1057,10 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                     <div className="aspect-square bg-gray-100 overflow-hidden">
                       {related.images?.[0] ? (
                         <img
-                          src={related.images[0]}
+                          src={thumbImage(related.images[0])}
                           alt={related.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-300">

@@ -4,6 +4,7 @@ import { useBrandAuth } from "../../context/BrandAuthContext";
 import BrandLayout from "./BrandLayout";
 import { Package, Loader2, ShoppingCart, Beaker, MessageSquare, Search, SlidersHorizontal, X } from "lucide-react";
 import { displayFabricName } from "../../lib/fabricDisplay";
+import { thumbImage } from "../../lib/imageUrl";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -22,7 +23,7 @@ const FabricCard = ({ f, onOpen }) => {
       <Link to={detailUrl} className="block" data-testid={`brand-fabric-card-link-${f.id}`}>
         <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
           <img
-            src={f.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=500"}
+            src={thumbImage(f.images?.[0]) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=500"}
             alt={f.name}
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
             loading="lazy"

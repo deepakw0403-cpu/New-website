@@ -5,6 +5,7 @@ import { Package, ArrowRight, ArrowLeft } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getCollections } from "../lib/api";
+import { thumbImage } from "../lib/imageUrl";
 
 const CollectionsPage = () => {
   const [collections, setCollections] = useState([]);
@@ -78,9 +79,10 @@ const CollectionsPage = () => {
                   {collection.image_url ? (
                     <div className="aspect-[4/3] overflow-hidden">
                       <img
-                        src={collection.image_url}
+                        src={thumbImage(collection.image_url)}
                         alt={collection.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
                       />
                     </div>
                   ) : (

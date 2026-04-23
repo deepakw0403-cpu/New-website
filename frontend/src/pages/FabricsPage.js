@@ -3,6 +3,7 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, MessageSquare, Package, ShoppingCart, Clock } from "lucide-react";
 import { toWebVideoUrl, videoPosterUrl } from "../lib/videoUrl";
+import { thumbImage } from "../lib/imageUrl";
 import { displayFabricName } from "../lib/fabricDisplay";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -88,7 +89,8 @@ const FabricsPage = () => {
       try {
         const params = {
           page: currentPage,
-          limit: ITEMS_PER_PAGE
+          limit: ITEMS_PER_PAGE,
+          dedupe_by_article: true,
         };
         if (search) params.search = search;
         if (selectedCategory) params.category_id = selectedCategory;
@@ -646,7 +648,7 @@ const FabricsPage = () => {
                             onError={(e) => {
                               // If the transcoded video fails, swap to the poster image
                               const fallback = document.createElement('img');
-                              fallback.src = fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600";
+                              fallback.src = thumbImage(fabric.images?.[0]) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600";
                               fallback.alt = fabric.name;
                               fallback.className = e.target.className;
                               fallback.loading = "lazy";
@@ -655,7 +657,7 @@ const FabricsPage = () => {
                           />
                         ) : (
                           <img
-                            src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600"}
+                            src={thumbImage(fabric.images?.[0]) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600"}
                             alt={`${fabric.name} - ${fabric.composition?.map(c => c.material).join(', ') || fabric.category_name} fabric${fabric.color ? ` in ${fabric.color}` : ''}`}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             loading="lazy"
@@ -669,6 +671,15 @@ const FabricsPage = () => {
                           {fabric.is_bookable && fabric.quantity_available > 0 && (
                             <span className="badge bg-emerald-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
                               {fabric.quantity_available.toLocaleString()}{getUnit(fabric).short} Available
+                            </span>
+                          )}
+                          {fabric.vendor_count > 1 && (
+                            <span
+                              className="badge bg-blue-600 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full"
+                              data-testid={`vendor-count-${fabric.id}`}
+                              title="Multiple vendors stock this article — we show the cheapest price."
+                            >
+                              +{fabric.vendor_count - 1} more {fabric.vendor_count - 1 === 1 ? "vendor" : "vendors"}
                             </span>
                           )}
                         </div>
@@ -817,7 +828,7 @@ const FabricsPage = () => {
                 {/* Fabric Summary */}
                 <div className="bg-gray-50 rounded-lg p-4 flex gap-4">
                   <img
-                    src={selectedFabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
+                    src={thumbImage(selectedFabric.images?.[0]) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
                     alt={selectedFabric.name}
                     className="w-20 h-20 object-cover rounded"
                   />

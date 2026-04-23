@@ -6,6 +6,7 @@ import BrandLayout from "./BrandLayout";
 import { ShoppingCart, Trash2, ArrowRight, CheckCircle, Loader2, MapPin, Beaker } from "lucide-react";
 import { toast } from "sonner";
 import { fmtINR, fmtLacs, fmtCount } from "../../lib/inr";
+import { thumbImage } from "../../lib/imageUrl";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -15,9 +16,10 @@ const LineRow = ({ l, onQty, onRemove }) => {
   return (
     <div className="flex items-start gap-3 p-3 border-b border-gray-100 last:border-b-0" data-testid={`brand-cart-line-${l.id}`}>
       <img
-        src={l.image_url || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=200"}
+        src={thumbImage(l.image_url) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=200"}
         alt={l.fabric_name}
         className="w-16 h-16 object-cover rounded border border-gray-200 flex-shrink-0"
+        loading="lazy"
       />
       <div className="flex-1 min-w-0">
         <p className="text-[11px] uppercase tracking-wide text-blue-600 font-semibold">{l.category_name}</p>

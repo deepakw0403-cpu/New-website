@@ -4,6 +4,7 @@ import { ArrowLeft, Package } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getCollection, getCollectionFabrics } from "../lib/api";
+import { thumbImage, largeImage } from "../lib/imageUrl";
 
 const CollectionDetailPage = () => {
   const { id } = useParams();
@@ -73,9 +74,10 @@ const CollectionDetailPage = () => {
         {collection.image_url && collection.image_url.startsWith('http') && (
           <div className="relative h-64 md:h-80 lg:h-96 overflow-hidden">
             <img
-              src={collection.image_url}
+              src={largeImage(collection.image_url)}
               alt={collection.name}
               className="w-full h-full object-cover"
+              loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 container-main pb-8 text-white">
@@ -132,9 +134,10 @@ const CollectionDetailPage = () => {
                   <div className="aspect-square relative overflow-hidden bg-gray-100">
                     {fabric.images?.[0] ? (
                       <img
-                        src={fabric.images[0]}
+                        src={thumbImage(fabric.images[0])}
                         alt={fabric.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gray-50">

@@ -175,6 +175,7 @@ class Fabric(BaseModel):
     has_multiple_colors: bool = False
     color_variants: List[dict] = []
     status: Optional[str] = None
+    vendor_count: int = 1
     created_at: str = ""
 
 
@@ -385,6 +386,7 @@ async def get_fabrics(
     enquiry_only: Optional[bool] = Query(None),
     status: Optional[str] = Query(None),
     include_pending: Optional[bool] = Query(None),
+    dedupe_by_article: Optional[bool] = Query(False),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=1000),
 ):
@@ -426,12 +428,47 @@ async def get_fabrics(
             },
         }},
         {'$sort': {'booking_priority': 1, 'created_at': -1}},
-        {'$skip': skip},
-        {'$limit': limit},
-        {'$project': {'_id': 0, 'booking_priority': 0, '_oz_match': 0, '_oz_num': 0}},
     ])
 
-    fabrics = await db.fabrics.aggregate(pipeline).to_list(limit)
+    if dedupe_by_article:
+        # Fetch enough docs to cover multi-vendor collapse, then dedupe in-process.
+        # For the current catalog size (<5k SKUs) this is cheap.
+        pipeline.append({'$project': {'_id': 0, 'booking_priority': 0, '_oz_match': 0, '_oz_num': 0}})
+        all_fabrics = await db.fabrics.aggregate(pipeline).to_list(5000)
+        seen = {}
+        ordered = []
+        for f in all_fabrics:
+            aid = (f.get('article_id') or '').strip()
+            if not aid:
+                # No article grouping → each SKU stays distinct
+                f['vendor_count'] = 1
+                ordered.append(f)
+                continue
+            if aid in seen:
+                # Cheaper wins; keep lowest non-null rate_per_meter
+                existing = seen[aid]
+                cur_rate = f.get('rate_per_meter')
+                best_rate = existing.get('rate_per_meter')
+                if cur_rate is not None and (best_rate is None or cur_rate < best_rate):
+                    # Swap: preserve vendor_count
+                    f['vendor_count'] = existing.get('vendor_count', 1) + 1
+                    idx = ordered.index(existing)
+                    ordered[idx] = f
+                    seen[aid] = f
+                else:
+                    existing['vendor_count'] = existing.get('vendor_count', 1) + 1
+            else:
+                f['vendor_count'] = 1
+                seen[aid] = f
+                ordered.append(f)
+        fabrics = ordered[skip:skip + limit]
+    else:
+        pipeline.extend([
+            {'$skip': skip},
+            {'$limit': limit},
+            {'$project': {'_id': 0, 'booking_priority': 0, '_oz_match': 0, '_oz_num': 0}},
+        ])
+        fabrics = await db.fabrics.aggregate(pipeline).to_list(limit)
 
     category_ids = list({f['category_id'] for f in fabrics if f.get('category_id')})
     categories = await db.categories.find({'id': {'$in': category_ids}}, {'_id': 0}).to_list(100) if category_ids else []
@@ -476,6 +513,7 @@ async def get_fabrics_count(
     enquiry_only: Optional[bool] = Query(None),
     status: Optional[str] = Query(None),
     include_pending: Optional[bool] = Query(None),
+    dedupe_by_article: Optional[bool] = Query(False),
 ):
     has_oz = min_weight_oz is not None or max_weight_oz is not None
     query = _build_fabric_query(
@@ -484,7 +522,24 @@ async def get_fabrics_count(
         composition, bookable_only, sample_available, instant_bookable,
         enquiry_only, status, include_pending, has_oz,
     )
-    if has_oz:
+    if dedupe_by_article:
+        # Count unique (article_id if present, else doc _id) groups
+        pipeline = [{'$match': query}]
+        if has_oz:
+            pipeline.extend(_oz_pipeline_stages(min_weight_oz, max_weight_oz))
+        pipeline.extend([
+            {'$group': {
+                '_id': {'$cond': [
+                    {'$or': [{'$eq': [{'$ifNull': ['$article_id', '']}, '']}]},
+                    '$id',
+                    '$article_id',
+                ]},
+            }},
+            {'$count': 'total'},
+        ])
+        result = await db.fabrics.aggregate(pipeline).to_list(1)
+        count = result[0]['total'] if result else 0
+    elif has_oz:
         count_pipeline = [{'$match': query}]
         count_pipeline.extend(_oz_pipeline_stages(min_weight_oz, max_weight_oz))
         count_pipeline.append({'$count': 'total'})
