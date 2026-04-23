@@ -67,6 +67,8 @@ class FabricCreate(BaseModel):
     # Comprehensive fields
     fabric_type: str = "woven"
     pattern: str = "Solid"
+    weave_type: str = ""
+    construction: str = ""
     color: str = ""
     warp_count: str = ""
     weft_count: str = ""
