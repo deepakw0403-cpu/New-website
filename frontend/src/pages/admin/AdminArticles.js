@@ -143,7 +143,16 @@ const AdminArticles = () => {
 
                 <div className="space-y-1 mb-4">
                   {article.seller_name && (
-                    <p className="text-gray-500 text-sm">Seller: {article.seller_name}</p>
+                    <p className="text-gray-500 text-sm flex items-center gap-2 flex-wrap">
+                      <span>Seller: {article.seller_name}</span>
+                      {article.seller_code ? (
+                        <span className="inline-flex items-center font-mono text-[11px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded" data-testid={`article-seller-code-${article.id}`}>
+                          {article.seller_code}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">no code</span>
+                      )}
+                    </p>
                   )}
                   {article.category_name && (
                     <p className="text-gray-500 text-sm">Category: {article.category_name}</p>
