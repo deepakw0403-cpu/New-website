@@ -806,38 +806,26 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   </div>
                 )}
 
-                {/* Delivery Timeline */}
+                {/* Stock Type */}
                 <div className="mb-4 pb-4 border-b border-gray-200">
                   <div className="flex items-start gap-3">
                     <Truck size={18} className="text-emerald-600 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Estimated Delivery</p>
-                      <div className="text-sm text-gray-600 mt-1 space-y-1">
-                        {/* Stock Type Badge */}
-                        <div className="mb-2">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                            fabric.stock_type === 'made_to_order' 
-                              ? 'bg-amber-100 text-amber-800' 
-                              : 'bg-emerald-100 text-emerald-800'
-                          }`}>
-                            {fabric.stock_type === 'made_to_order' ? 'Made to Order' : 'Ready Stock'}
-                          </span>
-                        </div>
-                        <p>
-                          <span className="font-medium">Samples:</span>{' '}
-                          {fabric.sample_delivery_days 
-                            ? `${fabric.sample_delivery_days} days`
-                            : (fabric.stock_type === 'made_to_order' ? '7-10 days' : '1-3 days')}
-                        </p>
-                        {actions.canBookBulk && (
-                          <p>
-                            <span className="font-medium">Bulk Orders:</span>{' '}
-                            {fabric.bulk_delivery_days 
-                              ? `${fabric.bulk_delivery_days} days`
-                              : (fabric.stock_type === 'made_to_order' ? '15-25 days' : '15-20 days')}
-                          </p>
-                        )}
+                      <p className="text-sm font-medium text-gray-900">Stock Status</p>
+                      <div className="mt-1.5">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                          fabric.stock_type === 'made_to_order'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {fabric.stock_type === 'made_to_order' ? 'Made to Order' : 'Ready Stock'}
+                        </span>
                       </div>
+                      {fabric.stock_type === 'made_to_order' && (
+                        <p className="text-xs text-amber-700 mt-1.5">
+                          Production lead time applies before dispatch.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1018,7 +1006,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                     <tr>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Price</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">MOQ</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Delivery</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Dispatch</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase"></th>
                     </tr>
                   </thead>
@@ -1033,7 +1021,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">{s.moq || '—'}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{s.dispatch_timeline || s.bulk_delivery_days || '—'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">24–48 hrs</td>
                         <td className="px-4 py-3">
                           <Link
                             to={`/fabrics/${s.slug || s.id}`}
