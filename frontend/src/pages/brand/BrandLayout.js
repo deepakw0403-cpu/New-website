@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useBrandAuth } from "../../context/BrandAuthContext";
 import { useBrandCart } from "../../context/BrandCartContext";
-import { Building2, Package, Users, LogOut, ShoppingBag, Wallet, ShoppingCart, Mail, Phone, HelpCircle } from "lucide-react";
+import { Building2, Package, Users, LogOut, ShoppingBag, Wallet, ShoppingCart, Mail, Phone, HelpCircle, Factory } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -24,6 +24,10 @@ const BrandLayout = ({ children }) => {
     { to: "/enterprise/fabrics", label: "Catalog", icon: Package },
     { to: "/enterprise/orders", label: "Orders", icon: ShoppingBag },
     ...(user?.role === "brand_admin" ? [{ to: "/enterprise/users", label: "Users", icon: Users }] : []),
+    // Factories tab is only for brand-admin of brand-type enterprises (not visible inside a factory's own portal)
+    ...(user?.role === "brand_admin" && (user?.brand_type || "brand") === "brand"
+      ? [{ to: "/enterprise/factories", label: "Factories", icon: Factory }]
+      : []),
   ];
 
   const handleLogout = () => { logout(); navigate("/enterprise/login"); };

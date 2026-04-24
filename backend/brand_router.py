@@ -227,6 +227,9 @@ async def create_brand(data: BrandCreate, admin=Depends(auth_helpers.get_current
         "type": entity_type,
         "parent_brand_id": parent_brand_id,
         "status": "active",
+        # Factories invited by a brand admin default to "unverified" until Locofast ops reviews.
+        # Admin-created enterprises are "verified" by default.
+        "verification_status": "verified",
         "sample_credits_total": 0,
         "sample_credits_used": 0,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -452,6 +455,8 @@ async def brand_login(data: BrandLoginRequest):
             "brand_id": user["brand_id"],
             "brand_name": brand["name"],
             "brand_logo_url": brand.get("logo_url", ""),
+            "brand_type": brand.get("type") or "brand",
+            "verification_status": brand.get("verification_status") or "verified",
             "must_reset_password": user.get("must_reset_password", False),
         },
     }
@@ -476,6 +481,9 @@ async def brand_me(user=Depends(get_current_brand_user)):
     brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")
+    # Defaults for legacy docs that predate these fields
+    brand.setdefault("type", "brand")
+    brand.setdefault("verification_status", "verified")
     return {"user": user, "brand": brand}
 
 
@@ -494,6 +502,143 @@ async def brand_save_default_ship_to(data: dict, user=Depends(get_current_brand_
     }
     await db.brands.update_one({"id": user["brand_id"]}, {"$set": {"default_ship_to": address}})
     return {"message": "Default shipping address saved"}
+
+
+# ==================== BRAND → FACTORY INVITE (self-serve) ====================
+class FactoryInvite(BaseModel):
+    name: str
+    admin_user_email: EmailStr
+    admin_user_name: str
+    admin_user_designation: Optional[str] = "Management"
+    gst: Optional[str] = ""
+    address: Optional[str] = ""
+    phone: Optional[str] = ""
+    # Brand picks at invite time which of its allowed categories to share
+    # with the factory. Empty list = share nothing (ops can allocate later).
+    allowed_category_ids: List[str] = []
+    # Optional pre-seeded credit line (₹). Still needs Locofast ops approval
+    # because credit disbursal touches lender APIs — so we just record the
+    # request; admin reviews in /admin/brands/{id}/credit-lines.
+    requested_credit_limit: float = 0.0
+
+
+@router.get("/brand/factories")
+async def list_brand_factories(user=Depends(get_current_brand_user)):
+    """List factories invited by this brand. brand_admin only."""
+    if user["role"] != "brand_admin":
+        raise HTTPException(status_code=403, detail="Only brand admins can view factories")
+    brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0, "type": 1})
+    if (brand or {}).get("type", "brand") != "brand":
+        raise HTTPException(status_code=400, detail="Only brand-type enterprises can have factories")
+    factories = await db.brands.find(
+        {"parent_brand_id": user["brand_id"], "type": "factory"},
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(100)
+    for f in factories:
+        f["user_count"] = await db.brand_users.count_documents({"brand_id": f["id"]})
+    return factories
+
+
+@router.post("/brand/factories")
+async def invite_factory(data: FactoryInvite, user=Depends(get_current_brand_user)):
+    """Brand-admin invites a factory. Factory is auto-activated but flagged
+    as `verification_status="unverified"` until Locofast admin reviews.
+    Credit allocation is recorded as a *request* — ops approves manually.
+    """
+    if user["role"] != "brand_admin":
+        raise HTTPException(status_code=403, detail="Only brand admins can invite factories")
+
+    parent_brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
+    if not parent_brand:
+        raise HTTPException(status_code=404, detail="Parent brand not found")
+    if parent_brand.get("type", "brand") != "brand":
+        raise HTTPException(status_code=400, detail="Only brands can invite factories (not other factories)")
+
+    # Guard: brand can only share categories it actually has access to
+    parent_allowed = set(parent_brand.get("allowed_category_ids", []))
+    requested = set(data.allowed_category_ids or [])
+    if not requested.issubset(parent_allowed):
+        stray = requested - parent_allowed
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot share categories you don't have access to: {list(stray)}",
+        )
+
+    # Reject duplicate factory email (global on brand_users)
+    existing_user = await db.brand_users.find_one({"email": data.admin_user_email.lower()}, {"_id": 0, "id": 1})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="A user with this email already exists on the platform")
+
+    factory_id = str(uuid.uuid4())
+    factory_doc = {
+        "id": factory_id,
+        "name": data.name,
+        "gst": data.gst or "",
+        "address": data.address or "",
+        "phone": data.phone or "",
+        "logo_url": "",
+        "allowed_category_ids": list(requested),
+        "type": "factory",
+        "parent_brand_id": user["brand_id"],
+        "status": "active",
+        # Invited via brand → unverified until Locofast ops reviews
+        "verification_status": "unverified",
+        "sample_credits_total": 0,
+        "sample_credits_used": 0,
+        "requested_credit_limit": max(0.0, float(data.requested_credit_limit or 0)),
+        "invited_by_brand_user_id": user["id"],
+        "invited_by_brand_user_email": user.get("email", ""),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["id"],
+    }
+    await db.brands.insert_one(factory_doc)
+
+    # First factory admin
+    temp_pw = _gen_password()
+    factory_admin = {
+        "id": str(uuid.uuid4()),
+        "brand_id": factory_id,
+        "email": data.admin_user_email.lower(),
+        "name": data.admin_user_name,
+        "designation": data.admin_user_designation or "Management",
+        "password_hash": _hash(temp_pw),
+        "role": "brand_admin",
+        "status": "active",
+        "must_reset_password": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["id"],
+        "last_login": None,
+    }
+    await db.brand_users.insert_one(factory_admin)
+
+    asyncio.create_task(
+        _send_welcome_email(
+            f"{data.name} (factory of {parent_brand.get('name', '')})",
+            data.admin_user_name,
+            data.admin_user_email,
+            temp_pw,
+        )
+    )
+
+    return {
+        "id": factory_id,
+        "message": "Factory invited. Welcome email sent to factory admin.",
+        "admin_user_id": factory_admin["id"],
+        "temporary_password_for_reference": temp_pw,
+        "verification_status": "unverified",
+    }
+
+
+@router.post("/admin/brands/{factory_id}/verify")
+async def admin_verify_factory(factory_id: str, admin=Depends(auth_helpers.get_current_admin)):
+    """Locofast ops marks a brand-invited factory as verified after review."""
+    res = await db.brands.update_one(
+        {"id": factory_id, "type": "factory"},
+        {"$set": {"verification_status": "verified"}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Factory not found")
+    return {"message": "Factory verified"}
 
 
 @router.post("/brand/upload-attachment")
