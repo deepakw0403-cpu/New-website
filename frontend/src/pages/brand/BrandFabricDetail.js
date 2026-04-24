@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import RFQModal from "../../components/RFQModal";
 import { fmtLacs, fmtINR, fmtCount } from "../../lib/inr";
 import { displayFabricName } from "../../lib/fabricDisplay";
-import { thumbImage, mediumImage } from "../../lib/imageUrl";
+import { thumbImage, mediumImage, fabricCoverImage } from "../../lib/imageUrl";
+import { DispatchStrip } from "../../components/DispatchBadges";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -270,6 +271,8 @@ const BrandFabricDetail = () => {
           >
             <MessageSquare size={14} /> Request a Quote
           </button>
+
+          <DispatchStrip className="mt-3" />
 
           {fabric.description && (
             <div className="mt-6 pt-5 border-t border-gray-200">

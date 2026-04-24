@@ -7,6 +7,7 @@ import { ShoppingCart, Trash2, ArrowRight, CheckCircle, Loader2, MapPin, Beaker 
 import { toast } from "sonner";
 import { fmtINR, fmtLacs, fmtCount } from "../../lib/inr";
 import { thumbImage } from "../../lib/imageUrl";
+import { DispatchStrip, DispatchLine } from "../../components/DispatchBadges";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -216,6 +217,7 @@ const BrandCart = () => {
           <CheckCircle size={48} className="mx-auto text-emerald-600 mb-3" />
           <h2 className="text-xl font-semibold text-gray-900 mb-1">Orders placed</h2>
           <p className="text-sm text-gray-500 mb-4">Confirmation emailed to you, your brand admin and our ops team.</p>
+          <DispatchStrip className="mb-4" />
           <ul className="text-sm text-left space-y-2 bg-gray-50 rounded-lg p-3 mb-4">
             {success.map((o, i) => (
               <li key={i} className="flex items-center justify-between">
@@ -367,6 +369,10 @@ const BrandCart = () => {
           <p className="text-[11px] text-gray-400 mt-2 text-center">
             Confirmation emails go to you, your team admin, the sellers and Locofast ops.
           </p>
+          <div className="mt-3 space-y-1">
+            {sampleLines.length > 0 && <DispatchLine variant="sample" />}
+            {bulkLines.length > 0 && <DispatchLine variant="bulk" />}
+          </div>
         </div>
       </div>
     </BrandLayout>

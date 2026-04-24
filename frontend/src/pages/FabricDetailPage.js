@@ -12,6 +12,7 @@ import { toWebVideoUrl, videoPosterUrl } from "../lib/videoUrl";
 import { thumbImage, mediumImage, largeImage, fabricCoverImage } from "../lib/imageUrl";
 import { displayFabricName } from "../lib/fabricDisplay";
 import { trackViewItem, trackAddToCart, trackRFQIntent } from "../lib/analytics";
+import { DispatchStrip } from "../components/DispatchBadges";
 
 const FabricDetailPage = () => {
   const { id } = useParams();
@@ -868,7 +869,6 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                         <ShoppingCart size={18} />
                         Book Bulk Now
                       </button>
-                      <p className="text-xs text-emerald-600 text-center mt-1.5 font-medium">Dispatch in 1-2 days (standard shipping timelines apply)</p>
                     </div>
                   )}
                   {actions.canBookSample && (
@@ -900,6 +900,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                     <MessageSquare size={18} />
                     Request a Quote
                   </button>
+                  <DispatchStrip className="mt-2" />
                 </div>
               </div>
             </div>

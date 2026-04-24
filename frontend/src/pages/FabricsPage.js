@@ -8,6 +8,7 @@ import { displayFabricName } from "../lib/fabricDisplay";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import RFQModal from "../components/RFQModal";
+import { DispatchLine } from "../components/DispatchBadges";
 import { getFabrics, getFabricsCount, getCategories, createEnquiry, getFabricFilterOptions } from "../lib/api";
 import { trackViewItemList } from "../lib/analytics";
 import { toast } from "sonner";
@@ -809,6 +810,7 @@ const FabricsPage = () => {
                 {modalType === "sample" ? "Book Sample" : "Book Bulk Order"}
               </h2>
               <p className="text-sm text-gray-500 mt-1">{selectedFabric.name}</p>
+              <DispatchLine variant={modalType === "sample" ? "sample" : "bulk"} className="mt-2" />
             </div>
 
             {/* Sample/Bulk Order Modal */}
