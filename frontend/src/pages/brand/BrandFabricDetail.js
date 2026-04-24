@@ -272,7 +272,7 @@ const BrandFabricDetail = () => {
             <MessageSquare size={14} /> Request a Quote
           </button>
 
-          <DispatchStrip className="mt-3" />
+          <DispatchStrip fabric={fabric} className="mt-3" />
 
           {fabric.description && (
             <div className="mt-6 pt-5 border-t border-gray-200">

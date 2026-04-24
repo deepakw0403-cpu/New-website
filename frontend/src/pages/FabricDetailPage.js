@@ -888,7 +888,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                     <MessageSquare size={18} />
                     Request a Quote
                   </button>
-                  <DispatchStrip className="mt-2" />
+                  <DispatchStrip fabric={fabric} className="mt-2" />
                 </div>
               </div>
             </div>

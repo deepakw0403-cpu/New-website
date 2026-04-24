@@ -523,7 +523,9 @@ const CheckoutPage = () => {
                         <p className="text-sm font-medium text-gray-900">
                           {orderType === 'sample'
                             ? 'Samples dispatched in 24–48 hours'
-                            : 'Bulk: 24–48 hours for packaging & dispatch'}
+                            : (fabric.is_bookable && Number(fabric.quantity_available || 0) > 0
+                                ? 'Bulk: 24–48 hours for packaging & dispatch'
+                                : 'Bulk dispatched within ~30 days (manufacturing time)')}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
                           {fabric.stock_type === 'made_to_order'

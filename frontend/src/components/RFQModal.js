@@ -87,6 +87,7 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
           </button>
           <h3 className="text-lg font-semibold">Request a Quote</h3>
           <p className="text-blue-100 text-sm mt-1">Fill in your details — our sourcing experts will reach out within 24 hours.</p>
+          <p className="text-blue-100/90 text-xs mt-1">Bulk production typically dispatches within ~30 days of order confirmation.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4" data-testid="rfq-form">
