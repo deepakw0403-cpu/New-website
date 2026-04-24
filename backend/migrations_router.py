@@ -4,6 +4,7 @@ One-off migration endpoints. All are idempotent and admin-only.
 Moved out of server.py on 2026-02 to keep the entrypoint lean.
 """
 from fastapi import APIRouter, HTTPException, Depends, Query
+import re
 import auth_helpers
 
 router = APIRouter(prefix="/api", tags=["migrations"])
@@ -13,6 +14,115 @@ db = None
 def set_db(database):
     global db
     db = database
+
+
+# ==================== BULK APPEND WEIGHT TO NAME ====================
+# Fixes the #1 data-hygiene issue: ~181 non-denim SKUs whose name omits the
+# GSM. This endpoint appends ", <gsm> GSM" (or ", <oz>oz" for denim) to the
+# name of every SKU whose weight is set in the DB but missing from the name.
+#
+# Idempotent — skips rows whose name already contains a weight pattern.
+
+_WEIGHT_RX = re.compile(r"\d+(?:\.\d+)?\s*(GSM|oz|OZ)", re.IGNORECASE)
+
+
+def _clean_ounce(ounce) -> str:
+    if ounce is None or ounce == "":
+        return ""
+    m = re.match(r"^\s*([\d.]+)", str(ounce))
+    if not m:
+        return ""
+    num = m.group(1).rstrip(".")
+    if "." in num:
+        num = num.rstrip("0").rstrip(".")
+    return num
+
+
+def _build_new_name(fabric: dict, cat_name: str) -> str | None:
+    """Return the new name with weight appended, or None if we can't/shouldn't."""
+    name = (fabric.get("name") or "").strip()
+    if not name:
+        return None
+    # Already has weight — skip (idempotent)
+    if _WEIGHT_RX.search(name):
+        return None
+
+    weight_unit = fabric.get("weight_unit")
+    # Prefer the unit that matches the fabric's declared weight_unit
+    if weight_unit == "ounce" and fabric.get("ounce"):
+        oz = _clean_ounce(fabric["ounce"])
+        if oz:
+            return f"{name}, {oz}oz"
+    if fabric.get("gsm"):
+        gsm = fabric["gsm"]
+        try:
+            gsm = int(gsm) if float(gsm).is_integer() else gsm
+        except (TypeError, ValueError):
+            pass
+        return f"{name}, {gsm} GSM"
+    # Fallback — denim with ounce but weight_unit not set
+    if cat_name == "Denim" and fabric.get("ounce"):
+        oz = _clean_ounce(fabric["ounce"])
+        if oz:
+            return f"{name}, {oz}oz"
+    return None
+
+
+@router.post("/migrate/append-weight-to-names")
+async def append_weight_to_names(
+    apply: bool = Query(False, description="false = dry-run preview, true = write changes"),
+    category_id: str | None = Query(None, description="Restrict to a single category"),
+    admin=Depends(auth_helpers.get_current_admin),
+):
+    """Append `, <gsm> GSM` (or `, <oz>oz`) to every SKU name whose weight is
+    set in the DB but missing from the name. Idempotent.
+    """
+    cats = await db.categories.find({}, {"_id": 0}).to_list(200)
+    cat_by_id = {c["id"]: c["name"] for c in cats}
+
+    q = {}
+    if category_id:
+        q["category_id"] = category_id
+    fabrics = await db.fabrics.find(q, {"_id": 0}).to_list(5000)
+
+    plan = []
+    for f in fabrics:
+        new_name = _build_new_name(f, cat_by_id.get(f.get("category_id", ""), ""))
+        if not new_name or new_name == f.get("name"):
+            continue
+        plan.append({
+            "id": f.get("id", ""),
+            "old_name": f.get("name", ""),
+            "new_name": new_name,
+            "category": cat_by_id.get(f.get("category_id", ""), "?"),
+            "seller": f.get("seller_company", ""),
+        })
+
+    if not apply:
+        return {
+            "apply": False,
+            "status": "dry_run",
+            "total_scanned": len(fabrics),
+            "will_update": len(plan),
+            "preview": plan[:25],
+        }
+
+    updated = 0
+    for row in plan:
+        res = await db.fabrics.update_one(
+            {"id": row["id"]},
+            {"$set": {"name": row["new_name"]}},
+        )
+        if res.modified_count:
+            updated += 1
+
+    return {
+        "apply": True,
+        "status": "applied",
+        "total_scanned": len(fabrics),
+        "updated": updated,
+        "preview": plan[:25],
+    }
 
 
 @router.post("/migrate/slugs")

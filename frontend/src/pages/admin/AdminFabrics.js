@@ -684,15 +684,68 @@ const AdminFabrics = () => {
     }
   };
 
+  const handleAppendWeightToNames = async () => {
+    const API = process.env.REACT_APP_BACKEND_URL;
+    const token = localStorage.getItem("token");
+    try {
+      // 1. Dry run
+      const dryRes = await fetch(`${API}/api/migrate/append-weight-to-names`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const dry = await dryRes.json();
+      if (!dryRes.ok) throw new Error(dry.detail || "Dry run failed");
+
+      if (dry.will_update === 0) {
+        toast.success("All SKUs already have weight in their name — nothing to update.");
+        return;
+      }
+
+      const preview = (dry.preview || [])
+        .slice(0, 5)
+        .map((p) => `• ${p.old_name} → ${p.new_name}`)
+        .join("\n");
+      const ok = window.confirm(
+        `Will append GSM/oz to ${dry.will_update} fabric name${dry.will_update === 1 ? "" : "s"} ` +
+          `(out of ${dry.total_scanned} scanned).\n\nPreview:\n${preview}${
+            dry.will_update > 5 ? `\n...and ${dry.will_update - 5} more` : ""
+          }\n\nProceed?`
+      );
+      if (!ok) return;
+
+      // 2. Apply
+      const applyRes = await fetch(`${API}/api/migrate/append-weight-to-names?apply=true`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await applyRes.json();
+      if (!applyRes.ok) throw new Error(result.detail || "Apply failed");
+      toast.success(`Updated ${result.updated} fabric name${result.updated === 1 ? "" : "s"}.`);
+      fetchData();
+    } catch (err) {
+      toast.error(err.message || "Bulk rename failed");
+    }
+  };
+
   return (
     <AdminLayout>
       <div data-testid="admin-fabrics-page">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-semibold">Fabrics</h1>
-          <button onClick={openCreateModal} className="btn-primary inline-flex items-center gap-2" data-testid="add-fabric-btn">
-            <Plus size={18} />
-            Add Fabric
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleAppendWeightToNames}
+              className="inline-flex items-center gap-2 px-3 py-2 border border-amber-300 bg-amber-50 text-amber-800 rounded-lg text-sm font-medium hover:bg-amber-100"
+              data-testid="bulk-append-weight-btn"
+              title="Appends ', <gsm> GSM' (or ', <oz>oz' for denim) to every SKU name whose weight is set but missing from the name. Idempotent."
+            >
+              Append Weight to Names
+            </button>
+            <button onClick={openCreateModal} className="btn-primary inline-flex items-center gap-2" data-testid="add-fabric-btn">
+              <Plus size={18} />
+              Add Fabric
+            </button>
+          </div>
         </div>
 
         {/* Search & Filters */}
