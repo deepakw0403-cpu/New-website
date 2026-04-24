@@ -381,7 +381,7 @@ const FabricsPage = () => {
               data-testid="quick-filter-book-now"
             >
               <Package size={16} />
-              Book Now
+              Bookable Now
             </button>
             <button
               onClick={() => {
@@ -393,10 +393,10 @@ const FabricsPage = () => {
                   ? "bg-orange-600 text-white shadow-md"
                   : "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200"
               }`}
-              data-testid="quick-filter-sample-or-enquiry"
+              data-testid="quick-filter-enquiry"
             >
               <MessageSquare size={16} />
-              Order Sample or Enquiry
+              Enquiry
             </button>
           </div>
 

@@ -239,8 +239,8 @@ const BrandFabrics = () => {
               <div className="grid grid-cols-1 gap-1">
                 {[
                   { v: "", label: "All" },
-                  { v: "bookable", label: "Book Now" },
-                  { v: "enquiry", label: "Order Sample or Enquiry" },
+                  { v: "bookable", label: "Bookable Now" },
+                  { v: "enquiry", label: "Enquiry" },
                 ].map((o) => (
                   <button
                     key={o.v}

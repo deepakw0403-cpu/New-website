@@ -68,9 +68,12 @@ const FabricDetailPage = () => {
   // Check available actions
   const getAvailableActions = () => {
     if (!fabric) return { canBookSample: false, canBookBulk: false };
+    // Rule: "All bookable will have sample booking automatically"
+    // Sample availability is derived from live inventory, not a separate flag.
+    const hasStock = fabric.is_bookable && fabric.quantity_available > 0;
     return {
-      canBookSample: fabric.is_bookable && (fabric.sample_price > 0 || fabric.rate_per_meter > 0),
-      canBookBulk: fabric.is_bookable && fabric.quantity_available > 0,
+      canBookSample: hasStock,
+      canBookBulk: hasStock,
       samplePrice: fabric.sample_price || fabric.rate_per_meter,
       hasTiers: fabric.pricing_tiers && fabric.pricing_tiers.length > 0
     };
