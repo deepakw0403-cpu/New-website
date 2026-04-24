@@ -1597,41 +1597,8 @@ const AdminFabrics = () => {
                     </div>
                   </div>
 
-                  {/* Estimated Delivery Time */}
-                  <div className="bg-blue-50 rounded p-4 mb-4 border border-blue-200">
-                    <h4 className="font-medium text-blue-900 mb-3">Estimated Delivery Time (in days)</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-blue-800 mb-2">Sample Orders</label>
-                        <select
-                          value={form.sample_delivery_days}
-                          onChange={(e) => setForm({ ...form, sample_delivery_days: e.target.value })}
-                          className="w-full px-4 py-2 border border-blue-300 rounded bg-white text-gray-900"
-                          data-testid="fabric-sample-delivery-select"
-                        >
-                          <option value="">Select days range</option>
-                          {deliveryDaysOptions.map((opt) => (
-                            <option key={opt} value={opt}>{opt} days</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-blue-800 mb-2">Bulk Orders</label>
-                        <select
-                          value={form.bulk_delivery_days}
-                          onChange={(e) => setForm({ ...form, bulk_delivery_days: e.target.value })}
-                          className="w-full px-4 py-2 border border-blue-300 rounded bg-white text-gray-900"
-                          data-testid="fabric-bulk-delivery-select"
-                        >
-                          <option value="">Select days range</option>
-                          {deliveryDaysOptions.map((opt) => (
-                            <option key={opt} value={opt}>{opt} days</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <p className="text-xs text-blue-600 mt-2">Set estimated delivery timeline for sample and bulk orders</p>
-                  </div>
+                  {/* Estimated delivery fields removed — Locofast now enforces a global
+                      turnaround (24–48 hrs for in-stock, ~30 days for manufacturing). */}
 
                   {/* Sample Pricing */}
                   <div className="bg-white rounded p-3 mb-4 border border-emerald-200">

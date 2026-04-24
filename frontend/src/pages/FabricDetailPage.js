@@ -813,15 +813,21 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                     <div>
                       <p className="text-sm font-medium text-gray-900">Stock Status</p>
                       <div className="mt-1.5">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                          fabric.stock_type === 'made_to_order'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-emerald-100 text-emerald-800'
-                        }`}>
-                          {fabric.stock_type === 'made_to_order' ? 'Made to Order' : 'Ready Stock'}
-                        </span>
+                        {(() => {
+                          const ready = fabric.is_bookable === true && Number(fabric.quantity_available || 0) > 0;
+                          const mto = fabric.stock_type === 'made_to_order';
+                          const label = ready ? 'Ready Stock' : (mto ? 'Made to Order' : 'Enquiry Only');
+                          const tone = ready
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : (mto ? 'bg-amber-100 text-amber-800' : 'bg-orange-100 text-orange-800');
+                          return (
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${tone}`}>
+                              {label}
+                            </span>
+                          );
+                        })()}
                       </div>
-                      {fabric.stock_type === 'made_to_order' && (
+                      {fabric.stock_type === 'made_to_order' && !(fabric.is_bookable && Number(fabric.quantity_available || 0) > 0) && (
                         <p className="text-xs text-amber-700 mt-1.5">
                           Production lead time applies before dispatch.
                         </p>

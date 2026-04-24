@@ -1145,6 +1145,10 @@ def _order_email_html(order, audience_line, cta_html=""):
             <tr><td style="padding-top:10px;font-weight:700;color:#0f172a;">Total</td><td style="padding-top:10px;text-align:right;font-weight:700;color:#059669;">₹{order.get("total", 0):,.2f}</td></tr>
           </table>
           <p style="font-size:12px;color:#94a3b8;margin:18px 0 0 0;">Payment method: {order.get("payment_method", "")}. Any questions? Reply to this email or write to {SUPPORT_EMAIL}.</p>
+          <div style="background:#fff7ed;border-left:3px solid #fb923c;border-radius:6px;padding:10px 14px;margin-top:14px;font-size:12px;color:#9a3412;line-height:1.55;">
+            <strong>Dispatch commitments</strong><br>
+            {"• Samples dispatched in 24–48 hours" if order.get("order_type") == "sample" else "• Bulk: 24–48 hours for packaging &amp; dispatch (in-stock items)<br>• Manufactured-to-order items typically dispatch within ~30 days of confirmation"}
+          </div>
           {cta_html}
         </div>
       </div>

@@ -1068,9 +1068,9 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     elements.append(Spacer(1, 3*mm))
     
     if has_bulk_items:
-        bulk_note = """<b>Note:</b> Lead time for bulk production items is estimated from the date of order confirmation 
-        and payment. Actual delivery may vary based on production schedules and material availability. 
-        You will receive tracking details once the order is dispatched."""
+        bulk_note = """<b>Dispatch commitments:</b> In-stock bulk orders are packaged &amp; dispatched within 24–48 hours.
+        Manufactured-to-order items typically dispatch within ~30 days of order confirmation &amp; payment.
+        You will receive tracking details once the order leaves our warehouse."""
         elements.append(Paragraph(bulk_note, ParagraphStyle('BulkNote', parent=styles['Normal'], fontSize=7, textColor=colors.HexColor('#b45309'), backColor=colors.HexColor('#fef3c7'), borderPadding=5, leading=9)))
         elements.append(Spacer(1, 3*mm))
     
