@@ -58,6 +58,12 @@ const FabricsPage = () => {
   const [showRfqModal, setShowRfqModal] = useState(false);
 
   const fabricTypes = ["woven", "knitted", "non-woven"];
+  const typeLabel = (t) => {
+    if (t === "knitted") return "Knits";
+    if (t === "woven") return "Woven";
+    if (t === "non-woven") return "Non-Woven";
+    return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
+  };
   const [filterOptions, setFilterOptions] = useState({ colors: [], patterns: [], widths: [], compositions: [], has_denim: false });
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
@@ -97,9 +103,7 @@ const FabricsPage = () => {
         if (selectedType) params.fabric_type = selectedType;
         if (gsmRange.min) params.min_gsm = gsmRange.min;
         if (gsmRange.max) params.max_gsm = gsmRange.max;
-        if (availabilityFilter === "sample") params.sample_available = true;
         if (availabilityFilter === "bulk") params.bookable_only = true;
-        if (availabilityFilter === "instant") params.instant_bookable = true;
         if (availabilityFilter === "enquiry") params.enquiry_only = true;
         if (selectedPattern) params.pattern = selectedPattern;
         if (selectedColor) params.color = selectedColor;
@@ -367,25 +371,10 @@ const FabricsPage = () => {
                   ? "bg-emerald-600 text-white shadow-md"
                   : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
               }`}
-              data-testid="quick-filter-bulk"
+              data-testid="quick-filter-book-now"
             >
               <Package size={16} />
-              Bulk Bookable
-            </button>
-            <button
-              onClick={() => {
-                setAvailabilityFilter("sample");
-                setCurrentPage(1);
-              }}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                availabilityFilter === "sample"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
-              }`}
-              data-testid="quick-filter-sample"
-            >
-              <Clock size={16} />
-              Sample Bookable
+              Book Now
             </button>
             <button
               onClick={() => {
@@ -397,10 +386,10 @@ const FabricsPage = () => {
                   ? "bg-orange-600 text-white shadow-md"
                   : "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200"
               }`}
-              data-testid="quick-filter-enquiry"
+              data-testid="quick-filter-sample-or-enquiry"
             >
               <MessageSquare size={16} />
-              Enquiry
+              Order Sample or Enquiry
             </button>
           </div>
 
@@ -457,7 +446,7 @@ const FabricsPage = () => {
                   >
                     <option value="">All Types</option>
                     {fabricTypes.map((type) => (
-                      <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
+                      <option key={type} value={type}>{typeLabel(type)}</option>
                     ))}
                   </select>
                 </div>

@@ -503,8 +503,17 @@ async def brand_list_fabrics(
         query["quantity_available"] = {"$gt": 0}
         query["sample_price"] = {"$gt": 0}
     elif availability == "enquiry":
-        # Prefer fabrics without numeric pricing (quote-driven)
-        query["$or"] = [{"rate_per_meter": {"$in": [None, 0]}}, {"rate_per_meter": {"$exists": False}}]
+        # "Order Sample or Enquiry" = no inventory uploaded yet, so buyer can
+        # only request a swatch or raise a quote. Mirrors the public-site logic
+        # in fabric_router._build_fabric_query.
+        query["$or"] = [
+            {"is_bookable": {"$ne": True}},
+            {"$and": [
+                {"sample_price": {"$in": [None, 0]}},
+                {"rate_per_meter": {"$in": [None, 0]}},
+                {"quantity_available": {"$in": [None, 0]}},
+            ]},
+        ]
 
     fabrics = await db.fabrics.find(query, {"_id": 0}).sort("created_at", -1).to_list(length=1000)
 

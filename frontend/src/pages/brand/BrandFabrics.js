@@ -236,12 +236,11 @@ const BrandFabrics = () => {
             {/* Availability */}
             <div className="mb-4">
               <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500 mb-1.5">Availability</p>
-              <div className="grid grid-cols-2 gap-1">
+              <div className="grid grid-cols-1 gap-1">
                 {[
                   { v: "", label: "All" },
-                  { v: "instant", label: "Instant" },
-                  { v: "bookable", label: "In Stock" },
-                  { v: "sample", label: "Sample" },
+                  { v: "bookable", label: "Book Now" },
+                  { v: "enquiry", label: "Order Sample or Enquiry" },
                 ].map((o) => (
                   <button
                     key={o.v}
@@ -277,7 +276,10 @@ const BrandFabrics = () => {
                 <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500 mb-1.5">Fabric Type</p>
                 <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs bg-white" data-testid="brand-filter-type">
                   <option value="">All Types</option>
-                  {facets.fabric_types.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {facets.fabric_types.map((t) => {
+                    const lbl = t === "knitted" ? "Knits" : t === "woven" ? "Woven" : t === "non-woven" ? "Non-Woven" : (t.charAt(0).toUpperCase() + t.slice(1));
+                    return <option key={t} value={t}>{lbl}</option>;
+                  })}
                 </select>
               </div>
             )}

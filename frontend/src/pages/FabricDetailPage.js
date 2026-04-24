@@ -703,7 +703,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   {fabric.fabric_type && (
                     <div className="border-b border-gray-100 pb-3">
                       <p className="text-xs text-gray-400 mb-1">Fabric Type</p>
-                      <p className="font-medium capitalize">{fabric.fabric_type}</p>
+                      <p className="font-medium">{fabric.fabric_type === "knitted" ? "Knits" : fabric.fabric_type === "woven" ? "Woven" : fabric.fabric_type === "non-woven" ? "Non-Woven" : (fabric.fabric_type.charAt(0).toUpperCase() + fabric.fabric_type.slice(1))}</p>
                     </div>
                   )}
                   {Array.isArray(fabric.composition) && fabric.composition.length > 0 && fabric.composition.some(c => c.material) && (
