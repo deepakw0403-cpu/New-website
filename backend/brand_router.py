@@ -88,6 +88,8 @@ class BrandUserCreate(BaseModel):
     name: str
     role: str = "brand_user"  # brand_admin | brand_user
     designation: Optional[str] = "Merchandiser"
+    # Admin-only: set a specific initial password. If omitted, one is auto-generated.
+    password: Optional[str] = None
 
 
 class BrandLoginRequest(BaseModel):
@@ -312,11 +314,78 @@ async def admin_add_brand_user(brand_id: str, data: BrandUserCreate, admin=Depen
 
 
 @router.delete("/admin/brands/{brand_id}/users/{user_id}")
-async def admin_remove_brand_user(brand_id: str, user_id: str, admin=Depends(auth_helpers.get_current_admin)):
+async def admin_remove_brand_user(
+    brand_id: str,
+    user_id: str,
+    hard: bool = False,
+    admin=Depends(auth_helpers.get_current_admin),
+):
+    """Suspend (default) or hard-delete a brand user.
+    - `hard=false` (default) → flips status to `suspended`. Reversible via /reactivate.
+    - `hard=true` → removes the row entirely. Irreversible. Use only for wrong-email typos.
+    """
+    if hard:
+        res = await db.brand_users.delete_one({"id": user_id, "brand_id": brand_id})
+        if res.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {"message": "User deleted"}
     res = await db.brand_users.update_one({"id": user_id, "brand_id": brand_id}, {"$set": {"status": "suspended"}})
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     return {"message": "User suspended"}
+
+
+@router.post("/admin/brands/{brand_id}/users/{user_id}/reactivate")
+async def admin_reactivate_brand_user(brand_id: str, user_id: str, admin=Depends(auth_helpers.get_current_admin)):
+    res = await db.brand_users.update_one(
+        {"id": user_id, "brand_id": brand_id},
+        {"$set": {"status": "active"}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "User reactivated"}
+
+
+class AdminPasswordReset(BaseModel):
+    send_email: bool = True
+    new_password: Optional[str] = None  # if empty, auto-generate
+
+
+@router.post("/admin/brands/{brand_id}/users/{user_id}/reset-password")
+async def admin_reset_brand_user_password(
+    brand_id: str,
+    user_id: str,
+    data: AdminPasswordReset,
+    admin=Depends(auth_helpers.get_current_admin),
+):
+    """Admin-driven password reset. Generates a temp password (or uses a provided one),
+    forces the user to reset it on next login, optionally emails them.
+    Returns the new password so the admin can WhatsApp/share it if email is off.
+    """
+    user = await db.brand_users.find_one({"id": user_id, "brand_id": brand_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    brand = await db.brands.find_one({"id": brand_id}, {"_id": 0, "name": 1})
+
+    new_pw = (data.new_password or "").strip() or _gen_password()
+    if len(new_pw) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+
+    await db.brand_users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "password_hash": _hash(new_pw),
+            "must_reset_password": True,
+            "status": "active",  # unsuspend if the admin is resetting for a returning user
+        }},
+    )
+    if data.send_email and brand:
+        asyncio.create_task(_send_welcome_email(brand.get("name", "your enterprise"), user.get("name", ""), user.get("email", ""), new_pw))
+    return {
+        "message": "Password reset",
+        "temporary_password_for_reference": new_pw,
+        "email_sent": bool(data.send_email and brand),
+    }
 
 
 async def _add_brand_user_internal(brand_id: str, data: BrandUserCreate, actor_id: str):
@@ -333,7 +402,9 @@ async def _add_brand_user_internal(brand_id: str, data: BrandUserCreate, actor_i
     if data.designation and data.designation not in BRAND_DESIGNATIONS:
         raise HTTPException(status_code=400, detail=f"Invalid designation. Must be one of {BRAND_DESIGNATIONS}")
 
-    temp_pw = _gen_password()
+    temp_pw = (data.password or "").strip() or _gen_password()
+    if len(temp_pw) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     user_doc = {
         "id": str(uuid.uuid4()),
         "brand_id": brand_id,

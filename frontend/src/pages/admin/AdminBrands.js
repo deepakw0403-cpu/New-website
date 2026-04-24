@@ -143,20 +143,63 @@ const AdminBrands = () => {
     const designation = window.prompt(`Designation? One of: ${DESIGNATIONS.join(", ")}`, "Merchandiser") || "Merchandiser";
     if (!DESIGNATIONS.includes(designation)) return toast.error("Invalid designation");
     const role = window.prompt("Access level (brand_admin or brand_user):", "brand_user") || "brand_user";
+    const customPw = window.prompt("Set a specific password? (leave blank to auto-generate; min 8 chars)", "") || "";
+    if (customPw && customPw.length < 8) return toast.error("Password must be ≥8 characters");
     try {
-      const res = await api.post(`/admin/brands/${selected.id}/users`, { email, name, role, designation });
+      const payload = { email, name, role, designation };
+      if (customPw) payload.password = customPw;
+      const res = await api.post(`/admin/brands/${selected.id}/users`, payload);
       toast.success("User created — welcome email sent");
       refreshDetail();
-      alert(`Temporary password (save this, emailed too):\n${res.data.temporary_password_for_reference}`);
+      alert(`Password for ${email} (save this, emailed too):\n${res.data.temporary_password_for_reference}`);
     } catch (err) { toast.error(err?.response?.data?.detail || "Create failed"); }
   };
 
   const removeUser = async (userId) => {
-    if (!window.confirm("Suspend this user?")) return;
+    if (!window.confirm("Suspend this user? (Reversible — they won't be able to log in but account stays on record.)")) return;
     try {
       await api.delete(`/admin/brands/${selected.id}/users/${userId}`);
       refreshDetail(); toast.success("User suspended");
     } catch { toast.error("Failed"); }
+  };
+
+  const reactivateUser = async (userId) => {
+    try {
+      await api.post(`/admin/brands/${selected.id}/users/${userId}/reactivate`);
+      refreshDetail(); toast.success("User reactivated");
+    } catch { toast.error("Failed"); }
+  };
+
+  const hardDeleteUser = async (userId, email) => {
+    if (!window.confirm(`PERMANENTLY delete ${email}? This cannot be undone. Use Suspend instead if you might want to restore access.`)) return;
+    const confirm2 = window.prompt(`Type "DELETE ${email}" to confirm:`);
+    if (confirm2 !== `DELETE ${email}`) return toast.error("Confirmation text did not match — aborted");
+    try {
+      await api.delete(`/admin/brands/${selected.id}/users/${userId}?hard=true`);
+      refreshDetail(); toast.success("User deleted");
+    } catch { toast.error("Failed"); }
+  };
+
+  const resetUserPassword = async (userId, email) => {
+    const customPw = window.prompt(
+      `Reset password for ${email}?\n\n` +
+      `• Leave blank to auto-generate a temp password\n` +
+      `• Or type one yourself (min 8 chars)\n\n` +
+      `In either case, the user will be forced to change it on next login.`,
+      ""
+    );
+    if (customPw === null) return;  // cancelled
+    if (customPw && customPw.length < 8) return toast.error("Password must be ≥8 characters");
+    const sendEmail = window.confirm("Send the password to the user via email?\n(OK = yes, Cancel = no, you'll share it manually)");
+    try {
+      const res = await api.post(
+        `/admin/brands/${selected.id}/users/${userId}/reset-password`,
+        { new_password: customPw || null, send_email: sendEmail }
+      );
+      refreshDetail();
+      toast.success(sendEmail ? "Password reset — email sent" : "Password reset");
+      alert(`New password for ${email}:\n\n${res.data.temporary_password_for_reference}\n\n${sendEmail ? "Already emailed." : "Share this with the user securely (WhatsApp/in-person)."}`);
+    } catch (err) { toast.error(err?.response?.data?.detail || "Reset failed"); }
   };
 
   // === Credit line OTP flow ===
@@ -611,14 +654,51 @@ const AdminBrands = () => {
                 </div>
                 <div className="space-y-1.5">
                   {(detail.users || []).map((u) => (
-                    <div key={u.id} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded border border-gray-100 text-xs">
-                      <div>
-                        <p className="font-medium text-gray-900">{u.name}</p>
-                        <p className="text-gray-500">{u.email} · {u.designation || "—"} · <span className="uppercase tracking-wide">{u.role === "brand_admin" ? "Admin" : "Buyer"}</span> · {u.status}</p>
+                    <div key={u.id} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded border border-gray-100 text-xs" data-testid={`admin-brand-user-${u.id}`}>
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{u.name}</p>
+                        <p className="text-gray-500 truncate">
+                          {u.email} · {u.designation || "—"} · <span className="uppercase tracking-wide">{u.role === "brand_admin" ? "Admin" : "Buyer"}</span> ·{" "}
+                          <span className={u.status === "suspended" ? "text-orange-600 font-medium" : "text-emerald-600"}>{u.status}</span>
+                        </p>
                       </div>
-                      {u.status === "active" && (
-                        <button onClick={() => removeUser(u.id)} className="text-red-500 hover:text-red-700"><Trash2 size={12} /></button>
-                      )}
+                      <div className="flex items-center gap-2 pl-2 flex-shrink-0">
+                        <button
+                          onClick={() => resetUserPassword(u.id, u.email)}
+                          className="text-blue-600 hover:text-blue-800 px-1.5 py-0.5 hover:bg-blue-50 rounded text-[11px]"
+                          data-testid={`admin-user-reset-${u.id}`}
+                          title="Reset password"
+                        >
+                          Reset PW
+                        </button>
+                        {u.status === "active" ? (
+                          <button
+                            onClick={() => removeUser(u.id)}
+                            className="text-orange-600 hover:text-orange-800 px-1.5 py-0.5 hover:bg-orange-50 rounded text-[11px]"
+                            data-testid={`admin-user-suspend-${u.id}`}
+                            title="Suspend (reversible)"
+                          >
+                            Suspend
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => reactivateUser(u.id)}
+                            className="text-emerald-600 hover:text-emerald-800 px-1.5 py-0.5 hover:bg-emerald-50 rounded text-[11px]"
+                            data-testid={`admin-user-reactivate-${u.id}`}
+                            title="Reactivate user"
+                          >
+                            Reactivate
+                          </button>
+                        )}
+                        <button
+                          onClick={() => hardDeleteUser(u.id, u.email)}
+                          className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded"
+                          data-testid={`admin-user-delete-${u.id}`}
+                          title="Permanently delete"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
