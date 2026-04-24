@@ -26,3 +26,23 @@ export const mediumImage = (url) => optimizeCloudinaryImage(url, 800);
 
 /** Large / hero image (~1600px) */
 export const largeImage = (url) => optimizeCloudinaryImage(url, 1600);
+
+/**
+ * Returns the best available "cover" image URL for a fabric, falling back
+ * through: root images → first color_variant image → undefined.
+ *
+ * Multi-color SKUs (e.g. denim sold in Indigo ×White) often store imagery on
+ * `color_variants[i].image_url` with an empty root `images` array; this helper
+ * makes card thumbnails resilient to either storage pattern.
+ */
+export const fabricCoverImage = (fabric) => {
+  if (!fabric) return undefined;
+  const rootImg = Array.isArray(fabric.images) ? fabric.images[0] : undefined;
+  if (rootImg) return rootImg;
+  const variants = Array.isArray(fabric.color_variants) ? fabric.color_variants : [];
+  for (const v of variants) {
+    if (v && v.image_url) return v.image_url;
+    if (v && Array.isArray(v.images) && v.images[0]) return v.images[0];
+  }
+  return undefined;
+};

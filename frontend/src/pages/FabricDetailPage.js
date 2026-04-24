@@ -9,7 +9,7 @@ import ExpandableText from "../components/ExpandableText";
 import RFQModal from "../components/RFQModal";
 import { getFabric, createEnquiry, getFabricSEO, getRelatedFabrics, getOtherSellers } from "../lib/api";
 import { toWebVideoUrl, videoPosterUrl } from "../lib/videoUrl";
-import { thumbImage, mediumImage, largeImage } from "../lib/imageUrl";
+import { thumbImage, mediumImage, largeImage, fabricCoverImage } from "../lib/imageUrl";
 import { displayFabricName } from "../lib/fabricDisplay";
 import { trackViewItem, trackAddToCart, trackRFQIntent } from "../lib/analytics";
 
@@ -414,7 +414,13 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
     );
   }
 
-  const images = fabric.images.length > 0 ? fabric.images : ["https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800"];
+  // Build image list: root images first, then color_variant covers if root empty
+  const _rootImages = Array.isArray(fabric.images) ? fabric.images.filter(Boolean) : [];
+  const _variantImages = Array.isArray(fabric.color_variants)
+    ? fabric.color_variants.map((v) => v?.image_url).filter(Boolean)
+    : [];
+  const _combined = _rootImages.length > 0 ? _rootImages : _variantImages;
+  const images = _combined.length > 0 ? _combined : ["https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800"];
   const schemaMarkup = generateSchemaMarkup();
 
   return (
@@ -1055,9 +1061,9 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                     className="bg-white border border-gray-100 rounded-lg overflow-hidden hover:border-[#2563EB] transition-colors group"
                   >
                     <div className="aspect-square bg-gray-100 overflow-hidden">
-                      {related.images?.[0] ? (
+                      {related.images?.[0] || related.color_variants?.[0]?.image_url ? (
                         <img
-                          src={thumbImage(related.images[0])}
+                          src={thumbImage(fabricCoverImage(related))}
                           alt={related.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           loading="lazy"

@@ -4,7 +4,7 @@ import { ArrowLeft, Package } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getCollection, getCollectionFabrics } from "../lib/api";
-import { thumbImage, largeImage } from "../lib/imageUrl";
+import { thumbImage, largeImage, fabricCoverImage } from "../lib/imageUrl";
 
 const CollectionDetailPage = () => {
   const { id } = useParams();
@@ -132,9 +132,9 @@ const CollectionDetailPage = () => {
                   data-testid={`fabric-card-${fabric.id}`}
                 >
                   <div className="aspect-square relative overflow-hidden bg-gray-100">
-                    {fabric.images?.[0] ? (
+                    {fabric.images?.[0] || fabric.color_variants?.[0]?.image_url ? (
                       <img
-                        src={thumbImage(fabric.images[0])}
+                        src={thumbImage(fabricCoverImage(fabric))}
                         alt={fabric.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"

@@ -3,7 +3,7 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, MessageSquare, Package, ShoppingCart, Clock } from "lucide-react";
 import { toWebVideoUrl, videoPosterUrl } from "../lib/videoUrl";
-import { thumbImage } from "../lib/imageUrl";
+import { thumbImage, fabricCoverImage } from "../lib/imageUrl";
 import { displayFabricName } from "../lib/fabricDisplay";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -636,7 +636,7 @@ const FabricsPage = () => {
                         {fabric.videos?.[0] && !(fabric.videos[0].includes('youtube.com') || fabric.videos[0].includes('youtu.be') || fabric.videos[0].includes('vimeo.com')) ? (
                           <video
                             src={toWebVideoUrl(fabric.videos[0])}
-                            poster={fabric.images?.[0] || videoPosterUrl(fabric.videos[0])}
+                            poster={fabricCoverImage(fabric) || videoPosterUrl(fabric.videos[0])}
                             autoPlay
                             muted
                             loop
@@ -648,7 +648,7 @@ const FabricsPage = () => {
                             onError={(e) => {
                               // If the transcoded video fails, swap to the poster image
                               const fallback = document.createElement('img');
-                              fallback.src = thumbImage(fabric.images?.[0]) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600";
+                              fallback.src = thumbImage(fabricCoverImage(fabric)) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600";
                               fallback.alt = fabric.name;
                               fallback.className = e.target.className;
                               fallback.loading = "lazy";
@@ -657,7 +657,7 @@ const FabricsPage = () => {
                           />
                         ) : (
                           <img
-                            src={thumbImage(fabric.images?.[0]) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600"}
+                            src={thumbImage(fabricCoverImage(fabric)) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600"}
                             alt={`${fabric.name} - ${fabric.composition?.map(c => c.material).join(', ') || fabric.category_name} fabric${fabric.color ? ` in ${fabric.color}` : ''}`}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             loading="lazy"
@@ -828,7 +828,7 @@ const FabricsPage = () => {
                 {/* Fabric Summary */}
                 <div className="bg-gray-50 rounded-lg p-4 flex gap-4">
                   <img
-                    src={thumbImage(selectedFabric.images?.[0]) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
+                    src={thumbImage(fabricCoverImage(selectedFabric)) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100"}
                     alt={selectedFabric.name}
                     className="w-20 h-20 object-cover rounded"
                   />

@@ -4,7 +4,7 @@ import { useBrandAuth } from "../../context/BrandAuthContext";
 import BrandLayout from "./BrandLayout";
 import { Package, Loader2, ShoppingCart, Beaker, MessageSquare, Search, SlidersHorizontal, X } from "lucide-react";
 import { displayFabricName } from "../../lib/fabricDisplay";
-import { thumbImage } from "../../lib/imageUrl";
+import { thumbImage, fabricCoverImage } from "../../lib/imageUrl";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -16,18 +16,35 @@ const FabricCard = ({ f, onOpen }) => {
   const oz = f.ounce ? `${f.ounce} oz` : null;
   const width = f.width ? `${f.width}"` : null;
   const detailUrl = `/brand/fabrics/${f.slug || f.id}`;
+  const cover = thumbImage(fabricCoverImage(f));
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col" data-testid={`brand-fabric-${f.id}`}>
       {/* Image + title are both Links → click anywhere on upper half to open detail */}
       <Link to={detailUrl} className="block" data-testid={`brand-fabric-card-link-${f.id}`}>
         <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
-          <img
-            src={thumbImage(f.images?.[0]) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=500"}
-            alt={f.name}
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-            loading="lazy"
-          />
+          {cover ? (
+            <img
+              src={cover}
+              alt={f.name}
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.style.display = "none";
+                const ph = e.currentTarget.nextElementSibling;
+                if (ph) ph.style.display = "flex";
+              }}
+              data-testid={`brand-fabric-image-${f.id}`}
+            />
+          ) : null}
+          <div
+            className={`absolute inset-0 flex-col items-center justify-center text-gray-400 text-[11px] bg-gray-50 ${cover ? "hidden" : "flex"}`}
+            data-testid={`brand-fabric-image-placeholder-${f.id}`}
+          >
+            <Package size={28} className="mb-1" />
+            <span>Image coming soon</span>
+          </div>
           {stock > 0 ? (
             <span className="absolute top-2 right-2 bg-emerald-600 text-white text-[11px] font-semibold px-2 py-1 rounded-md">
               {stock.toLocaleString("en-IN")}{unit} Available

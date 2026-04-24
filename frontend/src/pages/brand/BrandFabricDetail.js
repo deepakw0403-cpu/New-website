@@ -98,7 +98,7 @@ const BrandFabricDetail = () => {
       fabric_name: fabric.name,
       fabric_code: fabric.fabric_code || "",
       category_name: fabric.category_name || "",
-      image_url: (selectedVariant?.image_url || fabric.images?.[0]) || "",
+      image_url: (selectedVariant?.image_url || fabricCoverImage(fabric)) || "",
       seller_company: fabric.seller_company || "",
       quantity: Number(qty),
       unit,
@@ -126,7 +126,7 @@ const BrandFabricDetail = () => {
         <div>
           <div className="aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden">
             <img
-              src={mediumImage(selectedVariant?.image_url || fabric.images?.[0]) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800"}
+              src={mediumImage(selectedVariant?.image_url || fabricCoverImage(fabric)) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800"}
               alt={fabric.name}
               className="w-full h-full object-cover"
               loading="lazy"
