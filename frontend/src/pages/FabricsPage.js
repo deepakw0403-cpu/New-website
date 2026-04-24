@@ -208,6 +208,12 @@ const FabricsPage = () => {
       toast.error("Please enter a valid quantity");
       return;
     }
+    // Guard against over-ordering available stock
+    const stock = Number(selectedFabric.quantity_available || 0);
+    if (modalType === "bulk" && stock > 0 && parseInt(bulkQty) > stock) {
+      toast.error(`Only ${stock.toLocaleString()} ${getUnit(selectedFabric).plural} available — use Request a Quote for more.`);
+      return;
+    }
     navigate(`/checkout?fabric_id=${selectedFabric.id}&type=${modalType}&qty=${qty}`);
     closeModal();
   };
@@ -854,9 +860,15 @@ const FabricsPage = () => {
                     <input
                       type="number"
                       min="1"
-                      max={selectedFabric.quantity_available || 10000}
+                      max={selectedFabric.quantity_available || undefined}
                       value={bulkQty}
-                      onChange={(e) => setBulkQty(e.target.value)}
+                      onChange={(e) => {
+                        const raw = parseInt(e.target.value);
+                        const stock = Number(selectedFabric.quantity_available || 0);
+                        if (!Number.isFinite(raw)) { setBulkQty(e.target.value); return; }
+                        if (stock > 0 && raw > stock) setBulkQty(String(stock));
+                        else setBulkQty(e.target.value);
+                      }}
                       placeholder={`Enter quantity in ${getUnit(selectedFabric).plural}`}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
                       data-testid="bulk-qty-input"

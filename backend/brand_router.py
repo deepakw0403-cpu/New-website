@@ -993,6 +993,14 @@ async def brand_create_order(data: BrandOrderCreate, user=Depends(get_current_br
                     moq = int(m.group(1))
             if it.quantity < moq:
                 raise HTTPException(status_code=400, detail=f"{f.get('name')}: qty {it.quantity} below MOQ {moq}")
+            # Defence-in-depth: stock cap. If the fabric has a recorded
+            # quantity_available > 0, refuse any bulk line that exceeds it.
+            stock_q = int(f.get("quantity_available") or 0)
+            if stock_q > 0 and it.quantity > stock_q:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{f.get('name')}: only {stock_q} available — use Request a Quote for larger volumes."
+                )
             line_total = rate * it.quantity
             price_per_unit = rate
         subtotal += line_total

@@ -74,16 +74,28 @@ const BrandFabricDetail = () => {
   const availableCredit = summary?.credit?.available ?? 0;
   const availableSample = summary?.sample_credits?.available ?? 0;
 
+  // Max bookable for bulk = selected variant's stock (if variant-level) else fabric total
+  const maxBulkQty = (() => {
+    const variantQty = Number(selectedVariant?.quantity_available ?? NaN);
+    if (Number.isFinite(variantQty) && variantQty > 0) return variantQty;
+    const fabQty = Number(fabric?.quantity_available || 0);
+    return fabQty > 0 ? fabQty : Infinity; // no limit recorded
+  })();
+
   const onQtyChange = (raw) => {
     const v = Number(raw) || 1;
     if (orderType === "sample") setQty(Math.max(1, Math.min(MAX_SAMPLE_METERS, v)));
-    else setQty(Math.max(1, v));
+    else setQty(Math.max(1, Math.min(maxBulkQty, v)));
   };
 
   const addToCart = () => {
     if (!fabric) return;
     if (orderType === "bulk" && qty < moqValue) {
       toast.error(`MOQ for bulk orders is ${moqValue}${unit}`);
+      return;
+    }
+    if (orderType === "bulk" && qty > maxBulkQty) {
+      toast.error(`Only ${maxBulkQty}${unit} available — request a quote for more.`);
       return;
     }
     if (orderType === "sample" && qty > MAX_SAMPLE_METERS) {
@@ -210,16 +222,26 @@ const BrandFabricDetail = () => {
             <p className="text-xs font-medium text-gray-600 mb-2">
               Quantity ({unit})
               {orderType === "sample" && <span className="ml-1.5 text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">max {MAX_SAMPLE_METERS}{unit}</span>}
+              {orderType === "bulk" && Number.isFinite(maxBulkQty) && (
+                <span className="ml-1.5 text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded" data-testid="brand-max-bulk-hint">
+                  available {maxBulkQty}{unit}
+                </span>
+              )}
             </p>
             <input
               type="number"
               min={1}
-              max={orderType === "sample" ? MAX_SAMPLE_METERS : undefined}
+              max={orderType === "sample" ? MAX_SAMPLE_METERS : (Number.isFinite(maxBulkQty) ? maxBulkQty : undefined)}
               value={qty}
               onChange={(e) => onQtyChange(e.target.value)}
               className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm"
               data-testid="brand-qty-input"
             />
+            {orderType === "bulk" && qty > maxBulkQty && Number.isFinite(maxBulkQty) && (
+              <p className="text-[11px] text-red-600 mt-1.5" data-testid="brand-qty-error">
+                Only {maxBulkQty}{unit} available. Use <strong>Request a Quote</strong> for larger volumes.
+              </p>
+            )}
           </div>
 
           {/* Line preview */}
@@ -258,7 +280,8 @@ const BrandFabricDetail = () => {
           {/* Primary CTAs — Add to Cart + RFQ */}
           <button
             onClick={addToCart}
-            className={`w-full ${orderType === "sample" ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"} text-white py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2`}
+            disabled={orderType === "bulk" && qty > maxBulkQty}
+            className={`w-full ${orderType === "sample" ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"} disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2`}
             data-testid="brand-add-to-cart"
           >
             {orderType === "sample" ? <Beaker size={14} /> : <ShoppingCart size={14} />}
