@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useBrandAuth } from "../../context/BrandAuthContext";
 import { useBrandCart } from "../../context/BrandCartContext";
 import BrandLayout from "./BrandLayout";
-import { ShoppingCart, Trash2, ArrowRight, CheckCircle, Loader2, MapPin, Beaker } from "lucide-react";
+import { ShoppingCart, Trash2, ArrowRight, CheckCircle, Loader2, MapPin, Beaker, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { fmtINR, fmtLacs, fmtCount } from "../../lib/inr";
 import { thumbImage } from "../../lib/imageUrl";
@@ -70,16 +70,25 @@ const BrandCart = () => {
   const [saveDefault, setSaveDefault] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [success, setSuccess] = useState(null);
+  const [enterpriseType, setEnterpriseType] = useState("brand");
+  const [factory, setFactory] = useState({
+    po_file_url: "",
+    tech_pack_url: "",
+    qty_color_matrix: "",
+    po_uploading: false,
+    tp_uploading: false,
+  });
 
   useEffect(() => {
-    if (!token) { navigate("/brand/login"); return; }
-    if (user?.must_reset_password) { navigate("/brand/reset-password"); return; }
+    if (!token) { navigate("/enterprise/login"); return; }
+    if (user?.must_reset_password) { navigate("/enterprise/reset-password"); return; }
     (async () => {
       try {
         const s = await fetch(`${API}/api/brand/credit-summary`, { headers: { Authorization: `Bearer ${token}` } });
         setSummary(await s.json());
         const me = await fetch(`${API}/api/brand/me`, { headers: { Authorization: `Bearer ${token}` } });
         const meData = await me.json();
+        setEnterpriseType(meData?.brand?.type || "brand");
         const defAddr = meData?.brand?.default_ship_to || {};
         if (defAddr.address) {
           setAddress((a) => ({
@@ -131,6 +140,11 @@ const BrandCart = () => {
     if (!bulkLines.length && !sampleLines.length) return toast.error("Cart is empty");
     const err = validateAddress();
     if (err) return toast.error(err);
+    if (enterpriseType === "factory") {
+      if (!factory.po_file_url) return toast.error("Please upload the Purchase Order PDF");
+      if (!factory.tech_pack_url) return toast.error("Please upload the Tech Pack PDF");
+      if (!factory.qty_color_matrix.trim()) return toast.error("Please enter the Size × Color × Quantity breakdown");
+    }
     if (!bulkEnough) return toast.error(`Not enough credit for bulk (₹${availableCredit.toFixed(2)} available)`);
     if (!sampleEnough) return toast.error(`Not enough sample credits (${availableSample} available)`);
 
@@ -230,8 +244,8 @@ const BrandCart = () => {
             ))}
           </ul>
           <div className="space-y-2">
-            <Link to="/brand/orders" className="block w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium">View all orders</Link>
-            <Link to="/brand/fabrics" className="block w-full bg-white border border-gray-300 py-2.5 rounded-lg text-sm">Back to catalog</Link>
+            <Link to="/enterprise/orders" className="block w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium">View all orders</Link>
+            <Link to="/enterprise/fabrics" className="block w-full bg-white border border-gray-300 py-2.5 rounded-lg text-sm">Back to catalog</Link>
           </div>
         </div>
       </BrandLayout>
@@ -245,7 +259,7 @@ const BrandCart = () => {
           <ShoppingCart className="text-gray-300 mx-auto mb-4" size={56} />
           <h2 className="text-xl font-semibold text-gray-900 mb-1">Your cart is empty</h2>
           <p className="text-sm text-gray-500 mb-4">Browse the catalogue to add samples or bulk orders.</p>
-          <Link to="/brand/fabrics" className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
+          <Link to="/enterprise/fabrics" className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
             Browse Fabrics <ArrowRight size={14} />
           </Link>
         </div>
@@ -311,9 +325,79 @@ const BrandCart = () => {
             </div>
             <label className="flex items-center gap-2 mt-3 text-xs text-gray-600">
               <input type="checkbox" checked={saveDefault} onChange={(e) => setSaveDefault(e.target.checked)} />
-              Save as default shipping address for my brand
+              Save as default shipping address for my enterprise
             </label>
           </div>
+
+          {/* Factory-only attachments */}
+          {enterpriseType === "factory" && (
+            <div className="bg-white border border-gray-200 rounded-xl p-5" data-testid="brand-cart-factory-attachments">
+              <h3 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-1.5">
+                <Upload size={14} /> PO &amp; Tech Pack
+              </h3>
+              <p className="text-[11px] text-gray-500 mb-3">
+                Factories must attach a Purchase Order and Tech Pack to every order, plus the size/color/quantity breakdown.
+              </p>
+              <div className="space-y-3">
+                {[
+                  { key: "po_file_url", upKey: "po_uploading", label: "Purchase Order (PDF)*", testid: "factory-po" },
+                  { key: "tech_pack_url", upKey: "tp_uploading", label: "Tech Pack (PDF)*", testid: "factory-tp" },
+                ].map((f) => (
+                  <div key={f.key} className="flex items-center gap-3">
+                    <label className={`inline-flex items-center gap-2 px-3 py-2 border rounded-md text-xs cursor-pointer ${factory[f.upKey] ? "bg-gray-50 border-gray-200 text-gray-400" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"}`} data-testid={`${f.testid}-label`}>
+                      {factory[f.upKey] ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                      {factory[f.upKey] ? "Uploading…" : factory[f.key] ? "Replace" : `Upload ${f.label}`}
+                      <input
+                        type="file"
+                        accept="application/pdf,image/*"
+                        className="hidden"
+                        disabled={factory[f.upKey]}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setFactory((s) => ({ ...s, [f.upKey]: true }));
+                          try {
+                            const fd = new FormData();
+                            fd.append("file", file);
+                            const res = await fetch(`${API}/api/brand/upload-attachment`, {
+                              method: "POST",
+                              headers: { Authorization: `Bearer ${token}` },
+                              body: fd,
+                            });
+                            const d = await res.json();
+                            if (!res.ok) throw new Error(d.detail || "Upload failed");
+                            setFactory((s) => ({ ...s, [f.key]: d.url, [f.upKey]: false }));
+                            toast.success(`${f.label} uploaded`);
+                          } catch (err) {
+                            toast.error(err.message || "Upload failed");
+                            setFactory((s) => ({ ...s, [f.upKey]: false }));
+                          }
+                          e.target.value = "";
+                        }}
+                        data-testid={`${f.testid}-input`}
+                      />
+                    </label>
+                    {factory[f.key] && (
+                      <a href={factory[f.key]} target="_blank" rel="noreferrer" className="text-xs text-emerald-700 hover:underline truncate max-w-[200px]" data-testid={`${f.testid}-link`}>
+                        View uploaded file
+                      </a>
+                    )}
+                  </div>
+                ))}
+                <div>
+                  <p className="text-[11px] font-medium text-gray-600 mb-1">Size × Color × Quantity*</p>
+                  <textarea
+                    rows={4}
+                    placeholder={"e.g.\nIndigo · M 500pcs, L 300pcs, XL 200pcs\nEcru · M 200pcs"}
+                    value={factory.qty_color_matrix}
+                    onChange={(e) => setFactory((s) => ({ ...s, qty_color_matrix: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none font-mono"
+                    data-testid="factory-qty-matrix"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ─── Right: order summary ─── */}

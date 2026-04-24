@@ -29,8 +29,8 @@ const BrandFabricDetail = () => {
   const [showRfq, setShowRfq] = useState(false);
 
   useEffect(() => {
-    if (!token) { navigate("/brand/login"); return; }
-    if (user?.must_reset_password) { navigate("/brand/reset-password"); return; }
+    if (!token) { navigate("/enterprise/login"); return; }
+    if (user?.must_reset_password) { navigate("/enterprise/reset-password"); return; }
     (async () => {
       try {
         const [fRes, sRes] = await Promise.all([
@@ -49,7 +49,7 @@ const BrandFabricDetail = () => {
         setQty(moq);
       } catch (err) {
         toast.error(err.message || "Fabric not found");
-        navigate("/brand/fabrics");
+        navigate("/enterprise/fabrics");
       }
       setLoading(false);
     })();
@@ -131,7 +131,7 @@ const BrandFabricDetail = () => {
 
   return (
     <BrandLayout>
-      <Link to="/brand/fabrics" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-4">
+      <Link to="/enterprise/fabrics" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-4">
         <ArrowLeft size={14} /> Back to catalog
       </Link>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -262,7 +262,7 @@ const BrandFabricDetail = () => {
                   <strong data-testid="brand-balance-sample">{fmtCount(availableSample)}</strong> credits available
                 </p>
               </div>
-              <Link to="/brand/account" className="text-xs text-amber-700 hover:underline">Top up</Link>
+              <Link to="/enterprise/account" className="text-xs text-amber-700 hover:underline">Top up</Link>
             </div>
           ) : (
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-2 flex items-center justify-between" data-testid="brand-balance-credit-card">
@@ -273,7 +273,7 @@ const BrandFabricDetail = () => {
                   <span className="text-gray-500 text-xs ml-1.5" data-testid="brand-balance-credit">({fmtINR(availableCredit)})</span>
                 </p>
               </div>
-              <Link to="/brand/account" className="text-xs text-emerald-700 hover:underline">View ledger</Link>
+              <Link to="/enterprise/account" className="text-xs text-emerald-700 hover:underline">View ledger</Link>
             </div>
           )}
 

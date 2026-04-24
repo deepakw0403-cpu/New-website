@@ -15,7 +15,7 @@ from typing import List, Optional
 import bcrypt
 import jwt
 import resend
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 from pymongo import ReturnDocument
@@ -50,7 +50,12 @@ class BrandCreate(BaseModel):
     phone: Optional[str] = ""
     logo_url: Optional[str] = ""
     allowed_category_ids: List[str] = []
-    # Initial admin user for the brand
+    # V2: Factory vs Brand differentiator. Factories mirror brand flow but
+    # serve a single parent brand — they receive design allocations, upload
+    # POs/tech-packs and place orders on their own credit line.
+    type: str = "brand"  # "brand" | "factory"
+    parent_brand_id: Optional[str] = None  # required when type == "factory"
+    # Initial admin user for the enterprise
     admin_user_email: EmailStr
     admin_user_name: str
     admin_user_designation: Optional[str] = "Management"
@@ -64,6 +69,8 @@ class BrandUpdate(BaseModel):
     logo_url: Optional[str] = None
     allowed_category_ids: Optional[List[str]] = None
     status: Optional[str] = None
+    type: Optional[str] = None
+    parent_brand_id: Optional[str] = None
 
 
 # Job titles surfaced in the invite-user dropdown. Permission level is still
@@ -192,6 +199,20 @@ async def create_brand(data: BrandCreate, admin=Depends(auth_helpers.get_current
     if existing:
         raise HTTPException(status_code=400, detail=f"Email {data.admin_user_email} is already registered")
 
+    # Validate factory ↔ parent_brand link
+    entity_type = (data.type or "brand").strip().lower()
+    if entity_type not in ("brand", "factory"):
+        raise HTTPException(status_code=400, detail="type must be 'brand' or 'factory'")
+    parent_brand_id = (data.parent_brand_id or "").strip() or None
+    if entity_type == "factory":
+        if not parent_brand_id:
+            raise HTTPException(status_code=400, detail="parent_brand_id is required when type='factory'")
+        parent = await db.brands.find_one({"id": parent_brand_id, "$or": [{"type": "brand"}, {"type": {"$exists": False}}]}, {"_id": 0, "id": 1})
+        if not parent:
+            raise HTTPException(status_code=400, detail="parent_brand_id does not refer to an active brand")
+    else:
+        parent_brand_id = None
+
     brand_id = str(uuid.uuid4())
     brand_doc = {
         "id": brand_id,
@@ -201,6 +222,8 @@ async def create_brand(data: BrandCreate, admin=Depends(auth_helpers.get_current
         "phone": data.phone or "",
         "logo_url": data.logo_url or "",
         "allowed_category_ids": data.allowed_category_ids or [],
+        "type": entity_type,
+        "parent_brand_id": parent_brand_id,
         "status": "active",
         "sample_credits_total": 0,
         "sample_credits_used": 0,
@@ -242,9 +265,15 @@ async def create_brand(data: BrandCreate, admin=Depends(auth_helpers.get_current
 @router.get("/admin/brands")
 async def list_brands(admin=Depends(auth_helpers.get_current_admin)):
     brands = await db.brands.find({}, {"_id": 0}).sort("created_at", -1).to_list(length=500)
-    # Attach user count per brand
+    # Build a quick lookup for parent brand names (factories only)
+    brand_name_by_id = {b["id"]: b.get("name", "") for b in brands}
+    # Attach user count + parent brand label per enterprise
     for b in brands:
         b["user_count"] = await db.brand_users.count_documents({"brand_id": b["id"]})
+        # Default legacy docs (no `type` field) to "brand"
+        b.setdefault("type", "brand")
+        if b.get("type") == "factory" and b.get("parent_brand_id"):
+            b["parent_brand_name"] = brand_name_by_id.get(b["parent_brand_id"], "")
     return brands
 
 
@@ -394,6 +423,43 @@ async def brand_save_default_ship_to(data: dict, user=Depends(get_current_brand_
     }
     await db.brands.update_one({"id": user["brand_id"]}, {"$set": {"default_ship_to": address}})
     return {"message": "Default shipping address saved"}
+
+
+@router.post("/brand/upload-attachment")
+async def brand_upload_attachment(file: UploadFile = File(...), user=Depends(get_current_brand_user)):
+    """Upload a PDF/image (tech pack, PO) to Cloudinary and return the public URL.
+    Factory-only use-case in V1 but available to all brand users.
+    Max 15MB. Allowed types: application/pdf, image/*.
+    """
+    import cloudinary
+    import cloudinary.uploader
+
+    allowed_prefixes = ("application/pdf", "image/")
+    if not any((file.content_type or "").startswith(p) for p in allowed_prefixes):
+        raise HTTPException(status_code=400, detail="Only PDF or image files are accepted")
+
+    # Read & size check
+    raw = await file.read()
+    if len(raw) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File exceeds 15MB limit")
+
+    try:
+        # `resource_type=auto` handles both PDF (raw) and image variants
+        result = cloudinary.uploader.upload(
+            raw,
+            folder=f"enterprise_attachments/{user['brand_id']}",
+            resource_type="auto",
+            use_filename=True,
+            unique_filename=True,
+        )
+        return {
+            "url": result.get("secure_url"),
+            "public_id": result.get("public_id"),
+            "bytes": result.get("bytes"),
+            "format": result.get("format"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 
 # ───── BRAND-FACING — Users (brand_admin can manage) ─────
@@ -634,6 +700,12 @@ class BrandOrderCreate(BaseModel):
     ship_to_city: Optional[str] = ""
     ship_to_state: Optional[str] = ""
     ship_to_pincode: Optional[str] = ""
+    # Factory-only fields (ignored when placed by a regular brand user).
+    # For V1: plain Cloudinary URLs (upload handled via the same /api/cloudinary
+    # upload endpoint used by Admin) + free-text qty × color × size matrix.
+    po_file_url: Optional[str] = ""
+    tech_pack_url: Optional[str] = ""
+    qty_color_matrix: Optional[str] = ""
 
 
 class BrandTopupCreate(BaseModel):
@@ -1084,6 +1156,11 @@ async def brand_create_order(data: BrandOrderCreate, user=Depends(get_current_br
         "brand_user_email": user["email"],
         "order_type": data.order_type,
         "notes": data.notes or "",
+        # Factory-only optional attachments (blank for regular brand orders)
+        "enterprise_type": brand.get("type", "brand"),
+        "po_file_url": (data.po_file_url or "").strip(),
+        "tech_pack_url": (data.tech_pack_url or "").strip(),
+        "qty_color_matrix": (data.qty_color_matrix or "").strip(),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "paid_at": datetime.now(timezone.utc).isoformat(),
     }

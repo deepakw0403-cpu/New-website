@@ -15,7 +15,7 @@ const AdminLayout = ({ children }) => {
     { path: "/admin/articles", label: "Articles", icon: Palette },
     { path: "/admin/categories", label: "Categories", icon: FolderOpen },
     { path: "/admin/sellers", label: "Sellers", icon: Building2 },
-    { path: "/admin/brands", label: "Brands", icon: Briefcase },
+    { path: "/admin/brands", label: "Enterprises", icon: Briefcase },
     { path: "/admin/reviews", label: "Reviews", icon: MessageSquare },
     { path: "/admin/collections", label: "Collections", icon: Package },
     { path: "/admin/coupons", label: "Coupons", icon: Tag },

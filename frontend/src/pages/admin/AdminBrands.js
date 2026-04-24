@@ -25,6 +25,8 @@ const AdminBrands = () => {
   const [form, setForm] = useState({
     name: "", gst: "", address: "", phone: "",
     logo_url: "",
+    type: "brand",  // "brand" | "factory"
+    parent_brand_id: "",
     admin_user_email: "", admin_user_name: "", admin_user_designation: "Management",
     allowed_category_ids: [],
   });
@@ -259,12 +261,12 @@ const AdminBrands = () => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
-              <Building2 size={22} /> Brands
+              <Building2 size={22} /> Enterprises
             </h1>
-            <p className="text-sm text-gray-500 mt-1">Enterprise customers with curated catalogs + credit lines</p>
+            <p className="text-sm text-gray-500 mt-1">Brands &amp; their factories — curated catalogs + credit lines</p>
           </div>
           <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium text-sm" data-testid="create-brand-btn">
-            <Plus size={16} /> Create Brand
+            <Plus size={16} /> Create Enterprise
           </button>
         </div>
 
@@ -273,15 +275,16 @@ const AdminBrands = () => {
         ) : brands.length === 0 ? (
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-12 text-center">
             <Building2 className="text-gray-300 mx-auto mb-3" size={40} />
-            <h3 className="text-gray-700 font-medium mb-1">No brands yet</h3>
-            <p className="text-sm text-gray-500">Click "Create Brand" to onboard your first enterprise customer.</p>
+            <h3 className="text-gray-700 font-medium mb-1">No enterprises yet</h3>
+            <p className="text-sm text-gray-500">Click "Create Enterprise" to onboard your first brand or factory.</p>
           </div>
         ) : (
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr className="text-left text-xs font-medium text-gray-500 uppercase">
-                  <th className="px-4 py-3">Brand</th>
+                  <th className="px-4 py-3">Enterprise</th>
+                  <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">GST</th>
                   <th className="px-4 py-3">Categories</th>
                   <th className="px-4 py-3">Users</th>
@@ -306,6 +309,16 @@ const AdminBrands = () => {
                           <div className="text-xs text-gray-500">{b.phone || b.address || "—"}</div>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {(b.type || "brand") === "factory" ? (
+                        <div>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-800">Factory</span>
+                          {b.parent_brand_name && <div className="text-[11px] text-gray-500 mt-0.5">↳ {b.parent_brand_name}</div>}
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 text-blue-800">Brand</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-600 text-xs">{b.gst || "—"}</td>
                     <td className="px-4 py-3 text-gray-600">
@@ -333,13 +346,53 @@ const AdminBrands = () => {
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowCreate(false)}>
             <div className="bg-white rounded-xl max-w-xl w-full p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} data-testid="create-brand-modal">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Create Brand</h2>
+                <h2 className="text-lg font-semibold">Create Enterprise</h2>
                 <button onClick={() => setShowCreate(false)}><X size={18} /></button>
               </div>
               <form onSubmit={submit} className="space-y-3">
+                {/* Type picker — Brand vs Factory */}
+                <div>
+                  <p className="text-xs font-medium text-gray-600 mb-1.5">Enterprise Type *</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { v: "brand", label: "Brand", hint: "Owns the designs, allocates to factory" },
+                      { v: "factory", label: "Factory", hint: "Receives allocations, places orders" },
+                    ].map((o) => (
+                      <button
+                        type="button"
+                        key={o.v}
+                        onClick={() => setForm((f) => ({ ...f, type: o.v, parent_brand_id: o.v === "brand" ? "" : f.parent_brand_id }))}
+                        className={`text-left px-3 py-2 rounded-lg border ${form.type === o.v ? "bg-emerald-50 border-emerald-400 text-emerald-800" : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+                        data-testid={`enterprise-type-${o.v}`}
+                      >
+                        <div className="text-sm font-medium">{o.label}</div>
+                        <div className="text-[11px] text-gray-500">{o.hint}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {form.type === "factory" && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 mb-1.5">Parent Brand *</p>
+                    <select
+                      required
+                      value={form.parent_brand_id}
+                      onChange={(e) => setForm({ ...form, parent_brand_id: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                      data-testid="create-enterprise-parent-brand"
+                    >
+                      <option value="">Select parent brand…</option>
+                      {brands.filter((b) => (b.type || "brand") === "brand").map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Logo uploader — the personal touch */}
                 <div>
-                  <p className="text-xs font-medium text-gray-600 mb-1.5">Brand Logo <span className="text-gray-400 font-normal">(optional — shows in the brand portal header)</span></p>
+                  <p className="text-xs font-medium text-gray-600 mb-1.5">{form.type === "factory" ? "Factory" : "Brand"} Logo <span className="text-gray-400 font-normal">(optional — shows in the portal header)</span></p>
                   <div className="flex items-center gap-3">
                     <div className="w-16 h-16 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0" data-testid="create-brand-logo-preview">
                       {form.logo_url ? (
@@ -369,13 +422,13 @@ const AdminBrands = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <input required placeholder="Brand Name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" data-testid="create-brand-name" />
+                  <input required placeholder={`${form.type === "factory" ? "Factory" : "Brand"} Name *`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" data-testid="create-brand-name" />
                   <input placeholder="GST Number" value={form.gst} onChange={(e) => setForm({ ...form, gst: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                 </div>
                 <input placeholder="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                 <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                 <div className="border-t border-gray-100 pt-3">
-                  <p className="text-xs font-medium text-gray-600 mb-2">Initial Brand Admin User</p>
+                  <p className="text-xs font-medium text-gray-600 mb-2">Initial Admin User</p>
                   <div className="grid grid-cols-2 gap-3">
                     <input required type="email" placeholder="Admin Email *" value={form.admin_user_email} onChange={(e) => setForm({ ...form, admin_user_email: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" data-testid="create-brand-admin-email" />
                     <input required placeholder="Admin Full Name *" value={form.admin_user_name} onChange={(e) => setForm({ ...form, admin_user_name: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" data-testid="create-brand-admin-name" />
@@ -397,7 +450,7 @@ const AdminBrands = () => {
                   </div>
                 </div>
                 <button type="submit" disabled={creating} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50" data-testid="submit-create-brand">
-                  {creating ? <><Loader2 size={14} className="animate-spin" /> Creating...</> : "Create Brand & Send Welcome Email"}
+                  {creating ? <><Loader2 size={14} className="animate-spin" /> Creating...</> : `Create ${form.type === "factory" ? "Factory" : "Brand"} & Send Welcome Email`}
                 </button>
               </form>
             </div>

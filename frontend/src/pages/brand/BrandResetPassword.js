@@ -30,7 +30,7 @@ const BrandResetPassword = () => {
       updateUser({ must_reset_password: false });
       toast.success("Password updated. Please sign in again.");
       logout();
-      navigate("/brand/login");
+      navigate("/enterprise/login");
     } catch (err) {
       toast.error(err.message);
     }

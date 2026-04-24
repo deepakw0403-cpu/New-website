@@ -43,8 +43,8 @@ const BrandAccount = () => {
   };
 
   useEffect(() => {
-    if (!token) { navigate("/brand/login"); return; }
-    if (user?.must_reset_password) { navigate("/brand/reset-password"); return; }
+    if (!token) { navigate("/enterprise/login"); return; }
+    if (user?.must_reset_password) { navigate("/enterprise/reset-password"); return; }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);

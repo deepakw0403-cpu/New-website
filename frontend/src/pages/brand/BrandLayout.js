@@ -21,19 +21,19 @@ const BrandLayout = ({ children }) => {
   }, []);
 
   const nav = [
-    { to: "/brand/fabrics", label: "Catalog", icon: Package },
-    { to: "/brand/orders", label: "Orders", icon: ShoppingBag },
-    ...(user?.role === "brand_admin" ? [{ to: "/brand/users", label: "Users", icon: Users }] : []),
+    { to: "/enterprise/fabrics", label: "Catalog", icon: Package },
+    { to: "/enterprise/orders", label: "Orders", icon: ShoppingBag },
+    ...(user?.role === "brand_admin" ? [{ to: "/enterprise/users", label: "Users", icon: Users }] : []),
   ];
 
-  const handleLogout = () => { logout(); navigate("/brand/login"); };
+  const handleLogout = () => { logout(); navigate("/enterprise/login"); };
   const isActive = (p) => pathname === p || pathname.startsWith(p + "/");
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/brand/fabrics" className="flex items-center gap-3" data-testid="brand-header-home">
+          <Link to="/enterprise/fabrics" className="flex items-center gap-3" data-testid="brand-header-home">
             {user?.brand_logo_url ? (
               <img src={user.brand_logo_url} alt={user.brand_name} className="w-9 h-9 rounded-lg object-cover border border-gray-200" data-testid="brand-header-logo" />
             ) : (
@@ -59,8 +59,8 @@ const BrandLayout = ({ children }) => {
           </nav>
           <div className="flex items-center gap-4">
             {/* Cart — always visible, badge shows item count */}
-            <Link to="/brand/cart" data-testid="brand-nav-cart"
-              className={`relative p-2 rounded-md transition-colors ${isActive("/brand/cart") ? "bg-emerald-50 text-emerald-700" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"}`}
+            <Link to="/enterprise/cart" data-testid="brand-nav-cart"
+              className={`relative p-2 rounded-md transition-colors ${isActive("/enterprise/cart") ? "bg-emerald-50 text-emerald-700" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"}`}
               title="Cart">
               <ShoppingCart size={16} />
               {itemCount > 0 && (
@@ -70,8 +70,8 @@ const BrandLayout = ({ children }) => {
               )}
             </Link>
             {/* Wallet — unobtrusive link to /brand/account */}
-            <Link to="/brand/account" title="Credit & Sample balances" data-testid="brand-nav-account"
-              className={`p-2 rounded-md transition-colors ${isActive("/brand/account") ? "bg-emerald-50 text-emerald-700" : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}>
+            <Link to="/enterprise/account" title="Credit & Sample balances" data-testid="brand-nav-account"
+              className={`p-2 rounded-md transition-colors ${isActive("/enterprise/account") ? "bg-emerald-50 text-emerald-700" : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}>
               <Wallet size={16} />
             </Link>
             <span className="text-sm text-gray-600 hidden md:block">{user?.name}</span>

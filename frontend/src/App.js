@@ -290,16 +290,27 @@ function App() {
           <Route path="/admin/commission" element={<ProtectedRoute><AdminCommission /></ProtectedRoute>} />
           <Route path="/admin/brands" element={<ProtectedRoute><AdminBrands /></ProtectedRoute>} />
 
-          {/* Brand Portal routes */}
-          <Route path="/brand/login" element={<BrandLogin />} />
-          <Route path="/brand/reset-password" element={<BrandResetPassword />} />
-          <Route path="/brand/fabrics" element={<BrandFabrics />} />
+          {/* Enterprise Portal routes (Brands + Factories) — canonical /enterprise/*, with /brand/* kept as permanent redirects for backwards compat */}
+          <Route path="/enterprise/login" element={<BrandLogin />} />
+          <Route path="/enterprise/reset-password" element={<BrandResetPassword />} />
+          <Route path="/enterprise/fabrics" element={<BrandFabrics />} />
+          <Route path="/enterprise/fabrics/:id" element={<BrandFabricDetail />} />
+          <Route path="/enterprise/account" element={<BrandAccount />} />
+          <Route path="/enterprise/users" element={<BrandUsers />} />
+          <Route path="/enterprise/orders" element={<BrandOrders />} />
+          <Route path="/enterprise/cart" element={<BrandCart />} />
+          <Route path="/enterprise" element={<Navigate to="/enterprise/fabrics" replace />} />
+
+          {/* Legacy /brand/* → /enterprise/* (permanent) */}
+          <Route path="/brand/login" element={<Navigate to="/enterprise/login" replace />} />
+          <Route path="/brand/reset-password" element={<Navigate to="/enterprise/reset-password" replace />} />
+          <Route path="/brand/fabrics" element={<Navigate to="/enterprise/fabrics" replace />} />
           <Route path="/brand/fabrics/:id" element={<BrandFabricDetail />} />
-          <Route path="/brand/account" element={<BrandAccount />} />
-          <Route path="/brand/users" element={<BrandUsers />} />
-          <Route path="/brand/orders" element={<BrandOrders />} />
-          <Route path="/brand/cart" element={<BrandCart />} />
-          <Route path="/brand" element={<Navigate to="/brand/fabrics" replace />} />
+          <Route path="/brand/account" element={<Navigate to="/enterprise/account" replace />} />
+          <Route path="/brand/users" element={<Navigate to="/enterprise/users" replace />} />
+          <Route path="/brand/orders" element={<Navigate to="/enterprise/orders" replace />} />
+          <Route path="/brand/cart" element={<Navigate to="/enterprise/cart" replace />} />
+          <Route path="/brand" element={<Navigate to="/enterprise/fabrics" replace />} />
 
           {/* Vendor routes */}
           <Route path="/vendor/login" element={<VendorLogin />} />

@@ -129,8 +129,8 @@ const BrandFabrics = () => {
   const [showFilters, setShowFilters] = useState(true);
 
   useEffect(() => {
-    if (!token) { navigate("/brand/login"); return; }
-    if (user?.must_reset_password) { navigate("/brand/reset-password"); return; }
+    if (!token) { navigate("/enterprise/login"); return; }
+    if (user?.must_reset_password) { navigate("/enterprise/reset-password"); return; }
     fetch(`${API}/api/brand/fabrics/filter-options`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json()).then(setFacets).catch(() => {});
   }, [token, user, navigate]);

@@ -17,7 +17,7 @@ const BrandLogin = () => {
     try {
       const user = await login(email, password);
       toast.success(`Welcome, ${user.name}`);
-      navigate(user.must_reset_password ? "/brand/reset-password" : "/brand/fabrics");
+      navigate(user.must_reset_password ? "/enterprise/reset-password" : "/enterprise/fabrics");
     } catch (err) {
       toast.error(err.message);
     }
@@ -33,8 +33,8 @@ const BrandLogin = () => {
               <Building2 className="text-white" size={22} />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">Brand Portal</h1>
-              <p className="text-xs text-gray-500">Sign in to your Locofast account</p>
+              <h1 className="text-lg font-semibold text-gray-900">Enterprise Portal</h1>
+              <p className="text-xs text-gray-500">Brands &amp; factories — sign in to your Locofast account</p>
             </div>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
