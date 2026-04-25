@@ -275,6 +275,12 @@ def _build_fabric_query(
             {'fabric_code': {'$regex': search, '$options': 'i'}},
             {'seller_sku': {'$regex': search, '$options': 'i'}},
             {'description': {'$regex': search, '$options': 'i'}},
+            {'category_name': {'$regex': search, '$options': 'i'}},
+            {'fabric_type': {'$regex': search, '$options': 'i'}},
+            {'weave_type': {'$regex': search, '$options': 'i'}},
+            {'pattern': {'$regex': search, '$options': 'i'}},
+            {'composition.material': {'$regex': search, '$options': 'i'}},
+            {'seller_company': {'$regex': search, '$options': 'i'}},
         ]})
 
     if and_conditions:
