@@ -24,6 +24,30 @@ def set_db(database):
     db = database
 
 
+# ==================== DISPATCH TIMELINE VALIDATION ====================
+# Must match `frontend/src/lib/dispatchOptions.js`. Centralised here so vendor
+# and admin write paths share the same allowed-value list.
+READY_STOCK_DISPATCH_VALUES = {"1-2 days", "3-5 days", "6-9 days", "10-14 days"}
+MTO_DISPATCH_VALUES = {f"{d} days" for d in (15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75)}
+ALL_DISPATCH_VALUES = READY_STOCK_DISPATCH_VALUES | MTO_DISPATCH_VALUES
+
+
+def validate_dispatch_timeline(value: Optional[str], stock_type: Optional[str]) -> str:
+    """Raise 400 if dispatch_timeline is missing or doesn't match the preset
+    list for the given stock_type. Returns the trimmed value on success."""
+    v = (value or "").strip()
+    if not v:
+        raise HTTPException(status_code=400, detail="Dispatch timeline is required")
+    expected = MTO_DISPATCH_VALUES if stock_type == "made_to_order" else READY_STOCK_DISPATCH_VALUES
+    if v not in expected:
+        bucket = "Made to Order" if stock_type == "made_to_order" else "Ready Stock"
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid dispatch timeline '{v}' for {bucket}. Allowed: {sorted(expected)}",
+        )
+    return v
+
+
 # ==================== MODELS ====================
 
 class CompositionItem(BaseModel):
@@ -591,6 +615,10 @@ async def create_fabric(data: FabricCreate, admin=Depends(auth_helpers.get_curre
     if not category:
         raise HTTPException(status_code=400, detail='Category not found')
 
+    # Hard-required: dispatch_timeline must be one of the preset values for the
+    # selected stock_type. Older drafts are migrated by the backfill endpoint.
+    data.dispatch_timeline = validate_dispatch_timeline(data.dispatch_timeline, data.stock_type)
+
     seller = None
     if data.seller_id:
         seller = await db.sellers.find_one({'id': data.seller_id}, {'_id': 0})
@@ -626,6 +654,17 @@ async def update_fabric(fabric_id: str, data: FabricUpdate, admin=Depends(auth_h
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail='No data to update')
+
+    # If either dispatch_timeline or stock_type is being modified, validate the
+    # combination against the preset list. We need the existing fabric to know
+    # the effective stock_type after the merge.
+    if 'dispatch_timeline' in update_data or 'stock_type' in update_data:
+        existing = await db.fabrics.find_one({'id': fabric_id}, {'_id': 0, 'stock_type': 1, 'dispatch_timeline': 1})
+        if not existing:
+            raise HTTPException(status_code=404, detail='Fabric not found')
+        effective_stock = update_data.get('stock_type', existing.get('stock_type', 'ready_stock'))
+        effective_disp = update_data.get('dispatch_timeline', existing.get('dispatch_timeline', ''))
+        update_data['dispatch_timeline'] = validate_dispatch_timeline(effective_disp, effective_stock)
 
     if 'name' in update_data:
         update_data['slug'] = generate_slug(update_data['name'], fabric_id)

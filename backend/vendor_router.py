@@ -12,6 +12,7 @@ import bcrypt
 from datetime import datetime, timezone, timedelta
 from motor.motor_asyncio import AsyncIOMotorClient
 from composition_utils import canonicalize_composition
+from fabric_router import validate_dispatch_timeline
 
 
 def _canon_comp_or_raw(comp):
@@ -252,6 +253,9 @@ async def get_vendor_fabric(fabric_id: str, vendor=Depends(get_current_vendor)):
 @router.post("/fabrics")
 async def create_vendor_fabric(data: FabricCreate, vendor=Depends(get_current_vendor)):
     """Create a new fabric for this vendor"""
+    # Hard-required: dispatch_timeline must match the preset list for stock_type
+    data.dispatch_timeline = validate_dispatch_timeline(data.dispatch_timeline, data.stock_type)
+
     fabric_id = str(uuid.uuid4())
     
     # Get category name
@@ -329,6 +333,11 @@ async def update_vendor_fabric(fabric_id: str, data: FabricUpdate, vendor=Depend
     
     if not update_data:
         raise HTTPException(status_code=400, detail='No data to update')
+
+    if 'dispatch_timeline' in update_data or 'stock_type' in update_data:
+        effective_stock = update_data.get('stock_type', fabric.get('stock_type', 'ready_stock'))
+        effective_disp = update_data.get('dispatch_timeline', fabric.get('dispatch_timeline', ''))
+        update_data['dispatch_timeline'] = validate_dispatch_timeline(effective_disp, effective_stock)
 
     if 'composition' in update_data:
         update_data['composition'] = _canon_comp_or_raw(update_data['composition'])

@@ -561,6 +561,11 @@ const AdminFabrics = () => {
       return;
     }
 
+    if (!form.dispatch_timeline) {
+      toast.error("Please select a Dispatch Timeline");
+      return;
+    }
+
     // Validate weight - either GSM or Ounce required based on weight_unit
     if (form.weight_unit === "gsm" && !form.gsm) {
       toast.error("Please enter GSM value");

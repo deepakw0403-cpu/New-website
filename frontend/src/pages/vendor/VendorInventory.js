@@ -388,6 +388,8 @@ const VendorInventory = () => {
     if (form.weight_unit === "gsm" && !form.gsm) { toast.error("Please enter GSM"); return; }
     if (form.weight_unit === "ounce" && !form.ounce) { toast.error("Please enter Ounce"); return; }
 
+    if (!form.dispatch_timeline) { toast.error("Please select a Dispatch Timeline"); return; }
+
     const cleanComp = form.composition.filter(c => c.material && c.percentage > 0);
     const hasPoly = cleanComp.some(c => c.material?.toLowerCase().includes('polyester'));
 
