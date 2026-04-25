@@ -33,6 +33,10 @@ JWT_EXPIRATION_HOURS = 24 * 7  # 1 week
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
 SITE_URL = os.environ.get("SITE_URL", "https://locofast.com")
+# Fixed ops inbox for sensitive admin OTPs (credit-line / sample-credit adjustments).
+# Decoupled from the logged-in admin's email so the same inbox can be monitored
+# centrally regardless of which admin user triggers the action.
+BRAND_OTP_INBOX = os.environ.get("BRAND_OTP_INBOX", "mail@locofast.com")
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
 
@@ -1010,8 +1014,8 @@ async def request_credit_line_otp(brand_id: str, data: BrandCreditOtpRequest, ad
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.admin_otps.insert_one(otp_doc)
-    await asyncio.to_thread(_send_otp_email_sync, admin.get("email"), code, brand["name"], data.amount_inr, data.lender_name)
-    return {"otp_request_id": otp_id, "sent_to": admin.get("email"), "expires_in_minutes": 10}
+    await asyncio.to_thread(_send_otp_email_sync, BRAND_OTP_INBOX, code, brand["name"], data.amount_inr, data.lender_name)
+    return {"otp_request_id": otp_id, "sent_to": BRAND_OTP_INBOX, "expires_in_minutes": 10}
 
 
 @router.post("/admin/brands/{brand_id}/credit-lines")
@@ -1102,7 +1106,7 @@ async def request_sample_credit_otp(brand_id: str, data: SampleCreditOtpRequest,
             action = "add" if data.delta > 0 else "remove"
             resend.Emails.send({
                 "from": SENDER_EMAIL,
-                "to": [admin.get("email")],
+                "to": [BRAND_OTP_INBOX],
                 "subject": f"OTP: Confirm {action} {abs(data.delta)} sample credits for {brand['name']}",
                 "html": f"""
                   <div style="font-family:-apple-system,Segoe UI,Helvetica,sans-serif;max-width:560px;margin:0 auto;">
@@ -1125,7 +1129,7 @@ async def request_sample_credit_otp(brand_id: str, data: SampleCreditOtpRequest,
     except Exception as e:
         logging.error(f"Sample OTP email failed: {e}")
 
-    return {"otp_request_id": otp_id, "sent_to": admin.get("email"), "expires_in_minutes": 10}
+    return {"otp_request_id": otp_id, "sent_to": BRAND_OTP_INBOX, "expires_in_minutes": 10}
 
 
 @router.post("/admin/brands/{brand_id}/sample-credits")
