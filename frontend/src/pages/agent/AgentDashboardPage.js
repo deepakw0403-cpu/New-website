@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAgentAuth } from "../../context/AgentAuthContext";
 import { Search, ShoppingCart, Send, Package, LogOut, Plus, Minus, Trash2, ExternalLink, Copy, Loader2, Eye, Clock, CheckCircle, XCircle, FileText, Store } from "lucide-react";
 import { toast } from "sonner";
+import axios from "axios";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 
@@ -144,17 +145,16 @@ const AgentDashboardPage = () => {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch(`${API}/api/agent/upload-payment-proof`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+      const { data } = await axios.post(
+        `${API}/api/agent/upload-payment-proof`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setPaymentProofUrl(data.url);
       toast.success("Payment proof uploaded");
     } catch (err) {
-      toast.error(err.message);
+      const msg = err?.response?.data?.detail || err?.message || 'Upload failed';
+      toast.error(msg);
     }
     setUploading(false);
   };
@@ -163,16 +163,16 @@ const AgentDashboardPage = () => {
     if (!cart.length) return;
     setSharing(true);
     try {
-      const res = await fetch(`${API}/api/agent/shared-cart`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ items: cart, customer_email: customerEmail, notes: "", payment_proof_url: paymentProofUrl, dispatch_country: dispatchCountry }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Failed");
+      // Use axios (not fetch) — fetch's Response body stream can be consumed
+      // by browser extensions/interceptors, causing "body stream already read"
+      const { data } = await axios.post(
+        `${API}/api/agent/shared-cart`,
+        { items: cart, customer_email: customerEmail, notes: "", payment_proof_url: paymentProofUrl, dispatch_country: dispatchCountry },
+        { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
+      );
       const link = `${window.location.origin}/shared-cart/${data.token}`;
       try { await navigator.clipboard.writeText(link); } catch { /* clipboard may fail */ }
-      toast.success(`Quote link: ${link}`);
+      toast.success(`Quote link copied: ${link}`);
       setCart([]);
       setCustomerEmail("");
       setPaymentProofUrl("");
@@ -180,7 +180,8 @@ const AgentDashboardPage = () => {
       setActiveTab("shared");
       fetchSharedCarts();
     } catch (err) {
-      toast.error(err.message);
+      const msg = err?.response?.data?.detail || err?.message || "Failed to generate link";
+      toast.error(msg);
     }
     setSharing(false);
   };
