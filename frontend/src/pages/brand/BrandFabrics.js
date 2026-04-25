@@ -5,6 +5,7 @@ import BrandLayout from "./BrandLayout";
 import { Package, Loader2, ShoppingCart, Beaker, MessageSquare, Search, SlidersHorizontal, X } from "lucide-react";
 import { displayFabricName } from "../../lib/fabricDisplay";
 import { thumbImage, fabricCoverImage } from "../../lib/imageUrl";
+import { getCheapestBulkPrice, formatQtyThreshold } from "../../lib/pricing";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -75,12 +76,19 @@ const FabricCard = ({ f, onOpen }) => {
             <span className="text-gray-400 text-xs">On Enquiry</span>
           )}
         </div>
-        {rate > 0 && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500 text-xs">Bulk</span>
-            <span className="font-semibold text-gray-900">₹{rate}/{unit}</span>
-          </div>
-        )}
+        {(() => {
+          const cheapest = getCheapestBulkPrice(f);
+          if (!cheapest) return null;
+          return (
+            <div className="flex items-center justify-between text-sm" data-testid={`brand-card-bulk-${f.id}`}>
+              <span className="text-gray-500 text-xs">
+                {cheapest.hasTier ? "Bulk from" : "Bulk"}
+                {cheapest.minQty ? <span className="ml-1 text-[10px] text-gray-400">@ {formatQtyThreshold(cheapest.minQty, unit)}</span> : null}
+              </span>
+              <span className="font-semibold text-gray-900">₹{cheapest.price}/{unit}</span>
+            </div>
+          );
+        })()}
         <div className="mt-3 grid gap-1.5">
           {rate > 0 && stock > 0 ? (
             <button onClick={() => onOpen(f)} className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 rounded-md" data-testid={`brand-bulk-${f.id}`}>

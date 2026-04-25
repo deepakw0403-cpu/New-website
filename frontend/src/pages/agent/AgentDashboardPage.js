@@ -5,6 +5,7 @@ import { Search, ShoppingCart, Send, Package, LogOut, Plus, Minus, Trash2, Exter
 import { toast } from "sonner";
 import axios from "axios";
 import { getFabrics, getFabricsCount, getCategories, getFabricFilterOptions } from "../../lib/api";
+import { getCheapestBulkPrice, formatQtyThreshold } from "../../lib/pricing";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -579,7 +580,18 @@ const AgentDashboardPage = () => {
                               </div>
                             )}
                             <div className="flex items-center justify-between mt-3">
-                              <span className="text-lg font-semibold text-[#2563EB]">₹{f.rate_per_meter?.toLocaleString()}<span className="text-xs font-normal text-gray-500">/m</span></span>
+                              {(() => {
+                                const cheapest = getCheapestBulkPrice(f);
+                                if (!cheapest) return <span className="text-sm text-gray-400">Price on enquiry</span>;
+                                return (
+                                  <div className="flex flex-col">
+                                    <span className="text-lg font-semibold text-[#2563EB]">₹{cheapest.price.toLocaleString()}<span className="text-xs font-normal text-gray-500">/m</span></span>
+                                    {cheapest.hasTier && cheapest.minQty && (
+                                      <span className="text-[10px] text-gray-500">from {formatQtyThreshold(cheapest.minQty, "m")}</span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                               <div className="flex gap-1">
                                 <button
                                   onClick={() => addToCart(f, "sample")}

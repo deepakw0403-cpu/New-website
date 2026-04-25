@@ -10,6 +10,7 @@ import Footer from "../components/Footer";
 import RFQModal from "../components/RFQModal";
 import { DispatchLine } from "../components/DispatchBadges";
 import { getFabrics, getFabricsCount, getCategories, createEnquiry, getFabricFilterOptions } from "../lib/api";
+import { getCheapestBulkPrice, formatQtyThreshold } from "../lib/pricing";
 import { trackViewItemList } from "../lib/analytics";
 import { toast } from "sonner";
 
@@ -706,13 +707,20 @@ const FabricsPage = () => {
                         </div>
                       )}
 
-                      {/* Pricing info */}
-                      {actions.canBookSample && (
-                        <div className="flex items-center justify-between text-xs sm:text-sm mb-2 sm:mb-3 pt-2 border-t border-gray-100">
-                          <span className="text-gray-500">Sample</span>
-                          <span className="font-semibold text-emerald-600">₹{actions.samplePrice?.toLocaleString()}{getUnit(fabric).priceLabel}</span>
-                        </div>
-                      )}
+                      {/* Pricing info — show cheapest BULK tier as the bait */}
+                      {(() => {
+                        const cheapest = getCheapestBulkPrice(fabric);
+                        if (!cheapest) return null;
+                        return (
+                          <div className="flex items-center justify-between text-xs sm:text-sm mb-2 sm:mb-3 pt-2 border-t border-gray-100" data-testid={`card-price-${fabric.id}`}>
+                            <span className="text-gray-500">
+                              {cheapest.hasTier ? "Bulk from" : "Bulk"}
+                              {cheapest.minQty ? <span className="ml-1 text-[10px] text-gray-400">@ {formatQtyThreshold(cheapest.minQty, getUnit(fabric).short)}</span> : null}
+                            </span>
+                            <span className="font-semibold text-emerald-600">₹{cheapest.price.toLocaleString()}{getUnit(fabric).priceLabel}</span>
+                          </div>
+                        );
+                      })()}
 
                       {/* Action Buttons */}
                       <div className="flex flex-col gap-1.5 sm:gap-2">
