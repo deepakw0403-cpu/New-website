@@ -391,3 +391,155 @@ async def migrate_greige(
 
     r = await db.categories.delete_one({"id": greige_id})
     return {"apply": True, "status": "applied", "greige_deleted": bool(r.deleted_count)}
+
+
+# ==================== BACKFILL DISPATCH TIMELINE ====================
+# Maps every fabric's free-text `dispatch_timeline` into the new preset list:
+#   ready_stock   → "1-2 days" | "3-5 days" | "6-9 days" | "10-14 days"
+#   made_to_order → "15 days" .. "75 days" (5-day increments)
+#
+# Strategy: parse leading numeric value (or range midpoint) from the string,
+# choose the nearest preset bucket, and update the row. Idempotent — fabrics
+# already on a valid preset are skipped (no DB write, counted as "ok").
+#
+# Defaults applied when value is missing/unparseable:
+#   ready_stock   → "3-5 days"
+#   made_to_order → "30 days"
+
+READY_STOCK_PRESETS = [
+    {"value": "1-2 days",   "lo": 1,  "hi": 2,  "mid": 1.5},
+    {"value": "3-5 days",   "lo": 3,  "hi": 5,  "mid": 4.0},
+    {"value": "6-9 days",   "lo": 6,  "hi": 9,  "mid": 7.5},
+    {"value": "10-14 days", "lo": 10, "hi": 14, "mid": 12.0},
+]
+MTO_PRESETS = [
+    {"value": f"{d} days", "mid": float(d)}
+    for d in [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75]
+]
+READY_STOCK_VALUES = {p["value"] for p in READY_STOCK_PRESETS}
+MTO_VALUES = {p["value"] for p in MTO_PRESETS}
+
+_NUM_RX = re.compile(r"(\d+(?:\.\d+)?)")
+
+
+def _parse_days(text: str):
+    """Extract a numeric "days" estimate from free-text dispatch strings.
+
+    Examples:
+      "7-10 days"   -> 8.5  (midpoint)
+      "30 days"     -> 30.0
+      "2 weeks"     -> 14.0
+      "1 month"     -> 30.0
+      "Ready Stock" -> None
+    """
+    if not text:
+        return None
+    s = str(text).strip().lower()
+    nums = [float(m) for m in _NUM_RX.findall(s)]
+    if not nums:
+        return None
+    base = (nums[0] + nums[1]) / 2 if len(nums) >= 2 else nums[0]
+    if "week" in s:
+        base *= 7
+    elif "month" in s:
+        base *= 30
+    elif "hour" in s or "hr" in s:
+        base /= 24.0
+    return base
+
+
+def _bucket_ready_stock(days: float) -> str:
+    return min(READY_STOCK_PRESETS, key=lambda p: abs(p["mid"] - days))["value"]
+
+
+def _bucket_mto(days: float) -> str:
+    return min(MTO_PRESETS, key=lambda p: abs(p["mid"] - days))["value"]
+
+
+def _target_dispatch(stock_type: str, current: str):
+    """Decide the target preset value. Returns (new_value, reason)."""
+    is_mto = stock_type == "made_to_order"
+
+    # Already on a valid preset → no-op
+    if is_mto and current in MTO_VALUES:
+        return None, "ok"
+    if not is_mto and current in READY_STOCK_VALUES:
+        return None, "ok"
+
+    days = _parse_days(current)
+    if days is None:
+        # No usable signal — apply category default
+        return ("30 days" if is_mto else "3-5 days"), "default"
+
+    # If MTO but parsed days is < 15 (suspiciously fast for production),
+    # bump to the smallest MTO bucket; if ready_stock but days > 14, push
+    # to the longest ready bucket. We do NOT cross-flip stock_type here —
+    # that's a vendor decision, not a migration decision.
+    if is_mto:
+        if days < 15:
+            days = 15
+        return _bucket_mto(days), f"mapped_from:{current}"
+    if days > 14:
+        days = 14
+    return _bucket_ready_stock(days), f"mapped_from:{current}"
+
+
+@router.post("/migrations/backfill-dispatch-timeline")
+async def backfill_dispatch_timeline(
+    apply: bool = Query(False, description="False = dry-run preview only"),
+    admin=Depends(auth_helpers.get_current_admin),
+):
+    """Map every fabric's dispatch_timeline to one of the new presets.
+
+    Run with `?apply=false` first to preview the diff, then `?apply=true`.
+    Idempotent — re-running after apply is a no-op.
+    """
+    fabrics = await db.fabrics.find(
+        {},
+        {"_id": 0, "id": 1, "name": 1, "stock_type": 1, "dispatch_timeline": 1},
+    ).to_list(10000)
+
+    changes, defaults, ok, samples = 0, 0, 0, []
+    bulk_ops = []
+    for f in fabrics:
+        stock_type = f.get("stock_type") or "ready_stock"
+        current = (f.get("dispatch_timeline") or "").strip()
+        new_val, reason = _target_dispatch(stock_type, current)
+        if new_val is None:
+            ok += 1
+            continue
+        if reason == "default":
+            defaults += 1
+        else:
+            changes += 1
+        if len(samples) < 25:
+            samples.append({
+                "id": f.get("id"),
+                "name": f.get("name"),
+                "stock_type": stock_type,
+                "from": current,
+                "to": new_val,
+                "reason": reason,
+            })
+        if apply:
+            bulk_ops.append({"id": f.get("id"), "new": new_val})
+
+    if apply and bulk_ops:
+        # No bulk_write for arbitrary $set on different values — one-by-one is fine
+        # at this scale (≤200 docs).
+        for op in bulk_ops:
+            await db.fabrics.update_one(
+                {"id": op["id"]},
+                {"$set": {"dispatch_timeline": op["new"]}},
+            )
+
+    return {
+        "apply": apply,
+        "status": "applied" if apply else "preview",
+        "scanned": len(fabrics),
+        "already_ok": ok,
+        "mapped_from_text": changes,
+        "defaulted_blank_or_unparseable": defaults,
+        "total_to_update": changes + defaults,
+        "sample_changes": samples,
+    }
