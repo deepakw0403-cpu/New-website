@@ -4,6 +4,7 @@ import VendorLayout from "../../components/vendor/VendorLayout";
 import CommissionHelpModal from "../../components/vendor/CommissionHelpModal";
 import api, { getVendorFabrics, createVendorFabric, updateVendorFabric, deleteVendorFabric, getVendorCategories, getArticles, uploadToCloudinary, uploadVideoToCloudinary } from "../../lib/api";
 import useCompositionOptions from "../../hooks/useCompositionOptions";
+import { getDispatchOptions } from "../../lib/dispatchOptions";
 import { toast } from "sonner";
 
 const fabricTypes = ["woven", "knitted", "non-woven"];
@@ -1152,6 +1153,60 @@ const VendorInventory = () => {
                     <input type="checkbox" id="is_bookable" checked={form.is_bookable} onChange={e => setForm({ ...form, is_bookable: e.target.checked })}
                       className="w-4 h-4 text-emerald-600 rounded" data-testid="bookable-checkbox" />
                     <label htmlFor="is_bookable" className="text-sm font-medium text-gray-700">Enable direct booking for this fabric</label>
+                  </div>
+                </div>
+
+                {/* Section: Stock Type & Dispatch Timeline */}
+                <div className="border-t border-gray-100 pt-6">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3 uppercase tracking-wide">Stock Type &amp; Dispatch</h3>
+                  <div className="grid grid-cols-2 gap-4 mb-4" data-testid="vendor-stock-type">
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, stock_type: "ready_stock", dispatch_timeline: "" })}
+                      className={`px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                        form.stock_type === "ready_stock"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-400"
+                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                      }`}
+                      data-testid="vendor-stock-type-ready"
+                    >
+                      {form.stock_type === "ready_stock" && <Check size={16} />}
+                      Ready Stock (Inventory)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, stock_type: "made_to_order", dispatch_timeline: "" })}
+                      className={`px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                        form.stock_type === "made_to_order"
+                          ? "bg-amber-50 text-amber-700 border-amber-400"
+                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                      }`}
+                      data-testid="vendor-stock-type-mto"
+                    >
+                      {form.stock_type === "made_to_order" && <Check size={16} />}
+                      Made to Order
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Dispatch Timeline (Bulk &amp; Sample) <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={form.dispatch_timeline}
+                      onChange={(e) => setForm({ ...form, dispatch_timeline: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:border-emerald-500 focus:outline-none"
+                      data-testid="vendor-dispatch-select"
+                    >
+                      <option value="">Select dispatch time…</option>
+                      {getDispatchOptions(form.stock_type).map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {form.stock_type === "made_to_order"
+                        ? "Production lead time. Same timeline applies to bulk & sample dispatch."
+                        : "Ready-stock dispatch. Same timeline applies to bulk & sample dispatch."}
+                    </p>
                   </div>
                 </div>
 

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { getFabrics, getCategories, getSellers, getArticles, createFabric, updateFabric, deleteFabric, uploadToCloudinary, uploadVideoToCloudinary, approveFabric, rejectFabric } from "../../lib/api";
 import useCompositionOptions from "../../hooks/useCompositionOptions";
+import { getDispatchOptions } from "../../lib/dispatchOptions";
 
 const AdminFabrics = () => {
   const compositionOptions = useCompositionOptions();
@@ -1637,16 +1638,25 @@ const AdminFabrics = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Dispatch Timeline (Legacy)</label>
-                      <input
-                        type="text"
+                      <label className="block text-sm font-medium mb-2">
+                        Dispatch Timeline (Bulk &amp; Sample) <span className="text-red-500">*</span>
+                      </label>
+                      <select
                         value={form.dispatch_timeline}
                         onChange={(e) => setForm({ ...form, dispatch_timeline: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-200 rounded bg-gray-50 text-gray-500"
-                        placeholder="e.g., 7-10 days"
-                        data-testid="fabric-dispatch-input"
-                      />
-                      <p className="text-xs text-gray-400 mt-1">Legacy field - use Sample/Bulk delivery below instead</p>
+                        className="w-full px-4 py-2 border border-gray-200 rounded bg-white focus:border-emerald-500 focus:outline-none"
+                        data-testid="fabric-dispatch-select"
+                      >
+                        <option value="">Select dispatch time…</option>
+                        {getDispatchOptions(form.stock_type).map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {form.stock_type === "made_to_order"
+                          ? "Production lead-time. Same timeline applies to bulk &amp; sample dispatch."
+                          : "Ready-stock dispatch. Same timeline applies to bulk &amp; sample dispatch."}
+                      </p>
                     </div>
                   </div>
 
@@ -1811,7 +1821,7 @@ const AdminFabrics = () => {
                   <div className="flex gap-4" data-testid="fabric-stock-type">
                     <button
                       type="button"
-                      onClick={() => setForm({ ...form, stock_type: "ready_stock" })}
+                      onClick={() => setForm({ ...form, stock_type: "ready_stock", dispatch_timeline: "" })}
                       className={`flex-1 px-4 py-3 rounded border-2 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                         form.stock_type === "ready_stock"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-400"
@@ -1823,7 +1833,7 @@ const AdminFabrics = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setForm({ ...form, stock_type: "made_to_order" })}
+                      onClick={() => setForm({ ...form, stock_type: "made_to_order", dispatch_timeline: "" })}
                       className={`flex-1 px-4 py-3 rounded border-2 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                         form.stock_type === "made_to_order"
                           ? "bg-amber-50 text-amber-700 border-amber-400"
