@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAgentAuth } from "../../context/AgentAuthContext";
 import { Loader2, Mail, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import axios from "axios";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -19,18 +20,15 @@ const AgentLoginPage = () => {
     if (!email.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/agent/send-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      // Use axios instead of fetch to avoid "body stream already read" errors
+      const { data } = await axios.post(`${API}/api/agent/send-otp`, {
+        email: email.trim().toLowerCase()
       });
-      const text = await res.text();
-      const data = JSON.parse(text);
-      if (!res.ok) throw new Error(data.detail || "Failed");
       toast.success("OTP sent to your email");
       setStep("otp");
     } catch (err) {
-      toast.error(err.message || "Failed to send OTP");
+      const msg = err?.response?.data?.detail || err?.message || "Failed to send OTP";
+      toast.error(msg);
     }
     setLoading(false);
   };
@@ -40,19 +38,17 @@ const AgentLoginPage = () => {
     if (!otp.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/agent/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), otp: otp.trim() }),
+      // Use axios instead of fetch to avoid "body stream already read" errors
+      const { data } = await axios.post(`${API}/api/agent/verify-otp`, {
+        email: email.trim().toLowerCase(),
+        otp: otp.trim()
       });
-      const text = await res.text();
-      const data = JSON.parse(text);
-      if (!res.ok) throw new Error(data.detail || "Invalid OTP");
       login(data.token, data.agent);
       toast.success(`Welcome, ${data.agent.name}!`);
       navigate("/agent");
     } catch (err) {
-      toast.error(err.message || "Verification failed");
+      const msg = err?.response?.data?.detail || err?.message || "Verification failed";
+      toast.error(msg);
     }
     setLoading(false);
   };
