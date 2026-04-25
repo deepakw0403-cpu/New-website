@@ -1,13 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAgentAuth } from "../../context/AgentAuthContext";
-import { Search, ShoppingCart, Send, Package, LogOut, Plus, Minus, Trash2, ExternalLink, Copy, Loader2, Eye, Clock, CheckCircle, XCircle, FileText, Store } from "lucide-react";
+import { Search, ShoppingCart, Send, Package, LogOut, Plus, Minus, Trash2, ExternalLink, Copy, Loader2, Eye, Clock, CheckCircle, XCircle, FileText, Store, SlidersHorizontal, X } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
-import Navbar from "../../components/Navbar";
-import Footer from "../../components/Footer";
+import { getFabrics, getFabricsCount, getCategories, getFabricFilterOptions } from "../../lib/api";
 
 const API = process.env.REACT_APP_BACKEND_URL;
+
+// Small reusable chip used to display active filters with one-click clear
+const FilterChip = ({ label, onClear }) => (
+  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-xs font-medium">
+    {label}
+    <button onClick={onClear} className="hover:bg-blue-100 rounded-full p-0.5" aria-label={`Clear ${label}`}>
+      <X size={12} />
+    </button>
+  </span>
+);
 
 const AgentDashboardPage = () => {
   const { agent, token, logout, loading: authLoading } = useAgentAuth();
@@ -20,6 +29,21 @@ const AgentDashboardPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [totalFabrics, setTotalFabrics] = useState(0);
+
+  // Catalog filters (mirror B2C /fabrics)
+  const [categories, setCategories] = useState([]);
+  const [filterOptions, setFilterOptions] = useState({ colors: [], patterns: [], widths: [], compositions: [] });
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedType, setSelectedType] = useState("");
+  const [availabilityFilter, setAvailabilityFilter] = useState(""); // bulk | enquiry
+  const [gsmRange, setGsmRange] = useState({ min: "", max: "" });
+  const [weightRange, setWeightRange] = useState({ min: "", max: "" });
+  const [priceRange, setPriceRange] = useState({ min: "", max: "" });
+  const [selectedPattern, setSelectedPattern] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedWidth, setSelectedWidth] = useState("");
+  const [selectedComposition, setSelectedComposition] = useState("");
 
   // Cart
   const [cart, setCart] = useState([]);
@@ -51,17 +75,34 @@ const AgentDashboardPage = () => {
   const fetchFabrics = useCallback(async () => {
     setFabricsLoading(true);
     try {
-      const params = new URLSearchParams({ limit: "20", skip: String((page - 1) * 20), status: "approved" });
-      if (searchQuery) params.set("search", searchQuery);
-      const res = await fetch(`${API}/api/fabrics?${params}`);
-      const data = await res.json();
-      setFabrics(data.fabrics || data || []);
-      setTotalFabrics(data.total || data.length || 0);
+      const params = { page, limit: 20 };
+      if (searchQuery) params.search = searchQuery;
+      if (selectedCategory) params.category_id = selectedCategory;
+      if (selectedType) params.fabric_type = selectedType;
+      if (availabilityFilter === "bulk") params.bookable_only = true;
+      if (availabilityFilter === "enquiry") params.enquiry_only = true;
+      if (gsmRange.min) params.min_gsm = gsmRange.min;
+      if (gsmRange.max) params.max_gsm = gsmRange.max;
+      if (weightRange.min) params.min_weight_oz = weightRange.min;
+      if (weightRange.max) params.max_weight_oz = weightRange.max;
+      if (priceRange.min) params.min_price = priceRange.min;
+      if (priceRange.max) params.max_price = priceRange.max;
+      if (selectedPattern) params.pattern = selectedPattern;
+      if (selectedColor) params.color = selectedColor;
+      if (selectedWidth) params.width = selectedWidth.replace(/"/g, '');
+      if (selectedComposition) params.composition = selectedComposition;
+
+      const [fabricsRes, countRes] = await Promise.all([
+        getFabrics(params),
+        getFabricsCount(params),
+      ]);
+      setFabrics(fabricsRes.data || []);
+      setTotalFabrics(countRes.data?.count ?? 0);
     } catch {
       toast.error("Failed to load fabrics");
     }
     setFabricsLoading(false);
-  }, [page, searchQuery]);
+  }, [page, searchQuery, selectedCategory, selectedType, availabilityFilter, gsmRange, weightRange, priceRange, selectedPattern, selectedColor, selectedWidth, selectedComposition]);
 
   const fetchSharedCarts = async () => {
     setCartsLoading(true);
@@ -88,6 +129,26 @@ const AgentDashboardPage = () => {
   useEffect(() => { fetchFabrics(); }, [fetchFabrics]);
   useEffect(() => { if (activeTab === "shared") fetchSharedCarts(); }, [activeTab]);
   useEffect(() => { if (activeTab === "orders") fetchOrders(); }, [activeTab]);
+
+  // Load categories + filter options once
+  useEffect(() => {
+    getCategories().then(res => setCategories(res.data || [])).catch(() => {});
+    getFabricFilterOptions().then(res => setFilterOptions(res.data || { colors: [], patterns: [], widths: [], compositions: [] })).catch(() => {});
+  }, []);
+
+  // Reset to page 1 when any filter changes
+  useEffect(() => { setPage(1); }, [searchQuery, selectedCategory, selectedType, availabilityFilter, gsmRange, weightRange, priceRange, selectedPattern, selectedColor, selectedWidth, selectedComposition]);
+
+  const activeFilterCount = [
+    selectedCategory, selectedType, availabilityFilter, selectedPattern, selectedColor, selectedWidth, selectedComposition,
+    gsmRange.min, gsmRange.max, weightRange.min, weightRange.max, priceRange.min, priceRange.max,
+  ].filter(Boolean).length;
+
+  const clearAllFilters = () => {
+    setSelectedCategory(""); setSelectedType(""); setAvailabilityFilter("");
+    setGsmRange({ min: "", max: "" }); setWeightRange({ min: "", max: "" }); setPriceRange({ min: "", max: "" });
+    setSelectedPattern(""); setSelectedColor(""); setSelectedWidth(""); setSelectedComposition("");
+  };
 
   // Fetch USD rate when Bangladesh selected
   useEffect(() => {
@@ -264,8 +325,27 @@ const AgentDashboardPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
-      <Navbar />
-      <main className="flex-grow pt-20" data-testid="agent-dashboard">
+      {/* Agent-only minimal header — intentionally NO B2C navbar to keep agent in workflow */}
+      <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800" data-testid="agent-header">
+        <div className="container-main flex items-center justify-between h-14">
+          <div className="flex items-center gap-3">
+            <img
+              src="https://customer-assets.emergentagent.com/job_locofast-cms/artifacts/xkuf449w_Locofast%20-%20Medium.svg"
+              alt="Locofast"
+              className="h-6 brightness-0 invert"
+            />
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 border-l border-slate-700 pl-3">Agent Portal</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-400 hidden sm:inline" data-testid="agent-header-email">{agent?.email}</span>
+            <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-3 py-1.5 border border-slate-700 hover:border-slate-500 rounded-md transition-colors" data-testid="agent-logout-btn-header">
+              <LogOut size={13} />Logout
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-grow" data-testid="agent-dashboard">
         <div className="container-main py-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -273,9 +353,6 @@ const AgentDashboardPage = () => {
               <h1 className="text-2xl font-semibold text-gray-900">Agent Dashboard</h1>
               <p className="text-sm text-gray-500">Welcome, {agent?.name || agent?.email}</p>
             </div>
-            <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-600 px-4 py-2 border border-gray-200 rounded-lg hover:border-red-200 transition-colors" data-testid="agent-logout-btn">
-              <LogOut size={16} />Logout
-            </button>
           </div>
 
           {/* Tabs */}
@@ -300,76 +377,240 @@ const AgentDashboardPage = () => {
           {/* ===== CATALOG TAB ===== */}
           {activeTab === "catalog" && (
             <div>
-              <div className="flex gap-4 mb-6">
-                <div className="relative flex-1">
-                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search fabrics..."
-                    value={searchQuery}
-                    onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                    className="w-full pl-12 pr-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                    data-testid="agent-fabric-search"
-                  />
+              {/* Count + Search + Filter Toggle */}
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                  <p className="text-sm text-gray-500" data-testid="agent-fabric-count">
+                    <span className="font-semibold text-gray-900">{totalFabrics.toLocaleString()}</span> fabrics in catalog
+                    {activeFilterCount > 0 && <span className="ml-2 text-blue-600">· {activeFilterCount} filter{activeFilterCount !== 1 ? "s" : ""} applied</span>}
+                  </p>
                 </div>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${showFilters || activeFilterCount > 0 ? "border-[#2563EB] bg-blue-50 text-[#2563EB]" : "border-gray-200 text-gray-700 hover:border-gray-300"}`}
+                  data-testid="agent-toggle-filters"
+                >
+                  <SlidersHorizontal size={15} />
+                  Filters{activeFilterCount > 0 && <span className="bg-[#2563EB] text-white text-xs px-1.5 py-0.5 rounded-full">{activeFilterCount}</span>}
+                </button>
               </div>
-              {fabricsLoading ? (
-                <div className="flex items-center justify-center py-16"><Loader2 size={28} className="animate-spin text-blue-600" /></div>
-              ) : (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {fabrics.map((f) => (
-                    <div key={f.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow" data-testid={`agent-fabric-${f.id}`}>
-                      <img src={f.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=300"} alt={f.name} className="w-full h-40 object-cover" loading="lazy" />
-                      <div className="p-4">
-                        <h3 className="font-medium text-sm text-gray-900 truncate">{f.name}</h3>
-                        <p className="text-xs text-gray-500 mt-0.5">{f.category_name}</p>
-                        {/* Vendor pill — prominent on Agent platform (hidden on B2C) */}
-                        {f.seller_company ? (
-                          <div
-                            className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-medium max-w-full"
-                            data-testid={`agent-vendor-${f.id}`}
-                            title={f.seller_company}
-                          >
-                            <Store size={11} className="flex-shrink-0" />
-                            <span className="truncate">{f.seller_company}</span>
-                          </div>
-                        ) : (
-                          <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 border border-gray-200 text-gray-500 text-[11px] font-medium">
-                            <Store size={11} />
-                            <span>Locofast direct</span>
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between mt-3">
-                          <span className="text-lg font-semibold text-[#2563EB]">₹{f.rate_per_meter?.toLocaleString()}<span className="text-xs font-normal text-gray-500">/m</span></span>
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => addToCart(f, "sample")}
-                              className="px-2.5 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors"
-                              data-testid={`add-sample-${f.id}`}
-                            >
-                              Sample
-                            </button>
-                            <button
-                              onClick={() => addToCart(f, "bulk")}
-                              className="px-2.5 py-1.5 bg-[#2563EB] text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                              data-testid={`add-bulk-${f.id}`}
-                            >
-                              Bulk
-                            </button>
-                          </div>
-                        </div>
+
+              {/* Search bar */}
+              <div className="relative mb-4">
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name, code, color, composition..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+                  data-testid="agent-fabric-search"
+                />
+              </div>
+
+              {/* Active filter chips */}
+              {activeFilterCount > 0 && (
+                <div className="flex flex-wrap items-center gap-2 mb-4" data-testid="agent-active-filter-chips">
+                  {selectedCategory && (() => {
+                    const c = categories.find(x => x.id === selectedCategory);
+                    return c ? <FilterChip label={c.name} onClear={() => setSelectedCategory("")} /> : null;
+                  })()}
+                  {selectedType && <FilterChip label={selectedType === "knitted" ? "Knits" : selectedType === "woven" ? "Woven" : selectedType} onClear={() => setSelectedType("")} />}
+                  {availabilityFilter && <FilterChip label={availabilityFilter === "bulk" ? "Bookable Now" : "Enquiry Only"} onClear={() => setAvailabilityFilter("")} />}
+                  {selectedColor && <FilterChip label={`Color: ${selectedColor}`} onClear={() => setSelectedColor("")} />}
+                  {selectedPattern && <FilterChip label={`Pattern: ${selectedPattern}`} onClear={() => setSelectedPattern("")} />}
+                  {selectedWidth && <FilterChip label={`Width: ${selectedWidth}`} onClear={() => setSelectedWidth("")} />}
+                  {selectedComposition && <FilterChip label={`Composition: ${selectedComposition}`} onClear={() => setSelectedComposition("")} />}
+                  {(gsmRange.min || gsmRange.max) && <FilterChip label={`GSM ${gsmRange.min || "0"}–${gsmRange.max || "∞"}`} onClear={() => setGsmRange({ min: "", max: "" })} />}
+                  {(weightRange.min || weightRange.max) && <FilterChip label={`Weight ${weightRange.min || "0"}–${weightRange.max || "∞"} oz`} onClear={() => setWeightRange({ min: "", max: "" })} />}
+                  {(priceRange.min || priceRange.max) && <FilterChip label={`₹${priceRange.min || "0"}–${priceRange.max || "∞"}`} onClear={() => setPriceRange({ min: "", max: "" })} />}
+                  <button onClick={clearAllFilters} className="text-xs text-red-600 hover:text-red-700 font-medium underline" data-testid="agent-clear-all-filters">Clear all</button>
+                </div>
+              )}
+
+              <div className="flex gap-6">
+                {/* Filter sidebar */}
+                {showFilters && (
+                  <aside className="w-64 flex-shrink-0 bg-white border border-gray-200 rounded-xl p-5 h-fit sticky top-20" data-testid="agent-filter-sidebar">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold text-sm text-gray-900">Filters</h3>
+                      {activeFilterCount > 0 && (
+                        <button onClick={clearAllFilters} className="text-xs text-red-600 hover:text-red-700">Clear</button>
+                      )}
+                    </div>
+
+                    {/* Category */}
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Category</label>
+                      <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="w-full px-2.5 py-2 border border-gray-200 rounded-md text-sm focus:border-blue-500 focus:outline-none" data-testid="agent-filter-category">
+                        <option value="">All categories</option>
+                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+
+                    {/* Type */}
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Type</label>
+                      <div className="flex gap-2 flex-wrap">
+                        {[{ v: "", l: "All" }, { v: "knitted", l: "Knits" }, { v: "woven", l: "Woven" }].map(t => (
+                          <button key={t.v} onClick={() => setSelectedType(t.v)} className={`px-3 py-1 text-xs rounded-full border ${selectedType === t.v ? "bg-[#2563EB] text-white border-[#2563EB]" : "border-gray-200 text-gray-600 hover:border-gray-300"}`} data-testid={`agent-filter-type-${t.v || "all"}`}>{t.l}</button>
+                        ))}
                       </div>
                     </div>
-                  ))}
+
+                    {/* Availability */}
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Availability</label>
+                      <div className="flex flex-col gap-1">
+                        {[{ v: "", l: "All" }, { v: "bulk", l: "Bookable Now" }, { v: "enquiry", l: "Enquiry Only" }].map(a => (
+                          <label key={a.v} className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="radio" name="agent-availability" checked={availabilityFilter === a.v} onChange={() => setAvailabilityFilter(a.v)} data-testid={`agent-filter-avail-${a.v || "all"}`} />
+                            <span className="text-gray-700">{a.l}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* GSM */}
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">GSM</label>
+                      <div className="flex gap-2">
+                        <input type="number" min="0" placeholder="Min" value={gsmRange.min} onChange={(e) => setGsmRange({ ...gsmRange, min: e.target.value })} className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:border-blue-500 focus:outline-none" data-testid="agent-filter-gsm-min" />
+                        <input type="number" min="0" placeholder="Max" value={gsmRange.max} onChange={(e) => setGsmRange({ ...gsmRange, max: e.target.value })} className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:border-blue-500 focus:outline-none" data-testid="agent-filter-gsm-max" />
+                      </div>
+                    </div>
+
+                    {/* Weight oz (denim) */}
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Weight (oz, denim)</label>
+                      <div className="flex gap-2">
+                        <input type="number" step="0.1" min="0" placeholder="Min" value={weightRange.min} onChange={(e) => setWeightRange({ ...weightRange, min: e.target.value })} className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:border-blue-500 focus:outline-none" data-testid="agent-filter-oz-min" />
+                        <input type="number" step="0.1" min="0" placeholder="Max" value={weightRange.max} onChange={(e) => setWeightRange({ ...weightRange, max: e.target.value })} className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:border-blue-500 focus:outline-none" data-testid="agent-filter-oz-max" />
+                      </div>
+                    </div>
+
+                    {/* Price */}
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Price (₹/m)</label>
+                      <div className="flex gap-2">
+                        <input type="number" min="0" placeholder="Min" value={priceRange.min} onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })} className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:border-blue-500 focus:outline-none" data-testid="agent-filter-price-min" />
+                        <input type="number" min="0" placeholder="Max" value={priceRange.max} onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })} className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:border-blue-500 focus:outline-none" data-testid="agent-filter-price-max" />
+                      </div>
+                    </div>
+
+                    {/* Color */}
+                    {filterOptions.colors?.length > 0 && (
+                      <div className="mb-4">
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Color</label>
+                        <select value={selectedColor} onChange={(e) => setSelectedColor(e.target.value)} className="w-full px-2.5 py-2 border border-gray-200 rounded-md text-sm focus:border-blue-500 focus:outline-none" data-testid="agent-filter-color">
+                          <option value="">All colors</option>
+                          {filterOptions.colors.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Pattern */}
+                    {filterOptions.patterns?.length > 0 && (
+                      <div className="mb-4">
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Pattern</label>
+                        <select value={selectedPattern} onChange={(e) => setSelectedPattern(e.target.value)} className="w-full px-2.5 py-2 border border-gray-200 rounded-md text-sm focus:border-blue-500 focus:outline-none" data-testid="agent-filter-pattern">
+                          <option value="">All patterns</option>
+                          {filterOptions.patterns.map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Width */}
+                    {filterOptions.widths?.length > 0 && (
+                      <div className="mb-4">
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Width</label>
+                        <select value={selectedWidth} onChange={(e) => setSelectedWidth(e.target.value)} className="w-full px-2.5 py-2 border border-gray-200 rounded-md text-sm focus:border-blue-500 focus:outline-none" data-testid="agent-filter-width">
+                          <option value="">All widths</option>
+                          {filterOptions.widths.map(w => <option key={w} value={w}>{w}</option>)}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Composition */}
+                    {filterOptions.compositions?.length > 0 && (
+                      <div className="mb-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Composition</label>
+                        <select value={selectedComposition} onChange={(e) => setSelectedComposition(e.target.value)} className="w-full px-2.5 py-2 border border-gray-200 rounded-md text-sm focus:border-blue-500 focus:outline-none" data-testid="agent-filter-composition">
+                          <option value="">All compositions</option>
+                          {filterOptions.compositions.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </aside>
+                )}
+
+                {/* Results grid */}
+                <div className="flex-1 min-w-0">
+                  {fabricsLoading ? (
+                    <div className="flex items-center justify-center py-16"><Loader2 size={28} className="animate-spin text-blue-600" /></div>
+                  ) : fabrics.length === 0 ? (
+                    <div className="text-center py-16 text-gray-500 bg-white rounded-xl border border-gray-200" data-testid="agent-no-fabrics">
+                      <Package size={48} className="mx-auto mb-3 text-gray-300" />
+                      <p className="font-medium">No fabrics match these filters</p>
+                      {activeFilterCount > 0 && <button onClick={clearAllFilters} className="mt-3 text-sm text-[#2563EB] hover:underline">Clear all filters</button>}
+                    </div>
+                  ) : (
+                    <div className={`grid sm:grid-cols-2 ${showFilters ? "lg:grid-cols-3" : "lg:grid-cols-4"} gap-4`}>
+                      {fabrics.map((f) => (
+                        <div key={f.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow" data-testid={`agent-fabric-${f.id}`}>
+                          <img src={f.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=300"} alt={f.name} className="w-full h-40 object-cover" loading="lazy" />
+                          <div className="p-4">
+                            <h3 className="font-medium text-sm text-gray-900 truncate">{f.name}</h3>
+                            <p className="text-xs text-gray-500 mt-0.5">{f.category_name}</p>
+                            {/* Vendor pill — prominent on Agent platform (hidden on B2C) */}
+                            {f.seller_company ? (
+                              <div
+                                className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-medium max-w-full"
+                                data-testid={`agent-vendor-${f.id}`}
+                                title={f.seller_company}
+                              >
+                                <Store size={11} className="flex-shrink-0" />
+                                <span className="truncate">{f.seller_company}</span>
+                              </div>
+                            ) : (
+                              <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 border border-gray-200 text-gray-500 text-[11px] font-medium">
+                                <Store size={11} />
+                                <span>Locofast direct</span>
+                              </div>
+                            )}
+                            <div className="flex items-center justify-between mt-3">
+                              <span className="text-lg font-semibold text-[#2563EB]">₹{f.rate_per_meter?.toLocaleString()}<span className="text-xs font-normal text-gray-500">/m</span></span>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => addToCart(f, "sample")}
+                                  className="px-2.5 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors"
+                                  data-testid={`add-sample-${f.id}`}
+                                >
+                                  Sample
+                                </button>
+                                <button
+                                  onClick={() => addToCart(f, "bulk")}
+                                  className="px-2.5 py-1.5 bg-[#2563EB] text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                  data-testid={`add-bulk-${f.id}`}
+                                >
+                                  Bulk
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {totalFabrics > 20 && (
+                    <div className="flex items-center justify-center gap-4 mt-8">
+                      <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="px-4 py-2 border rounded-lg disabled:opacity-50">Previous</button>
+                      <span className="text-sm text-gray-500">Page {page} of {Math.ceil(totalFabrics / 20)}</span>
+                      <button disabled={page * 20 >= totalFabrics} onClick={() => setPage(page + 1)} className="px-4 py-2 border rounded-lg disabled:opacity-50">Next</button>
+                    </div>
+                  )}
                 </div>
-              )}
-              {totalFabrics > 20 && (
-                <div className="flex items-center justify-center gap-4 mt-8">
-                  <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="px-4 py-2 border rounded-lg disabled:opacity-50">Previous</button>
-                  <span className="text-sm text-gray-500">Page {page}</span>
-                  <button disabled={page * 20 >= totalFabrics} onClick={() => setPage(page + 1)} className="px-4 py-2 border rounded-lg disabled:opacity-50">Next</button>
-                </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -755,7 +996,6 @@ const AgentDashboardPage = () => {
         </div>
       )}
 
-      <Footer />
     </div>
   );
 };
