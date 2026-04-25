@@ -152,17 +152,24 @@ const CheckoutPage = () => {
     }
   }, [fabric, quantity, orderType, discount]);
 
+  const [fetchError, setFetchError] = useState(false);
+
   const fetchFabric = async () => {
     try {
       const res = await getFabric(fabricId);
       setFabric(res.data);
+      setFetchError(false);
       // GA4: track begin_checkout when fabric loads
       if (res.data) {
         trackBeginCheckout(res.data, orderType, quantity, res.data.rate_per_meter ? res.data.rate_per_meter * quantity : 0);
       }
     } catch (err) {
-      toast.error("Failed to load fabric details");
-      navigate("/fabrics");
+      // Ignore browser/StrictMode aborts (request canceled, no real failure)
+      const isAbort = err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError' || err?.message === 'canceled';
+      if (!isAbort) {
+        setFetchError(true);
+        toast.error("Failed to load fabric details");
+      }
     }
     setLoading(false);
   };
@@ -446,7 +453,43 @@ const CheckoutPage = () => {
   }
 
   if (!fabric) {
-    return null;
+    return (
+      <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center px-4">
+          <div className="max-w-md w-full text-center bg-white rounded-xl border border-gray-200 p-8" data-testid="checkout-fabric-load-error">
+            <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              {fetchError ? "Couldn't load fabric details" : "Fabric not found"}
+            </h2>
+            <p className="text-sm text-gray-600 mb-6">
+              {fetchError
+                ? "There was a problem fetching this fabric. Please check your connection and try again."
+                : "The fabric you're trying to check out is unavailable."}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              {fetchError && (
+                <button
+                  onClick={() => { setLoading(true); setFetchError(false); fetchFabric(); }}
+                  className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                  data-testid="checkout-retry-btn"
+                >
+                  Retry
+                </button>
+              )}
+              <button
+                onClick={() => navigate("/fabrics")}
+                className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                data-testid="checkout-back-to-catalog-btn"
+              >
+                Back to Catalog
+              </button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   return (
