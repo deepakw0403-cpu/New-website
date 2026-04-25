@@ -10,6 +10,7 @@ import RFQModal from "../components/RFQModal";
 import { getFabric, createEnquiry, getFabricSEO, getRelatedFabrics, getOtherSellers } from "../lib/api";
 import { toWebVideoUrl, videoPosterUrl } from "../lib/videoUrl";
 import { thumbImage, mediumImage, largeImage, fabricCoverImage } from "../lib/imageUrl";
+import Watermark from "../components/Watermark";
 import { displayFabricName } from "../lib/fabricDisplay";
 import { trackViewItem, trackAddToCart, trackRFQIntent } from "../lib/analytics";
 import { DispatchStrip } from "../components/DispatchBadges";
@@ -486,6 +487,8 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
             className="max-w-full max-h-[90vh] object-contain"
             onClick={(e) => e.stopPropagation()}
           />
+
+          <Watermark size="xl" />
           
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-sm">
             {currentImage + 1} / {images.length}
@@ -567,6 +570,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                     </button>
                   </>
                 )}
+                <Watermark size="lg" />
               </div>
 
               {/* Thumbnails */}

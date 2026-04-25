@@ -6,6 +6,7 @@ import { Package, Loader2, ShoppingCart, Beaker, MessageSquare, Search, SlidersH
 import { displayFabricName } from "../../lib/fabricDisplay";
 import { thumbImage, fabricCoverImage } from "../../lib/imageUrl";
 import { getCheapestBulkPrice, formatQtyThreshold } from "../../lib/pricing";
+import Watermark from "../../components/Watermark";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -55,6 +56,7 @@ const FabricCard = ({ f, onOpen }) => {
               On Request
             </span>
           )}
+          <Watermark size="md" />
         </div>
       </Link>
       <div className="p-4 flex flex-col flex-1">

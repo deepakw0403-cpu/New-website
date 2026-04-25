@@ -11,6 +11,7 @@ import RFQModal from "../components/RFQModal";
 import { DispatchLine } from "../components/DispatchBadges";
 import { getFabrics, getFabricsCount, getCategories, createEnquiry, getFabricFilterOptions } from "../lib/api";
 import { getCheapestBulkPrice, formatQtyThreshold } from "../lib/pricing";
+import Watermark from "../components/Watermark";
 import { trackViewItemList } from "../lib/analytics";
 import { toast } from "sonner";
 
@@ -680,6 +681,7 @@ const FabricsPage = () => {
                             </span>
                           )}
                         </div>
+                        <Watermark size="md" />
                       </div>
                     </Link>
                     
