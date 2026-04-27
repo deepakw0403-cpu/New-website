@@ -68,18 +68,33 @@ const AdminBrands = () => {
     setSelected(brand);
     setOtpSent(null); setOtpCode("");
     setClForm({ lender_name: LENDERS[0], amount_inr: "", note: "", screenshot_url: "" });
-    try {
-      const [dRes, lRes, ledRes] = await Promise.all([
-        api.get(`/admin/brands/${brand.id}`),
-        api.get(`/admin/brands/${brand.id}/credit-lines`),
-        api.get(`/admin/brands/${brand.id}/ledger`),
-      ]);
-      setDetail(dRes.data);
-      setCreditLines(lRes.data || []);
-      setLedger(ledRes.data || []);
-    } catch (err) {
-      toast.error("Failed to load brand detail");
+    setDetail(null);
+    setCreditLines([]);
+    setLedger([]);
+    // Each sub-call is independent; if credit-lines or ledger fails (e.g.
+    // legacy enterprise has no records yet) we still want to render the Users
+    // tab so admins can fix data. Only the core /brands/{id} call is fatal.
+    const [dRes, lRes, ledRes] = await Promise.allSettled([
+      api.get(`/admin/brands/${brand.id}`),
+      api.get(`/admin/brands/${brand.id}/credit-lines`),
+      api.get(`/admin/brands/${brand.id}/ledger`),
+    ]);
+    if (dRes.status === "fulfilled") {
+      setDetail(dRes.value.data);
+    } else {
+      const err = dRes.reason;
+      const msg = err?.response?.data?.detail || err?.message || "Unknown error";
+      const status = err?.response?.status || "";
+      // eslint-disable-next-line no-console
+      console.error("[AdminBrands] /brands detail failed:", err);
+      toast.error(`Failed to load enterprise (${status}): ${msg}`);
+      setSelected(null);
+      return;
     }
+    if (lRes.status === "fulfilled") setCreditLines(lRes.value.data || []);
+    else { console.error("[AdminBrands] credit-lines failed:", lRes.reason); toast.warning("Credit lines unavailable"); }
+    if (ledRes.status === "fulfilled") setLedger(ledRes.value.data || []);
+    else { console.error("[AdminBrands] ledger failed:", ledRes.reason); toast.warning("Ledger unavailable"); }
   };
 
   const refreshDetail = () => selected && openDetail(selected);
