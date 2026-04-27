@@ -47,6 +47,35 @@ const AdminBrands = () => {
   const [sampleOtpCode, setSampleOtpCode] = useState("");
   const [sampleBusy, setSampleBusy] = useState(false);
 
+  // Allowed-categories inline editor (slide-over)
+  const [editCats, setEditCats] = useState(false);
+  const [editCatIds, setEditCatIds] = useState([]);
+  const [savingCats, setSavingCats] = useState(false);
+
+  const startEditCats = () => {
+    setEditCatIds(detail?.brand?.allowed_category_ids || []);
+    setEditCats(true);
+  };
+  const toggleEditCat = (id) => {
+    setEditCatIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+  const saveCats = async () => {
+    if (!selected) return;
+    if (editCatIds.length === 0) { toast.error("Select at least one category"); return; }
+    setSavingCats(true);
+    try {
+      await api.put(`/admin/brands/${selected.id}`, { allowed_category_ids: editCatIds });
+      toast.success("Categories updated");
+      setEditCats(false);
+      // Refresh both the slide-over detail and the table row
+      await Promise.all([refreshDetail(), load()]);
+    } catch (err) {
+      const msg = err?.response?.data?.detail || err?.message || "Failed";
+      toast.error(`Failed to save: ${msg}`);
+    }
+    setSavingCats(false);
+  };
+
   const load = async () => {
     setLoading(true);
     try {
@@ -554,15 +583,69 @@ const AdminBrands = () => {
               </div>
 
               {/* Categories */}
-              <div className="mb-5">
-                <p className="text-xs font-medium text-gray-500 mb-1">ALLOWED CATEGORIES</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(detail.brand?.allowed_category_ids || []).map((id) => {
-                    const c = categories.find((x) => x.id === id);
-                    return <span key={id} className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">{c?.name || id}</span>;
-                  })}
-                  {(detail.brand?.allowed_category_ids || []).length === 0 && <span className="text-xs text-gray-400">None unlocked yet</span>}
+              <div className="mb-5" data-testid="admin-brand-allowed-cats">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-medium text-gray-500">ALLOWED CATEGORIES</p>
+                  {!editCats && (
+                    <button
+                      onClick={startEditCats}
+                      className="text-xs text-emerald-700 hover:text-emerald-800 font-medium hover:underline"
+                      data-testid="admin-edit-cats-btn"
+                    >
+                      Edit
+                    </button>
+                  )}
                 </div>
+
+                {!editCats ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(detail.brand?.allowed_category_ids || []).map((id) => {
+                      const c = categories.find((x) => x.id === id);
+                      return <span key={id} className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">{c?.name || id}</span>;
+                    })}
+                    {(detail.brand?.allowed_category_ids || []).length === 0 && <span className="text-xs text-gray-400">None unlocked yet</span>}
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex flex-wrap gap-1.5 mb-2 p-2 bg-gray-50 border border-gray-200 rounded-lg">
+                      {categories.length === 0 ? (
+                        <span className="text-xs text-gray-400">No categories defined yet. Create them at /admin/categories first.</span>
+                      ) : (
+                        categories.map((c) => {
+                          const on = editCatIds.includes(c.id);
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => toggleEditCat(c.id)}
+                              data-testid={`admin-edit-cat-${c.id}`}
+                              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${on ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"}`}
+                            >
+                              {c.name}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={saveCats}
+                        disabled={savingCats}
+                        className="text-xs px-3 py-1.5 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50 font-medium"
+                        data-testid="admin-save-cats-btn"
+                      >
+                        {savingCats ? "Saving…" : `Save (${editCatIds.length} selected)`}
+                      </button>
+                      <button
+                        onClick={() => setEditCats(false)}
+                        className="text-xs px-3 py-1.5 text-gray-600 hover:text-gray-800"
+                      >
+                        Cancel
+                      </button>
+                      <span className="ml-auto text-[11px] text-gray-400">Brand will see only these categories on /enterprise/fabrics</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Credit Lines */}
