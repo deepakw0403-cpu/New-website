@@ -136,7 +136,14 @@ const BrandFabrics = () => {
   const [availability, setAvailability] = useState(searchParams.get("avail") || "");
   const [gsmMin, setGsmMin] = useState(searchParams.get("gsm_min") || "");
   const [gsmMax, setGsmMax] = useState(searchParams.get("gsm_max") || "");
+  // Denim is weighed in oz, not GSM — surface a separate filter for it
+  const [ozMin, setOzMin] = useState(searchParams.get("oz_min") || "");
+  const [ozMax, setOzMax] = useState(searchParams.get("oz_max") || "");
   const [showFilters, setShowFilters] = useState(true);
+
+  // We treat the filter as "oz mode" when the user has scoped the catalog
+  // down to denim. Other categories continue to use GSM.
+  const isDenimScope = selectedCategory === "cat-denim";
 
   useEffect(() => {
     if (!token) { navigate("/enterprise/login"); return; }
@@ -157,8 +164,13 @@ const BrandFabrics = () => {
     if (selectedColor) params.set("color", selectedColor);
     if (selectedWidth) params.set("width", selectedWidth);
     if (availability) params.set("availability", availability);
-    if (gsmMin) params.set("gsm_min", gsmMin);
-    if (gsmMax) params.set("gsm_max", gsmMax);
+    if (isDenimScope) {
+      if (ozMin) params.set("oz_min", ozMin);
+      if (ozMax) params.set("oz_max", ozMax);
+    } else {
+      if (gsmMin) params.set("gsm_min", gsmMin);
+      if (gsmMax) params.set("gsm_max", gsmMax);
+    }
 
     setLoading(true);
     fetch(`${API}/api/brand/fabrics?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
@@ -177,23 +189,28 @@ const BrandFabrics = () => {
     if (selectedColor) url.set("color", selectedColor);
     if (selectedWidth) url.set("width", selectedWidth);
     if (availability) url.set("avail", availability);
-    if (gsmMin) url.set("gsm_min", gsmMin);
-    if (gsmMax) url.set("gsm_max", gsmMax);
+    if (isDenimScope) {
+      if (ozMin) url.set("oz_min", ozMin);
+      if (ozMax) url.set("oz_max", ozMax);
+    } else {
+      if (gsmMin) url.set("gsm_min", gsmMin);
+      if (gsmMax) url.set("gsm_max", gsmMax);
+    }
     setSearchParams(url, { replace: true });
-  }, [token, user, search, selectedCategory, selectedType, selectedComposition, selectedPattern, selectedColor, selectedWidth, availability, gsmMin, gsmMax, setSearchParams]);
+  }, [token, user, search, selectedCategory, selectedType, selectedComposition, selectedPattern, selectedColor, selectedWidth, availability, gsmMin, gsmMax, ozMin, ozMax, isDenimScope, setSearchParams]);
 
   const clear = () => {
     setSearch(""); setSelectedCategory(""); setSelectedType(""); setSelectedComposition("");
     setSelectedPattern(""); setSelectedColor(""); setSelectedWidth(""); setAvailability("");
-    setGsmMin(""); setGsmMax("");
+    setGsmMin(""); setGsmMax(""); setOzMin(""); setOzMax("");
   };
 
   const openFabric = (f) => navigate(`/brand/fabrics/${f.slug || f.id}`);
 
   const activeFilterCount = useMemo(() => [
     selectedCategory, selectedType, selectedComposition, selectedPattern,
-    selectedColor, selectedWidth, availability, gsmMin, gsmMax,
-  ].filter(Boolean).length, [selectedCategory, selectedType, selectedComposition, selectedPattern, selectedColor, selectedWidth, availability, gsmMin, gsmMax]);
+    selectedColor, selectedWidth, availability, gsmMin, gsmMax, ozMin, ozMax,
+  ].filter(Boolean).length, [selectedCategory, selectedType, selectedComposition, selectedPattern, selectedColor, selectedWidth, availability, gsmMin, gsmMax, ozMin, ozMax]);
 
   return (
     <BrandLayout>
@@ -338,15 +355,27 @@ const BrandFabrics = () => {
               </div>
             )}
 
-            {/* GSM range */}
-            <div className="mb-1">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500 mb-1.5">GSM Range</p>
-              <div className="flex items-center gap-1.5">
-                <input type="number" value={gsmMin} onChange={(e) => setGsmMin(e.target.value)} placeholder="Min" className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs" data-testid="brand-filter-gsm-min" />
-                <span className="text-gray-400 text-xs">–</span>
-                <input type="number" value={gsmMax} onChange={(e) => setGsmMax(e.target.value)} placeholder="Max" className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs" data-testid="brand-filter-gsm-max" />
+            {/* GSM / Oz range — switches based on category scope */}
+            {isDenimScope ? (
+              <div className="mb-1" data-testid="brand-filter-oz-block">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500 mb-1.5">Weight (Oz)</p>
+                <div className="flex items-center gap-1.5">
+                  <input type="number" step="0.1" min="0" value={ozMin} onChange={(e) => setOzMin(e.target.value)} placeholder="Min" className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs" data-testid="brand-filter-oz-min" />
+                  <span className="text-gray-400 text-xs">–</span>
+                  <input type="number" step="0.1" min="0" value={ozMax} onChange={(e) => setOzMax(e.target.value)} placeholder="Max" className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs" data-testid="brand-filter-oz-max" />
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1">Denim weight in ounces · e.g. 8–14 oz</p>
               </div>
-            </div>
+            ) : (
+              <div className="mb-1">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500 mb-1.5">GSM Range</p>
+                <div className="flex items-center gap-1.5">
+                  <input type="number" value={gsmMin} onChange={(e) => setGsmMin(e.target.value)} placeholder="Min" className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs" data-testid="brand-filter-gsm-min" />
+                  <span className="text-gray-400 text-xs">–</span>
+                  <input type="number" value={gsmMax} onChange={(e) => setGsmMax(e.target.value)} placeholder="Max" className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs" data-testid="brand-filter-gsm-max" />
+                </div>
+              </div>
+            )}
           </aside>
         )}
 

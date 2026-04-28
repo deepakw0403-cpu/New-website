@@ -742,6 +742,8 @@ async def brand_list_fabrics(
     width: Optional[str] = None,
     gsm_min: Optional[int] = None,
     gsm_max: Optional[int] = None,
+    oz_min: Optional[float] = None,
+    oz_max: Optional[float] = None,
     availability: Optional[str] = None,  # bookable | sample | instant | enquiry
 ):
     brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
@@ -773,6 +775,40 @@ async def brand_list_fabrics(
         if gsm_max is not None:
             gsm_q["$lte"] = gsm_max
         query["gsm"] = gsm_q
+    # Denim is weighed in ounces; some sellers store the value under
+    # `ounce` while others use `weight_oz`. Even within `ounce`, values are
+    # stored inconsistently — sometimes as a number, sometimes as a string
+    # like "11" or "6.50 OZ". We compute ranges by matching the leading
+    # numeric prefix of the string, falling back to numeric direct match.
+    if oz_min is not None or oz_max is not None:
+        # Build a regex that matches strings whose leading number falls in
+        # range. Cheap and works on existing data without a migration.
+        # We keep an integer fallback so future docs that store oz as a
+        # number still match cleanly.
+        lo = float(oz_min) if oz_min is not None else 0.0
+        hi = float(oz_max) if oz_max is not None else 99.0
+        # Build set of integer-or-half allowed values (0.25 step covers all
+        # sensible denim weights without an explosion of regex alternates).
+        allowed = []
+        v = lo
+        while v <= hi + 1e-9:
+            # Match "11", "11.0", "11.25", "11.5", "11.75"; the regex allows
+            # any non-digit suffix so "11oz" / "11 OZ" / "11.5oz" all work.
+            txt = (f"{v:g}").replace(".", r"\.")
+            allowed.append(txt)
+            v = round(v + 0.25, 2)
+        oz_regex = {"$regex": rf"^\s*({'|'.join(allowed)})(\D|$)"}
+        oz_numeric = {}
+        if oz_min is not None:
+            oz_numeric["$gte"] = lo
+        if oz_max is not None:
+            oz_numeric["$lte"] = hi
+        query["$or"] = (query.get("$or") or []) + [
+            {"ounce": oz_regex},
+            {"weight_oz": oz_regex},
+            {"ounce": oz_numeric},
+            {"weight_oz": oz_numeric},
+        ]
     if composition:
         query["composition.material"] = composition
     if search:
