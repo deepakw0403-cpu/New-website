@@ -631,6 +631,14 @@ async def startup_create_default_admin():
     except Exception as e:
         logger.error(f"Error with admin setup: {str(e)}")
 
+    # Ensure MongoDB indexes exist for hot query paths. Idempotent —
+    # create_index is a no-op if an index with the same keys already exists.
+    try:
+        from db_indexes import ensure_indexes
+        await ensure_indexes(db)
+    except Exception as e:
+        logger.error(f"Index bootstrap failed: {e}")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
