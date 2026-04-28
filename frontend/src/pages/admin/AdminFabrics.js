@@ -349,7 +349,13 @@ const AdminFabrics = () => {
     
     // Status filter (for approval workflow)
     if (filterStatus) {
-      result = result.filter(fabric => fabric.status === filterStatus);
+      // "draft" is our UI label for fabrics that were never submitted for
+      // approval — backend stores them as null/empty/missing status.
+      if (filterStatus === "draft") {
+        result = result.filter(fabric => !fabric.status);
+      } else {
+        result = result.filter(fabric => fabric.status === filterStatus);
+      }
     }
     
     setFilteredFabrics(result);
@@ -823,6 +829,7 @@ const AdminFabrics = () => {
               data-testid="filter-status"
             >
               <option value="">All Status</option>
+              <option value="draft">Draft (not submitted)</option>
               <option value="pending">Pending Approval</option>
               <option value="approved">Approved (Live)</option>
               <option value="rejected">Rejected</option>
