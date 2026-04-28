@@ -281,6 +281,19 @@ Embedded multi-lender credit lines + curated catalogue for brand-tier B2B custom
 - **Internal endpoints unchanged**: `/api/sellers` (admin), `/api/agent/...`, admin POST/PUT fabric responses still expose full vendor info.
 - **Frontend testing**: 100% pass (iteration_39.json) — verified across admin sellers page, public catalog/PDP, brand catalog/PDP.
 
+### Phase 40: Bulk Credit Upload UI (Complete - Feb 2026)
+- **New component**: `/app/frontend/src/components/admin/BulkCreditUpload.js` — drag-and-drop file uploader for `/admin/orders` → Credit Management tab. Replaces legacy paste-only textarea modal.
+- **Features**:
+  - Drag-drop / click-to-browse for `.csv`, `.xlsx`, `.xls` (uses SheetJS `xlsx` lib).
+  - Header auto-detection with aliases (e.g. `limit` → `credit_limit`; `bank` → `lender`).
+  - Row-level validation preview: invalid email, non-numeric credit_limit, negative limits highlighted in red; submit button disabled when no valid rows.
+  - **Two upload modes**: `replace` (overwrite limit, balance reset) and `topup` (add to existing limit & balance, preserves used credit).
+  - "Download CSV template" + "Export current wallets" CSV buttons for closed-loop edits.
+  - Paste-CSV textarea fallback retained for power users.
+- **Backend changes**: `POST /api/orders/credit/wallets/bulk-upload` (`orders_router.py:719`) now accepts `mode: "replace" | "topup"`, validates per-row (email format, credit_limit ≥ 0), returns `{created, updated, skipped: [{row, email, reason}]}`.
+- **API helper**: `bulkUploadCreditWallets(wallets, mode = "replace")` in `lib/api.js`.
+- **Frontend testing**: 100% pass on 8 scenarios incl. mode switch, header shuffle, missing-column error (iteration_40.json).
+
 ## Backlog
 
 ### P1 (High Priority)
