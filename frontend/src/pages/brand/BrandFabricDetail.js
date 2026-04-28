@@ -232,7 +232,8 @@ const BrandFabricDetail = () => {
           <div className="flex items-center gap-3 text-sm text-gray-600 mb-4 flex-wrap">
             {fabric.fabric_code && <span className="font-mono bg-gray-100 px-2 py-0.5 rounded">{fabric.fabric_code}</span>}
             {moqValue > 0 && <span>MOQ: {moqValue} {unit}</span>}
-            {fabric.seller_company && <span>by {fabric.seller_company}</span>}
+            {/* Vendor "by ..." hidden from customer-facing portals — surfaced
+                only in Admin/Agent surfaces via seller_code. */}
           </div>
 
           {/* Color picker */}
@@ -399,7 +400,8 @@ const BrandFabricDetail = () => {
               {fabric.moq && <SpecRow label="MOQ" value={`${fabric.moq}${typeof fabric.moq === "number" ? ` ${unit}` : ""}`} />}
               {fabric.dispatch_timeline && <SpecRow label="Dispatch" value={fabric.dispatch_timeline} />}
               {fabric.fabric_code && <SpecRow label="Fabric Code" value={fabric.fabric_code} mono />}
-              {fabric.seller_company && <SpecRow label="Vendor" value={fabric.seller_company} />}
+              {/* Vendor name intentionally hidden from customer-facing surfaces.
+                  Admin/Agent panels expose seller_code + company for ops use. */}
             </div>
           </div>
 

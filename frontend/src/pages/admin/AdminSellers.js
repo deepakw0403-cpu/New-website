@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Pencil, Trash2, X, Upload, Building2, MapPin, Check, ToggleLeft, ToggleRight, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Upload, Building2, MapPin, Check, ToggleLeft, ToggleRight, Eye, Search } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { getSellers, getCategories, createSeller, updateSeller, deleteSeller, uploadImage } from "../../lib/api";
@@ -14,6 +14,20 @@ const AdminSellers = () => {
   const [editingSeller, setEditingSeller] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
+  // Search across seller_code, company, contact name, GSTIN, city, state, phone
+  // — admins use this to corroborate "which vendor is LS-X2PA8?" without
+  // scrolling through dozens of cards.
+  const [searchQ, setSearchQ] = useState("");
+
+  const filteredSellers = useMemo(() => {
+    const q = searchQ.trim().toLowerCase();
+    if (!q) return sellers;
+    return sellers.filter((s) =>
+      [s.seller_code, s.name, s.company_name, s.gst_number, s.city, s.state, s.contact_email, s.contact_phone]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q))
+    );
+  }, [searchQ, sellers]);
 
   const emptyForm = {
     name: "",
@@ -174,7 +188,7 @@ const AdminSellers = () => {
   return (
     <AdminLayout>
       <div data-testid="admin-sellers-page">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
           <h1 className="text-3xl font-semibold">Sellers</h1>
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
@@ -191,6 +205,39 @@ const AdminSellers = () => {
               Add Seller
             </button>
           </div>
+        </div>
+
+        {/* Vendor search bar — accepts seller code (LS-XXXXX), company name,
+            contact name, GSTIN, city, state, phone, or email. Filters the
+            list client-side so admins can corroborate "which vendor is
+            LS-X2PA8?" instantly without scrolling. */}
+        <div className="mb-6 flex items-center gap-2 flex-wrap">
+          <div className="relative flex-1 max-w-md">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              placeholder="Search by seller code (e.g. LS-X2PA8), company, GSTIN, city, contact…"
+              className="w-full pl-9 pr-9 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:outline-none"
+              data-testid="seller-search-input"
+            />
+            {searchQ && (
+              <button
+                onClick={() => setSearchQ("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                data-testid="seller-search-clear"
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          {searchQ && (
+            <span className="text-xs text-gray-500" data-testid="seller-search-count">
+              {filteredSellers.length} of {sellers.length} match
+            </span>
+          )}
         </div>
 
         {loading ? (

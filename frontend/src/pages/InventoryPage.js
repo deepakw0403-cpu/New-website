@@ -336,11 +336,7 @@ const InventoryPage = () => {
                           {fabric.name}
                         </h3>
                       </Link>
-                      {(fabric.seller_name || fabric.seller_company) && (
-                        <p className="text-sm text-gray-500 mb-2">
-                          by <span className="font-medium text-gray-700">{fabric.seller_company || fabric.seller_name}</span>
-                        </p>
-                      )}
+                      {/* Vendor name intentionally hidden on public surfaces. */}
 
                       <div className="flex flex-wrap gap-2 text-xs text-gray-500 mb-3">
                         {fabric.gsm > 0 && (
