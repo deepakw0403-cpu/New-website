@@ -3,17 +3,28 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { useBrandAuth } from "../../context/BrandAuthContext";
 import { useBrandCart } from "../../context/BrandCartContext";
 import BrandLayout from "./BrandLayout";
-import { Loader2, ArrowLeft, ShoppingCart, Beaker, MessageSquare } from "lucide-react";
+import { Loader2, ArrowLeft, ShoppingCart, Beaker, MessageSquare, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import RFQModal from "../../components/RFQModal";
 import { fmtLacs, fmtINR, fmtCount } from "../../lib/inr";
 import { displayFabricName } from "../../lib/fabricDisplay";
 import { thumbImage, mediumImage, fabricCoverImage } from "../../lib/imageUrl";
 import { DispatchStrip } from "../../components/DispatchBadges";
+import { toWebVideoUrl, videoPosterUrl } from "../../lib/videoUrl";
+import Watermark from "../../components/Watermark";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const MAX_SAMPLE_METERS = 5;
+
+// Compact spec row used on the PDP — keeps the grid tidy and avoids
+// repeating the same wrapper markup for each attribute.
+const SpecRow = ({ label, value, mono = false }) => (
+  <div className="flex flex-col gap-0.5 border-b border-gray-100 pb-2">
+    <span className="text-[11px] uppercase tracking-wide text-gray-400">{label}</span>
+    <span className={`text-gray-800 font-medium break-words ${mono ? "font-mono text-xs" : ""}`}>{value}</span>
+  </div>
+);
 
 const BrandFabricDetail = () => {
   const { id } = useParams();
@@ -137,19 +148,67 @@ const BrandFabricDetail = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Gallery */}
         <div>
-          <div className="aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden">
+          <div className="aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden relative">
             <img
               src={mediumImage(selectedVariant?.image_url || fabricCoverImage(fabric)) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800"}
               alt={fabric.name}
               className="w-full h-full object-cover"
               loading="lazy"
             />
+            <Watermark size="lg" />
           </div>
           {(fabric.images || []).length > 1 && (
             <div className="grid grid-cols-5 gap-2 mt-3">
               {(fabric.images || []).slice(0, 5).map((img, i) => (
                 <img key={i} src={thumbImage(img)} alt={`${fabric.name} ${i + 1}`} className="aspect-square object-cover rounded border border-gray-200" loading="lazy" />
               ))}
+            </div>
+          )}
+
+          {/* Videos — same module as B2C PDP. Supports YouTube/Vimeo embeds
+              and direct file URLs. Falls back to native <video> for the
+              latter, with poster + autoplay-on-hover removed for sanity. */}
+          {Array.isArray(fabric.videos) && fabric.videos.length > 0 && (
+            <div className="mt-5" data-testid="brand-pdp-videos">
+              <h3 className="text-sm font-semibold text-gray-900 mb-2">Product Video{fabric.videos.length > 1 ? "s" : ""}</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {fabric.videos.map((videoUrl, idx) => {
+                  const isYouTube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
+                  const isVimeo = videoUrl.includes("vimeo.com");
+                  return (
+                    <div key={idx} className="rounded-lg overflow-hidden bg-black aspect-video relative">
+                      {isYouTube ? (
+                        <iframe
+                          src={videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+                          title={`${fabric.name} video ${idx + 1}`}
+                          className="w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : isVimeo ? (
+                        <iframe
+                          src={videoUrl.replace("vimeo.com/", "player.vimeo.com/video/")}
+                          title={`${fabric.name} video ${idx + 1}`}
+                          className="w-full h-full"
+                          allow="autoplay; fullscreen; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video
+                          src={toWebVideoUrl(videoUrl)}
+                          controls
+                          preload="metadata"
+                          poster={videoPosterUrl(videoUrl)}
+                          className="w-full h-full object-contain"
+                        >
+                          <source src={toWebVideoUrl(videoUrl)} type="video/mp4" />
+                          Your browser does not support the video tag.
+                        </video>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -296,6 +355,41 @@ const BrandFabricDetail = () => {
           </button>
 
           <DispatchStrip fabric={fabric} className="mt-3" />
+
+          {/* Technical Specifications — same fields as the public PDP so brand
+              users get the full picture (width, weave, GSM/oz, composition,
+              pattern, finish, etc.) before placing the order. */}
+          <div className="mt-6 pt-5 border-t border-gray-200" data-testid="brand-pdp-specs">
+            <h3 className="text-sm font-semibold mb-3">Technical Specifications</h3>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+              {fabric.fabric_type && (
+                <SpecRow label="Fabric Type" value={fabric.fabric_type === "knitted" ? "Knits" : fabric.fabric_type === "woven" ? "Woven" : fabric.fabric_type} />
+              )}
+              {fabric.weave_type && <SpecRow label="Weave Type" value={fabric.weave_type} />}
+              {Array.isArray(fabric.composition) && fabric.composition.some((c) => c.material) && (
+                <SpecRow label="Composition" value={fabric.composition.filter((c) => c.material && c.percentage > 0).map((c) => `${c.percentage}% ${c.material}`).join(", ")} />
+              )}
+              {((fabric.weight_unit === "ounce" && fabric.ounce) || (fabric.weight_unit !== "ounce" && fabric.gsm)) && (
+                <SpecRow
+                  label={fabric.weight_unit === "ounce" ? "Weight (Oz)" : "GSM"}
+                  value={fabric.weight_unit === "ounce" ? fabric.ounce : fabric.gsm}
+                />
+              )}
+              {fabric.width && (
+                <SpecRow
+                  label="Width"
+                  value={`${fabric.width}${typeof fabric.width === "number" || /^\d+$/.test(String(fabric.width)) ? '"' : ""}${fabric.width_type ? ` (${fabric.width_type})` : ""}`}
+                />
+              )}
+              {fabric.color && <SpecRow label="Color" value={fabric.color} />}
+              {fabric.pattern && <SpecRow label="Pattern" value={fabric.pattern} />}
+              {fabric.finish && <SpecRow label="Finish" value={fabric.finish} />}
+              {fabric.moq && <SpecRow label="MOQ" value={`${fabric.moq}${typeof fabric.moq === "number" ? ` ${unit}` : ""}`} />}
+              {fabric.dispatch_timeline && <SpecRow label="Dispatch" value={fabric.dispatch_timeline} />}
+              {fabric.fabric_code && <SpecRow label="Fabric Code" value={fabric.fabric_code} mono />}
+              {fabric.seller_company && <SpecRow label="Vendor" value={fabric.seller_company} />}
+            </div>
+          </div>
 
           {fabric.description && (
             <div className="mt-6 pt-5 border-t border-gray-200">
