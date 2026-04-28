@@ -419,6 +419,7 @@ async def get_fabrics(
     dedupe_by_article: Optional[bool] = Query(False),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=1000),
+    optional_admin=Depends(auth_helpers.get_optional_admin),
 ):
     has_oz = min_weight_oz is not None or max_weight_oz is not None
     query = _build_fabric_query(
@@ -512,11 +513,17 @@ async def get_fabrics(
         fabric_utils.normalize_fabric(fabric)
         fabric['category_name'] = cat_map.get(fabric.get('category_id', ''), '')
         seller = seller_map.get(fabric.get('seller_id', ''))
-        # Public B2C feed: vendor identity is intentionally obfuscated. We
-        # only expose seller_code (e.g. "LS-RK6CN") so admins/agents can
-        # corroborate offline; never the company or contact name.
-        fabric['seller_name'] = ''
-        fabric['seller_company'] = ''
+        # Vendor identity policy:
+        # - Admins (logged in via JWT) see full seller_name + seller_company
+        #   so they can manage the catalog from /admin/fabrics.
+        # - Public/unauthenticated visitors see only seller_code (LS-XXXXX)
+        #   to prevent buyers from bypassing the marketplace.
+        if optional_admin:
+            fabric['seller_name'] = seller['name'] if seller else ''
+            fabric['seller_company'] = seller['company_name'] if seller else ''
+        else:
+            fabric['seller_name'] = ''
+            fabric['seller_company'] = ''
         fabric['seller_code'] = seller.get('seller_code', '') if seller else ''
         if 'seller_id' not in fabric:
             fabric['seller_id'] = ''
@@ -584,7 +591,7 @@ async def get_fabrics_count(
 
 
 @router.get("/fabrics/{fabric_id_or_slug}", response_model=Fabric)
-async def get_fabric(fabric_id_or_slug: str):
+async def get_fabric(fabric_id_or_slug: str, optional_admin=Depends(auth_helpers.get_optional_admin)):
     fabric = await db.fabrics.find_one({'id': fabric_id_or_slug}, {'_id': 0})
     if not fabric:
         fabric = await db.fabrics.find_one({'slug': fabric_id_or_slug}, {'_id': 0})
@@ -601,11 +608,14 @@ async def get_fabric(fabric_id_or_slug: str):
 
     if fabric.get('seller_id'):
         seller = await db.sellers.find_one({'id': fabric['seller_id']}, {'_id': 0})
-        # Public PDP: vendor identity intentionally hidden — only seller_code
-        # is safe to expose. seller_name/seller_company stay blank to prevent
-        # buyers from bypassing the marketplace.
-        fabric['seller_name'] = ''
-        fabric['seller_company'] = ''
+        # Admin browsing /admin/fabrics PDP sees full vendor info; public
+        # visitors see only seller_code.
+        if optional_admin:
+            fabric['seller_name'] = seller['name'] if seller else ''
+            fabric['seller_company'] = seller['company_name'] if seller else ''
+        else:
+            fabric['seller_name'] = ''
+            fabric['seller_company'] = ''
         fabric['seller_code'] = seller.get('seller_code', '') if seller else ''
     else:
         fabric['seller_id'] = ''
