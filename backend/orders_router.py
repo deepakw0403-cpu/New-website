@@ -718,46 +718,84 @@ async def edit_credit_wallet(email: str, data: dict):
 
 @router.post("/credit/wallets/bulk-upload")
 async def bulk_upload_credit_wallets(data: dict):
-    """Admin: bulk upload credit wallets. Expects { wallets: [{email, name, company, credit_limit, lender}] }"""
+    """Admin: bulk upload credit wallets.
+
+    Body: { wallets: [{email, name, company, credit_limit, lender}], mode: "replace" | "topup" }
+
+    Modes:
+      - "replace" (default): For new rows, create wallet with balance = credit_limit.
+        For existing rows, overwrite credit_limit and reset balance to that limit
+        (this is the legacy behaviour — useful when admin uploads a fresh truth table).
+      - "topup": For new rows, create wallet with balance = credit_limit. For existing
+        rows, ADD the uploaded credit_limit to the existing limit AND balance, preserving
+        any used credit. Useful for monthly top-ups from lenders.
+    """
     wallets = data.get('wallets', [])
+    mode = (data.get('mode') or 'replace').strip().lower()
+    if mode not in ('replace', 'topup'):
+        raise HTTPException(status_code=400, detail="mode must be 'replace' or 'topup'")
     if not wallets:
         raise HTTPException(status_code=400, detail="No wallets provided")
-    
+
     now = datetime.now(timezone.utc).isoformat()
     created = 0
     updated = 0
-    
-    for w in wallets:
-        email = w.get('email', '').strip()
-        if not email:
+    skipped = []  # rows we couldn't ingest, with reason
+
+    for idx, w in enumerate(wallets):
+        email = (w.get('email') or '').strip().lower()
+        if not email or '@' not in email:
+            skipped.append({'row': idx + 1, 'email': email, 'reason': 'invalid email'})
             continue
+        try:
+            limit = float(w.get('credit_limit') or 0)
+        except (TypeError, ValueError):
+            skipped.append({'row': idx + 1, 'email': email, 'reason': 'credit_limit not a number'})
+            continue
+        if limit < 0:
+            skipped.append({'row': idx + 1, 'email': email, 'reason': 'credit_limit must be ≥ 0'})
+            continue
+
         existing = await db.credit_wallets.find_one({'email': email})
         if existing:
+            if mode == 'topup':
+                new_limit = (existing.get('credit_limit') or 0) + limit
+                new_balance = (existing.get('balance') or 0) + limit
+            else:  # replace
+                new_limit = limit
+                new_balance = limit
             await db.credit_wallets.update_one(
                 {'email': email},
                 {'$set': {
-                    'credit_limit': w.get('credit_limit', existing.get('credit_limit', 0)),
-                    'balance': w.get('credit_limit', existing.get('credit_limit', 0)),
-                    'lender': w.get('lender', existing.get('lender', '')),
-                    'name': w.get('name', existing.get('name', '')),
-                    'company': w.get('company', existing.get('company', '')),
-                    'updated_at': now
+                    'credit_limit': new_limit,
+                    'balance': new_balance,
+                    'lender': w.get('lender') or existing.get('lender', ''),
+                    'name': w.get('name') or existing.get('name', ''),
+                    'company': w.get('company') or existing.get('company', ''),
+                    'updated_at': now,
                 }}
             )
             updated += 1
         else:
             await db.credit_wallets.insert_one({
                 'email': email,
-                'name': w.get('name', ''),
-                'company': w.get('company', ''),
-                'credit_limit': w.get('credit_limit', 0),
-                'balance': w.get('credit_limit', 0),
-                'lender': w.get('lender', ''),
-                'updated_at': now
+                'name': w.get('name', '') or '',
+                'company': w.get('company', '') or '',
+                'credit_limit': limit,
+                'balance': limit,
+                'lender': w.get('lender', '') or '',
+                'updated_at': now,
             })
             created += 1
-    
-    return {"success": True, "created": created, "updated": updated, "total": created + updated}
+
+    return {
+        "success": True,
+        "mode": mode,
+        "created": created,
+        "updated": updated,
+        "skipped": skipped,
+        "total": created + updated,
+    }
 
 
 

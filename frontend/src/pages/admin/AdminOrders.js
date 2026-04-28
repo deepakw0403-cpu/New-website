@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Package, Clock, CheckCircle, Truck, XCircle, Search, RefreshCw, ChevronDown, Mail, Phone, MapPin, Eye, FileText, Wallet, Upload, Pencil, Ban, X, AlertTriangle } from "lucide-react";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { listOrders, updateOrderStatus, getOrderStats, sendOrderConfirmation, downloadInvoice, cancelOrder, listCreditWallets, editCreditWallet, bulkUploadCreditWallets } from "../../lib/api";
+import BulkCreditUpload from "../../components/admin/BulkCreditUpload";
+import { listOrders, updateOrderStatus, getOrderStats, sendOrderConfirmation, downloadInvoice, cancelOrder, listCreditWallets, editCreditWallet } from "../../lib/api";
 import { toast } from "sonner";
 
 const statusConfig = {
@@ -44,9 +45,8 @@ const AdminOrders = () => {
   const [editPassword, setEditPassword] = useState("");
   const [editLimit, setEditLimit] = useState("");
   const [editBalance, setEditBalance] = useState("");
-  // Bulk upload
+  // Bulk upload modal toggle (component handles parsing + commit)
   const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [bulkText, setBulkText] = useState("");
 
   useEffect(() => { fetchOrders(); fetchStats(); }, [statusFilter]);
   useEffect(() => { if (activeTab === "credit") fetchWallets(); }, [activeTab]);
@@ -104,21 +104,6 @@ const AdminOrders = () => {
       setEditModal(null); setEditPassword(""); setEditLimit(""); setEditBalance("");
       fetchWallets();
     } catch (err) { toast.error(err.response?.data?.detail || "Failed — check password"); }
-  };
-
-  const handleBulkUpload = async () => {
-    try {
-      const lines = bulkText.trim().split("\n").filter(l => l.trim());
-      const walletsList = lines.map(line => {
-        const [email, name, company, credit_limit, lender] = line.split(",").map(s => s.trim());
-        return { email, name: name || "", company: company || "", credit_limit: parseFloat(credit_limit) || 0, lender: lender || "" };
-      }).filter(w => w.email);
-      if (!walletsList.length) { toast.error("No valid rows"); return; }
-      const res = await bulkUploadCreditWallets(walletsList);
-      toast.success(`Uploaded: ${res.data.created} created, ${res.data.updated} updated`);
-      setShowBulkUpload(false); setBulkText("");
-      fetchWallets();
-    } catch (err) { toast.error("Upload failed"); }
   };
 
   const handleResendConfirmation = async (orderId) => {
@@ -420,30 +405,12 @@ const AdminOrders = () => {
         )}
 
         {/* ===== BULK UPLOAD MODAL ===== */}
-        {showBulkUpload && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowBulkUpload(false)}>
-            <div className="bg-white rounded-xl max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()} data-testid="bulk-upload-modal">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Bulk Upload Credit Wallets</h3>
-                <button onClick={() => setShowBulkUpload(false)}><X size={20} className="text-gray-400" /></button>
-              </div>
-              <p className="text-sm text-gray-600 mb-2">Paste CSV rows (one per line). Format:</p>
-              <code className="text-xs bg-gray-100 p-2 rounded block mb-4 text-gray-700">email, name, company, credit_limit, lender</code>
-              <textarea
-                value={bulkText}
-                onChange={(e) => setBulkText(e.target.value)}
-                rows={8}
-                placeholder={"buyer@brand.com, Raj Kumar, Brand Co, 500000, HDFC Bank\nsourcing@fashion.in, Priya Shah, Fashion Inc, 300000, ICICI Bank"}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-sm font-mono"
-                data-testid="bulk-upload-textarea"
-              />
-              <div className="flex gap-3 mt-4">
-                <button onClick={() => setShowBulkUpload(false)} className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-                <button onClick={handleBulkUpload} disabled={!bulkText.trim()} className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg hover:bg-blue-700 disabled:opacity-50" data-testid="upload-btn">Upload</button>
-              </div>
-            </div>
-          </div>
-        )}
+        <BulkCreditUpload
+          open={showBulkUpload}
+          onClose={() => setShowBulkUpload(false)}
+          onSuccess={fetchWallets}
+          currentWallets={wallets}
+        />
       </div>
     </AdminLayout>
   );
