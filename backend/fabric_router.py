@@ -512,8 +512,11 @@ async def get_fabrics(
         fabric_utils.normalize_fabric(fabric)
         fabric['category_name'] = cat_map.get(fabric.get('category_id', ''), '')
         seller = seller_map.get(fabric.get('seller_id', ''))
-        fabric['seller_name'] = seller['name'] if seller else ''
-        fabric['seller_company'] = seller['company_name'] if seller else ''
+        # Public B2C feed: vendor identity is intentionally obfuscated. We
+        # only expose seller_code (e.g. "LS-RK6CN") so admins/agents can
+        # corroborate offline; never the company or contact name.
+        fabric['seller_name'] = ''
+        fabric['seller_company'] = ''
         fabric['seller_code'] = seller.get('seller_code', '') if seller else ''
         if 'seller_id' not in fabric:
             fabric['seller_id'] = ''
@@ -598,8 +601,11 @@ async def get_fabric(fabric_id_or_slug: str):
 
     if fabric.get('seller_id'):
         seller = await db.sellers.find_one({'id': fabric['seller_id']}, {'_id': 0})
-        fabric['seller_name'] = seller['name'] if seller else ''
-        fabric['seller_company'] = seller['company_name'] if seller else ''
+        # Public PDP: vendor identity intentionally hidden — only seller_code
+        # is safe to expose. seller_name/seller_company stay blank to prevent
+        # buyers from bypassing the marketplace.
+        fabric['seller_name'] = ''
+        fabric['seller_company'] = ''
         fabric['seller_code'] = seller.get('seller_code', '') if seller else ''
     else:
         fabric['seller_id'] = ''

@@ -258,7 +258,7 @@ const AdminSellers = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="sellers-grid">
-            {sellers.map((seller) => (
+            {filteredSellers.map((seller) => (
               <div key={seller.id} className={`bg-white border rounded p-6 ${seller.is_active === false ? 'border-gray-300 opacity-60' : 'border-gray-100'}`} data-testid={`seller-card-${seller.id}`}>
                 <div className="flex items-start gap-4 mb-4">
                   {seller.logo_url ? (

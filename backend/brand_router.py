@@ -844,8 +844,17 @@ async def brand_list_fabrics(
     # Attach category names
     cats = await db.categories.find({"id": {"$in": allowed}}, {"_id": 0}).to_list(length=50)
     cat_map = {c["id"]: c["name"] for c in cats}
+    # Brand portal: vendor identity is hidden — same policy as B2C.
+    # Resolve seller_code (LS-XXXXX) so admins can corroborate offline, but
+    # never expose seller_name/seller_company to the brand.
+    seller_ids = list({f.get("seller_id") for f in fabrics if f.get("seller_id")})
+    sellers = await db.sellers.find({"id": {"$in": seller_ids}}, {"_id": 0, "id": 1, "seller_code": 1}).to_list(length=200) if seller_ids else []
+    code_map = {s["id"]: s.get("seller_code", "") for s in sellers}
     for f in fabrics:
         f["category_name"] = cat_map.get(f.get("category_id"), "")
+        f["seller_name"] = ""
+        f["seller_company"] = ""
+        f["seller_code"] = code_map.get(f.get("seller_id", ""), "")
     return fabrics
 
 
@@ -905,6 +914,13 @@ async def brand_get_fabric(fabric_id_or_slug: str, user=Depends(get_current_bran
     cat = await db.categories.find_one({"id": f.get("category_id")}, {"_id": 0, "name": 1})
     if cat:
         f["category_name"] = cat.get("name", "")
+    # Brand portal: hide vendor identity (same policy as B2C). Only seller_code
+    # is exposed so admins/agents can corroborate offline.
+    if f.get("seller_id"):
+        s = await db.sellers.find_one({"id": f["seller_id"]}, {"_id": 0, "seller_code": 1})
+        f["seller_code"] = (s or {}).get("seller_code", "")
+    f["seller_name"] = ""
+    f["seller_company"] = ""
     return f
 
 

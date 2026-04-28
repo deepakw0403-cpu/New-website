@@ -92,13 +92,16 @@ export const createFabricSchema = (fabric) => {
     "description": fabric.description || `${fabric.name} - ${fabric.category_name} fabric available for bulk sourcing`,
     "image": fabric.images?.[0] || DEFAULT_OG_IMAGE,
     "url": `${baseUrl}/fabrics/${fabric.id}`,
+    // Brand/manufacturer obfuscated by design — vendor identities are not
+    // exposed publicly. Search engines see the marketplace as the canonical
+    // source; admins/agents see seller_code internally.
     "brand": {
       "@type": "Brand",
-      "name": fabric.seller_company || "Locofast Verified Supplier"
+      "name": "Locofast Verified Supplier"
     },
     "manufacturer": {
       "@type": "Organization",
-      "name": fabric.seller_company || "Locofast Verified Mills"
+      "name": "Locofast Verified Mills"
     },
     "category": fabric.category_name,
     ...(fabric.rate_per_meter && {
