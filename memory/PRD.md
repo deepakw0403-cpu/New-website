@@ -266,8 +266,20 @@ Embedded multi-lender credit lines + curated catalogue for brand-tier B2B custom
   - `/app/backend/sitemap_router.py` — /api/sitemap.xml
   - `/app/backend/reviews_router.py` — /api/reviews CRUD
   - `/app/backend/upload_router.py` — /api/upload, /api/upload/video
-- **Buy Box (Multi-vendor dedupe)**: `GET /api/fabrics?dedupe_by_article=true` collapses fabrics sharing a non-empty `article_id`, returning only the cheapest `rate_per_meter` SKU per article + a `vendor_count` field. `GET /api/fabrics/count` accepts the same param. FabricsPage now passes `dedupe_by_article=true` by default and renders a blue "+N more vendors" badge on cards with `vendor_count > 1`. No visible change until admin populates `article_id`s — forward-compatible.
+- **Buy Box (Multi-vendor dedupe)**: `GET /api/fabrics?dedupe_by_article=true` collapses fabrics sharing a non-empty `article_id`, returning only the cheapest `rate_per_meter` SKU per article + a `vendor_count` field.
 - **Backend testing**: 100% (21/21 tests passed, iteration_35.json).
+
+### Phase 39: Vendor Identity Obfuscation + Admin Vendor Search (Complete - Feb 2026)
+- **Backend obfuscation**: `seller_name` and `seller_company` blanked in:
+  - `GET /api/fabrics` (public B2C list) — `fabric_router.py:511`
+  - `GET /api/fabrics/{id}` (public PDP) — `fabric_router.py:602`
+  - `GET /api/brand/fabrics` (brand portal list) — `brand_router.py:847`
+  - `GET /api/brand/fabrics/{id}` (brand PDP) — `brand_router.py:907`
+  - `seller_code` (LS-XXXXX) is the only identity field exposed publicly.
+- **SEO obfuscation**: `components/SEO.js` schema.org `brand`/`manufacturer` hardcoded to "Locofast Verified Supplier" / "Locofast Verified Mills" so search-engine scrapers can't extract real vendor names.
+- **Admin vendor search**: `/admin/sellers` now has a search input filtering across `seller_code`, `company_name`, contact name, GSTIN, city, state, email, phone — with live count indicator and clear button. Bug fix: grid was iterating `sellers.map` instead of `filteredSellers.map`; corrected.
+- **Internal endpoints unchanged**: `/api/sellers` (admin), `/api/agent/...`, admin POST/PUT fabric responses still expose full vendor info.
+- **Frontend testing**: 100% pass (iteration_39.json) — verified across admin sellers page, public catalog/PDP, brand catalog/PDP.
 
 ## Backlog
 
