@@ -916,8 +916,22 @@ const AdminFabrics = () => {
                       </div>
                     </td>
                     <td className="p-4 hidden md:table-cell">
-                      {fabric.seller_company ? (
-                        <span className="text-gray-700">{fabric.seller_company}</span>
+                      {/* Show contact name + company together so admins can
+                          match a vendor uniquely during bulk uploads /
+                          data reconciliation. seller_code is rendered below
+                          as the canonical machine identifier. */}
+                      {(fabric.seller_company || fabric.seller_name) ? (
+                        <div className="leading-tight">
+                          {fabric.seller_name && (
+                            <div className="text-gray-900 text-sm font-medium">{fabric.seller_name}</div>
+                          )}
+                          {fabric.seller_company && (
+                            <div className="text-gray-600 text-xs">{fabric.seller_company}</div>
+                          )}
+                          {fabric.seller_code && (
+                            <div className="text-[#2563EB] text-xs font-mono mt-0.5">{fabric.seller_code}</div>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-gray-400 text-sm">No seller</span>
                       )}
