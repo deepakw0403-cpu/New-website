@@ -86,6 +86,11 @@ const BrandCart = () => {
   const [sendNote, setSendNote] = useState("");
   const [sending, setSending] = useState(false);
 
+  // Bulk-order payment method. When credit is insufficient we auto-flip to
+  // "razorpay" (UPI/Card/NetBanking), otherwise we default back to credit
+  // whenever the user's credit balance becomes adequate again.
+  const [bulkPaymentMethod, setBulkPaymentMethod] = useState("credit");
+
   useEffect(() => {
     if (!token) { navigate("/enterprise/login"); return; }
     if (user?.must_reset_password) { navigate("/enterprise/reset-password"); return; }
@@ -115,11 +120,12 @@ const BrandCart = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
 
-  // Load factories for the Send-to-Factory allocation flow. Only brand_admin
-  // users under a brand-type enterprise can send allocations; for everyone
-  // else the button is hidden.
+  // Load factories for the Send-to-Factory allocation flow. All brand users
+  // (not just admins) can send a cart to a factory — admins are notified by
+  // email so they can monitor what their team delegates. Factory-type
+  // enterprises don't see this (they can't sub-delegate).
   useEffect(() => {
-    if (!token || user?.role !== "brand_admin" || enterpriseType !== "brand") {
+    if (!token || enterpriseType !== "brand") {
       setBrandFactories([]);
       return;
     }
@@ -131,7 +137,7 @@ const BrandCart = () => {
         if (res.ok) setBrandFactories(await res.json());
       } catch { /* non-fatal — button simply stays hidden */ }
     })();
-  }, [token, user, enterpriseType]);
+  }, [token, enterpriseType]);
 
   const sendToFactory = async () => {
     if (!pickedFactoryId) { toast.error("Select a factory"); return; }
@@ -192,6 +198,29 @@ const BrandCart = () => {
   const bulkEnough = bulkLines.length === 0 || bulkTotal <= availableCredit + 0.01;
   const sampleEnough = sampleLines.length === 0 || Math.round(sampleTotal) <= availableSample;
 
+  // Auto-switch payment method when credit can't cover the bulk total.
+  useEffect(() => {
+    if (bulkLines.length === 0) return;
+    if (!bulkEnough && bulkPaymentMethod === "credit") setBulkPaymentMethod("razorpay");
+    // If credit becomes adequate again (e.g. user removed items), snap back
+    // to the default unless they explicitly chose Razorpay.
+    if (bulkEnough && bulkPaymentMethod === "razorpay" && availableCredit > 0) {
+      // keep user's choice; only reset if they had no credit at all
+      if (availableCredit <= 0) setBulkPaymentMethod("razorpay");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulkEnough, availableCredit, bulkLines.length]);
+
+  const loadRazorpayScript = () =>
+    new Promise((resolve) => {
+      if (window.Razorpay) return resolve(true);
+      const s = document.createElement("script");
+      s.src = "https://checkout.razorpay.com/v1/checkout.js";
+      s.onload = () => resolve(true);
+      s.onerror = () => resolve(false);
+      document.body.appendChild(s);
+    });
+
   const validateAddress = () => {
     const a = address;
     if (!a.ship_to_name.trim()) return "Please enter a contact name";
@@ -212,7 +241,9 @@ const BrandCart = () => {
       if (!factory.tech_pack_url) return toast.error("Please upload the Tech Pack PDF");
       if (!factory.qty_color_matrix.trim()) return toast.error("Please enter the Size × Color × Quantity breakdown");
     }
-    if (!bulkEnough) return toast.error(`Not enough credit for bulk (₹${availableCredit.toFixed(2)} available)`);
+    // Credit check only applies when the user picked the credit path.
+    if (bulkPaymentMethod === "credit" && !bulkEnough)
+      return toast.error(`Not enough credit for bulk (₹${availableCredit.toFixed(2)} available). Switch to Pay via UPI / Card above.`);
     if (!sampleEnough) return toast.error(`Not enough sample credits (${availableSample} available)`);
 
     setPlacing(true);
@@ -241,7 +272,7 @@ const BrandCart = () => {
         notes: address.notes,
       };
 
-      // Submit sample order first (independent), then bulk
+      // Submit sample order first (independent, always uses sample credits)
       if (sampleLines.length > 0) {
         const res = await fetch(`${API}/api/brand/orders`, {
           method: "POST",
@@ -259,22 +290,74 @@ const BrandCart = () => {
         if (!res.ok) throw new Error(d.detail || "Sample order failed");
         placed.push({ type: "sample", ...d });
       }
+
       if (bulkLines.length > 0) {
-        const res = await fetch(`${API}/api/brand/orders`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            ...base,
-            order_type: "bulk",
-            items: bulkLines.map((l) => ({
-              fabric_id: l.fabric_id, quantity: l.quantity,
-              color_name: l.color_name, color_hex: l.color_hex,
-            })),
-          }),
-        });
-        const d = await res.json();
-        if (!res.ok) throw new Error(d.detail || "Bulk order failed");
-        placed.push({ type: "bulk", ...d });
+        const bulkPayload = {
+          ...base,
+          order_type: "bulk",
+          items: bulkLines.map((l) => ({
+            fabric_id: l.fabric_id, quantity: l.quantity,
+            color_name: l.color_name, color_hex: l.color_hex,
+          })),
+        };
+
+        if (bulkPaymentMethod === "razorpay") {
+          // 1. Create the Razorpay order on our backend (authoritative amount)
+          const createRes = await fetch(`${API}/api/brand/orders/razorpay/create`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify(bulkPayload),
+          });
+          const createData = await createRes.json();
+          if (!createRes.ok) throw new Error(createData.detail || "Could not start payment");
+
+          // 2. Launch Razorpay Checkout (UPI / Card / NetBanking / Wallet)
+          const ready = await loadRazorpayScript();
+          if (!ready) throw new Error("Razorpay script failed to load");
+          const rpResult = await new Promise((resolve, reject) => {
+            const rp = new window.Razorpay({
+              key: createData.key_id,
+              amount: createData.amount_paise,
+              currency: createData.currency,
+              order_id: createData.razorpay_order_id,
+              name: "Locofast",
+              description: `Bulk order · ₹${createData.amount_inr.toLocaleString("en-IN")}`,
+              prefill: { email: user?.email || "", contact: address.ship_to_phone || "" },
+              notes: { brand_id: user?.brand_id || "" },
+              theme: { color: "#059669" },
+              handler: (resp) => resolve(resp),
+              modal: { ondismiss: () => reject(new Error("Payment cancelled")) },
+            });
+            rp.open();
+          });
+
+          // 3. Replay /brand/orders with the signed RP payload — backend
+          //    re-validates signature + amount, debits nothing, creates order.
+          const orderRes = await fetch(`${API}/api/brand/orders`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              ...bulkPayload,
+              payment_method: "razorpay",
+              razorpay_order_id: rpResult.razorpay_order_id,
+              razorpay_payment_id: rpResult.razorpay_payment_id,
+              razorpay_signature: rpResult.razorpay_signature,
+            }),
+          });
+          const orderData = await orderRes.json();
+          if (!orderRes.ok) throw new Error(orderData.detail || "Order creation failed");
+          placed.push({ type: "bulk", ...orderData });
+        } else {
+          // Credit path — backend debits FIFO
+          const res = await fetch(`${API}/api/brand/orders`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ ...bulkPayload, payment_method: "credit" }),
+          });
+          const d = await res.json();
+          if (!res.ok) throw new Error(d.detail || "Bulk order failed");
+          placed.push({ type: "bulk", ...d });
+        }
       }
 
       clear();
@@ -377,10 +460,11 @@ const BrandCart = () => {
           )}
 
           {/* ── Send to Factory (Option B: SKU allocation) ─────────────────────
-             Visible only to brand_admin under a brand-type enterprise with
-             at least one invited factory. Factory user doesn't see this —
+             Visible to all brand users under a brand-type enterprise with at
+             least one invited factory. Brand admins get an email whenever
+             any teammate sends an allocation. Factory users don't see this —
              they see the "Allocations" tab instead. */}
-          {user?.role === "brand_admin" && enterpriseType === "brand" && brandFactories.length > 0 && (sampleLines.length + bulkLines.length) > 0 && (
+          {enterpriseType === "brand" && brandFactories.length > 0 && (sampleLines.length + bulkLines.length) > 0 && (
             <div
               className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-4 flex items-center justify-between gap-4"
               data-testid="brand-send-to-factory-cta"
@@ -526,10 +610,47 @@ const BrandCart = () => {
                 <div className="flex justify-between"><span className="text-gray-500">Logistics + packaging</span><span>{fmtINR(Math.max(bulkLogistics, bulkPackaging))}</span></div>
                 <div className="flex justify-between font-semibold pt-1"><span>Total</span><span data-testid="brand-cart-bulk-total">{fmtINR(bulkTotal)}</span></div>
               </div>
-              <p className="text-[11px] text-gray-500 mt-1">
-                Debited FIFO from credit · <strong data-testid="brand-cart-credit-balance">{fmtLacs(availableCredit)}</strong> ({fmtINR(availableCredit)}) available
-              </p>
-              {!bulkEnough && <p className="text-[11px] text-red-600 mt-1">Insufficient credit — top up or contact your RM</p>}
+
+              {/* Payment method toggle — shown whenever the brand has bulk lines. */}
+              <div className="mt-3 space-y-1.5" data-testid="brand-bulk-payment-method">
+                <p className="text-[11px] font-semibold text-gray-700">Pay with</p>
+                <label className={`flex items-center gap-2 p-2 rounded-md border text-xs cursor-pointer ${bulkPaymentMethod === "credit" ? "border-emerald-400 bg-emerald-50" : "border-gray-200 hover:border-gray-300"} ${!bulkEnough ? "opacity-60" : ""}`}>
+                  <input
+                    type="radio"
+                    name="bulk-pay"
+                    value="credit"
+                    checked={bulkPaymentMethod === "credit"}
+                    onChange={() => setBulkPaymentMethod("credit")}
+                    disabled={!bulkEnough}
+                    data-testid="brand-pay-credit"
+                  />
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-800">Locofast Credit Line</p>
+                    <p className="text-[10px] text-gray-500">
+                      {bulkEnough
+                        ? <>Debited FIFO · <strong data-testid="brand-cart-credit-balance">{fmtLacs(availableCredit)}</strong> available</>
+                        : <>Insufficient balance ({fmtINR(availableCredit)})</>}
+                    </p>
+                  </div>
+                </label>
+                <label className={`flex items-center gap-2 p-2 rounded-md border text-xs cursor-pointer ${bulkPaymentMethod === "razorpay" ? "border-indigo-400 bg-indigo-50" : "border-gray-200 hover:border-gray-300"}`}>
+                  <input
+                    type="radio"
+                    name="bulk-pay"
+                    value="razorpay"
+                    checked={bulkPaymentMethod === "razorpay"}
+                    onChange={() => setBulkPaymentMethod("razorpay")}
+                    data-testid="brand-pay-razorpay"
+                  />
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-800">Pay via UPI / Card / Net-banking</p>
+                    <p className="text-[10px] text-gray-500">Powered by Razorpay · Instant confirmation</p>
+                  </div>
+                </label>
+                {!bulkEnough && bulkPaymentMethod === "razorpay" && (
+                  <p className="text-[10px] text-indigo-700 mt-1">Auto-selected because credit balance is low.</p>
+                )}
+              </div>
             </div>
           )}
 
@@ -540,12 +661,14 @@ const BrandCart = () => {
 
           <button
             onClick={placeOrders}
-            disabled={placing || (!bulkEnough && bulkLines.length > 0) || (!sampleEnough && sampleLines.length > 0)}
+            disabled={placing || (bulkPaymentMethod === "credit" && !bulkEnough && bulkLines.length > 0) || (!sampleEnough && sampleLines.length > 0)}
             className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
             data-testid="brand-place-order"
           >
             {placing ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
-            Place {sampleLines.length > 0 && bulkLines.length > 0 ? "Orders" : "Order"}
+            {bulkLines.length > 0 && bulkPaymentMethod === "razorpay"
+              ? `Pay ₹${Math.round(bulkTotal).toLocaleString("en-IN")} & Place Order`
+              : `Place ${sampleLines.length > 0 && bulkLines.length > 0 ? "Orders" : "Order"}`}
           </button>
           <p className="text-[11px] text-gray-400 mt-2 text-center">
             Confirmation emails go to you, your team admin, the sellers and Locofast ops.

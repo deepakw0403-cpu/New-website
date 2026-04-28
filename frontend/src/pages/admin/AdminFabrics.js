@@ -134,7 +134,7 @@ const AdminFabrics = () => {
   const cottonWeaveOptions = [
     "", "Voile", "Cambric", "Poplin", "2/1 Twill", "3/1 Twill", "2/2 Twill", "4/1 Satin",
     "Dobby", "Herringbone", "-Slub", "+Slub", "Double Cloth", "Oxford", "Canvas",
-    "Sheeting", "Casement", "Lurex",
+    "Sheeting", "Crimp Sheeting", "4mm Ripstop", "6mm Ripstop", "Casement", "Lurex",
   ];
   // For Woven + Polyester category
   const polyesterWovenWeaveOptions = [

@@ -29,10 +29,10 @@ const BrandLayout = ({ children }) => {
       ? [{ to: "/enterprise/factories", label: "Factories", icon: Factory }]
       : []),
     // Allocations tab:
-    //   - Brand-admins of a brand see "Allocations" (SKUs they've sent to their factories)
-    //   - Factory users see "Allocations" (incoming lists from parent brand)
-    //   - Brand-users (non-admin) don't see the tab
-    ...((user?.brand_type === "factory") || (user?.role === "brand_admin" && (user?.brand_type || "brand") === "brand")
+    //   - All brand users (of a brand-type enterprise) can see the
+    //     "Allocations" tab to track SKUs their team has sent to factories
+    //   - Factory users see "Allocations" — incoming lists from parent brand
+    ...((user?.brand_type === "factory") || ((user?.brand_type || "brand") === "brand")
       ? [{ to: "/enterprise/allocations", label: "Allocations", icon: user?.brand_type === "factory" ? Inbox : Send }]
       : []),
   ];

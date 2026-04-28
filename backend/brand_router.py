@@ -9,6 +9,8 @@ import secrets
 import string
 import logging
 import asyncio
+import hmac
+import hashlib
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
@@ -926,6 +928,14 @@ class BrandOrderCreate(BaseModel):
     po_file_url: Optional[str] = ""
     tech_pack_url: Optional[str] = ""
     qty_color_matrix: Optional[str] = ""
+    # Payment path:
+    #   "credit"   — default; debit brand credit line (bulk) or sample credits (sample)
+    #   "razorpay" — for bulk orders when credit is exhausted, verify these
+    #                fields were signed by Razorpay and skip the credit debit
+    payment_method: Optional[str] = "credit"
+    razorpay_order_id: Optional[str] = ""
+    razorpay_payment_id: Optional[str] = ""
+    razorpay_signature: Optional[str] = ""
 
 
 class BrandTopupCreate(BaseModel):
@@ -1330,11 +1340,45 @@ async def brand_create_order(data: BrandOrderCreate, user=Depends(get_current_br
 
     # Debit BEFORE creating order; on failure nothing is committed
     order_id = str(uuid.uuid4())
+    payment_method = "credit"
     if data.order_type == "sample":
-        # Sample credits equate to INR (1 rupee = 1 credit)
+        # Samples always use sample credits — no Razorpay path for samples yet.
         await _debit_sample_credits(user["brand_id"], int(round(total)), order_id, user["id"])
+        payment_method = "sample_credit"
     else:
-        await _debit_credit_fifo(user["brand_id"], total, order_id, user["id"])
+        # Bulk: either debit credit line (default) OR verify Razorpay signature
+        if data.payment_method == "razorpay":
+            if not (data.razorpay_order_id and data.razorpay_payment_id and data.razorpay_signature):
+                raise HTTPException(status_code=400, detail="Razorpay fields missing")
+            key_secret = os.environ.get("RAZORPAY_KEY_SECRET")
+            if not key_secret:
+                raise HTTPException(status_code=500, detail="Razorpay not configured")
+            expected = hmac.new(
+                key_secret.encode(),
+                f"{data.razorpay_order_id}|{data.razorpay_payment_id}".encode(),
+                hashlib.sha256,
+            ).hexdigest()
+            if not hmac.compare_digest(expected, data.razorpay_signature):
+                raise HTTPException(status_code=400, detail="Invalid Razorpay signature")
+            # Confirm the captured amount matches our computed total (paise)
+            client = _razorpay_client()
+            try:
+                rp_order = await asyncio.to_thread(client.order.fetch, data.razorpay_order_id)
+                paid_amount_inr = (rp_order.get("amount_paid") or 0) / 100
+                if abs(paid_amount_inr - total) > 1.0:  # allow 1 INR rounding
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Amount mismatch: paid ₹{paid_amount_inr}, order total ₹{total}"
+                    )
+            except HTTPException:
+                raise
+            except Exception as e:
+                logging.error(f"Razorpay order verification failed: {e}")
+                raise HTTPException(status_code=400, detail="Could not verify Razorpay order")
+            payment_method = "razorpay"
+        else:
+            await _debit_credit_fifo(user["brand_id"], total, order_id, user["id"])
+            payment_method = "brand_credit"
 
     # Order number
     counter = await db.counters.find_one_and_update(
@@ -1368,7 +1412,9 @@ async def brand_create_order(data: BrandOrderCreate, user=Depends(get_current_br
         "logistics_only_charge": logistics_only,
         "status": "paid",
         "payment_status": "paid",
-        "payment_method": "brand_credit" if data.order_type == "bulk" else "sample_credit",
+        "payment_method": payment_method,
+        "razorpay_order_id": data.razorpay_order_id or None,
+        "razorpay_payment_id": data.razorpay_payment_id or None,
         "booking_type": "brand",
         "brand_id": user["brand_id"],
         "brand_name": brand["name"],
@@ -1584,6 +1630,71 @@ async def brand_sample_topup_verify(data: BrandTopupVerify, user=Depends(get_cur
     return {"message": f"Added {credits} sample credits", "credits": credits}
 
 
+@router.post("/brand/orders/razorpay/create")
+async def brand_bulk_razorpay_create(data: BrandOrderCreate, user=Depends(get_current_brand_user)):
+    """Create a Razorpay order for a brand BULK cart when credit is
+    unavailable or insufficient. Returns the RP order id + amount so the
+    frontend can launch the checkout modal. After payment succeeds, the
+    frontend replays `POST /brand/orders` with payment_method=razorpay and
+    the rp_order_id / payment_id / signature for server-side verification.
+
+    We intentionally DO NOT debit credit here, nor validate stock (that's
+    re-done atomically in `brand_create_order`). This endpoint only computes
+    the authoritative total and opens a Razorpay order so the client can
+    charge the brand's card / UPI / netbanking.
+    """
+    if data.order_type != "bulk":
+        raise HTTPException(status_code=400, detail="Razorpay path only supports bulk orders")
+    if not data.items:
+        raise HTTPException(status_code=400, detail="No items")
+
+    brand = await db.brands.find_one({"id": user["brand_id"], "status": "active"}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=403, detail="Brand inactive")
+    allowed = brand.get("allowed_category_ids") or []
+
+    subtotal = 0.0
+    for it in data.items:
+        if it.quantity <= 0:
+            raise HTTPException(status_code=400, detail="Quantity must be > 0")
+        f = await db.fabrics.find_one({"id": it.fabric_id}, {"_id": 0})
+        if not f:
+            raise HTTPException(status_code=404, detail=f"Fabric {it.fabric_id} not found")
+        if f.get("category_id") not in allowed:
+            raise HTTPException(status_code=403, detail=f"Fabric '{f.get('name')}' not available for your brand")
+        rate = float(f.get("rate_per_meter") or f.get("price_per_meter") or 0)
+        if rate <= 0:
+            raise HTTPException(status_code=400, detail=f"Fabric '{f.get('name')}' has no price")
+        subtotal += rate * it.quantity
+
+    tax = round(subtotal * 0.05, 2)
+    # Match the same logistics/packaging math used by brand_create_order so
+    # the RP amount equals the final order total to the rupee.
+    packaging_charge = sum(int(it.quantity) * 1 for it in data.items)
+    logistics_total = max(round(subtotal * 0.03, 2), float(packaging_charge), 3000.0)
+    total = round(subtotal + tax + logistics_total, 2)
+
+    client = _razorpay_client()
+    if not client:
+        raise HTTPException(status_code=503, detail="Payment gateway not configured")
+    rp_order = await asyncio.to_thread(client.order.create, {
+        "amount": int(round(total * 100)),
+        "currency": "INR",
+        "notes": {
+            "brand_id": user["brand_id"],
+            "brand_user_id": user["id"],
+            "purpose": "brand_bulk_order",
+        },
+    })
+    return {
+        "razorpay_order_id": rp_order["id"],
+        "amount_inr": float(total),
+        "amount_paise": int(round(total * 100)),
+        "currency": "INR",
+        "key_id": os.environ.get("RAZORPAY_KEY_ID", ""),
+    }
+
+
 # =================== FACTORY CART HANDOFFS (Brand → Factory SKU allocation) ===================
 #
 # Brand admins build a cart and "Send to factory"; the factory user sees the
@@ -1626,15 +1737,14 @@ def _serialize_handoff(h: dict) -> dict:
 
 @router.post("/brand/factory-handoffs")
 async def create_factory_handoff(data: HandoffCreate, user=Depends(get_current_brand_user)):
-    """Brand admin sends a prepared cart to one of its invited factories.
+    """Any brand user can send a prepared cart to one of the brand's invited
+    factories. Brand admins are notified by email when an allocation is sent,
+    so they can monitor what their team is delegating.
 
     Validates that:
-      - the caller is brand_admin
       - the factory exists and is a child of the caller's brand
       - all items have a positive quantity + valid order_type
     """
-    if user["role"] != "brand_admin":
-        raise HTTPException(status_code=403, detail="Only brand admins can allocate SKUs to factories")
     if not data.items:
         raise HTTPException(status_code=400, detail="At least one item is required")
 
@@ -1676,14 +1786,114 @@ async def create_factory_handoff(data: HandoffCreate, user=Depends(get_current_b
     }
     await db.factory_handoffs.insert_one(handoff_doc)
     handoff_doc.pop("_id", None)
+
+    # Fire-and-forget email notifications. We run them inside a try so the
+    # API response isn't blocked on an email failure — admins can still see
+    # the allocation in the dashboard.
+    try:
+        await _notify_handoff_created(handoff_doc)
+    except Exception as e:
+        logging.error(f"Handoff email notification failed: {e}")
+
     return _serialize_handoff(handoff_doc)
+
+
+async def _notify_handoff_created(handoff: dict):
+    """Email brand admins (+ factory admin) when a new SKU allocation is sent.
+
+    Recipients:
+      • All brand_admin users of the parent brand (so the team knows what
+        teammates are delegating — addresses the "by whom" audit question)
+      • The factory's admin users (so they can action it quickly)
+    Copy is kept concise with a manifest of items and a deep-link to the
+    Allocations page.
+    """
+    if not RESEND_API_KEY:
+        return  # Email dispatch disabled in this env
+
+    # Admins of the brand (sender side)
+    brand_admins = await db.brand_users.find(
+        {"brand_id": handoff["brand_id"], "role": "brand_admin", "status": "active"},
+        {"_id": 0, "email": 1, "name": 1},
+    ).to_list(20)
+
+    # Admins of the factory (receiver side)
+    factory_admins = await db.brand_users.find(
+        {"brand_id": handoff["factory_id"], "role": "brand_admin", "status": "active"},
+        {"_id": 0, "email": 1, "name": 1},
+    ).to_list(20)
+
+    item_rows = "".join(
+        f"<tr><td style='padding:6px 10px;border-bottom:1px solid #eee'>{it.get('fabric_name','')}"
+        f"{(' · ' + it.get('color_name','')) if it.get('color_name') else ''}</td>"
+        f"<td style='padding:6px 10px;border-bottom:1px solid #eee;text-align:right'>{it.get('quantity','')}{it.get('unit','m')}</td>"
+        f"<td style='padding:6px 10px;border-bottom:1px solid #eee;text-align:right;text-transform:capitalize'>{it.get('order_type','')}</td></tr>"
+        for it in handoff.get("items", [])[:30]
+    )
+    note_html = (
+        f"<p style='margin:12px 0 0;color:#475569;font-style:italic;'>\"{handoff.get('note','')}\"</p>"
+        if handoff.get("note") else ""
+    )
+
+    link = f"{SITE_URL}/enterprise/allocations"
+    subject_brand = f"[Locofast] {handoff['brand_user_name']} allocated {len(handoff['items'])} SKU(s) to {handoff['factory_name']}"
+    subject_factory = f"[Locofast] New allocation from {handoff['brand_user_name']} · {len(handoff['items'])} SKU(s) to action"
+
+    def _build_html(is_factory_side: bool) -> str:
+        headline = (
+            f"{handoff['brand_user_name']} has allocated {len(handoff['items'])} SKU(s) to <b>{handoff['factory_name']}</b>."
+            if not is_factory_side else
+            f"You have a new SKU allocation from <b>{handoff['brand_user_name']}</b> ({handoff['brand_user_email']})."
+        )
+        cta = "Review in dashboard" if not is_factory_side else "Accept or Reject"
+        return f"""
+<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;color:#0f172a;">
+  <h2 style="margin:0 0 8px;font-size:18px;">SKU Allocation</h2>
+  <p style="margin:0 0 12px;color:#334155;">{headline}</p>
+  {note_html}
+  <table style="margin-top:14px;border-collapse:collapse;width:100%;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;font-size:13px;">
+    <thead><tr style="background:#f8fafc;">
+      <th style="padding:8px 10px;text-align:left;color:#64748b;">SKU</th>
+      <th style="padding:8px 10px;text-align:right;color:#64748b;">Qty</th>
+      <th style="padding:8px 10px;text-align:right;color:#64748b;">Type</th>
+    </tr></thead>
+    <tbody>{item_rows}</tbody>
+  </table>
+  <p style="margin:16px 0 0;">
+    <a href="{link}" style="display:inline-block;padding:10px 16px;background:#4f46e5;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">{cta} →</a>
+  </p>
+  <p style="margin:16px 0 0;color:#94a3b8;font-size:11px;">
+    Sent by {handoff['brand_user_name']} ({handoff['brand_user_email']}) · {handoff['created_at'][:19].replace('T',' ')} UTC
+  </p>
+</div>
+        """
+
+    # Brand admins — skip the sender so they don't email themselves
+    brand_recipients = [a["email"] for a in brand_admins if a["email"] != handoff.get("brand_user_email")]
+    if brand_recipients:
+        try:
+            await asyncio.to_thread(
+                resend.Emails.send,
+                {"from": SENDER_EMAIL, "to": brand_recipients, "subject": subject_brand, "html": _build_html(False)},
+            )
+        except Exception as e:
+            logging.error(f"Brand-admin notification failed: {e}")
+
+    factory_recipients = [a["email"] for a in factory_admins]
+    if factory_recipients:
+        try:
+            await asyncio.to_thread(
+                resend.Emails.send,
+                {"from": SENDER_EMAIL, "to": factory_recipients, "subject": subject_factory, "html": _build_html(True)},
+            )
+        except Exception as e:
+            logging.error(f"Factory-admin notification failed: {e}")
 
 
 @router.get("/brand/factory-handoffs")
 async def list_brand_sent_handoffs(user=Depends(get_current_brand_user)):
-    """Brand admin — list handoffs I (or my teammates) have sent to factories."""
-    if user["role"] != "brand_admin":
-        raise HTTPException(status_code=403, detail="Only brand admins can view sent allocations")
+    """List handoffs sent by anyone in this brand's team. All brand users can
+    view — the Allocations page gives visibility across the team."""
     rows = await db.factory_handoffs.find(
         {"brand_id": user["brand_id"]},
         {"_id": 0},
