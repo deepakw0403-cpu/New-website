@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useBrandAuth } from "../../context/BrandAuthContext";
 import { useBrandCart } from "../../context/BrandCartContext";
 import BrandLayout from "./BrandLayout";
-import { ShoppingCart, Trash2, ArrowRight, CheckCircle, Loader2, MapPin, Beaker, Upload } from "lucide-react";
+import { ShoppingCart, Trash2, ArrowRight, CheckCircle, Loader2, MapPin, Beaker, Upload, Factory, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { fmtINR, fmtLacs, fmtCount } from "../../lib/inr";
 import { thumbImage } from "../../lib/imageUrl";
@@ -79,6 +79,13 @@ const BrandCart = () => {
     tp_uploading: false,
   });
 
+  // Brand → Factory SKU allocation (Option B: brand prepares cart, factory checks out)
+  const [brandFactories, setBrandFactories] = useState([]);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [pickedFactoryId, setPickedFactoryId] = useState("");
+  const [sendNote, setSendNote] = useState("");
+  const [sending, setSending] = useState(false);
+
   useEffect(() => {
     if (!token) { navigate("/enterprise/login"); return; }
     if (user?.must_reset_password) { navigate("/enterprise/reset-password"); return; }
@@ -107,6 +114,66 @@ const BrandCart = () => {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
+
+  // Load factories for the Send-to-Factory allocation flow. Only brand_admin
+  // users under a brand-type enterprise can send allocations; for everyone
+  // else the button is hidden.
+  useEffect(() => {
+    if (!token || user?.role !== "brand_admin" || enterpriseType !== "brand") {
+      setBrandFactories([]);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch(`${API}/api/brand/factories`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) setBrandFactories(await res.json());
+      } catch { /* non-fatal — button simply stays hidden */ }
+    })();
+  }, [token, user, enterpriseType]);
+
+  const sendToFactory = async () => {
+    if (!pickedFactoryId) { toast.error("Select a factory"); return; }
+    const items = [...sampleLines, ...bulkLines].map((l) => ({
+      fabric_id: l.fabric_id,
+      fabric_name: l.fabric_name,
+      fabric_code: l.fabric_code || "",
+      category_name: l.category_name || "",
+      image_url: l.image_url || "",
+      quantity: Number(l.quantity),
+      unit: l.unit || "m",
+      color_name: l.color_name || "",
+      color_hex: l.color_hex || "",
+      order_type: l.order_type,
+      price_per_unit: Number(l.price_per_unit) || 0,
+      moq: l.moq || "",
+      seller_company: l.seller_company || "",
+    }));
+    if (items.length === 0) { toast.error("Cart is empty"); return; }
+    setSending(true);
+    try {
+      const res = await fetch(`${API}/api/brand/factory-handoffs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ factory_id: pickedFactoryId, items, note: sendNote }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Failed to send");
+      const factoryName = brandFactories.find((f) => f.id === pickedFactoryId)?.name || "factory";
+      toast.success(`Sent ${items.length} item${items.length > 1 ? "s" : ""} to ${factoryName}. They'll see it on their Allocations tab.`);
+      setShowSendModal(false);
+      setPickedFactoryId("");
+      setSendNote("");
+      // Clear the cart — brand has handed these off.
+      clear();
+      // Nudge to the Allocations page so brand admin can track status
+      navigate("/enterprise/allocations");
+    } catch (err) {
+      toast.error(err.message || "Failed to send");
+    }
+    setSending(false);
+  };
 
   // Charges — mirror backend
   const bulkQty = bulkLines.reduce((s, l) => s + Number(l.quantity), 0);
@@ -309,6 +376,36 @@ const BrandCart = () => {
             </div>
           )}
 
+          {/* ── Send to Factory (Option B: SKU allocation) ─────────────────────
+             Visible only to brand_admin under a brand-type enterprise with
+             at least one invited factory. Factory user doesn't see this —
+             they see the "Allocations" tab instead. */}
+          {user?.role === "brand_admin" && enterpriseType === "brand" && brandFactories.length > 0 && (sampleLines.length + bulkLines.length) > 0 && (
+            <div
+              className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-4 flex items-center justify-between gap-4"
+              data-testid="brand-send-to-factory-cta"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center flex-shrink-0">
+                  <Factory size={18} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-indigo-900">Allocate to a factory instead</h4>
+                  <p className="text-xs text-indigo-700 mt-0.5">
+                    Send this exact cart to one of your invited factories. They'll see it under Allocations and can place the order against their own credit line.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSendModal(true)}
+                className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg flex items-center gap-1.5 whitespace-nowrap"
+                data-testid="brand-open-send-to-factory"
+              >
+                <Send size={14} /> Send to Factory
+              </button>
+            </div>
+          )}
+
           {/* Address */}
           <div className="bg-white border border-gray-200 rounded-xl p-5" data-testid="brand-cart-address">
             <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-1.5">
@@ -459,6 +556,87 @@ const BrandCart = () => {
           </div>
         </div>
       </div>
+
+      {/* ── Send-to-Factory modal ────────────────────────────────────────── */}
+      {showSendModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => !sending && setShowSendModal(false)}
+          data-testid="brand-send-to-factory-modal"
+        >
+          <div
+            className="bg-white rounded-xl w-full max-w-md shadow-xl border border-gray-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+              <div className="flex items-center gap-2 text-gray-900">
+                <Factory size={16} className="text-indigo-600" />
+                <h3 className="text-sm font-semibold">Send cart to factory</h3>
+              </div>
+              <button onClick={() => !sending && setShowSendModal(false)} className="text-gray-400 hover:text-gray-600" aria-label="Close">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Factory</label>
+                <select
+                  value={pickedFactoryId}
+                  onChange={(e) => setPickedFactoryId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  data-testid="brand-send-factory-select"
+                >
+                  <option value="">Select a factory…</option>
+                  {brandFactories.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                      {f.verification_status === "unverified" ? " · pending verification" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Note to factory (optional)</label>
+                <textarea
+                  value={sendNote}
+                  onChange={(e) => setSendNote(e.target.value)}
+                  rows={3}
+                  placeholder="e.g. For SS26 collection. Please order by 15th May."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none"
+                  data-testid="brand-send-note"
+                />
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs">
+                <p className="font-medium text-gray-800 mb-1">You're sending {sampleLines.length + bulkLines.length} item{sampleLines.length + bulkLines.length !== 1 ? "s" : ""}</p>
+                <ul className="space-y-0.5 text-gray-600 max-h-28 overflow-y-auto">
+                  {[...sampleLines, ...bulkLines].map((l) => (
+                    <li key={l.id} className="truncate">• {l.fabric_name} — {l.quantity}{l.unit || "m"} ({l.order_type}){l.color_name ? `, ${l.color_name}` : ""}</li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-[11px] text-gray-500">Your cart will be cleared once sent. The factory places and pays for the order itself.</p>
+              </div>
+            </div>
+            <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setShowSendModal(false)}
+                disabled={sending}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendToFactory}
+                disabled={sending || !pickedFactoryId}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg flex items-center gap-1.5"
+                data-testid="brand-confirm-send-to-factory"
+              >
+                {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </BrandLayout>
   );
 };

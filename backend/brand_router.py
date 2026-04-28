@@ -1582,3 +1582,175 @@ async def brand_sample_topup_verify(data: BrandTopupVerify, user=Depends(get_cur
         note="Self-serve Razorpay top-up",
     )
     return {"message": f"Added {credits} sample credits", "credits": credits}
+
+
+# =================== FACTORY CART HANDOFFS (Brand → Factory SKU allocation) ===================
+#
+# Brand admins build a cart and "Send to factory"; the factory user sees the
+# handoff on their Allocations tab and can Accept (items queued into their
+# cart, ready to check out against their own credit line) or Reject.
+#
+# Financial model is preserved: the factory still places the order, pays with
+# its own credit line, and receives its own invoice. The brand only *drives*
+# SKU selection — it does not pay for the factory.
+
+class HandoffItem(BaseModel):
+    fabric_id: str
+    fabric_name: str = ""
+    fabric_code: str = ""
+    category_name: str = ""
+    image_url: str = ""
+    quantity: float
+    unit: str = "m"                      # "m" | "oz" etc. — display only
+    color_name: str = ""
+    color_hex: str = ""
+    order_type: str                      # "sample" | "bulk"
+    price_per_unit: Optional[float] = None
+    moq: Optional[str] = ""
+    seller_company: Optional[str] = ""
+
+
+class HandoffCreate(BaseModel):
+    factory_id: str
+    items: List[HandoffItem]
+    note: Optional[str] = ""
+
+
+def _serialize_handoff(h: dict) -> dict:
+    """Strip Mongo _id and return a plain dict safe for JSON."""
+    if not h:
+        return h
+    out = {k: v for k, v in h.items() if k != "_id"}
+    return out
+
+
+@router.post("/brand/factory-handoffs")
+async def create_factory_handoff(data: HandoffCreate, user=Depends(get_current_brand_user)):
+    """Brand admin sends a prepared cart to one of its invited factories.
+
+    Validates that:
+      - the caller is brand_admin
+      - the factory exists and is a child of the caller's brand
+      - all items have a positive quantity + valid order_type
+    """
+    if user["role"] != "brand_admin":
+        raise HTTPException(status_code=403, detail="Only brand admins can allocate SKUs to factories")
+    if not data.items:
+        raise HTTPException(status_code=400, detail="At least one item is required")
+
+    # Confirm factory is a child of caller's brand
+    factory = await db.brands.find_one(
+        {"id": data.factory_id, "type": "factory", "parent_brand_id": user["brand_id"]},
+        {"_id": 0, "id": 1, "name": 1},
+    )
+    if not factory:
+        raise HTTPException(status_code=404, detail="Factory not found under your brand")
+
+    # Validate items
+    clean_items = []
+    for it in data.items:
+        if it.quantity is None or it.quantity <= 0:
+            raise HTTPException(status_code=400, detail=f"Invalid quantity for fabric {it.fabric_id}")
+        if it.order_type not in ("sample", "bulk"):
+            raise HTTPException(status_code=400, detail=f"Invalid order_type for fabric {it.fabric_id}")
+        clean_items.append(it.model_dump())
+
+    handoff_id = str(uuid.uuid4())
+    now_iso = datetime.now(timezone.utc).isoformat()
+    handoff_doc = {
+        "id": handoff_id,
+        "brand_id": user["brand_id"],
+        "brand_user_id": user["id"],
+        "brand_user_name": user.get("name", ""),
+        "brand_user_email": user.get("email", ""),
+        "factory_id": data.factory_id,
+        "factory_name": factory.get("name", ""),
+        "items": clean_items,
+        "note": data.note or "",
+        "status": "pending",                # pending | accepted | rejected
+        "created_at": now_iso,
+        "updated_at": now_iso,
+        "accepted_at": None,
+        "rejected_at": None,
+        "responded_by_user_id": None,
+    }
+    await db.factory_handoffs.insert_one(handoff_doc)
+    handoff_doc.pop("_id", None)
+    return _serialize_handoff(handoff_doc)
+
+
+@router.get("/brand/factory-handoffs")
+async def list_brand_sent_handoffs(user=Depends(get_current_brand_user)):
+    """Brand admin — list handoffs I (or my teammates) have sent to factories."""
+    if user["role"] != "brand_admin":
+        raise HTTPException(status_code=403, detail="Only brand admins can view sent allocations")
+    rows = await db.factory_handoffs.find(
+        {"brand_id": user["brand_id"]},
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(200)
+    return rows
+
+
+@router.get("/brand/factory-handoffs/incoming")
+async def list_incoming_handoffs(user=Depends(get_current_brand_user)):
+    """Factory user — list allocations my parent brand has pushed to me."""
+    me_brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0, "type": 1})
+    if (me_brand or {}).get("type") != "factory":
+        # Returning [] instead of 403 keeps the UI simple — brand-side users
+        # simply don't see the Allocations tab, so this is defence-in-depth.
+        return []
+    rows = await db.factory_handoffs.find(
+        {"factory_id": user["brand_id"]},
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(200)
+    return rows
+
+
+@router.post("/brand/factory-handoffs/{handoff_id}/accept")
+async def accept_handoff(handoff_id: str, user=Depends(get_current_brand_user)):
+    """Factory accepts the allocation. We only mark it accepted; the factory
+    frontend is responsible for merging items into the local cart (the cart
+    is client-side today, see BrandCartContext)."""
+    handoff = await db.factory_handoffs.find_one({"id": handoff_id}, {"_id": 0})
+    if not handoff:
+        raise HTTPException(status_code=404, detail="Allocation not found")
+    if handoff.get("factory_id") != user["brand_id"]:
+        raise HTTPException(status_code=403, detail="This allocation was not sent to your factory")
+    if handoff.get("status") != "pending":
+        raise HTTPException(status_code=400, detail=f"Allocation already {handoff.get('status')}")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.factory_handoffs.update_one(
+        {"id": handoff_id},
+        {"$set": {
+            "status": "accepted",
+            "accepted_at": now_iso,
+            "updated_at": now_iso,
+            "responded_by_user_id": user["id"],
+        }},
+    )
+    handoff.update({"status": "accepted", "accepted_at": now_iso})
+    return _serialize_handoff(handoff)
+
+
+@router.post("/brand/factory-handoffs/{handoff_id}/reject")
+async def reject_handoff(handoff_id: str, user=Depends(get_current_brand_user)):
+    """Factory rejects the allocation."""
+    handoff = await db.factory_handoffs.find_one({"id": handoff_id}, {"_id": 0})
+    if not handoff:
+        raise HTTPException(status_code=404, detail="Allocation not found")
+    if handoff.get("factory_id") != user["brand_id"]:
+        raise HTTPException(status_code=403, detail="This allocation was not sent to your factory")
+    if handoff.get("status") != "pending":
+        raise HTTPException(status_code=400, detail=f"Allocation already {handoff.get('status')}")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.factory_handoffs.update_one(
+        {"id": handoff_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_at": now_iso,
+            "updated_at": now_iso,
+            "responded_by_user_id": user["id"],
+        }},
+    )
+    handoff.update({"status": "rejected", "rejected_at": now_iso})
+    return _serialize_handoff(handoff)

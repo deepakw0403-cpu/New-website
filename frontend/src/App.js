@@ -106,6 +106,7 @@ const BrandUsers = lazy(() => import("./pages/brand/BrandUsers"));
 const BrandOrders = lazy(() => import("./pages/brand/BrandOrders"));
 const BrandCart = lazy(() => import("./pages/brand/BrandCart"));
 const BrandFactories = lazy(() => import("./pages/brand/BrandFactories"));
+const BrandAllocations = lazy(() => import("./pages/brand/BrandAllocations"));
 
 // Vendor pages
 const VendorLogin = lazy(() => import("./pages/vendor/VendorLogin"));
@@ -301,6 +302,7 @@ function App() {
           <Route path="/enterprise/orders" element={<BrandOrders />} />
           <Route path="/enterprise/cart" element={<BrandCart />} />
           <Route path="/enterprise/factories" element={<BrandFactories />} />
+          <Route path="/enterprise/allocations" element={<BrandAllocations />} />
           <Route path="/enterprise" element={<Navigate to="/enterprise/fabrics" replace />} />
 
           {/* Legacy /brand/* → /enterprise/* (permanent) */}
