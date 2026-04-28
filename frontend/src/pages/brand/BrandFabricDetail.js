@@ -142,9 +142,21 @@ const BrandFabricDetail = () => {
 
   return (
     <BrandLayout>
-      <Link to="/enterprise/fabrics" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-4">
+      {/* Back to catalog — use browser history so the filters/sort/page the
+          user had set on /enterprise/fabrics survive the round-trip. Falls
+          back to the bare catalog URL when the PDP was opened directly
+          (deep-link / refresh) and there's nothing in the history stack. */}
+      <button
+        type="button"
+        onClick={() => {
+          if (window.history.length > 1) navigate(-1);
+          else navigate("/enterprise/fabrics");
+        }}
+        className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-4"
+        data-testid="brand-pdp-back-to-catalog"
+      >
         <ArrowLeft size={14} /> Back to catalog
-      </Link>
+      </button>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Gallery */}
         <div>

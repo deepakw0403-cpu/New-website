@@ -1122,7 +1122,15 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
           {/* Internal Links */}
           <div className="border-t border-gray-200 pt-8 mt-12">
             <div className="flex flex-wrap gap-4 text-sm">
-              <Link to="/fabrics" className="text-[#2563EB] hover:underline">← All Fabrics</Link>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.history.length > 1) navigate(-1);
+                  else navigate("/fabrics");
+                }}
+                className="text-[#2563EB] hover:underline"
+                data-testid="pdp-back-to-catalog"
+              >← All Fabrics</button>
               <Link to="/fabrics/" className="text-[#2563EB] hover:underline">Browse by Category</Link>
               <Link to="/rfq" className="text-[#2563EB] hover:underline">Request a Quote</Link>
             </div>
