@@ -434,9 +434,33 @@ async def get_fabrics(
     if has_oz:
         pipeline.extend(_oz_pipeline_stages(min_weight_oz, max_weight_oz))
 
-    # Booking priority sort: both > bulk > sample > enquiry
+    # Sort priority (left = highest):
+    #   1. image_quality_rank — fabrics with real (Cloudinary/upload) images
+    #      first, Unsplash/external second, no-image last. This guarantees
+    #      page 1 always leads with photographed inventory; placeholder SKUs
+    #      land at the back of the catalog.
+    #   2. booking_priority — both > bulk > sample > enquiry
+    #   3. created_at desc — newest within each tier
     pipeline.extend([
         {'$addFields': {
+            'image_quality_rank': {
+                '$switch': {
+                    'branches': [
+                        # No images at all → rank 2 (last)
+                        {'case': {'$or': [
+                            {'$eq': [{'$ifNull': ['$images', []]}, []]},
+                            {'$eq': [{'$size': {'$ifNull': ['$images', []]}}, 0]},
+                        ]}, 'then': 2},
+                        # First image is an Unsplash / placeholder URL → rank 1
+                        {'case': {'$regexMatch': {
+                            'input': {'$ifNull': [{'$arrayElemAt': ['$images', 0]}, '']},
+                            'regex': 'unsplash|placeholder|placehold\\.co',
+                            'options': 'i',
+                        }}, 'then': 1},
+                    ],
+                    'default': 0,  # real, photographed image
+                },
+            },
             'booking_priority': {
                 '$switch': {
                     'branches': [
@@ -458,13 +482,13 @@ async def get_fabrics(
                 },
             },
         }},
-        {'$sort': {'booking_priority': 1, 'created_at': -1}},
+        {'$sort': {'image_quality_rank': 1, 'booking_priority': 1, 'created_at': -1}},
     ])
 
     if dedupe_by_article:
         # Fetch enough docs to cover multi-vendor collapse, then dedupe in-process.
         # For the current catalog size (<5k SKUs) this is cheap.
-        pipeline.append({'$project': {'_id': 0, 'booking_priority': 0, '_oz_match': 0, '_oz_num': 0}})
+        pipeline.append({'$project': {'_id': 0, 'booking_priority': 0, 'image_quality_rank': 0, '_oz_match': 0, '_oz_num': 0}})
         all_fabrics = await db.fabrics.aggregate(pipeline).to_list(5000)
         seen = {}
         ordered = []
@@ -497,7 +521,7 @@ async def get_fabrics(
         pipeline.extend([
             {'$skip': skip},
             {'$limit': limit},
-            {'$project': {'_id': 0, 'booking_priority': 0, '_oz_match': 0, '_oz_num': 0}},
+            {'$project': {'_id': 0, 'booking_priority': 0, 'image_quality_rank': 0, '_oz_match': 0, '_oz_num': 0}},
         ])
         fabrics = await db.fabrics.aggregate(pipeline).to_list(limit)
 

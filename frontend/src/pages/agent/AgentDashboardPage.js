@@ -560,7 +560,7 @@ const AgentDashboardPage = () => {
                   ) : (
                     <div className={`grid sm:grid-cols-2 ${showFilters ? "lg:grid-cols-3" : "lg:grid-cols-4"} gap-4`}>
                       {fabrics.map((f) => (
-                        <div key={f.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow" data-testid={`agent-fabric-${f.id}`}>
+                        <div key={f.id} className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow" data-testid={`agent-fabric-${f.id}`}>
                           <div className="relative">
                             <img src={thumbImage(f.images?.[0]) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=300"} alt={f.name} className="w-full h-40 object-cover" loading="lazy" />
                             <Watermark size="sm" />

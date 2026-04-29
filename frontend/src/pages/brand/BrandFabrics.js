@@ -21,7 +21,7 @@ const FabricCard = ({ f, onOpen }) => {
   const cover = thumbImage(fabricCoverImage(f));
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col" data-testid={`brand-fabric-${f.id}`}>
+    <div className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col" data-testid={`brand-fabric-${f.id}`}>
       {/* Image + title are both Links → click anywhere on upper half to open detail */}
       <Link to={detailUrl} className="block" data-testid={`brand-fabric-card-link-${f.id}`}>
         <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">

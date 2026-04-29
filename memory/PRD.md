@@ -294,6 +294,19 @@ Embedded multi-lender credit lines + curated catalogue for brand-tier B2B custom
 - **API helper**: `bulkUploadCreditWallets(wallets, mode = "replace")` in `lib/api.js`.
 - **Frontend testing**: 100% pass on 8 scenarios incl. mode switch, header shuffle, missing-column error (iteration_40.json).
 
+### Phase 41: Vendor Visibility Tiering + Brand Watermark + Catalog Sort (Complete - Feb 2026)
+- **Vendor visibility now context-aware**:
+  - Public B2C (`/api/fabrics`, `/api/fabrics/{id}` without auth) — masked; only `seller_code` exposed.
+  - Admin (logged in) — full `seller_name` + `seller_company` returned. Admin Fabrics table shows stacked Contact/Company/Code identity for data uploads.
+  - Brand portal — masked (brands never see vendor names).
+  - New helper `auth_helpers.get_optional_admin` decodes JWT if present, returns `None` otherwise.
+- **Brand-mark watermark**: replaced text-only watermark with the official Locofast monogram (woven X) + wordmark, embedded as inline SVG (no extra asset request).
+  - Four variants behind `REACT_APP_WATERMARK_VARIANT`: `label` / `hover-chip` / `tiled` / `bottom-bar`.
+  - Live preview at `/admin/watermark-preview`.
+  - **Shipped**: `hover-chip` (glassmorphic pill, fades in on card hover) — set in `frontend/.env`.
+  - All catalog card containers verified with `group` Tailwind class so `group-hover` triggers correctly.
+- **Catalog sort upgrade** (`fabric_router.py`): added `image_quality_rank` (0=real photo, 1=Unsplash/placeholder, 2=no images) as the **primary** sort key before `booking_priority` and `created_at`. Result: dummy/placeholder fabrics always sink to the last page; first page leads with photographed inventory. Verified via curl: page 1 returns 12 real-image SKUs; last page contains all 8 Unsplash + 3 no-image placeholders.
+
 ## Backlog
 
 ### P1 (High Priority)

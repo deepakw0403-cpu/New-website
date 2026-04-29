@@ -450,7 +450,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
       {/* Zoom Modal */}
       {showZoom && (
         <div 
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          className="group fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
           onClick={() => setShowZoom(false)}
           data-testid="zoom-modal"
         >

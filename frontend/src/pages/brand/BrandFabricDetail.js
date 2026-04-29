@@ -160,7 +160,7 @@ const BrandFabricDetail = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Gallery */}
         <div>
-          <div className="aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden relative">
+          <div className="group aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden relative">
             <img
               src={mediumImage(selectedVariant?.image_url || fabricCoverImage(fabric)) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800"}
               alt={fabric.name}
