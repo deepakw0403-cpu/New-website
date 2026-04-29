@@ -241,11 +241,11 @@ const SellOnLocofast = () => {
               
               <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-6">
                 <div className="text-center">
-                  <p className="text-2xl md:text-3xl font-bold text-white">2,000+</p>
+                  <p className="text-2xl md:text-3xl font-bold text-white">300+</p>
                   <p className="text-sm text-slate-400">Brands on Platform</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl md:text-3xl font-bold text-white">50M+</p>
+                  <p className="text-2xl md:text-3xl font-bold text-white">100M+</p>
                   <p className="text-sm text-slate-400">Metres Delivered</p>
                 </div>
                 <div className="text-center">
@@ -345,7 +345,7 @@ const SellOnLocofast = () => {
                 A Marketplace That Works for Sellers
               </h2>
               <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-                Locofast connects you directly with 2,000+ verified brands and manufacturers. No brokers. No agents. Just structured demand routed to you.
+                Locofast connects you directly with 300+ verified brands and manufacturers. No brokers. No agents. Just structured demand routed to you.
               </p>
             </div>
 
@@ -761,7 +761,7 @@ const SellOnLocofast = () => {
               {[
                 {
                   title: "Increase Capacity Utilisation",
-                  desc: "Fill idle looms and machines with consistent demand from 2,000+ verified buyers. No more waiting for seasonal orders or depending on a single buyer. Our sellers have delivered 50M+ metres through the platform.",
+                  desc: "Fill idle looms and machines with consistent demand from 300+ verified buyers. No more waiting for seasonal orders or depending on a single buyer. Our sellers have delivered 100M+ metres through the platform.",
                   icon: "M13 10V3L4 14h7v7l9-11h-7z"
                 },
                 {
