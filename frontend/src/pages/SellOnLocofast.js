@@ -210,14 +210,14 @@ const SellOnLocofast = () => {
               </div>
               
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 text-white">
-                Stop Chasing Random Inquiries.
-                <span className="block text-[#60a5fa] mt-2">Start Closing Real Orders.</span>
+                You stop chasing buyers.
+                <span className="block text-[#60a5fa] mt-2">We bring demand to your mill.</span>
               </h1>
               
               <p className="text-xl md:text-2xl text-slate-300 mb-8 leading-relaxed">
-                We route verified buyer requirements directly to you. 
-                <span className="text-white font-medium"> You call. You negotiate. You close.</span>
-                <br />No middlemen. No subscriptions. Just structured demand.
+                Sellers shouldn't be cold-calling — and on Locofast, you don't.
+                <span className="text-white font-medium"> We aggregate verified buyer demand, route it to your idle capacity, and protect your money on every order.</span>
+                <br />Better utilisation. Bigger markets. Zero chasing.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4">
@@ -261,15 +261,15 @@ const SellOnLocofast = () => {
               <div className="mt-8 flex flex-wrap items-center gap-6 text-sm text-slate-400">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={16} className="text-[#60a5fa]" />
-                  MOQ 1000+ meters only
+                  No cold calls — demand is routed to you
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={16} className="text-[#60a5fa]" />
-                  Direct buyer contact
+                  Money-back guarantee on confirmed orders
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={16} className="text-[#60a5fa]" />
-                  No listing fees
+                  Dedicated supplier manager
                 </div>
               </div>
             </div>
@@ -352,18 +352,35 @@ const SellOnLocofast = () => {
             <div className="grid md:grid-cols-2 gap-8 mb-12">
               <div className="bg-gradient-to-br from-blue-50 to-sky-50 p-8 rounded-2xl border border-blue-100">
                 <h3 className="text-2xl font-bold text-slate-900 mb-6">What You Get</h3>
-                <ul className="space-y-4">
+                <ul className="space-y-4" data-testid="seller-pillars-list">
                   {[
-                    "Direct access to 2,000+ verified buyers — fashion brands, export houses, garment manufacturers",
-                    "Buyer contact shared directly — you call them, build the relationship",
-                    "MOQ 1000+ meters only — serious bulk orders, not retail enquiries",
-                    "Transparent requirements with specs, quantity, timeline and budget",
-                    "Payment protection on eligible orders through our Money Safety Guarantee",
-                    "Exposure to international markets — Sri Lanka, Vietnam, and growing"
+                    {
+                      t: "Zero cold-calling — ever",
+                      d: "Sellers don't call and aren't expected to. Pre-qualified buyer demand is routed directly to your dashboard.",
+                    },
+                    {
+                      t: "Better mill utilisation",
+                      d: "We aggregate buyer demand and pair it with your idle capacity, lifting monthly utilisation on inventory you've already produced.",
+                    },
+                    {
+                      t: "Money-back guarantee",
+                      d: "Locofast's payment-protection layer holds buyer funds in escrow until dispatch — no defaults, no chasing.",
+                    },
+                    {
+                      t: "Direct access to export markets",
+                      d: "Plug into our buyer network across India, Bangladesh, the EU and the Middle East — we handle compliance, logistics and FX.",
+                    },
+                    {
+                      t: "Dedicated supplier manager",
+                      d: "One point of contact for inventory, pricing, dispatch and growth planning. No call-centre runaround.",
+                    },
                   ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3">
+                    <li key={i} className="flex items-start gap-3" data-testid={`seller-pillar-${i}`}>
                       <CheckCircle2 className="text-blue-600 mt-0.5 flex-shrink-0" size={20} />
-                      <span className="text-slate-700">{item}</span>
+                      <span className="text-slate-700">
+                        <strong className="text-slate-900">{item.t}.</strong>{" "}
+                        <span className="text-slate-600">{item.d}</span>
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -373,11 +390,11 @@ const SellOnLocofast = () => {
                 <h3 className="text-2xl font-bold text-slate-900 mb-6">What We Don't Do</h3>
                 <ul className="space-y-4">
                   {[
-                    "Promise guaranteed orders — nobody can",
-                    "Take over your buyer relationships",
-                    "Handle your production or dispatch",
-                    "Guarantee payments — that's between you and buyer",
-                    "Send you unverified, low-intent inquiries"
+                    "Promise unrealistic order volumes — nobody can",
+                    "Take over your buyer relationships once introduced",
+                    "Run your production line or dispatch on your behalf",
+                    "Send unverified, low-intent or retail-sized inquiries",
+                    "Charge listing fees or annual subscriptions",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <XCircle className="text-slate-400 mt-0.5 flex-shrink-0" size={20} />
