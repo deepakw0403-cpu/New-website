@@ -567,6 +567,14 @@ const AdminFabrics = () => {
       return;
     }
 
+    // Supplier (seller) is mandatory. We can't ingest a fabric without
+    // attribution — orders/credit/dispatch all branch on seller_id, and
+    // unattributed inventory pollutes the catalog.
+    if (!form.seller_id) {
+      toast.error("Please select a Supplier — fabrics cannot be saved without one");
+      return;
+    }
+
     if (!form.dispatch_timeline) {
       toast.error("Please select a Dispatch Timeline");
       return;
@@ -1024,21 +1032,26 @@ const AdminFabrics = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                {/* Seller Selection */}
+                {/* Seller Selection — mandatory */}
                 <div className="p-4 bg-blue-50 border border-blue-100 rounded">
-                  <label className="block text-sm font-medium mb-2 text-[#2563EB]">Seller / Supplier</label>
+                  <label className="block text-sm font-medium mb-2 text-[#2563EB]">
+                    Seller / Supplier <span className="text-red-500">*</span>
+                  </label>
                   <select
+                    required
                     value={form.seller_id}
                     onChange={(e) => setForm({ ...form, seller_id: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded bg-white"
+                    className={`w-full px-4 py-2 border rounded bg-white ${
+                      form.seller_id ? "border-gray-200" : "border-red-300"
+                    }`}
                     data-testid="fabric-seller-select"
                   >
-                    <option value="">No seller (Locofast direct)</option>
+                    <option value="">— Select a supplier —</option>
                     {sellers.map((seller) => (
                       <option key={seller.id} value={seller.id}>{seller.company_name} - {seller.name}</option>
                     ))}
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">Select the seller whose collection this fabric belongs to</p>
+                  <p className="text-xs text-gray-500 mt-1">Required. Every fabric must be attributed to a registered supplier.</p>
                 </div>
 
                 {/* Basic Info */}

@@ -659,9 +659,14 @@ async def create_fabric(data: FabricCreate, admin=Depends(auth_helpers.get_curre
     # selected stock_type. Older drafts are migrated by the backfill endpoint.
     data.dispatch_timeline = validate_dispatch_timeline(data.dispatch_timeline, data.stock_type)
 
-    seller = None
-    if data.seller_id:
-        seller = await db.sellers.find_one({'id': data.seller_id}, {'_id': 0})
+    # Hard-required: every fabric must be attributed to a registered supplier.
+    # Unattributed inventory pollutes the catalog and breaks downstream
+    # order/credit/dispatch flows that branch on seller_id.
+    if not data.seller_id:
+        raise HTTPException(status_code=400, detail='Supplier is required — please select a supplier for this fabric')
+    seller = await db.sellers.find_one({'id': data.seller_id}, {'_id': 0})
+    if not seller:
+        raise HTTPException(status_code=400, detail='Selected supplier not found')
 
     fabric_id = str(uuid.uuid4())
     fabric_code = await fabric_utils.generate_fabric_code()
@@ -713,6 +718,15 @@ async def update_fabric(fabric_id: str, data: FabricUpdate, admin=Depends(auth_h
     if 'composition' in update_data:
         from composition_utils import canonicalize_composition
         update_data['composition'] = canonicalize_composition(update_data['composition'])
+
+    # Defence-in-depth: never let an admin clear seller_id on an existing
+    # fabric — every fabric must remain attributed to a registered supplier.
+    if 'seller_id' in update_data:
+        if not update_data['seller_id']:
+            raise HTTPException(status_code=400, detail='Supplier cannot be removed — every fabric must have a supplier')
+        seller = await db.sellers.find_one({'id': update_data['seller_id']}, {'_id': 0})
+        if not seller:
+            raise HTTPException(status_code=400, detail='Selected supplier not found')
 
     if 'category_id' in update_data:
         category = await db.categories.find_one({'id': update_data['category_id']}, {'_id': 0})
