@@ -143,6 +143,7 @@ const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
 const AdminFabricSEO = lazy(() => import("./pages/admin/AdminFabricSEO"));
 const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
 const AdminSellerDetail = lazy(() => import("./pages/admin/AdminSellerDetail"));
+const AdminWatermarkPreview = lazy(() => import("./pages/admin/AdminWatermarkPreview"));
 const AdminCreditApplications = lazy(() => import("./pages/admin/AdminCreditApplications"));
 const AdminAgents = lazy(() => import("./pages/admin/AdminAgents"));
 const AdminCommission = lazy(() => import("./pages/admin/AdminCommission"));
@@ -278,6 +279,7 @@ function App() {
           <Route path="/admin/categories" element={<ProtectedRoute><AdminCategories /></ProtectedRoute>} />
           <Route path="/admin/sellers" element={<ProtectedRoute><AdminSellers /></ProtectedRoute>} />
           <Route path="/admin/sellers/:id" element={<ProtectedRoute><AdminSellerDetail /></ProtectedRoute>} />
+          <Route path="/admin/watermark-preview" element={<ProtectedRoute><AdminWatermarkPreview /></ProtectedRoute>} />
           <Route path="/admin/collections" element={<ProtectedRoute><AdminCollections /></ProtectedRoute>} />
           <Route path="/admin/articles" element={<ProtectedRoute><AdminArticles /></ProtectedRoute>} />
           <Route path="/admin/enquiries" element={<ProtectedRoute><AdminEnquiries /></ProtectedRoute>} />
