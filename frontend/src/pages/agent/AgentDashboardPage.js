@@ -671,14 +671,17 @@ const AgentDashboardPage = () => {
                               <option value="sample">Sample</option>
                               <option value="bulk">Bulk</option>
                             </select>
-                            <span className="text-sm text-[#2563EB] font-semibold">₹{item.price_per_meter}/{item.order_type === "sample" ? "pc" : "m"}</span>
+                            <span className="text-sm text-[#2563EB] font-semibold">₹{item.price_per_meter}/m</span>
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <button onClick={() => removeFromCart(item.fabric_id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
                           <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-1">
+                            {/* Step size: bulk moves in 10m increments, samples move in 1m
+                                 increments. Samples are still measured in meters — typical
+                                 swatch lengths are 1-5m. */}
                             <button onClick={() => updateCartQty(item.fabric_id, item.order_type === "sample" ? -1 : -10)} className="p-1 text-gray-500 hover:text-gray-700"><Minus size={14} /></button>
-                            <span className="text-sm font-medium w-12 text-center">{item.quantity}{item.order_type === "sample" ? "pc" : "m"}</span>
+                            <span className="text-sm font-medium w-12 text-center">{item.quantity}m</span>
                             <button onClick={() => updateCartQty(item.fabric_id, item.order_type === "sample" ? 1 : 10)} className="p-1 text-gray-500 hover:text-gray-700"><Plus size={14} /></button>
                           </div>
                           <span className="text-sm font-semibold">₹{(item.quantity * item.price_per_meter).toLocaleString()}</span>
@@ -862,7 +865,7 @@ const AgentDashboardPage = () => {
                         {sc.items?.slice(0, 3).map((item, i) => (
                           <span key={i} className="text-xs bg-gray-50 border border-gray-100 px-2 py-1 rounded">
                             <span className={`inline-block mr-1 px-1 py-0 rounded text-[10px] font-bold ${item.order_type === 'sample' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>{item.order_type === 'sample' ? 'S' : 'B'}</span>
-                            {item.fabric_name} ({item.quantity}{item.order_type === 'sample' ? 'pc' : 'm'})
+                            {item.fabric_name} ({item.quantity}m)
                           </span>
                         ))}
                         {sc.items?.length > 3 && <span className="text-xs text-gray-400">+{sc.items.length - 3} more</span>}
