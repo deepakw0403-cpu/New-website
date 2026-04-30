@@ -396,19 +396,21 @@ def get_seller_order_notification_email(order: dict, items: list, seller: dict) 
                 <span style="font-size: 20px; font-weight: 700; color: #059669;">₹{total_value:,.2f}</span>
             </div>
             
-            <!-- Commission -->
+            <!-- Commission (only when a rule actually matched — 0% default hides the line) -->
+            {f'''
             <div style="margin-top: 10px; padding: 12px 15px; background: #fef3c7; border-radius: 8px; border: 1px solid #fde68a;">
                 <table style="width: 100%; font-size: 14px;">
                     <tr>
-                        <td style="color: #92400e;">Locofast Commission ({order.get('commission_pct', 5)}%)</td>
-                        <td style="text-align: right; font-weight: 600; color: #92400e;">₹{order.get('commission_amount', total_value * 0.05):,.2f}</td>
+                        <td style="color: #92400e;">Locofast Commission ({order.get('commission_pct', 0)}%)</td>
+                        <td style="text-align: right; font-weight: 600; color: #92400e;">₹{order.get('commission_amount', 0):,.2f}</td>
                     </tr>
                     <tr>
                         <td style="color: #065f46; font-weight: 700; padding-top: 8px;">Your Payout</td>
-                        <td style="text-align: right; font-weight: 700; color: #065f46; font-size: 18px; padding-top: 8px;">₹{order.get('seller_payout', total_value * 0.95):,.2f}</td>
+                        <td style="text-align: right; font-weight: 700; color: #065f46; font-size: 18px; padding-top: 8px;">₹{order.get('seller_payout', total_value - order.get('commission_amount', 0)):,.2f}</td>
                     </tr>
                 </table>
             </div>
+            ''' if (order.get('commission_pct') or 0) > 0 else ''}
         </div>
         
         <!-- Dispatch Info -->

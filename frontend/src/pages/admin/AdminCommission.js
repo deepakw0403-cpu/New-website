@@ -136,7 +136,7 @@ const AdminCommission = () => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold">Commission Structure</h1>
-            <p className="text-gray-500 mt-1">Manage vendor commission rates. Default: <span className="font-semibold text-amber-600">5%</span> when no rule matches.</p>
+            <p className="text-gray-500 mt-1">Manage vendor commission rates. Default: <span className="font-semibold text-gray-600">0%</span> — no commission is applied until you configure rules below.</p>
           </div>
           <div className="flex gap-3">
             <button onClick={() => { resetForm(); setEditRule(null); setShowCreate(true); }} className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg hover:bg-blue-700" data-testid="add-rule-btn">
@@ -151,7 +151,7 @@ const AdminCommission = () => {
         {/* Priority explanation */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
           <p className="text-sm text-blue-800 font-medium mb-1">Commission Priority (most specific wins)</p>
-          <p className="text-xs text-blue-600">{"Vendor-specific > Category + Pattern > Category > Cart Value Slab > Meterage Slab > Inventory/RFQ > Default (5%)"}</p>
+          <p className="text-xs text-blue-600">{"Vendor-specific > Category + Pattern > Category > Cart Value Slab > Meterage Slab > Inventory/RFQ > Default (0%)"}</p>
         </div>
 
         {/* Rules grouped by type */}

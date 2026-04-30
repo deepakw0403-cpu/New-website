@@ -21,7 +21,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/commission", tags=["commission"])
 
 db = None
-DEFAULT_COMMISSION_PCT = 5.0
+# Default commission when no rule matches. 0 means "don't charge anything
+# by default" — admins must set explicit rules in /admin/commission before
+# any commission is applied. Kept as a constant (not editable from UI yet)
+# to avoid silent fee drift; flip here + update the caption in the Admin
+# page if this ever changes.
+DEFAULT_COMMISSION_PCT = 0.0
 
 
 def set_db(database):
