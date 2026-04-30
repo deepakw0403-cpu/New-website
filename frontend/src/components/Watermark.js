@@ -64,35 +64,35 @@ const labelSizes = {
 const Watermark = ({ size = "md", variant = DEFAULT_VARIANT, className = "" }) => {
   if (DISABLED) return null;
 
-  // ── Default — big centered Locofast wordmark (always-on) ──────────────
-  // Rendered as an absolutely-positioned flexbox that fills the card, so
-  // the wordmark lands exactly in the middle regardless of image aspect
-  // ratio. White at ~30% opacity + soft shadow + mix-blend overlay so it
-  // reads on both light and dark fabrics.
+  // ── Default — Locofast wordmark pill, anchored bottom-right ────────────
+  // Absolutely-positioned container that reserves space for the pill at
+  // the bottom-right corner of the image. The pill still uses white text
+  // on a dark translucent backdrop so it reads on both light (cotton) and
+  // dark (denim) fabrics.
   if (variant === "big-center" || !variant) {
     return (
       <div
         aria-hidden="true"
         data-testid="img-watermark"
-        className={`pointer-events-none select-none absolute inset-0 flex items-center justify-center ${className}`}
+        className={`pointer-events-none select-none absolute bottom-3 right-3 ${className}`}
         style={{ zIndex: 1 }}
       >
         <div
-          className="flex items-center gap-2 px-4 py-2 rounded-full"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full"
           style={{
-            background: "rgba(31, 41, 55, 0.35)",
-            backdropFilter: "blur(2px)",
-            WebkitBackdropFilter: "blur(2px)",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+            background: "rgba(31, 41, 55, 0.45)",
+            backdropFilter: "blur(3px)",
+            WebkitBackdropFilter: "blur(3px)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
           }}
         >
-          <LocofastMark size={18} color="rgba(255,255,255,0.92)" />
+          <LocofastMark size={14} color="rgba(255,255,255,0.95)" />
           <span
             className="font-semibold tracking-wide text-white"
             style={{
-              fontSize: "clamp(14px, 3.6cqw, 24px)",
+              fontSize: "13px",
               textShadow: "0 1px 2px rgba(0,0,0,0.35)",
-              letterSpacing: "0.05em",
+              letterSpacing: "0.04em",
             }}
           >
             Locofast
