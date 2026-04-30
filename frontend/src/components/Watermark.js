@@ -1,25 +1,24 @@
 /**
  * Locofast brand watermark overlay.
  *
- * Default variant ("big-center") — a large, always-visible centered
- * wordmark + woven-X monogram at low white opacity. This is the style the
- * business has chosen for the catalog: prominent enough to deter screenshot
- * theft, subtle enough not to hide fabric detail.
+ * One canonical look only — a small pill (woven-X mark + "Locofast"
+ * wordmark) anchored in the bottom-right corner of the image. We
+ * intentionally do NOT render any centered/tiled variant anymore — those
+ * looked intrusive and confused buyers ("Locof" cropped, "Locofast"
+ * stretched across the photo, etc.).
  *
- * Other variants (behind REACT_APP_WATERMARK_VARIANT):
+ * Variants kept for opt-in only via REACT_APP_WATERMARK_VARIANT:
  *   "hover-chip" — invisible until card hover (glassmorphic pill)
- *   "tiled"      — faint diagonal repeat across whole image
- *   "bottom-bar" — thin gradient strip on bottom edge
- *   "label"      — tiny corner label (legacy)
+ *   "label"      — tiny corner text only (legacy)
  *
  * Set REACT_APP_DISABLE_WATERMARK=true to hide site-wide.
  */
 import React from "react";
 
 const DISABLED = process.env.REACT_APP_DISABLE_WATERMARK === "true";
-const DEFAULT_VARIANT = process.env.REACT_APP_WATERMARK_VARIANT || "big-center";
+const DEFAULT_VARIANT = process.env.REACT_APP_WATERMARK_VARIANT || "corner-pill";
 
-// Official Locofast woven-X monogram. Extracted from the brand SVG.
+// Official Locofast woven-X monogram, extracted from the brand SVG.
 const LocofastMark = ({ size = 14, color = "white", className = "" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -43,66 +42,10 @@ const LocofastMark = ({ size = 14, color = "white", className = "" }) => (
   </svg>
 );
 
-// Tiled pattern (Option B): brand mark + wordmark rotated, repeated.
-const TILED_SVG = encodeURIComponent(`
-<svg xmlns='http://www.w3.org/2000/svg' width='240' height='180' viewBox='0 0 240 180'>
-  <g transform='rotate(-22 120 90) translate(20 60)' fill='rgba(255,255,255,0.55)'>
-    <text x='40' y='28' font-family='Inter, system-ui, sans-serif' font-weight='700' font-size='17' letter-spacing='0.5'>Locofast</text>
-  </g>
-</svg>
-`).replace(/\n\s*/g, "");
-const TILED_BG = `url("data:image/svg+xml;utf8,${TILED_SVG}")`;
-
-const labelSizes = {
-  xs: "text-[9px] bottom-1 right-1",
-  sm: "text-[10px] bottom-1.5 right-1.5",
-  md: "text-xs bottom-2 right-2",
-  lg: "text-sm bottom-3 right-3",
-  xl: "text-base bottom-4 right-4",
-};
-
-const Watermark = ({ size = "md", variant = DEFAULT_VARIANT, className = "" }) => {
+const Watermark = ({ variant = DEFAULT_VARIANT, className = "" }) => {
   if (DISABLED) return null;
 
-  // ── Default — Locofast wordmark pill, anchored bottom-right ────────────
-  // Absolutely-positioned container that reserves space for the pill at
-  // the bottom-right corner of the image. The pill still uses white text
-  // on a dark translucent backdrop so it reads on both light (cotton) and
-  // dark (denim) fabrics.
-  if (variant === "big-center" || !variant) {
-    return (
-      <div
-        aria-hidden="true"
-        data-testid="img-watermark"
-        className={`pointer-events-none select-none absolute bottom-3 right-3 ${className}`}
-        style={{ zIndex: 1 }}
-      >
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-          style={{
-            background: "rgba(31, 41, 55, 0.45)",
-            backdropFilter: "blur(3px)",
-            WebkitBackdropFilter: "blur(3px)",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
-          }}
-        >
-          <LocofastMark size={14} color="rgba(255,255,255,0.95)" />
-          <span
-            className="font-semibold tracking-wide text-white"
-            style={{
-              fontSize: "13px",
-              textShadow: "0 1px 2px rgba(0,0,0,0.35)",
-              letterSpacing: "0.04em",
-            }}
-          >
-            Locofast
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Option A — hover-only glass chip ───────────────────────────────────
+  // ── Option: invisible until hover (kept for niche use) ────────────────
   if (variant === "hover-chip") {
     return (
       <span
@@ -121,65 +64,59 @@ const Watermark = ({ size = "md", variant = DEFAULT_VARIANT, className = "" }) =
     );
   }
 
-  // ── Option B — tiled diagonal pattern ──────────────────────────────────
-  if (variant === "tiled") {
+  // ── Legacy tiny corner label ──────────────────────────────────────────
+  if (variant === "label") {
     return (
       <span
         aria-hidden="true"
         data-testid="img-watermark"
-        className={`pointer-events-none absolute inset-0 ${className}`}
+        className={`pointer-events-none select-none absolute bottom-2 right-2 inline-flex items-center gap-1
+                    font-semibold text-white/85 text-xs tracking-wide ${className}`}
         style={{
-          backgroundImage: TILED_BG,
-          backgroundRepeat: "repeat",
-          backgroundSize: "240px 180px",
-          mixBlendMode: "overlay",
-          opacity: 0.55,
-          zIndex: 1,
-        }}
-      />
-    );
-  }
-
-  // ── Option C — bottom gradient strip with mark + wordmark ──────────────
-  if (variant === "bottom-bar") {
-    return (
-      <span
-        aria-hidden="true"
-        data-testid="img-watermark"
-        className={`pointer-events-none absolute left-0 right-0 bottom-0
-                    flex items-center justify-end gap-1.5 px-3 py-1.5 ${className}`}
-        style={{
-          background: "linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 100%)",
+          textShadow: "0 0 2px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.35)",
+          letterSpacing: "0.04em",
           zIndex: 1,
         }}
       >
-        <LocofastMark size={11} color="white" />
-        <span
-          className="text-white text-[10px] font-semibold tracking-[0.16em] uppercase"
-          style={{ textShadow: "0 1px 2px rgba(0,0,0,0.4)" }}
-        >
-          Locofast
-        </span>
+        <LocofastMark size={10} color="white" />
+        Locofast
       </span>
     );
   }
 
-  // ── Legacy label (tiny corner text) ────────────────────────────────────
+  // ── Default — small pill, bottom-right corner ─────────────────────────
+  // This is the only "always visible" variant we ship. White-on-dark glass
+  // pill with the Locofast woven-X mark + wordmark, sized so it stays out
+  // of the way of the actual fabric photo.
   return (
-    <span
+    <div
       aria-hidden="true"
       data-testid="img-watermark"
-      className={`pointer-events-none select-none absolute inline-flex items-center gap-1
-                  font-semibold text-white/85 ${labelSizes[size] || labelSizes.md} ${className}`}
-      style={{
-        textShadow: "0 0 2px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.35)",
-        letterSpacing: "0.04em",
-        zIndex: 1,
-      }}
+      className={`pointer-events-none select-none absolute bottom-3 right-3 ${className}`}
+      style={{ zIndex: 1 }}
     >
-      <LocofastMark size={10} color="white" />
-      Locofast
-    </span>
+      <div
+        className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+        style={{
+          background: "rgba(31, 41, 55, 0.45)",
+          backdropFilter: "blur(3px)",
+          WebkitBackdropFilter: "blur(3px)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
+        }}
+      >
+        <LocofastMark size={14} color="rgba(255,255,255,0.95)" />
+        <span
+          className="font-semibold tracking-wide text-white"
+          style={{
+            fontSize: "13px",
+            textShadow: "0 1px 2px rgba(0,0,0,0.35)",
+            letterSpacing: "0.04em",
+          }}
+        >
+          Locofast
+        </span>
+      </div>
+    </div>
   );
 };
 
