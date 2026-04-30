@@ -1,26 +1,25 @@
 /**
- * Brand watermark overlay using the official Locofast mark (woven X
- * monogram + wordmark). Four variants — pick one project-wide via
- * REACT_APP_WATERMARK_VARIANT or per-instance via the `variant` prop.
+ * Locofast brand watermark overlay.
  *
- *   "label"      — original text-only bottom-right wordmark
- *   "hover-chip" — Option A: invisible until card hover; fades to a
- *                  glassmorphic pill with the brand mark + wordmark
- *   "tiled"      — Option B: faint repeating brand mark across image
- *   "bottom-bar" — Option C: thin gradient strip + mark + wordmark
+ * Default variant ("big-center") — a large, always-visible centered
+ * wordmark + woven-X monogram at low white opacity. This is the style the
+ * business has chosen for the catalog: prominent enough to deter screenshot
+ * theft, subtle enough not to hide fabric detail.
+ *
+ * Other variants (behind REACT_APP_WATERMARK_VARIANT):
+ *   "hover-chip" — invisible until card hover (glassmorphic pill)
+ *   "tiled"      — faint diagonal repeat across whole image
+ *   "bottom-bar" — thin gradient strip on bottom edge
+ *   "label"      — tiny corner label (legacy)
  *
  * Set REACT_APP_DISABLE_WATERMARK=true to hide site-wide.
  */
 import React from "react";
 
 const DISABLED = process.env.REACT_APP_DISABLE_WATERMARK === "true";
-const DEFAULT_VARIANT = process.env.REACT_APP_WATERMARK_VARIANT || "label";
+const DEFAULT_VARIANT = process.env.REACT_APP_WATERMARK_VARIANT || "big-center";
 
-// ── Official Locofast monogram (the woven "X" / star) ─────────────────────
-// Extracted from the brand SVG. Wrapped here so we can colourise it (white
-// for on-image overlays, brand blue for hover chips on light surfaces).
-const BRAND_BLUE = "#0067E2";
-
+// Official Locofast woven-X monogram. Extracted from the brand SVG.
 const LocofastMark = ({ size = 14, color = "white", className = "" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -44,40 +43,66 @@ const LocofastMark = ({ size = 14, color = "white", className = "" }) => (
   </svg>
 );
 
-// Tiled SVG pattern: brand mark + small wordmark, rotated -22°. Repeated
-// at low opacity to make scraping unviable while staying subtle.
+// Tiled pattern (Option B): brand mark + wordmark rotated, repeated.
 const TILED_SVG = encodeURIComponent(`
 <svg xmlns='http://www.w3.org/2000/svg' width='240' height='180' viewBox='0 0 240 180'>
   <g transform='rotate(-22 120 90) translate(20 60)' fill='rgba(255,255,255,0.55)'>
-    <g transform='scale(0.18)'>
-      <path d='M113.47 40.09C107.34 46.22 107.34 56.16 113.47 62.28L173.38 122.19L195.56 100L135.66 40.09C129.53 33.97 119.6 33.97 113.47 40.09Z'/>
-      <path d='M104.6 84.47C98.47 90.6 98.47 100.53 104.6 106.66L146.75 148.81L168.94 126.63L126.78 84.47C120.66 78.34 110.72 78.34 104.6 84.47Z'/>
-      <path d='M259.91 13.47C253.78 7.34 243.85 7.34 237.72 13.47L177.81 73.38L200 95.56L259.91 35.66C266.03 29.53 266.03 19.6 259.91 13.47Z'/>
-      <path d='M215.53 4.6C209.4 -1.53 199.47 -1.53 193.34 4.6L151.19 46.75L173.38 68.94L215.53 26.78C221.66 20.66 221.66 10.72 215.53 4.6Z'/>
-      <path d='M286.53 159.91C292.66 153.78 292.66 143.85 286.53 137.72L226.63 77.81L204.44 100L264.34 159.91C270.47 166.03 280.4 166.03 286.53 159.91Z'/>
-      <path d='M295.41 115.53C301.53 109.4 301.53 99.47 295.41 93.34L253.25 51.19L231.06 73.38L273.22 115.53C279.35 121.66 289.28 121.66 295.41 115.53Z'/>
-      <path d='M140.1 186.53C146.22 192.66 156.16 192.66 162.28 186.53L222.19 126.63L200 104.44L140.1 164.34C133.97 170.47 133.97 180.4 140.1 186.53Z'/>
-      <path d='M184.47 195.41C190.6 201.53 200.53 201.53 206.66 195.41L248.81 153.25L226.63 131.06L184.47 173.22C178.34 179.35 178.34 189.28 184.47 195.41Z'/>
-    </g>
-    <text x='110' y='28' font-family='Inter, system-ui, sans-serif' font-weight='700' font-size='17' letter-spacing='0.5'>Locofast</text>
+    <text x='40' y='28' font-family='Inter, system-ui, sans-serif' font-weight='700' font-size='17' letter-spacing='0.5'>Locofast</text>
   </g>
 </svg>
 `).replace(/\n\s*/g, "");
 const TILED_BG = `url("data:image/svg+xml;utf8,${TILED_SVG}")`;
 
-// Sizes for the simple "label" fallback.
 const labelSizes = {
-  xs: "text-[9px] tracking-wide bottom-1 right-1",
-  sm: "text-[10px] tracking-wide bottom-1.5 right-1.5",
-  md: "text-xs tracking-wide bottom-2 right-2",
-  lg: "text-sm tracking-wider bottom-3 right-3",
-  xl: "text-base tracking-wider bottom-4 right-4",
+  xs: "text-[9px] bottom-1 right-1",
+  sm: "text-[10px] bottom-1.5 right-1.5",
+  md: "text-xs bottom-2 right-2",
+  lg: "text-sm bottom-3 right-3",
+  xl: "text-base bottom-4 right-4",
 };
 
 const Watermark = ({ size = "md", variant = DEFAULT_VARIANT, className = "" }) => {
   if (DISABLED) return null;
 
-  // ── Option A — Hover-revealed glassmorphic chip (mark + wordmark) ─────
+  // ── Default — big centered Locofast wordmark (always-on) ──────────────
+  // Rendered as an absolutely-positioned flexbox that fills the card, so
+  // the wordmark lands exactly in the middle regardless of image aspect
+  // ratio. White at ~30% opacity + soft shadow + mix-blend overlay so it
+  // reads on both light and dark fabrics.
+  if (variant === "big-center" || !variant) {
+    return (
+      <div
+        aria-hidden="true"
+        data-testid="img-watermark"
+        className={`pointer-events-none select-none absolute inset-0 flex items-center justify-center ${className}`}
+        style={{ zIndex: 1 }}
+      >
+        <div
+          className="flex items-center gap-2 px-4 py-2 rounded-full"
+          style={{
+            background: "rgba(31, 41, 55, 0.35)",
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+          }}
+        >
+          <LocofastMark size={18} color="rgba(255,255,255,0.92)" />
+          <span
+            className="font-semibold tracking-wide text-white"
+            style={{
+              fontSize: "clamp(14px, 3.6cqw, 24px)",
+              textShadow: "0 1px 2px rgba(0,0,0,0.35)",
+              letterSpacing: "0.05em",
+            }}
+          >
+            Locofast
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Option A — hover-only glass chip ───────────────────────────────────
   if (variant === "hover-chip") {
     return (
       <span
@@ -96,7 +121,7 @@ const Watermark = ({ size = "md", variant = DEFAULT_VARIANT, className = "" }) =
     );
   }
 
-  // ── Option B — Tiled diagonal pattern (mark + wordmark) ────────────────
+  // ── Option B — tiled diagonal pattern ──────────────────────────────────
   if (variant === "tiled") {
     return (
       <span
@@ -115,7 +140,7 @@ const Watermark = ({ size = "md", variant = DEFAULT_VARIANT, className = "" }) =
     );
   }
 
-  // ── Option C — Bottom film-credit bar with mark + wordmark ─────────────
+  // ── Option C — bottom gradient strip with mark + wordmark ──────────────
   if (variant === "bottom-bar") {
     return (
       <span
@@ -139,7 +164,7 @@ const Watermark = ({ size = "md", variant = DEFAULT_VARIANT, className = "" }) =
     );
   }
 
-  // ── Default: original always-on text label (with brand mark prefix) ───
+  // ── Legacy label (tiny corner text) ────────────────────────────────────
   return (
     <span
       aria-hidden="true"
@@ -159,4 +184,4 @@ const Watermark = ({ size = "md", variant = DEFAULT_VARIANT, className = "" }) =
 };
 
 export default Watermark;
-export { LocofastMark, BRAND_BLUE };
+export { LocofastMark };
