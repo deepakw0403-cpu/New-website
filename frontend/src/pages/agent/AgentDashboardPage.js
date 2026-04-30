@@ -189,10 +189,6 @@ const AgentDashboardPage = () => {
     toast.success(`${fabric.name} added as ${orderType}`);
   };
 
-  const updateCartOrderType = (fabricId, newType) => {
-    setCart(cart.map((c) => c.fabric_id === fabricId ? { ...c, order_type: newType, quantity: newType === "sample" ? 1 : Math.max(c.quantity, 100) } : c));
-  };
-
   const updateCartQty = (fabricId, delta) => {
     setCart(cart.map((c) => c.fabric_id === fabricId ? { ...c, quantity: Math.max(1, c.quantity + delta) } : c));
   };
@@ -662,15 +658,17 @@ const AgentDashboardPage = () => {
                             </div>
                           ) : null}
                           <div className="flex items-center gap-2 mt-1.5">
-                            <select
-                              value={item.order_type}
-                              onChange={(e) => updateCartOrderType(item.fabric_id, e.target.value)}
-                              className={`text-xs font-semibold px-2 py-0.5 rounded-full border-0 cursor-pointer ${item.order_type === "sample" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"}`}
+                            {/* Order type is locked to whatever the agent picked
+                                 in Browse Catalog. To switch between Sample/Bulk
+                                 the agent should remove the row and re-add from
+                                 the catalog — keeps pricing & inventory checks
+                                 honest and avoids cart-side mistakes. */}
+                            <span
+                              className={`text-xs font-semibold px-2 py-0.5 rounded-full ${item.order_type === "sample" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"}`}
                               data-testid={`cart-type-${item.fabric_id}`}
                             >
-                              <option value="sample">Sample</option>
-                              <option value="bulk">Bulk</option>
-                            </select>
+                              {item.order_type === "sample" ? "Sample" : "Bulk"}
+                            </span>
                             <span className="text-sm text-[#2563EB] font-semibold">₹{item.price_per_meter}/m</span>
                           </div>
                         </div>
