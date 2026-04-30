@@ -1,12 +1,18 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, X, RefreshCw, Pencil, Percent, Building2, FolderOpen, ShoppingCart, Ruler, ArrowRightLeft } from "lucide-react";
+import { Plus, Trash2, X, RefreshCw, Pencil, Percent, Building2, FolderOpen, ShoppingCart, Ruler, ArrowRightLeft, Layers } from "lucide-react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { toast } from "sonner";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
+// Fabric patterns the catalog uses today. Kept in sync with what
+// fabric_router exposes via `pattern` filter and the values seen in
+// db.fabrics.distinct('pattern').
+const PATTERNS = ["Solid", "Stripes", "Checks", "Print", "Others"];
+
 const RULE_TYPES = [
   { value: "vendor", label: "Vendor-specific", icon: Building2, desc: "Override for a specific seller" },
+  { value: "category_pattern", label: "Category + Pattern", icon: Layers, desc: "Different rate when a category meets a pattern (e.g. Cotton + Stripes)" },
   { value: "category", label: "Category-wise", icon: FolderOpen, desc: "Based on fabric category" },
   { value: "cart_value", label: "Cart Value Slab", icon: ShoppingCart, desc: "Based on order value range" },
   { value: "meterage", label: "Meterage Slab", icon: Ruler, desc: "Based on quantity ordered" },
@@ -27,6 +33,7 @@ const AdminCommission = () => {
     vendor_name: "",
     category_id: "",
     category_name: "",
+    pattern: "",
     min_value: "",
     max_value: "",
     source: "inventory",
@@ -59,11 +66,14 @@ const AdminCommission = () => {
     } catch {}
   };
 
-  const resetForm = () => setForm({ rule_type: "vendor", vendor_id: "", vendor_name: "", category_id: "", category_name: "", min_value: "", max_value: "", source: "inventory", commission_pct: "", is_active: true });
+  const resetForm = () => setForm({ rule_type: "vendor", vendor_id: "", vendor_name: "", category_id: "", category_name: "", pattern: "", min_value: "", max_value: "", source: "inventory", commission_pct: "", is_active: true });
 
   const handleSave = async () => {
     if (!form.commission_pct || isNaN(form.commission_pct)) {
       toast.error("Commission % is required"); return;
+    }
+    if (form.rule_type === "category_pattern" && (!form.category_name || !form.pattern)) {
+      toast.error("Category + Pattern rule needs both a category and a pattern"); return;
     }
     const payload = {
       ...form,
@@ -102,6 +112,7 @@ const AdminCommission = () => {
       vendor_name: rule.vendor_name || "",
       category_id: rule.category_id || "",
       category_name: rule.category_name || "",
+      pattern: rule.pattern || "",
       min_value: rule.min_value ?? "",
       max_value: rule.max_value ?? "",
       source: rule.source || "inventory",
@@ -140,7 +151,7 @@ const AdminCommission = () => {
         {/* Priority explanation */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
           <p className="text-sm text-blue-800 font-medium mb-1">Commission Priority (most specific wins)</p>
-          <p className="text-xs text-blue-600">{"Vendor-specific > Category > Cart Value Slab > Meterage Slab > Inventory/RFQ > Default (5%)"}</p>
+          <p className="text-xs text-blue-600">{"Vendor-specific > Category + Pattern > Category > Cart Value Slab > Meterage Slab > Inventory/RFQ > Default (5%)"}</p>
         </div>
 
         {/* Rules grouped by type */}
@@ -165,6 +176,13 @@ const AdminCommission = () => {
                         <tr key={rule.id} className="hover:bg-gray-50" data-testid={`rule-${rule.id}`}>
                           <td className="px-5 py-3">
                             {rule.rule_type === "vendor" && <span className="text-sm font-medium">{rule.vendor_name || rule.vendor_id}</span>}
+                            {rule.rule_type === "category_pattern" && (
+                              <span className="text-sm font-medium">
+                                {rule.category_name}
+                                <span className="text-gray-400 mx-1">·</span>
+                                <span className="text-gray-700">{rule.pattern}</span>
+                              </span>
+                            )}
                             {rule.rule_type === "category" && <span className="text-sm font-medium">{rule.category_name}</span>}
                             {rule.rule_type === "cart_value" && <span className="text-sm">₹{(rule.min_value || 0).toLocaleString()} — ₹{rule.max_value ? rule.max_value.toLocaleString() : "∞"}</span>}
                             {rule.rule_type === "meterage" && <span className="text-sm">{rule.min_value || 0}m — {rule.max_value ? `${rule.max_value}m` : "∞"}</span>}
@@ -257,6 +275,38 @@ const AdminCommission = () => {
                       <option value="">Select category...</option>
                       {categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
+                  </div>
+                )}
+
+                {form.rule_type === "category_pattern" && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                      <select
+                        value={form.category_name}
+                        onChange={(e) => {
+                          const c = categories.find(c => c.name === e.target.value);
+                          setForm({ ...form, category_name: e.target.value, category_id: c?.id || "" });
+                        }}
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white"
+                        data-testid="rule-cp-category-select"
+                      >
+                        <option value="">Select category...</option>
+                        {categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Pattern</label>
+                      <select
+                        value={form.pattern}
+                        onChange={(e) => setForm({ ...form, pattern: e.target.value })}
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white"
+                        data-testid="rule-cp-pattern-select"
+                      >
+                        <option value="">Select pattern...</option>
+                        {PATTERNS.map((p) => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </div>
                   </div>
                 )}
 

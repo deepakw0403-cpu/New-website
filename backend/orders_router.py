@@ -64,6 +64,7 @@ class OrderItem(BaseModel):
     fabric_name: str
     fabric_code: str = ""
     category_name: str = ""
+    pattern: str = ""  # used by category+pattern commission rule
     seller_company: str = ""
     seller_id: str = ""
     quantity: int  # in meters
@@ -214,9 +215,32 @@ async def create_order(order_data: OrderCreate):
     
     # Calculate commission
     from commission_router import calculate_commission
+    # Enrich each item with the fabric's pattern + category_name from DB so
+    # the category+pattern commission rule can fire even if the cart-side
+    # client didn't pass them. We do this for commission calc only — the
+    # order document itself uses whatever the buyer submitted.
+    items_for_commission = [item.model_dump() for item in order_data.items]
+    fabric_ids = list({i.get("fabric_id") for i in items_for_commission if i.get("fabric_id")})
+    if fabric_ids:
+        fabric_meta = await db.fabrics.find(
+            {"id": {"$in": fabric_ids}},
+            {"_id": 0, "id": 1, "pattern": 1, "category_id": 1},
+        ).to_list(length=len(fabric_ids))
+        meta_map = {f["id"]: f for f in fabric_meta}
+        cat_ids = list({m.get("category_id") for m in fabric_meta if m.get("category_id")})
+        cat_map = {}
+        if cat_ids:
+            cats = await db.categories.find({"id": {"$in": cat_ids}}, {"_id": 0, "id": 1, "name": 1}).to_list(length=len(cat_ids))
+            cat_map = {c["id"]: c["name"] for c in cats}
+        for item in items_for_commission:
+            m = meta_map.get(item.get("fabric_id"), {})
+            if not item.get("pattern") and m.get("pattern"):
+                item["pattern"] = m["pattern"]
+            if not item.get("category_name") and m.get("category_id"):
+                item["category_name"] = cat_map.get(m["category_id"], "")
     commission_info = await calculate_commission(
         order_data.model_dump(),
-        [item.model_dump() for item in order_data.items]
+        items_for_commission,
     )
     
     if final_total <= 0:
