@@ -486,6 +486,11 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
             alt={fabric.name}
             className="max-w-full max-h-[90vh] object-contain"
             onClick={(e) => e.stopPropagation()}
+            draggable={false}
+            onDragStart={(e) => e.preventDefault()}
+            onContextMenu={(e) => e.preventDefault()}
+            onDoubleClick={(e) => e.preventDefault()}
+            style={{ WebkitUserDrag: "none", userSelect: "none" }}
           />
 
           <Watermark size="xl" />
@@ -539,6 +544,11 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                   alt={`${fabric.name} - ${fabric.composition?.map(c => c.material).join(', ') || fabric.category_name} fabric${fabric.color ? ` in ${fabric.color}` : ''}${fabric.gsm ? `, ${fabric.gsm} GSM` : ''}`}
                   className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   data-testid="main-image"
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                  onContextMenu={(e) => e.preventDefault()}
+                  onDoubleClick={(e) => e.preventDefault()}
+                  style={{ WebkitUserDrag: "none", userSelect: "none" }}
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600";
@@ -590,6 +600,10 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                         alt={`${fabric.name} thumbnail ${idx + 1}`} 
                         className="w-full h-full object-cover" 
                         loading="lazy"
+                        draggable={false}
+                        onDragStart={(e) => e.preventDefault()}
+                        onContextMenu={(e) => e.preventDefault()}
+                        style={{ WebkitUserDrag: "none", userSelect: "none" }}
                         onError={(e) => {
                           e.target.onerror = null;
                           e.target.src = "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600";
@@ -1069,6 +1083,10 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                           alt={related.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           loading="lazy"
+                          draggable={false}
+                          onDragStart={(e) => e.preventDefault()}
+                          onContextMenu={(e) => e.preventDefault()}
+                          style={{ WebkitUserDrag: "none", userSelect: "none" }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-300">

@@ -659,6 +659,11 @@ const FabricsPage = () => {
                             alt={`${fabric.name} - ${fabric.composition?.map(c => c.material).join(', ') || fabric.category_name} fabric${fabric.color ? ` in ${fabric.color}` : ''}`}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             loading="lazy"
+                            draggable={false}
+                            onDragStart={(e) => e.preventDefault()}
+                            onContextMenu={(e) => e.preventDefault()}
+                            onDoubleClick={(e) => e.preventDefault()}
+                            style={{ WebkitUserDrag: "none", userSelect: "none" }}
                             onError={(e) => {
                               e.target.onerror = null;
                               e.target.src = "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600";

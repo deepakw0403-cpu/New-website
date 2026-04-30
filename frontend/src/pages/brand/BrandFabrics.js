@@ -31,6 +31,11 @@ const FabricCard = ({ f, onOpen }) => {
               alt={f.name}
               className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
               loading="lazy"
+              draggable={false}
+              onDragStart={(e) => e.preventDefault()}
+              onContextMenu={(e) => e.preventDefault()}
+              onDoubleClick={(e) => e.preventDefault()}
+              style={{ WebkitUserDrag: "none", userSelect: "none" }}
               onError={(e) => {
                 e.currentTarget.onerror = null;
                 e.currentTarget.style.display = "none";

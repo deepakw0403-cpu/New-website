@@ -166,13 +166,28 @@ const BrandFabricDetail = () => {
               alt={fabric.name}
               className="w-full h-full object-cover"
               loading="lazy"
+              draggable={false}
+              onDragStart={(e) => e.preventDefault()}
+              onContextMenu={(e) => e.preventDefault()}
+              onDoubleClick={(e) => e.preventDefault()}
+              style={{ WebkitUserDrag: "none", userSelect: "none" }}
             />
             <Watermark size="lg" />
           </div>
           {(fabric.images || []).length > 1 && (
             <div className="grid grid-cols-5 gap-2 mt-3">
               {(fabric.images || []).slice(0, 5).map((img, i) => (
-                <img key={i} src={thumbImage(img)} alt={`${fabric.name} ${i + 1}`} className="aspect-square object-cover rounded border border-gray-200" loading="lazy" />
+                <img
+                  key={i}
+                  src={thumbImage(img)}
+                  alt={`${fabric.name} ${i + 1}`}
+                  className="aspect-square object-cover rounded border border-gray-200"
+                  loading="lazy"
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                  onContextMenu={(e) => e.preventDefault()}
+                  style={{ WebkitUserDrag: "none", userSelect: "none" }}
+                />
               ))}
             </div>
           )}
