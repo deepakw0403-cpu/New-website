@@ -39,6 +39,14 @@ const SWATCH = {
 
 const HIDDEN_NAMES = new Set(["Greige", "TEST_Refactor Category", "TEST_Debug Category"]);
 
+// Manual ordering for the hero search pills. Lower rank = further left.
+// Anything not listed falls back to fabric_count-desc (after the ranked set).
+const CATEGORY_ORDER = ["Denim", "Cotton Fabrics", "Cotton"];
+const categoryRank = (name) => {
+  const i = CATEGORY_ORDER.indexOf(name);
+  return i === -1 ? Number.POSITIVE_INFINITY : i;
+};
+
 const HeroSearchCard = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
@@ -61,7 +69,12 @@ const HeroSearchCard = () => {
       .then((res) => {
         const list = (res?.data || [])
           .filter((c) => !HIDDEN_NAMES.has(c.name))
-          .sort((a, b) => (b.fabric_count || 0) - (a.fabric_count || 0));
+          .sort((a, b) => {
+            const ra = categoryRank(a.name);
+            const rb = categoryRank(b.name);
+            if (ra !== rb) return ra - rb;
+            return (b.fabric_count || 0) - (a.fabric_count || 0);
+          });
         setCategories(list);
         const firstReady = list.find((c) => (c.fabric_count || 0) >= COMING_SOON_THRESHOLD);
         if (firstReady) setActive(firstReady.name);
