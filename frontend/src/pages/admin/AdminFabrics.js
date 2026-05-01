@@ -1915,52 +1915,67 @@ const AdminFabrics = () => {
                   />
                 </div>
 
-                {/* Certifications — multi-select checklist. Each certification
-                    is stored as a stable key (e.g. "bci", "oeko_tex") in
-                    fabric.certifications and renders as a chip everywhere
-                    downstream. Leave all unchecked for fabrics with no
-                    certifications — the listing card hides the chip strip
-                    entirely when empty. */}
-                <div className="p-4 bg-emerald-50/40 border border-emerald-100 rounded-lg">
-                  <label className="block text-sm font-medium mb-1 text-emerald-900">Certifications</label>
-                  <p className="text-xs text-gray-500 mb-3">Tick every certificate this fabric carries. Chips will show on the listing and PDP; buyers can also filter by these.</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {CERTIFICATIONS.map((c) => {
-                      const checked = Array.isArray(form.certifications) && form.certifications.includes(c.key);
-                      return (
-                        <label
-                          key={c.key}
-                          className={`flex items-start gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
-                            checked ? "bg-white border-emerald-300 ring-1 ring-emerald-200" : "bg-white border-gray-200 hover:border-gray-300"
-                          }`}
-                          data-testid={`cert-checkbox-${c.key}`}
-                        >
-                          <input
-                            type="checkbox"
-                            className="mt-0.5"
-                            checked={checked}
-                            onChange={(e) => {
-                              const prev = Array.isArray(form.certifications) ? form.certifications : [];
-                              setForm({
-                                ...form,
-                                certifications: e.target.checked
-                                  ? [...prev, c.key]
-                                  : prev.filter((k) => k !== c.key),
-                              });
-                            }}
-                          />
-                          <div className="leading-tight">
-                            <div className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
-                              <span className={`w-1.5 h-1.5 rounded-full ${c.dotClass}`} />
-                              {c.label}
+                {/* Certifications — multi-select checklist, hidden behind a
+                    <details> so the admin form stays compact. Expand only
+                    when the fabric actually carries certifications.
+                    Using native `details`/`summary` keeps keyboard + screen-
+                    reader behaviour correct without any JS state. */}
+                <details className="p-4 bg-emerald-50/40 border border-emerald-100 rounded-lg">
+                  <summary
+                    className="flex items-center justify-between text-sm font-medium text-emerald-900 cursor-pointer"
+                    data-testid="cert-section-toggle"
+                  >
+                    <span>Certifications{" "}
+                      <span className="text-xs font-normal text-emerald-700/70">
+                        (optional — click to expand)
+                      </span>
+                    </span>
+                    {Array.isArray(form.certifications) && form.certifications.length > 0 && (
+                      <span className="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded-full">
+                        {form.certifications.length} selected
+                      </span>
+                    )}
+                  </summary>
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500 mb-3">Tick every certificate this fabric carries. Chips will show on the listing and PDP; buyers can also filter by these.</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {CERTIFICATIONS.map((c) => {
+                        const checked = Array.isArray(form.certifications) && form.certifications.includes(c.key);
+                        return (
+                          <label
+                            key={c.key}
+                            className={`flex items-start gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                              checked ? "bg-white border-emerald-300 ring-1 ring-emerald-200" : "bg-white border-gray-200 hover:border-gray-300"
+                            }`}
+                            data-testid={`cert-checkbox-${c.key}`}
+                          >
+                            <input
+                              type="checkbox"
+                              className="mt-0.5"
+                              checked={checked}
+                              onChange={(e) => {
+                                const prev = Array.isArray(form.certifications) ? form.certifications : [];
+                                setForm({
+                                  ...form,
+                                  certifications: e.target.checked
+                                    ? [...prev, c.key]
+                                    : prev.filter((k) => k !== c.key),
+                                });
+                              }}
+                            />
+                            <div className="leading-tight">
+                              <div className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+                                <span className={`w-1.5 h-1.5 rounded-full ${c.dotClass}`} />
+                                {c.label}
+                              </div>
+                              <div className="text-[10px] text-gray-500">{c.fullName}</div>
                             </div>
-                            <div className="text-[10px] text-gray-500">{c.fullName}</div>
-                          </div>
-                        </label>
-                      );
-                    })}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                </details>
 
                 {/* Images */}
                 <div>
