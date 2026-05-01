@@ -12,6 +12,7 @@ import { thumbImage, mediumImage, fabricCoverImage } from "../../lib/imageUrl";
 import { DispatchStrip } from "../../components/DispatchBadges";
 import { toWebVideoUrl, videoPosterUrl } from "../../lib/videoUrl";
 import Watermark from "../../components/Watermark";
+import CertificationBadges from "../../components/CertificationBadges";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -383,6 +384,18 @@ const BrandFabricDetail = () => {
           </button>
 
           <DispatchStrip fabric={fabric} className="mt-3" />
+
+          {/* Certifications — only render the section when the fabric has any */}
+          {Array.isArray(fabric.certifications) && fabric.certifications.length > 0 && (
+            <div className="mt-6 pt-5 border-t border-gray-200" data-testid="brand-pdp-certs">
+              <h3 className="text-sm font-semibold mb-3">Certifications</h3>
+              <CertificationBadges
+                certs={fabric.certifications}
+                size="md"
+                testIdPrefix="brand-pdp-cert"
+              />
+            </div>
+          )}
 
           {/* Technical Specifications — same fields as the public PDP so brand
               users get the full picture (width, weave, GSM/oz, composition,

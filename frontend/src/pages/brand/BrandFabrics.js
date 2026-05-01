@@ -7,6 +7,7 @@ import { displayFabricName } from "../../lib/fabricDisplay";
 import { thumbImage, fabricCoverImage } from "../../lib/imageUrl";
 import { getCheapestBulkPrice, formatQtyThreshold } from "../../lib/pricing";
 import Watermark from "../../components/Watermark";
+import CertificationBadges from "../../components/CertificationBadges";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -75,6 +76,13 @@ const FabricCard = ({ f, onOpen }) => {
             {width && <span className="text-[11px] bg-gray-100 text-gray-700 px-2 py-0.5 rounded">{width}</span>}
           </div>
         )}
+        <CertificationBadges
+          certs={f.certifications}
+          size="xs"
+          max={3}
+          className="mt-2"
+          testIdPrefix={`brand-card-cert-${f.id}`}
+        />
         <div className="mt-3 flex items-center justify-between text-sm border-t border-gray-100 pt-2.5">
           <span className="text-gray-500 text-xs">Sample</span>
           {samplePrice > 0 ? (

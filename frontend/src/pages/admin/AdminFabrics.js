@@ -5,6 +5,7 @@ import AdminLayout from "../../components/admin/AdminLayout";
 import { getFabrics, getCategories, getSellers, getArticles, createFabric, updateFabric, deleteFabric, uploadToCloudinary, uploadVideoToCloudinary, approveFabric, rejectFabric } from "../../lib/api";
 import useCompositionOptions from "../../hooks/useCompositionOptions";
 import { getDispatchOptions } from "../../lib/dispatchOptions";
+import { CERTIFICATIONS } from "../../lib/certifications";
 
 const AdminFabrics = () => {
   const compositionOptions = useCompositionOptions();
@@ -103,6 +104,8 @@ const AdminFabrics = () => {
     // Multi-color
     has_multiple_colors: false,
     color_variants: [],
+    // Certifications (array of keys from CERTIFICATIONS lib/certifications.js)
+    certifications: [],
   };
 
   const [form, setForm] = useState(emptyForm);
@@ -524,6 +527,7 @@ const AdminFabrics = () => {
       sample_delivery_days: fabric.sample_delivery_days || "",
       bulk_delivery_days: fabric.bulk_delivery_days || "",
       is_bookable: fabric.is_bookable || false,
+      certifications: Array.isArray(fabric.certifications) ? fabric.certifications : [],
       // Pricing fields
       sample_price: fabric.sample_price ? fabric.sample_price.toString() : "",
       pricing_tiers: fabric.pricing_tiers && fabric.pricing_tiers.length > 0 
@@ -651,6 +655,7 @@ const AdminFabrics = () => {
       article_id: form.article_id,
       has_multiple_colors: form.has_multiple_colors,
       color_variants: form.has_multiple_colors ? form.color_variants : [],
+      certifications: Array.isArray(form.certifications) ? form.certifications : [],
     };
     
     // Remove frontend-only fields
@@ -1908,6 +1913,53 @@ const AdminFabrics = () => {
                     placeholder="e.g., cotton, lightweight, summer"
                     data-testid="fabric-tags-input"
                   />
+                </div>
+
+                {/* Certifications — multi-select checklist. Each certification
+                    is stored as a stable key (e.g. "bci", "oeko_tex") in
+                    fabric.certifications and renders as a chip everywhere
+                    downstream. Leave all unchecked for fabrics with no
+                    certifications — the listing card hides the chip strip
+                    entirely when empty. */}
+                <div className="p-4 bg-emerald-50/40 border border-emerald-100 rounded-lg">
+                  <label className="block text-sm font-medium mb-1 text-emerald-900">Certifications</label>
+                  <p className="text-xs text-gray-500 mb-3">Tick every certificate this fabric carries. Chips will show on the listing and PDP; buyers can also filter by these.</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {CERTIFICATIONS.map((c) => {
+                      const checked = Array.isArray(form.certifications) && form.certifications.includes(c.key);
+                      return (
+                        <label
+                          key={c.key}
+                          className={`flex items-start gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                            checked ? "bg-white border-emerald-300 ring-1 ring-emerald-200" : "bg-white border-gray-200 hover:border-gray-300"
+                          }`}
+                          data-testid={`cert-checkbox-${c.key}`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="mt-0.5"
+                            checked={checked}
+                            onChange={(e) => {
+                              const prev = Array.isArray(form.certifications) ? form.certifications : [];
+                              setForm({
+                                ...form,
+                                certifications: e.target.checked
+                                  ? [...prev, c.key]
+                                  : prev.filter((k) => k !== c.key),
+                              });
+                            }}
+                          />
+                          <div className="leading-tight">
+                            <div className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+                              <span className={`w-1.5 h-1.5 rounded-full ${c.dotClass}`} />
+                              {c.label}
+                            </div>
+                            <div className="text-[10px] text-gray-500">{c.fullName}</div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Images */}

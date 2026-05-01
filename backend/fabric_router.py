@@ -99,6 +99,7 @@ class FabricCreate(BaseModel):
     hsn_code: Optional[str] = ""
     has_multiple_colors: bool = False
     color_variants: List[dict] = []
+    certifications: List[str] = []  # keys like "bci", "grs", "oeko_tex"
 
 
 class FabricUpdate(BaseModel):
@@ -145,6 +146,7 @@ class FabricUpdate(BaseModel):
     status: Optional[str] = None
     has_multiple_colors: Optional[bool] = None
     color_variants: Optional[List[dict]] = None
+    certifications: Optional[List[str]] = None
 
 
 class Fabric(BaseModel):
@@ -198,6 +200,7 @@ class Fabric(BaseModel):
     hsn_code: str = ""
     has_multiple_colors: bool = False
     color_variants: List[dict] = []
+    certifications: List[str] = []
     status: Optional[str] = None
     vendor_count: int = 1
     created_at: str = ""
@@ -210,6 +213,7 @@ def _build_fabric_query(
     min_gsm, max_gsm, pattern, color, width, min_price, max_price,
     composition, bookable_only, sample_available, instant_bookable,
     enquiry_only, status, include_pending, has_oz_filter,
+    certifications=None,
 ):
     """Shared query builder used by both /fabrics and /fabrics/count."""
     and_conditions = []
@@ -291,6 +295,15 @@ def _build_fabric_query(
             {'composition': {'$elemMatch': {'material': {'$regex': composition, '$options': 'i'}}}},
             {'composition': {'$regex': composition, '$options': 'i'}},
         ]})
+    # Certifications filter — multi-select. Buyer picks e.g. ["bci","grs"] →
+    # fabric must carry ALL of those (conservative: "I need BCI AND GRS" is
+    # more useful than OR when sourcing compliance-sensitive orders).
+    if certifications:
+        cert_list = certifications if isinstance(certifications, list) else [
+            c.strip() for c in str(certifications).split(",") if c.strip()
+        ]
+        if cert_list:
+            and_conditions.append({'certifications': {'$all': cert_list}})
     if search:
         and_conditions.append({'$or': [
             {'name': {'$regex': search, '$options': 'i'}},
@@ -342,10 +355,11 @@ async def get_fabric_filter_options():
             {'status': {'$exists': False}},
             {'status': None},
         ]},
-        {'_id': 0, 'color': 1, 'name': 1, 'pattern': 1, 'width': 1, 'composition': 1, 'category_name': 1},
+        {'_id': 0, 'color': 1, 'name': 1, 'pattern': 1, 'width': 1, 'composition': 1, 'category_name': 1, 'certifications': 1},
     ).to_list(5000)
 
     colors, patterns, widths, compositions = set(), set(), set(), set()
+    cert_counts = {}
     has_denim = False
     for f in fabrics:
         c = (f.get('color') or '').strip()
@@ -374,6 +388,10 @@ async def get_fabric_filter_options():
         cat = (f.get('category_name') or '').lower()
         if 'denim' in cat:
             has_denim = True
+        # Per-certification count so sidebar can show "BCI (42)"
+        for ck in (f.get('certifications') or []):
+            if ck:
+                cert_counts[ck] = cert_counts.get(ck, 0) + 1
     # Only surface compositions from the canonical whitelist — prevents
     # stray typos or unknown materials leaking into the B2C dropdown.
     canonical_set = set(CANONICAL_COMPOSITIONS)
@@ -383,6 +401,7 @@ async def get_fabric_filter_options():
         'patterns': sorted(patterns, key=str.lower),
         'widths': sorted(widths, key=str.lower),
         'compositions': sorted(compositions, key=str.lower),
+        'certifications': cert_counts,
         'has_denim': has_denim,
     }
 
@@ -417,16 +436,19 @@ async def get_fabrics(
     status: Optional[str] = Query(None),
     include_pending: Optional[bool] = Query(None),
     dedupe_by_article: Optional[bool] = Query(False),
+    certifications: Optional[str] = Query(None, description="Comma-separated certification keys e.g. bci,grs"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=1000),
     optional_admin=Depends(auth_helpers.get_optional_admin),
 ):
     has_oz = min_weight_oz is not None or max_weight_oz is not None
+    cert_list = [c.strip() for c in (certifications or "").split(",") if c.strip()]
     query = _build_fabric_query(
         category_id, seller_id, article_id, fabric_type, search,
         min_gsm, max_gsm, pattern, color, width, min_price, max_price,
         composition, bookable_only, sample_available, instant_bookable,
         enquiry_only, status, include_pending, has_oz,
+        certifications=cert_list,
     )
 
     skip = (page - 1) * limit
@@ -578,13 +600,16 @@ async def get_fabrics_count(
     status: Optional[str] = Query(None),
     include_pending: Optional[bool] = Query(None),
     dedupe_by_article: Optional[bool] = Query(False),
+    certifications: Optional[str] = Query(None),
 ):
     has_oz = min_weight_oz is not None or max_weight_oz is not None
+    cert_list = [c.strip() for c in (certifications or "").split(",") if c.strip()]
     query = _build_fabric_query(
         category_id, seller_id, article_id, fabric_type, search,
         min_gsm, max_gsm, pattern, color, width, min_price, max_price,
         composition, bookable_only, sample_available, instant_bookable,
         enquiry_only, status, include_pending, has_oz,
+        certifications=cert_list,
     )
     if dedupe_by_article:
         # Count unique (article_id if present, else doc _id) groups

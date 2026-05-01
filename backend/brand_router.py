@@ -745,6 +745,7 @@ async def brand_list_fabrics(
     oz_min: Optional[float] = None,
     oz_max: Optional[float] = None,
     availability: Optional[str] = None,  # bookable | sample | instant | enquiry
+    certifications: Optional[str] = None,
 ):
     brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
     if not brand:
@@ -760,6 +761,9 @@ async def brand_list_fabrics(
         scope_cat_ids = [category_id]
 
     query = {"category_id": {"$in": scope_cat_ids}, "status": {"$ne": "draft"}}
+    cert_list = [c.strip() for c in (certifications or "").split(",") if c.strip()]
+    if cert_list:
+        query["certifications"] = {"$all": cert_list}
     if fabric_type:
         query["fabric_type"] = fabric_type
     if pattern:

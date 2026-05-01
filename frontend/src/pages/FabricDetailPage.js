@@ -11,6 +11,7 @@ import { getFabric, createEnquiry, getFabricSEO, getRelatedFabrics, getOtherSell
 import { toWebVideoUrl, videoPosterUrl } from "../lib/videoUrl";
 import { thumbImage, mediumImage, largeImage, fabricCoverImage } from "../lib/imageUrl";
 import Watermark from "../components/Watermark";
+import CertificationBadges from "../components/CertificationBadges";
 import { displayFabricName } from "../lib/fabricDisplay";
 import { trackViewItem, trackAddToCart, trackRFQIntent } from "../lib/analytics";
 import { DispatchStrip } from "../components/DispatchBadges";
@@ -717,6 +718,22 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                 <div className="flex items-center gap-3 flex-wrap mb-4">
                 </div>
               </div>
+
+              {/* Certifications strip — prominent, above specs, only when present */}
+              {Array.isArray(fabric.certifications) && fabric.certifications.length > 0 && (
+                <div
+                  className="border-t border-gray-100 pt-6 mb-6"
+                  data-testid="pdp-certifications"
+                >
+                  <h2 className="text-lg font-semibold mb-3">Certifications</h2>
+                  <CertificationBadges
+                    certs={fabric.certifications}
+                    size="md"
+                    testIdPrefix="pdp-cert"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">Hover a chip to see what each certification covers.</p>
+                </div>
+              )}
 
               {/* Technical Specifications */}
               <div className="border-t border-gray-100 pt-6 mb-6" data-testid="fabric-specs">

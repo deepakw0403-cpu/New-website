@@ -12,6 +12,8 @@ import { DispatchLine } from "../components/DispatchBadges";
 import { getFabrics, getFabricsCount, getCategories, createEnquiry, getFabricFilterOptions } from "../lib/api";
 import { getCheapestBulkPrice, formatQtyThreshold } from "../lib/pricing";
 import Watermark from "../components/Watermark";
+import CertificationBadges from "../components/CertificationBadges";
+import { CERTIFICATIONS } from "../lib/certifications";
 import { trackViewItemList } from "../lib/analytics";
 import { toast } from "sonner";
 
@@ -40,6 +42,10 @@ const FabricsPage = () => {
   const [selectedColor, setSelectedColor] = useState(searchParams.get("color") || "");
   const [selectedWidth, setSelectedWidth] = useState(searchParams.get("width") || "");
   const [selectedComposition, setSelectedComposition] = useState(searchParams.get("composition") || "");
+  // Certifications: multi-select. Serialized as comma-list in URL so shares are sticky.
+  const [selectedCerts, setSelectedCerts] = useState(
+    (searchParams.get("certifications") || "").split(",").filter(Boolean)
+  );
   const [weightRange, setWeightRange] = useState({
     min: searchParams.get("min_oz") || "",
     max: searchParams.get("max_oz") || "",
@@ -112,6 +118,7 @@ const FabricsPage = () => {
         if (selectedColor) params.color = selectedColor;
         if (selectedWidth) params.width = selectedWidth.replace(/"/g, '');
         if (selectedComposition) params.composition = selectedComposition;
+        if (selectedCerts.length > 0) params.certifications = selectedCerts.join(",");
         if (weightRange.min) params.min_weight_oz = weightRange.min;
         if (weightRange.max) params.max_weight_oz = weightRange.max;
         if (priceRange.min) params.min_price = priceRange.min;
@@ -138,7 +145,7 @@ const FabricsPage = () => {
 
     const timeout = setTimeout(fetchFabrics, 300);
     return () => clearTimeout(timeout);
-  }, [search, selectedCategory, selectedType, availabilityFilter, gsmRange, selectedPattern, selectedColor, selectedWidth, weightRange, priceRange, currentPage]);
+  }, [search, selectedCategory, selectedType, availabilityFilter, gsmRange, selectedPattern, selectedColor, selectedWidth, weightRange, priceRange, selectedCerts, currentPage]);
 
   // Update URL params
   useEffect(() => {
@@ -156,9 +163,10 @@ const FabricsPage = () => {
     if (weightRange.max) params.set("max_oz", weightRange.max);
     if (priceRange.min) params.set("min_price", priceRange.min);
     if (priceRange.max) params.set("max_price", priceRange.max);
+    if (selectedCerts.length > 0) params.set("certifications", selectedCerts.join(","));
     if (currentPage > 1) params.set("page", currentPage.toString());
     setSearchParams(params, { replace: true });
-  }, [search, selectedCategory, selectedType, availabilityFilter, gsmRange, selectedPattern, selectedColor, selectedWidth, weightRange, priceRange, currentPage, setSearchParams]);
+  }, [search, selectedCategory, selectedType, availabilityFilter, gsmRange, selectedPattern, selectedColor, selectedWidth, weightRange, priceRange, selectedCerts, currentPage, setSearchParams]);
 
   const goToPage = (page) => {
     setCurrentPage(page);
@@ -175,6 +183,7 @@ const FabricsPage = () => {
     setSelectedColor("");
     setSelectedWidth("");
     setSelectedComposition("");
+    setSelectedCerts([]);
     setWeightRange({ min: "", max: "" });
     setPriceRange({ min: "", max: "" });
     setCurrentPage(1);
@@ -517,6 +526,47 @@ const FabricsPage = () => {
                     ))}
                   </select>
                 </div>
+                {/* Certifications facet — multi-select. Shows count per cert
+                    from /api/fabrics/filter-options so buyers know if the
+                    filter will actually narrow results. */}
+                <div className="sm:col-span-2 md:col-span-4">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Certifications</label>
+                  <div className="flex flex-wrap gap-2" data-testid="filter-certifications">
+                    {CERTIFICATIONS.map((c) => {
+                      const count = (filterOptions.certifications || {})[c.key] || 0;
+                      const checked = selectedCerts.includes(c.key);
+                      const disabled = count === 0 && !checked;
+                      return (
+                        <button
+                          key={c.key}
+                          type="button"
+                          disabled={disabled}
+                          onClick={() => {
+                            setSelectedCerts(
+                              checked
+                                ? selectedCerts.filter((k) => k !== c.key)
+                                : [...selectedCerts, c.key]
+                            );
+                            setCurrentPage(1);
+                          }}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium transition-colors ${
+                            checked
+                              ? "bg-[#2563EB] text-white border-[#2563EB]"
+                              : disabled
+                                ? "bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed"
+                                : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"
+                          }`}
+                          data-testid={`filter-cert-${c.key}`}
+                          title={c.fullName}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${checked ? "bg-white/90" : c.dotClass}`} />
+                          {c.label}
+                          <span className={`text-[10px] ${checked ? "text-white/80" : "text-gray-400"}`}>({count})</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{isDenimCategory ? "Weight (oz)" : "GSM Range"}</label>
                   <div className="flex gap-2">
@@ -703,6 +753,15 @@ const FabricsPage = () => {
                         {fabric.weight_unit === 'ounce' && fabric.ounce && <span className="px-1 sm:px-1.5 py-0.5 bg-gray-100 rounded">{fabric.ounce} oz</span>}
                         {fabric.width && <span className="px-1 sm:px-1.5 py-0.5 bg-gray-100 rounded">{fabric.width}"</span>}
                       </div>
+
+                      {/* Certification chips — hidden automatically when none */}
+                      <CertificationBadges
+                        certs={fabric.certifications}
+                        size="xs"
+                        max={3}
+                        className="mb-2"
+                        testIdPrefix={`card-cert-${fabric.id}`}
+                      />
 
                       {/* Color variant dots */}
                       {fabric.has_multiple_colors && fabric.color_variants?.length > 0 && (
