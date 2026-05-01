@@ -799,7 +799,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                 {actions.canBookSample && (
                   <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
                     <div>
-                      <p className="text-sm text-gray-500">Sample Price</p>
+                      <p className="text-sm text-gray-500">Sales Price (Sample)</p>
                       <p className="text-2xl font-bold text-emerald-600">₹{actions.samplePrice?.toLocaleString()}<span className="text-sm font-normal text-gray-500">{unit.priceLabel}</span></p>
                     </div>
                     {fabric.quantity_available > 0 && (
@@ -1462,7 +1462,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="flex justify-between font-semibold">
-                    <span>Sample Price</span>
+                    <span>Sales Price (Sample)</span>
                     <span className="text-blue-600">₹{((actions.samplePrice || 0) * sampleQty).toLocaleString()}</span>
                   </div>
                 </div>

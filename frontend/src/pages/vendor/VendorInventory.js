@@ -489,8 +489,8 @@ const VendorInventory = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">GSM / Oz</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bulk Price</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sample Price</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales Price (Bulk)<br /><span className="normal-case text-[10px] text-gray-400 font-normal">what customer pays</span></th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales Price (Sample)</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" data-testid="col-commission">
                     <div className="inline-flex items-center gap-1">
                       Platform commission
@@ -505,6 +505,7 @@ const VendorInventory = () => {
                       </button>
                     </div>
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Your Payout<br /><span className="normal-case text-[10px] text-gray-400 font-normal">after commission</span></th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
@@ -542,6 +543,25 @@ const VendorInventory = () => {
                           {commissionMap[fabric.id].commission_pct}%
                         </button>
                       ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </td>
+                    {/* Vendor payout / take-home per unit AFTER platform commission.
+                        Makes the "what you actually receive" crystal clear so the
+                        vendor doesn't have to do the math themselves. */}
+                    <td className="px-4 py-4" data-testid={`payout-cell-${fabric.id}`}>
+                      {fabric.rate_per_meter ? (() => {
+                        const pct = commissionMap[fabric.id]?.commission_pct ?? 0;
+                        const payout = fabric.rate_per_meter * (1 - pct / 100);
+                        return (
+                          <div className="leading-tight">
+                            <div className="text-emerald-700 font-semibold text-sm">₹{payout.toLocaleString(undefined, { maximumFractionDigits: 2 })}/{getFabricUnit(fabric)}</div>
+                            {pct > 0 && (
+                              <div className="text-[10px] text-gray-400">after {pct}% commission</div>
+                            )}
+                          </div>
+                        );
+                      })() : (
                         <span className="text-xs text-gray-400">—</span>
                       )}
                     </td>
@@ -1031,9 +1051,10 @@ const VendorInventory = () => {
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg" placeholder="1000" data-testid="stock-input" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Base Rate (₹/{unit})</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Sales Price (₹/{unit})<span className="text-red-500">*</span></label>
                       <input type="number" step="0.01" value={form.rate_per_meter} onChange={e => setForm({ ...form, rate_per_meter: e.target.value })}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg" placeholder="150" data-testid="rate-input" />
+                      <p className="text-[11px] text-gray-500 mt-1">This is what the customer sees and pays per {unit}. Your payout is shown below.</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">MOQ</label>
@@ -1058,11 +1079,12 @@ const VendorInventory = () => {
                         </div>
                       </div>
                       <div className="text-right text-[11px] text-gray-600 leading-tight">
-                        <div className="line-through text-gray-400">₹{parseFloat(form.rate_per_meter).toFixed(2)}/{unit}</div>
+                        <div className="text-gray-500">Customer pays</div>
+                        <div className="text-gray-700 font-medium line-through">₹{parseFloat(form.rate_per_meter).toFixed(2)}/{unit}</div>
+                        <div className="text-gray-500 mt-1">You receive</div>
                         <div className="text-emerald-700 font-bold text-base leading-tight">
                           ₹{(parseFloat(form.rate_per_meter) * (1 - modalCommission.commission_pct / 100)).toFixed(2)}/{unit}
                         </div>
-                        <div>your payout after commission</div>
                       </div>
                     </div>
                   )}

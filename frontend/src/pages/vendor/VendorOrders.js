@@ -99,8 +99,14 @@ const VendorOrders = () => {
                         <p className="text-sm text-gray-500">{order.customer?.city}</p>
                       </td>
                       <td className="px-4 py-4">
-                        <p className="text-sm text-amber-600 font-medium">{order.commission_pct || 5}%</p>
-                        <p className="text-xs text-gray-400">₹{(order.commission_amount || 0).toLocaleString()}</p>
+                        {(order.commission_pct || 0) > 0 ? (
+                          <>
+                            <p className="text-sm text-amber-600 font-medium">{order.commission_pct}%</p>
+                            <p className="text-xs text-gray-400">₹{(order.commission_amount || 0).toLocaleString()}</p>
+                          </>
+                        ) : (
+                          <p className="text-xs text-gray-400">—</p>
+                        )}
                       </td>
                       <td className="px-4 py-4">
                         <p className="font-semibold text-emerald-600">₹{(order.seller_payout || order.subtotal || 0).toLocaleString()}</p>
@@ -164,16 +170,18 @@ const VendorOrders = () => {
 
                 {/* Commission Info */}
                 <div>
-                  <h3 className="font-medium text-gray-900 mb-3">Commission & Payout</h3>
+                  <h3 className="font-medium text-gray-900 mb-3">Sales Price & Your Payout</h3>
                   <div className="bg-amber-50 rounded-lg p-4 border border-amber-200 space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Order Value</span>
+                      <span className="text-gray-600">Sales Price Total <span className="text-xs text-gray-400">(what customer pays)</span></span>
                       <span className="font-medium">₹{(selectedOrder.subtotal || 0).toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-amber-700">Locofast Commission ({selectedOrder.commission_pct || 5}%)</span>
-                      <span className="font-medium text-amber-700">- ₹{(selectedOrder.commission_amount || 0).toLocaleString()}</span>
-                    </div>
+                    {(selectedOrder.commission_pct || 0) > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-amber-700">Locofast Commission ({selectedOrder.commission_pct}%)</span>
+                        <span className="font-medium text-amber-700">- ₹{(selectedOrder.commission_amount || 0).toLocaleString()}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-base pt-2 border-t border-amber-200">
                       <span className="font-semibold text-emerald-700">Your Payout</span>
                       <span className="font-bold text-emerald-700 text-lg">₹{(selectedOrder.seller_payout || selectedOrder.subtotal || 0).toLocaleString()}</span>
