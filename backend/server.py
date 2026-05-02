@@ -568,6 +568,10 @@ import enquiry_router
 enquiry_router.set_db(db)
 app.include_router(enquiry_router.router)
 
+import vendor_rfq_router
+vendor_rfq_router.set_db(db)
+app.include_router(vendor_rfq_router.router)
+
 import credit_router
 credit_router.set_db(db)
 app.include_router(credit_router.router, prefix="/api")

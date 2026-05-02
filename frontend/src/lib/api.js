@@ -382,6 +382,18 @@ export const getVendorStats = () => api.get("/vendor/stats");
 export const getVendorCategories = () => api.get("/vendor/categories");
 export const getVendorEnquiries = () => api.get("/vendor/enquiries");
 
+// Vendor RFQ / Pick Pool
+export const getVendorRfqs = (status = "all", limit = 50, skip = 0) =>
+  api.get(`/vendor/rfqs?status=${status}&limit=${limit}&skip=${skip}`);
+export const getVendorRfqDetail = (rfqId) => api.get(`/vendor/rfqs/${rfqId}`);
+export const pickVendorRfq = (rfqId) => api.post(`/vendor/rfqs/${rfqId}/pick`);
+export const submitVendorQuote = (rfqId, payload) =>
+  api.post(`/vendor/rfqs/${rfqId}/quote`, payload);
+export const updateVendorQuote = (quoteId, payload) =>
+  api.put(`/vendor/rfqs/quotes/${quoteId}`, payload);
+export const getVendorRfqStats = (period = "7d") =>
+  api.get(`/vendor/rfqs/stats?period=${period}`);
+
 // Fabric seller assignment
 export const bulkAssignSeller = (sellerId) => api.post("/fabrics/bulk-assign-seller", { seller_id: sellerId });
 export const reassignFabricSeller = (fabricIds, sellerId) => api.post("/fabrics/reassign-seller", { fabric_ids: fabricIds, seller_id: sellerId });

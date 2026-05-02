@@ -307,6 +307,24 @@ Embedded multi-lender credit lines + curated catalogue for brand-tier B2B custom
   - All catalog card containers verified with `group` Tailwind class so `group-hover` triggers correctly.
 - **Catalog sort upgrade** (`fabric_router.py`): added `image_quality_rank` (0=real photo, 1=Unsplash/placeholder, 2=no images) as the **primary** sort key before `booking_priority` and `created_at`. Result: dummy/placeholder fabrics always sink to the last page; first page leads with photographed inventory. Verified via curl: page 1 returns 12 real-image SKUs; last page contains all 8 Unsplash + 3 no-image placeholders.
 
+### Phase 42: Hero Pill Order + Cert Disclaimer + Vendor RFQ Pick Pool (Phase A) (Complete - Feb 2026)
+- **Hero search bar**: pinned category order — Denim → Cotton → Polyester → Viscose → Sustainable → Linen via a `CATEGORY_ORDER` priority array in `HeroSearchCard.js`. Unranked categories fall back to fabric_count-desc.
+- **Certification disclaimer**: new one-line `CertificationDisclaimer.js` amber chip ("Certifications are owned by respective partner mills; Locofast is a sourcing partner. Documents available on request.") rendered on public PDP, brand PDP, and the catalog certification filter sidebar.
+- **Vendor RFQ Pick Pool — Phase A** (matches mobile mockups, ported to desktop):
+  - **Backend** `vendor_rfq_router.py` — eligibility-aware listing of public RFQs based on the vendor's `category_ids`. Knits routes to vendors with `cat-polyester` (post-Phase 22 merge). 6 endpoints:
+    - `GET /api/vendor/rfqs?status=new|picked|submitted|closed`
+    - `GET /api/vendor/rfqs/stats?period=today|yesterday|7d|30d`
+    - `GET /api/vendor/rfqs/{id}`
+    - `POST /api/vendor/rfqs/{id}/pick` (no exclusivity — multiple vendors can pick & quote)
+    - `POST /api/vendor/rfqs/{id}/quote` (auto-creates pick on first quote)
+    - `PUT /api/vendor/rfqs/quotes/{quote_id}`
+  - **New collections**: `vendor_rfq_picks`, `vendor_quotes` (one quote per vendor per RFQ; re-submit upserts).
+  - **Frontend pages**:
+    - `/vendor/rfqs` — Business Overview collapsible (Total / Answered / Unanswered / Orders & Sales / Sample Shared) with date filter pills, status pill tabs (All new · Picked · Submitted · Closed), search box, and RFQ cards with Pick CTA / Submitted-on date.
+    - `/vendor/rfqs/:rfqId` — side-by-side Fabric details + Query details cards, buyer-notes callout, my-quote chip block (price ₹/m, lead days, basis, fabric state, sample, finished-fabric specs), and a Submit/Edit Quote modal.
+  - **Vendor sidebar** — added "RFQ / Requests" item to `VendorLayout.js`.
+  - **Smoke-tested end-to-end**: 3 RFQs visible in pool → Pick moves to Picked tab → Submit Quote (price ₹45.8/m, 4 days, Air Jet, 63 in, 65 GSM, sample) → moves to Submitted tab → stats shows 1 answered, 1 sample shared. Both pages verified visually at 1440px.
+
 ## Backlog
 
 ### P1 (High Priority)

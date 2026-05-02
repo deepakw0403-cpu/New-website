@@ -113,6 +113,8 @@ const VendorLogin = lazy(() => import("./pages/vendor/VendorLogin"));
 const VendorDashboard = lazy(() => import("./pages/vendor/VendorDashboard"));
 const VendorInventory = lazy(() => import("./pages/vendor/VendorInventory"));
 const VendorOrders = lazy(() => import("./pages/vendor/VendorOrders"));
+const VendorRfqs = lazy(() => import("./pages/vendor/VendorRfqs"));
+const VendorRfqDetail = lazy(() => import("./pages/vendor/VendorRfqDetail"));
 const VendorProtectedRoute = lazy(() => import("./components/VendorProtectedRoute"));
 
 // Tools pages
@@ -323,6 +325,8 @@ function App() {
           <Route path="/vendor" element={<Suspense fallback={<PageLoader />}><VendorProtectedRoute><VendorDashboard /></VendorProtectedRoute></Suspense>} />
           <Route path="/vendor/inventory" element={<Suspense fallback={<PageLoader />}><VendorProtectedRoute><VendorInventory /></VendorProtectedRoute></Suspense>} />
           <Route path="/vendor/orders" element={<Suspense fallback={<PageLoader />}><VendorProtectedRoute><VendorOrders /></VendorProtectedRoute></Suspense>} />
+          <Route path="/vendor/rfqs" element={<Suspense fallback={<PageLoader />}><VendorProtectedRoute><VendorRfqs /></VendorProtectedRoute></Suspense>} />
+          <Route path="/vendor/rfqs/:rfqId" element={<Suspense fallback={<PageLoader />}><VendorProtectedRoute><VendorRfqDetail /></VendorProtectedRoute></Suspense>} />
         </Routes>
         </Suspense>
         <WhatsAppChat />
