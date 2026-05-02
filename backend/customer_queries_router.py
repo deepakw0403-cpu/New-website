@@ -87,7 +87,8 @@ async def list_my_queries(
 
     base = {"customer_id": cust_id}
     if status == "closed":
-        base["status"] = "closed"
+        # Closed bucket includes both manually-closed RFQs and won (order placed) ones
+        base["status"] = {"$in": ["closed", "won", "lost"]}
     rfqs = await db.rfq_submissions.find(base, {"_id": 0}).sort("created_at", -1).to_list(2000)
 
     out: List[dict] = []
@@ -115,9 +116,17 @@ async def get_my_query_detail(rfq_id: str, request: Request):
     )
     if not rfq:
         raise HTTPException(status_code=404, detail="Query not found")
-    quotes = await db.vendor_quotes.find(
-        {"rfq_id": rfq_id, "status": "submitted"}, {"_id": 0}
-    ).sort("price_per_meter", 1).to_list(50)
+    # When the RFQ is still open, show only submitted quotes (so customer
+    # only sees actionable rates). Once won, show every quote (winner first)
+    # so the customer can audit what they accepted.
+    if rfq.get("status") == "won":
+        quotes = await db.vendor_quotes.find(
+            {"rfq_id": rfq_id, "status": {"$in": ["submitted", "won", "lost"]}}, {"_id": 0}
+        ).sort("price_per_meter", 1).to_list(50)
+    else:
+        quotes = await db.vendor_quotes.find(
+            {"rfq_id": rfq_id, "status": "submitted"}, {"_id": 0}
+        ).sort("price_per_meter", 1).to_list(50)
 
     # Stamp Best Price flag on the cheapest quote (rate per unit)
     if quotes:

@@ -10,8 +10,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Search, Inbox } from "lucide-react";
-import { useCustomerAuth } from "../context/CustomerAuthContext";
-import { getCustomerQueries } from "../lib/api";
+import { useCustomerAuth } from "../../context/CustomerAuthContext";
+import { getCustomerQueries } from "../../lib/api";
 
 const SUB_TABS = [
   { key: "received", label: "Quotes received" },

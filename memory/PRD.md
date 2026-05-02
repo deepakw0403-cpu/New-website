@@ -311,20 +311,27 @@ Embedded multi-lender credit lines + curated catalogue for brand-tier B2B custom
 - **Hero search bar**: pinned category order — Denim → Cotton → Polyester → Viscose → Sustainable → Linen via a `CATEGORY_ORDER` priority array in `HeroSearchCard.js`. Unranked categories fall back to fabric_count-desc.
 - **Certification disclaimer**: new one-line `CertificationDisclaimer.js` amber chip ("Certifications are owned by respective partner mills; Locofast is a sourcing partner. Documents available on request.") rendered on public PDP, brand PDP, and the catalog certification filter sidebar.
 - **Vendor RFQ Pick Pool — Phase A** (matches mobile mockups, ported to desktop):
-  - **Backend** `vendor_rfq_router.py` — eligibility-aware listing of public RFQs based on the vendor's `category_ids`. Knits routes to vendors with `cat-polyester` (post-Phase 22 merge). 6 endpoints:
-    - `GET /api/vendor/rfqs?status=new|picked|submitted|closed`
-    - `GET /api/vendor/rfqs/stats?period=today|yesterday|7d|30d`
-    - `GET /api/vendor/rfqs/{id}`
-    - `POST /api/vendor/rfqs/{id}/pick` (no exclusivity — multiple vendors can pick & quote)
-    - `POST /api/vendor/rfqs/{id}/quote` (auto-creates pick on first quote)
-    - `PUT /api/vendor/rfqs/quotes/{quote_id}`
+  - **Backend** `vendor_rfq_router.py` — eligibility-aware listing of public RFQs based on the vendor's `category_ids`. Knits routes to vendors with `cat-polyester` (post-Phase 22 merge). 6 endpoints (list / stats / detail / pick / quote / edit-quote).
   - **New collections**: `vendor_rfq_picks`, `vendor_quotes` (one quote per vendor per RFQ; re-submit upserts).
-  - **Frontend pages**:
-    - `/vendor/rfqs` — Business Overview collapsible (Total / Answered / Unanswered / Orders & Sales / Sample Shared) with date filter pills, status pill tabs (All new · Picked · Submitted · Closed), search box, and RFQ cards with Pick CTA / Submitted-on date.
-    - `/vendor/rfqs/:rfqId` — side-by-side Fabric details + Query details cards, buyer-notes callout, my-quote chip block (price ₹/m, lead days, basis, fabric state, sample, finished-fabric specs), and a Submit/Edit Quote modal.
+  - **Frontend pages**: `/vendor/rfqs` (Business Overview + status pill tabs + RFQ cards with Pick CTA) and `/vendor/rfqs/:rfqId` (Submit/Edit Quote modal).
   - **Vendor sidebar** — added "RFQ / Requests" item to `VendorLayout.js`.
-  - **Smoke-tested end-to-end**: 3 RFQs visible in pool → Pick moves to Picked tab → Submit Quote (price ₹45.8/m, 4 days, Air Jet, 63 in, 65 GSM, sample) → moves to Submitted tab → stats shows 1 answered, 1 sample shared. Both pages verified visually at 1440px.
 
+### Phase 43: Customer-driven Quote Conversion + Vendor Orders Source Filter (Phase B-1) (Complete - Feb 2026)
+**Customer (not admin) compares received quotes and converts the chosen one.** Mirrors the staging customer screens (Quotes received tab + Quote-comparison detail with Proceed-payment CTA).
+
+- **Backend** `customer_queries_router.py` (3 endpoints):
+  - `GET /api/customer/queries?status=received|not_received|closed` — list customer's RFQs with quote count + best-quote summary.
+  - `GET /api/customer/queries/{rfq_id}` — RFQ detail + sorted quotes; cheapest gets `is_best_price`.
+  - `POST /api/customer/queries/quotes/{quote_id}/place-order` — converts winning quote → real order. Delegates to `orders_router.create_order` so Razorpay/credit/commission/email logic stays single-sourced. Stamps `source: "rfq"` + `rfq_id`/`quote_id` on the order. Marks losing quotes `lost`, winning quote `won`, RFQ `won`.
+- **RFQ ↔ customer linkage**: `rfq_router.submit_rfq` now reads optional Bearer customer token and writes `customer_id` on the RFQ doc — anonymous public RFQ submissions still work.
+- **Customer Account** (`/account`):
+  - New "My Queries" tab with sub-tabs `Quotes received | Quotes not received | Closed`, search box, RFQ cards with best-quote pill + relative date.
+  - New page `/account/queries/:rfqId` — fabric/order detail cards + quote comparison list. Each quote has a `Proceed payment ›` CTA → Razorpay checkout → order confirmation. Won quotes get an "Order placed" badge; losing quotes get "Not selected" greyed state.
+- **Vendor Orders** (`/vendor/orders`):
+  - New `Inventory | RFQ | All` source filter chips (with live counts).
+  - Each row shows a small `RFQ` or `Inventory` pill next to the order number.
+  - `GET /api/vendor/orders` extended with `?source=` param + matches on either `items.fabric_id` (catalog) OR `items.seller_id` (RFQ flow, since the synthetic item id has no fabric document).
+- **Smoke-tested end-to-end**: customer RFQ (Bearer attached) → 2 vendor quotes → list shows 1 query in "Quotes received" with best ₹45.8/m → detail shows 2 quote cards with Best Price + spec chips → place-order on quote 1 creates real order LF/ORD/003 with `source='rfq'`, ₹131,250 total, RFQ flipped to `won`, vendor's orders list shows it tagged `source='rfq'`.
 ## Backlog
 
 ### P1 (High Priority)
