@@ -572,6 +572,10 @@ import vendor_rfq_router
 vendor_rfq_router.set_db(db)
 app.include_router(vendor_rfq_router.router)
 
+import customer_queries_router
+customer_queries_router.set_db(db)
+app.include_router(customer_queries_router.router)
+
 import credit_router
 credit_router.set_db(db)
 app.include_router(credit_router.router, prefix="/api")

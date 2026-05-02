@@ -90,6 +90,7 @@ const RFQPage = lazy(() => import("./pages/RFQPage"));
 const SupplierDetailPage = lazy(() => import("./pages/SupplierDetailPage"));
 const SupplierProfilePage = lazy(() => import("./pages/SupplierProfilePage"));
 const CustomerAccountPage = lazy(() => import("./pages/CustomerAccountPage"));
+const CustomerQueryDetail = lazy(() => import("./pages/CustomerQueryDetail"));
 const SharedCartPage = lazy(() => import("./pages/SharedCartPage"));
 
 // Agent pages
@@ -216,6 +217,7 @@ function App() {
           
           {/* Customer Account */}
           <Route path="/account" element={<CustomerAccountPage />} />
+          <Route path="/account/queries/:rfqId" element={<Suspense fallback={<PageLoader />}><CustomerQueryDetail /></Suspense>} />
           
           {/* Shared Cart (customer-facing) */}
           <Route path="/shared-cart/:token" element={<SharedCartPage />} />

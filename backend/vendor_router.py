@@ -359,20 +359,55 @@ async def delete_vendor_fabric(fabric_id: str, vendor=Depends(get_current_vendor
     return {'success': True, 'message': 'Fabric deleted'}
 
 @router.get("/orders")
-async def get_vendor_orders(vendor=Depends(get_current_vendor)):
-    """Get orders containing this vendor's fabrics"""
-    # Find orders that have items from this vendor's fabrics
+async def get_vendor_orders(
+    source: Optional[str] = None,
+    vendor=Depends(get_current_vendor),
+):
+    """Get orders containing this vendor's fabrics OR orders converted from
+    a quote this vendor submitted (RFQ flow). Optional `?source=inventory|rfq`
+    filter splits the two streams.
+    """
     vendor_fabric_ids = await db.fabrics.distinct('id', {'seller_id': vendor['id']})
-    
-    orders = await db.orders.find(
-        {'items.fabric_id': {'$in': vendor_fabric_ids}},
-        {'_id': 0}
-    ).sort('created_at', -1).to_list(500)
-    
-    # Filter items to only show vendor's fabrics
+    seller_id = vendor['id']
+
+    base_q: dict = {
+        '$or': [
+            {'items.fabric_id': {'$in': vendor_fabric_ids}},
+            {'items.seller_id': seller_id},
+        ]
+    }
+    if source in ("inventory", "rfq"):
+        # `inventory` = orders without a `source` field (legacy) OR explicitly tagged inventory
+        if source == "rfq":
+            base_q['source'] = 'rfq'
+        else:
+            base_q['$or'] = [
+                {'source': {'$exists': False}, '$or': base_q['$or']},
+                {'source': 'inventory', **{'$or': base_q['$or']}},
+            ]
+            # Mongo doesn't allow nested $or like that — simpler rewrite:
+            base_q = {
+                '$and': [
+                    {'$or': [
+                        {'items.fabric_id': {'$in': vendor_fabric_ids}},
+                        {'items.seller_id': seller_id},
+                    ]},
+                    {'$or': [{'source': {'$exists': False}}, {'source': 'inventory'}]},
+                ]
+            }
+
+    orders = await db.orders.find(base_q, {'_id': 0}).sort('created_at', -1).to_list(500)
+
+    # Filter items to only show vendor's fabrics OR vendor's seller_id (rfq path)
     for order in orders:
-        order['items'] = [item for item in order.get('items', []) if item.get('fabric_id') in vendor_fabric_ids]
-    
+        order['items'] = [
+            item for item in order.get('items', [])
+            if item.get('fabric_id') in vendor_fabric_ids or item.get('seller_id') == seller_id
+        ]
+        # Always expose source label so vendor UI can render the chip
+        if not order.get('source'):
+            order['source'] = 'inventory'
+
     return orders
 
 @router.get("/stats")

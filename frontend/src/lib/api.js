@@ -114,6 +114,14 @@ export const getCustomerProfile = (token) => api.get("/customer/profile", { head
 export const updateCustomerProfile = (token, data) => api.put("/customer/profile", data, { headers: { Authorization: `Bearer ${token}` } });
 export const getCustomerOrders = (token) => api.get("/customer/orders", { headers: { Authorization: `Bearer ${token}` } });
 
+// Customer Queries (RFQ pipeline)
+export const getCustomerQueries = (token, status = "received") =>
+  api.get(`/customer/queries?status=${status}`, { headers: { Authorization: `Bearer ${token}` } });
+export const getCustomerQueryDetail = (token, rfqId) =>
+  api.get(`/customer/queries/${rfqId}`, { headers: { Authorization: `Bearer ${token}` } });
+export const placeOrderFromQuote = (token, quoteId, payload) =>
+  api.post(`/customer/queries/quotes/${quoteId}/place-order`, payload, { headers: { Authorization: `Bearer ${token}` } });
+
 
 // Articles (Color Variant Grouping)
 export const getArticles = (params) => api.get("/articles", { params });

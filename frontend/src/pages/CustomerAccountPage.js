@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Package, Mail, Phone, Building2, MapPin, Pencil, Save, Loader2, LogOut, ArrowRight, Clock, CheckCircle, Truck, XCircle } from "lucide-react";
+import { User, Package, Mail, Phone, Building2, MapPin, Pencil, Save, Loader2, LogOut, ArrowRight, Clock, CheckCircle, Truck, XCircle, MessageSquare } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
 import { getCustomerProfile, updateCustomerProfile, getCustomerOrders } from "../lib/api";
+import CustomerQueriesTab from "../components/customer/CustomerQueriesTab";
 import { toast } from "sonner";
 
 const statusConfig = {
@@ -94,10 +95,16 @@ const CustomerAccountPage = () => {
             <button onClick={() => setActiveTab("orders")} className={`px-6 py-3 text-sm font-medium border-b-2 ${activeTab === "orders" ? "border-[#2563EB] text-[#2563EB]" : "border-transparent text-gray-500 hover:text-gray-700"}`} data-testid="tab-my-orders">
               <Package size={16} className="inline mr-2" />My Orders
             </button>
+            <button onClick={() => setActiveTab("queries")} className={`px-6 py-3 text-sm font-medium border-b-2 ${activeTab === "queries" ? "border-[#2563EB] text-[#2563EB]" : "border-transparent text-gray-500 hover:text-gray-700"}`} data-testid="tab-my-queries">
+              <MessageSquare size={16} className="inline mr-2" />My Queries
+            </button>
             <button onClick={() => setActiveTab("profile")} className={`px-6 py-3 text-sm font-medium border-b-2 ${activeTab === "profile" ? "border-[#2563EB] text-[#2563EB]" : "border-transparent text-gray-500 hover:text-gray-700"}`} data-testid="tab-profile">
               <User size={16} className="inline mr-2" />Profile
             </button>
           </div>
+
+          {/* ===== QUERIES TAB ===== */}
+          {activeTab === "queries" && <CustomerQueriesTab />}
 
           {/* ===== ORDERS TAB ===== */}
           {activeTab === "orders" && (

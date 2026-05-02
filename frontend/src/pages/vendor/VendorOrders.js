@@ -16,6 +16,10 @@ const VendorOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  // `all` | `inventory` | `rfq` — splits direct catalog orders from
+  // RFQ-quote-converted orders. RFQ orders carry source: 'rfq', everything
+  // else (inventory + agent-assisted + brand) defaults to 'inventory'.
+  const [sourceFilter, setSourceFilter] = useState("all");
 
   useEffect(() => {
     fetchOrders();
@@ -31,6 +35,11 @@ const VendorOrders = () => {
     setLoading(false);
   };
 
+  const visibleOrders = orders.filter((o) => {
+    if (sourceFilter === "all") return true;
+    return (o.source || "inventory") === sourceFilter;
+  });
+
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
     return new Date(dateStr).toLocaleDateString("en-IN", {
@@ -43,19 +52,49 @@ const VendorOrders = () => {
   return (
     <VendorLayout>
       <div className="p-8" data-testid="vendor-orders">
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold">Orders</h1>
-          <p className="text-gray-500 mt-1">Orders containing your fabrics</p>
+        <div className="mb-6 flex items-end justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold">Orders</h1>
+            <p className="text-gray-500 mt-1">Orders containing your fabrics</p>
+          </div>
+          <div className="flex items-center gap-2" data-testid="vendor-orders-source-filter">
+            {[
+              { key: "all", label: "All" },
+              { key: "inventory", label: "Inventory" },
+              { key: "rfq", label: "RFQ" },
+            ].map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setSourceFilter(s.key)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-medium border transition ${
+                  sourceFilter === s.key
+                    ? "bg-blue-50 border-blue-200 text-blue-700"
+                    : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+                }`}
+                data-testid={`vendor-orders-source-${s.key}`}
+              >
+                {s.label}
+                <span className="ml-1.5 text-[10px] text-gray-400">
+                  {s.key === "all"
+                    ? orders.length
+                    : orders.filter((o) => (o.source || "inventory") === s.key).length}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
           <div className="text-center py-12 text-gray-500">Loading orders...</div>
-        ) : orders.length === 0 ? (
+        ) : visibleOrders.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
             <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">No orders yet</p>
             <p className="text-sm text-gray-400 mt-1">
-              When customers order your fabrics, they'll appear here
+              {sourceFilter === "rfq"
+                ? "RFQ orders appear here when a customer accepts your quote."
+                : "When customers order your fabrics, they'll appear here"}
             </p>
           </div>
         ) : (
@@ -73,7 +112,7 @@ const VendorOrders = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {orders.map((order) => {
+                {visibleOrders.map((order) => {
                   const statusInfo = statusConfig[order.status] || statusConfig.confirmed;
                   const StatusIcon = statusInfo.icon;
                   
@@ -85,6 +124,13 @@ const VendorOrders = () => {
                     >
                       <td className="px-4 py-4">
                         <p className="font-medium text-blue-600">{order.order_number}</p>
+                        <span className={`inline-block mt-1 text-[10px] font-semibold tracking-wide rounded-full px-2 py-0.5 border ${
+                          (order.source || "inventory") === "rfq"
+                            ? "bg-violet-50 text-violet-700 border-violet-100"
+                            : "bg-gray-50 text-gray-600 border-gray-200"
+                        }`} data-testid={`vendor-order-source-${order.order_number}`}>
+                          {(order.source || "inventory") === "rfq" ? "RFQ" : "Inventory"}
+                        </span>
                       </td>
                       <td className="px-4 py-4">
                         <p className="text-sm">
