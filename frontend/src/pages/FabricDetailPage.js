@@ -12,6 +12,7 @@ import { toWebVideoUrl, videoPosterUrl } from "../lib/videoUrl";
 import { thumbImage, mediumImage, largeImage, fabricCoverImage } from "../lib/imageUrl";
 import Watermark from "../components/Watermark";
 import CertificationBadges from "../components/CertificationBadges";
+import CertificationDisclaimer from "../components/CertificationDisclaimer";
 import { displayFabricName } from "../lib/fabricDisplay";
 import { trackViewItem, trackAddToCart, trackRFQIntent } from "../lib/analytics";
 import { DispatchStrip } from "../components/DispatchBadges";
@@ -732,6 +733,7 @@ GST Number: ${orderForm.gst_number || "Not provided"}`
                     testIdPrefix="pdp-cert"
                   />
                   <p className="text-xs text-gray-500 mt-2">Hover a chip to see what each certification covers.</p>
+                  <CertificationDisclaimer className="mt-3" testId="pdp-cert-disclaimer" />
                 </div>
               )}
 

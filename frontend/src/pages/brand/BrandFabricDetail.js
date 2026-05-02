@@ -13,6 +13,7 @@ import { DispatchStrip } from "../../components/DispatchBadges";
 import { toWebVideoUrl, videoPosterUrl } from "../../lib/videoUrl";
 import Watermark from "../../components/Watermark";
 import CertificationBadges from "../../components/CertificationBadges";
+import CertificationDisclaimer from "../../components/CertificationDisclaimer";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -394,6 +395,7 @@ const BrandFabricDetail = () => {
                 size="md"
                 testIdPrefix="brand-pdp-cert"
               />
+              <CertificationDisclaimer className="mt-3" testId="brand-pdp-cert-disclaimer" />
             </div>
           )}
 

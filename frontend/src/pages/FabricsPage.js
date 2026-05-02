@@ -13,6 +13,7 @@ import { getFabrics, getFabricsCount, getCategories, createEnquiry, getFabricFil
 import { getCheapestBulkPrice, formatQtyThreshold } from "../lib/pricing";
 import Watermark from "../components/Watermark";
 import CertificationBadges from "../components/CertificationBadges";
+import CertificationDisclaimer from "../components/CertificationDisclaimer";
 import { CERTIFICATIONS } from "../lib/certifications";
 import { trackViewItemList } from "../lib/analytics";
 import { toast } from "sonner";
@@ -566,6 +567,7 @@ const FabricsPage = () => {
                       );
                     })}
                   </div>
+                  <CertificationDisclaimer className="mt-3" testId="filter-cert-disclaimer" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{isDenimCategory ? "Weight (oz)" : "GSM Range"}</label>
