@@ -1,29 +1,19 @@
 /**
- * Legal note shown alongside certification chips/filters. Surfaces on:
- *   - Public PDP (FabricDetailPage)
- *   - Brand PDP (BrandFabricDetail)
- *   - Catalog certification filter (FabricsPage)
+ * One-line legal note shown alongside certification chips/filters.
  */
 import React from "react";
 import { Info } from "lucide-react";
 
 const CertificationDisclaimer = ({ className = "", testId = "cert-disclaimer" }) => (
-  <div
-    className={`flex gap-2 p-3 rounded-md bg-amber-50 border border-amber-100 text-[11px] leading-snug text-amber-900 ${className}`}
+  <p
+    className={`flex items-center gap-1.5 text-[11px] text-amber-900 bg-amber-50 border border-amber-100 rounded-md px-2.5 py-1.5 ${className}`}
     data-testid={testId}
   >
-    <Info size={13} className="flex-shrink-0 mt-0.5 text-amber-700" />
-    <div className="space-y-1">
-      <p>
-        All certifications shown are owned and maintained by the respective
-        partner mills. <span className="font-semibold">Locofast Online Services Pvt. Ltd.</span>{" "}
-        does not claim ownership and acts solely as a sourcing and service partner.
-      </p>
-      <p className="text-amber-800/90">
-        Certification documents are available on request for specific products and mills.
-      </p>
-    </div>
-  </div>
+    <Info size={12} className="flex-shrink-0 text-amber-700" />
+    <span>
+      Certifications are owned by respective partner mills; Locofast is a sourcing partner. Documents available on request.
+    </span>
+  </p>
 );
 
 export default CertificationDisclaimer;
