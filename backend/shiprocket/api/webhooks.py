@@ -94,6 +94,8 @@ async def _apply_tracking_update(
     raw_status: Optional[str],
     courier_name: Optional[str],
     event_time: datetime,
+    location: Optional[str] = None,
+    activity: Optional[str] = None,
 ):
     """Update the matching order in the local DB with the new tracking event."""
     if db is None:
@@ -153,6 +155,8 @@ async def _apply_tracking_update(
         "raw_status": raw_status,
         "mapped_status": new_stage,
         "courier_name": courier_name,
+        "location": location,
+        "activity": activity,
         "event_time": event_time.isoformat(),
         "received_at": datetime.now(timezone.utc).isoformat(),
     })
@@ -206,6 +210,17 @@ async def handle_tracking_webhook(request: Request, background_tasks: Background
             body.get("courier_name") or data.get("courier_name")
             or body.get("courier") or data.get("courier")
         )
+        # Shiprocket scan-event payloads include a location/city + an
+        # activity string ("Bag Received", "Pickup Successful", etc.).
+        location = (
+            body.get("location") or data.get("location")
+            or body.get("scan_location") or data.get("scan_location")
+            or body.get("city") or data.get("city")
+        )
+        activity = (
+            body.get("activity") or data.get("activity")
+            or body.get("scan_remarks") or data.get("scan_remarks")
+        )
         event_time = _parse_event_time(
             body.get("timestamp") or body.get("date") or data.get("timestamp") or data.get("date")
         )
@@ -214,6 +229,7 @@ async def handle_tracking_webhook(request: Request, background_tasks: Background
             "type": "tracking",
             "awb": awb_code,
             "status": raw_status,
+            "location": location,
             "received_at": datetime.now(timezone.utc).isoformat(),
             "raw": body,
         })
@@ -227,6 +243,8 @@ async def handle_tracking_webhook(request: Request, background_tasks: Background
             raw_status,
             courier_name,
             event_time,
+            location,
+            activity,
         )
 
         return APIResponse(
@@ -253,11 +271,14 @@ async def handle_order_status_webhook(request: Request, background_tasks: Backgr
         sr_order_id = body.get("order_id") or data.get("order_id")
         raw_status = body.get("status") or data.get("status")
         courier_name = body.get("courier_name") or data.get("courier_name")
+        location = body.get("location") or data.get("location") or body.get("city") or data.get("city")
+        activity = body.get("activity") or data.get("activity")
         event_time = _parse_event_time(body.get("timestamp") or data.get("timestamp"))
 
         _push_event({
             "type": "order_status",
             "status": raw_status,
+            "location": location,
             "received_at": datetime.now(timezone.utc).isoformat(),
             "raw": body,
         })
@@ -270,6 +291,8 @@ async def handle_order_status_webhook(request: Request, background_tasks: Backgr
             raw_status,
             courier_name,
             event_time,
+            location,
+            activity,
         )
 
         return APIResponse(success=True, message="Order-status webhook received")

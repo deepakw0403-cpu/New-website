@@ -117,6 +117,8 @@ export const getCustomerOrder = (token, orderId) =>
   api.get(`/customer/orders/${orderId}`, { headers: { Authorization: `Bearer ${token}` } });
 export const getOrderPayContext = (token, orderId) =>
   api.get(`/customer/orders/${orderId}/pay-context`, { headers: { Authorization: `Bearer ${token}` } });
+export const getOrderTracking = (token, orderId) =>
+  api.get(`/customer/orders/${orderId}/tracking`, { headers: { Authorization: `Bearer ${token}` } });
 
 // Customer Queries (RFQ pipeline)
 export const getCustomerQueries = (token, status = "received") =>

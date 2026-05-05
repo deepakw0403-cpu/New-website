@@ -357,3 +357,41 @@ async def get_order_pay_context(order_id: str, request: Request):
         "customer": order.get("customer", {}),
     }
 
+
+@router.get("/orders/{order_id}/tracking")
+async def get_order_tracking(order_id: str, request: Request):
+    """Return the per-order Shiprocket scan history for the customer's
+    Order Detail "Tracking history" drawer. Scoped to the order owner.
+    """
+    payload = get_current_customer(request)
+
+    order = await db.orders.find_one(
+        {
+            "$or": [{"id": order_id}, {"order_number": order_id}],
+            "customer.email": payload["email"],
+        },
+        {"_id": 0, "id": 1, "order_number": 1, "awb_code": 1,
+         "courier_name": 1, "shipped_at": 1, "delivered_at": 1, "status": 1}
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Pull scan events newest-first; cap at 100.
+    cursor = db.shiprocket_events.find(
+        {"order_id": order["id"]},
+        {"_id": 0, "raw_status": 1, "mapped_status": 1, "courier_name": 1,
+         "location": 1, "activity": 1, "event_time": 1, "received_at": 1}
+    ).sort("event_time", -1)
+    events = await cursor.to_list(length=100)
+
+    return {
+        "order_id": order["id"],
+        "order_number": order.get("order_number"),
+        "awb_code": order.get("awb_code"),
+        "courier_name": order.get("courier_name"),
+        "shipped_at": order.get("shipped_at"),
+        "delivered_at": order.get("delivered_at"),
+        "status": order.get("status"),
+        "events": events,
+    }
+

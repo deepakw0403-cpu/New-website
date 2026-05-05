@@ -12,10 +12,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Loader2, Package, CheckCircle, Truck, XCircle, Clock,
-  CreditCard, Download, ExternalLink, MapPin, Phone, Mail, FileText, Box
+  CreditCard, Download, ExternalLink, MapPin, Phone, Mail, FileText, Box, History
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import TrackingHistoryDrawer from "../components/TrackingHistoryDrawer";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
 import { getCustomerOrder, getOrderPayContext, verifyPayment } from "../lib/api";
 import { toast } from "sonner";
@@ -117,6 +118,7 @@ const OrderDetailPage = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [trackingDrawerOpen, setTrackingDrawerOpen] = useState(false);
 
   const fetchOrder = useCallback(async () => {
     setLoading(true);
@@ -293,6 +295,20 @@ const OrderDetailPage = () => {
                     <ExternalLink size={12} />
                   </a>
                 )}
+                {/* Tracking-history drawer button — visible whenever the
+                    order has progressed past payment, even before an AWB
+                    is allocated (early scans like 'Pickup Scheduled' may
+                    arrive before AWB assignment). */}
+                {(order.awb_code || order.shiprocket_last_event || ["processing", "shipped", "delivered"].includes(order.status)) && (
+                  <button
+                    type="button"
+                    onClick={() => setTrackingDrawerOpen(true)}
+                    className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50"
+                    data-testid="order-detail-tracking-history-btn"
+                  >
+                    <History size={14} /> Tracking history
+                  </button>
+                )}
               </div>
             </div>
 
@@ -407,6 +423,11 @@ const OrderDetailPage = () => {
           </div>
         </div>
       </main>
+      <TrackingHistoryDrawer
+        open={trackingDrawerOpen}
+        onClose={() => setTrackingDrawerOpen(false)}
+        orderId={order.id}
+      />
       <Footer />
     </>
   );
