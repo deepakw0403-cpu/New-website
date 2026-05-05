@@ -195,9 +195,11 @@ async def submit_rfq(data: RFQSubmission, request: Request):
     
     # Send email notification (async, don't block)
     try:
-        from email_router import send_rfq_notification
+        from email_router import send_rfq_notification, send_rfq_vendor_fanout
         import asyncio
         asyncio.create_task(send_rfq_notification(rfq_doc))
+        # Fan-out to all eligible vendors
+        asyncio.create_task(send_rfq_vendor_fanout(rfq_doc))
     except Exception as e:
         logger.warning(f"Failed to queue RFQ email: {str(e)}")
     
@@ -331,9 +333,12 @@ async def create_shortfall_rfq(data: ShortfallRFQ, request: Request):
 
     # Fire email notification (best-effort)
     try:
-        from email_router import send_rfq_notification
+        from email_router import send_rfq_notification, send_rfq_vendor_fanout
         import asyncio
         asyncio.create_task(send_rfq_notification(rfq_doc))
+        # Shortfall fan-out emails only the locked source vendor during
+        # the 24 h exclusive window (handled inside the helper).
+        asyncio.create_task(send_rfq_vendor_fanout(rfq_doc))
     except Exception as e:
         logger.warning(f"Failed to queue shortfall RFQ email: {str(e)}")
 

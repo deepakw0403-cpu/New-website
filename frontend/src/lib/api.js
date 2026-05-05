@@ -399,6 +399,8 @@ export const submitVendorQuote = (rfqId, payload) =>
   api.post(`/vendor/rfqs/${rfqId}/quote`, payload);
 export const updateVendorQuote = (quoteId, payload) =>
   api.put(`/vendor/rfqs/quotes/${quoteId}`, payload);
+export const closeVendorRfq = (rfqId) => api.post(`/vendor/rfqs/${rfqId}/close`);
+export const reopenVendorRfq = (rfqId) => api.delete(`/vendor/rfqs/${rfqId}/close`);
 export const getVendorRfqStats = (period = "7d") =>
   api.get(`/vendor/rfqs/stats?period=${period}`);
 

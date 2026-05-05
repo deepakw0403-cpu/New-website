@@ -917,6 +917,192 @@ async def send_rfq_notification(rfq: dict):
         return False
 
 
+# ==================== VENDOR FAN-OUT ON NEW RFQ ====================
+async def send_rfq_vendor_fanout(rfq: dict):
+    """Email every vendor whose category_ids match the RFQ category hint.
+
+    For shortfall RFQs, only the vendor holding the 24 h lock is emailed
+    (the top-5 fallback pool is revealed on the portal UI after expiry,
+    not via an email blast, to avoid noise).
+    """
+    if not RESEND_API_KEY:
+        return 0
+    if db is None:
+        return 0
+
+    try:
+        hints = {"cotton": ["cotton"], "viscose": ["viscose"], "denim": ["denim"], "knits": ["polyester"]}.get(
+            (rfq.get("category") or "").lower().strip(), []
+        )
+        if not hints:
+            return 0
+        regex = "|".join(hints)
+        cats = await db.categories.find(
+            {"name": {"$regex": regex, "$options": "i"}}, {"_id": 0, "id": 1}
+        ).to_list(50)
+        cat_ids = [c["id"] for c in cats]
+        if not cat_ids:
+            return 0
+
+        query = {"is_active": True, "category_ids": {"$in": cat_ids}}
+        if rfq.get("vendor_lock_id"):
+            # Shortfall: email only the source vendor during the lock window
+            query = {"is_active": True, "id": rfq.get("vendor_lock_id")}
+
+        vendors = await db.sellers.find(
+            query, {"_id": 0, "contact_email": 1, "company_name": 1, "contact_name": 1}
+        ).to_list(200)
+
+        sent = 0
+        qty_label = (
+            f"{rfq.get('quantity_kg', '')} kg" if rfq.get('category') == 'knits'
+            else f"{rfq.get('quantity_meters', '')} m"
+        )
+        is_shortfall = bool(rfq.get("is_shortfall") or rfq.get("vendor_lock_id"))
+        subject_prefix = "Shortfall RFQ" if is_shortfall else "New RFQ"
+
+        for v in vendors:
+            email = (v.get("contact_email") or "").strip()
+            if not email:
+                continue
+            params = {
+                "from": SENDER_EMAIL,
+                "to": [email],
+                "subject": f"[{subject_prefix}] {rfq.get('rfq_number')} · {rfq.get('category', '').title()} · {qty_label}",
+                "html": _render_vendor_rfq_email(rfq, v),
+            }
+            try:
+                await asyncio.to_thread(resend.Emails.send, params)
+                sent += 1
+            except Exception as e:
+                logger.error(f"Failed to send vendor RFQ email to {email}: {str(e)}")
+        logger.info(f"Vendor RFQ fan-out: {sent}/{len(vendors)} · {rfq.get('rfq_number')}")
+        return sent
+    except Exception as e:
+        logger.error(f"Vendor RFQ fan-out failed: {str(e)}")
+        return 0
+
+
+def _render_vendor_rfq_email(rfq: dict, vendor: dict) -> str:
+    preview_url = os.environ.get("PUBLIC_APP_URL", "").rstrip("/") + f"/vendor/rfqs/{rfq.get('id', '')}"
+    qty_label = (
+        f"{rfq.get('quantity_kg', '')} kg" if rfq.get('category') == 'knits'
+        else f"{rfq.get('quantity_meters', '')} m"
+    )
+    is_shortfall = bool(rfq.get("is_shortfall"))
+    shortfall_html = ""
+    if is_shortfall:
+        shortfall_html = f"""
+        <p style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:12px;color:#92400E;font-size:13px;margin:16px 0;">
+          <strong>Linked to inventory order.</strong> Buyer has already taken
+          {rfq.get('linked_inventory_qty', 0)} m from stock; they need the remaining
+          <strong>{rfq.get('quantity_meters', '')}</strong> m filled via RFQ. First chance to quote
+          goes to you for 24 h.
+        </p>
+        """
+    return f"""
+    <div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111827;">
+      <h2 style="margin:0 0 8px;font-size:20px;">New RFQ in your pool</h2>
+      <p style="color:#6B7280;margin:0 0 20px;font-size:13px;">
+        Hi {(vendor.get('contact_name') or vendor.get('company_name') or 'there').split(',')[0]},
+        a buyer has raised an RFQ matching your categories. Submit a quote
+        to compete.
+      </p>
+      {shortfall_html}
+      <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:16px;">
+        <p style="margin:0;font-size:12px;color:#6B7280;">RFQ Number</p>
+        <p style="margin:0 0 12px;font-size:18px;font-weight:700;color:#2563EB;">{rfq.get('rfq_number', '')}</p>
+        <p style="margin:0;font-size:12px;color:#6B7280;">Category</p>
+        <p style="margin:0 0 12px;font-size:14px;"><strong>{(rfq.get('category') or '').title()}</strong>
+          {(' · ' + rfq.get('fabric_requirement_type', '')) if rfq.get('fabric_requirement_type') else ''}</p>
+        <p style="margin:0;font-size:12px;color:#6B7280;">Quantity</p>
+        <p style="margin:0 0 12px;font-size:14px;"><strong>{qty_label}</strong></p>
+        {('<p style="margin:0;font-size:12px;color:#6B7280;">Buyer notes</p><p style="margin:0 0 12px;font-size:13px;color:#374151;white-space:pre-line;">' + (rfq.get('message') or '').strip() + '</p>') if rfq.get('message') else ''}
+      </div>
+      <p style="margin:24px 0 0;text-align:center;">
+        <a href="{preview_url}"
+           style="display:inline-block;background:#2563EB;color:#fff;padding:12px 24px;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px;">
+          Open RFQ & Submit Quote
+        </a>
+      </p>
+      <p style="color:#9CA3AF;font-size:11px;text-align:center;margin:20px 0 0;">
+        You're receiving this because your vendor categories match this RFQ. Manage preferences in your Locofast vendor portal.
+      </p>
+    </div>
+    """
+
+
+# ==================== CUSTOMER QUOTE RECEIVED ====================
+async def send_quote_received_email(rfq: dict, quote: dict, is_first: bool = True):
+    """Let the buyer know a new/updated quote landed on their RFQ."""
+    if not RESEND_API_KEY:
+        return False
+    if db is None:
+        return False
+    try:
+        customer_id = rfq.get("customer_id")
+        recipient = (rfq.get("email") or "").strip()
+        if customer_id:
+            cust = await db.customers.find_one({"id": customer_id}, {"_id": 0, "email": 1, "name": 1})
+            if cust and cust.get("email"):
+                recipient = cust.get("email")
+        if not recipient:
+            return False
+
+        subject_prefix = "New quote" if is_first else "Quote updated"
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [recipient],
+            "subject": f"[{subject_prefix}] ₹{quote.get('price_per_meter', '')}/m on {rfq.get('rfq_number')} · Locofast",
+            "html": _render_customer_quote_email(rfq, quote, is_first),
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Quote-received email sent to {recipient} for RFQ {rfq.get('rfq_number')}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send quote-received email: {str(e)}")
+        return False
+
+
+def _render_customer_quote_email(rfq: dict, quote: dict, is_first: bool = True) -> str:
+    preview_url = os.environ.get("PUBLIC_APP_URL", "").rstrip("/") + f"/account/queries/{rfq.get('id', '')}"
+    qty_label = (
+        f"{rfq.get('quantity_kg', '')} kg" if rfq.get('category') == 'knits'
+        else f"{rfq.get('quantity_meters', '')} m"
+    )
+    heading = "You've got a quote" if is_first else "A mill updated their quote"
+    return f"""
+    <div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111827;">
+      <h2 style="margin:0 0 8px;font-size:22px;">{heading}</h2>
+      <p style="color:#6B7280;margin:0 0 20px;font-size:13px;">
+        A mill has responded on your query <strong style="color:#2563EB;">{rfq.get('rfq_number')}</strong>.
+        Compare all quotes and pay online to place your order.
+      </p>
+      <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:20px;">
+        <p style="margin:0;font-size:12px;color:#6B7280;">Rate</p>
+        <p style="margin:0 0 12px;font-size:28px;font-weight:700;color:#059669;">
+          ₹ {quote.get('price_per_meter', '')} <span style="font-size:14px;font-weight:500;color:#6B7280;">/ m</span>
+        </p>
+        <p style="margin:0;font-size:12px;color:#6B7280;">Lead time</p>
+        <p style="margin:0 0 12px;font-size:14px;"><strong>{quote.get('lead_days', '')} days</strong>
+          · {('Ex-factory' if quote.get('basis') == 'x-factory' else 'Door-delivered')}</p>
+        <p style="margin:0;font-size:12px;color:#6B7280;">Your RFQ</p>
+        <p style="margin:0 0 4px;font-size:14px;">{(rfq.get('category') or '').title()} · {qty_label}</p>
+        {('<p style="margin:8px 0 0;font-size:13px;color:#6B7280;font-style:italic;">' + (quote.get('notes') or '') + '</p>') if quote.get('notes') else ''}
+      </div>
+      <p style="margin:24px 0 0;text-align:center;">
+        <a href="{preview_url}"
+           style="display:inline-block;background:#2563EB;color:#fff;padding:12px 24px;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px;">
+          Compare & Proceed to Payment
+        </a>
+      </p>
+      <p style="color:#9CA3AF;font-size:11px;text-align:center;margin:20px 0 0;">
+        Locofast · Supplier details masked until order confirmation.
+      </p>
+    </div>
+    """
+
+
 async def send_rfq_lead_email(lead: dict):
     """Send RFQ lead notification to marketing@locofast.com"""
     if not RESEND_API_KEY:
