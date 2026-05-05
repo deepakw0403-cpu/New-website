@@ -385,6 +385,14 @@ Per-order vertical timeline of every Shiprocket scan, surfaced from the Order De
 - **Webhook handler** now also extracts `location` (Mumbai, Karnataka, etc.) and `activity` ("Pickup successful", "Bag scanned at hub", etc.) from Shiprocket payloads and persists them on `shiprocket_events`.
 - **Frontend** `<TrackingHistoryDrawer>` — slide-from-right drawer, vertical rail of events, dot color-coded by `mapped_status` (green delivered / blue shipped / amber processing / red cancelled), "Latest" badge on the newest event, MapPin icon for location, footer link out to `shiprocket.co/tracking/<awb>`. Closes via X, backdrop, or Esc. Locks body scroll while open.
 - **Visibility**: button only renders when there's something to show — i.e. when `awb_code` exists OR `shiprocket_last_event` is set OR order is at processing/shipped/delivered status.
+
+### Phase 48: Sweep window.confirm / window.prompt out of all admin pages (Complete - Feb 2026)
+Promise-based hook + provider pattern; every native browser popup across `/admin/*` replaced with branded modals.
+
+- **New `<ConfirmProvider>`** mounts a single `<ConfirmDialog>` + input dialog at the app root. Hooks: `useConfirm()` and `useInputDialog()` return Promise-based APIs that mimic `window.confirm()` / `window.prompt()`. One-line call sites: `if (!(await confirm({ title, message, tone:"danger" }))) return;`
+- **22 native popup sites replaced** across 12 admin pages: AdminBlog (3), AdminCategories (6), AdminFabrics (4), AdminSellerDetail (2), and 1 each in Sellers, Coupons, Reviews, Commission, Collections, Articles, Enquiries.
+- **Single `window.prompt()`** in AdminFabrics ("Add video URL") replaced with a branded text-input modal (Enter submits, Escape cancels, click-backdrop dismisses).
+- Tested 100% pass — all 11 admin pages verified, dismissal via Cancel/backdrop/Escape all work, no regressions on AdminBrands flows (iteration_45.json).
 ## Backlog
 
 ### P1 (High Priority)
