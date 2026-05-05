@@ -576,6 +576,25 @@ import customer_queries_router
 customer_queries_router.set_db(db)
 app.include_router(customer_queries_router.router)
 
+# ── Shiprocket integration (full module port) ──
+# Mounts orders/courier/tracking/pickup/returns/webhooks under /api/shiprocket.
+# Webhooks fan out into orders.status so the customer order-detail timeline
+# (Payment → Paid → Processing → Shipped → Delivered) auto-advances.
+from shiprocket.api import (
+    orders_router as sr_orders_router,
+    courier_router as sr_courier_router,
+    tracking_router as sr_tracking_router,
+    pickup_router as sr_pickup_router,
+    returns_router as sr_returns_router,
+    webhooks_router as sr_webhooks_router,
+)
+from shiprocket.api import webhooks as _sr_webhooks_module
+
+_sr_webhooks_module.set_db(db)
+for _r in (sr_orders_router, sr_courier_router, sr_tracking_router,
+           sr_pickup_router, sr_returns_router, sr_webhooks_router):
+    app.include_router(_r, prefix="/api/shiprocket")
+
 import credit_router
 credit_router.set_db(db)
 app.include_router(credit_router.router, prefix="/api")

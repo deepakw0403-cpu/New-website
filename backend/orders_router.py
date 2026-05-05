@@ -18,7 +18,6 @@ import asyncio
 import logging
 import io
 
-from shiprocket_service import shiprocket_service
 from email_router import send_order_notification_emails
 
 # PDF Generation imports
@@ -509,61 +508,66 @@ async def verify_payment(verification: PaymentVerification):
 
 
 async def create_shiprocket_shipment(order: dict) -> dict:
-    """Create a shipment in Shiprocket after payment is confirmed"""
+    """Create a shipment in Shiprocket after payment is confirmed.
+
+    Routes through the new `shiprocket` module (services.OrderService).
+    """
     try:
+        import httpx
+        from shiprocket.services.auth import auth_service
+        from shiprocket.services.orders import OrderService
+        from shiprocket.schemas.orders import CreateOrderRequest, OrderItemSchema
+
         customer = order.get("customer", {})
         items = order.get("items", [])
-        
+
         if not customer or not items:
             return {"success": False, "error": "Missing customer or items"}
-        
+
         # Prepare order items for Shiprocket
-        shiprocket_items = []
+        sr_items = []
         total_quantity = 0
         for item in items:
-            shiprocket_items.append({
-                "name": item.get("fabric_name", "Fabric"),
-                "sku": item.get("fabric_code") or item.get("fabric_id", "")[:8],
-                "units": 1,  # Each order item is 1 unit
-                "selling_price": item.get("price_per_meter", 0) * item.get("quantity", 1),
-                "hsn": "5407"  # HSN code for fabrics
-            })
+            sr_items.append(OrderItemSchema(
+                name=item.get("fabric_name", "Fabric"),
+                sku=(item.get("fabric_code") or item.get("fabric_id", ""))[:64] or "FABRIC",
+                units=1,
+                selling_price=float(item.get("price_per_meter", 0)) * float(item.get("quantity", 1)),
+                hsn_code="5407",
+            ))
             total_quantity += item.get("quantity", 1)
-        
+
         # Calculate weight (0.3 kg per meter, min 0.5 kg)
         weight_kg = max(0.5, total_quantity * 0.3)
-        
-        # Get pickup location from shipping info or default
-        pickup_location = "Primary"  # Default pickup location name in Shiprocket
-        
-        result = await shiprocket_service.create_order(
+
+        req = CreateOrderRequest(
             order_id=order.get("order_number", order.get("id")),
-            order_date=datetime.now().strftime("%Y-%m-%d %H:%M"),
-            pickup_location=pickup_location,
-            billing_customer_name=customer.get("name", ""),
-            billing_phone=customer.get("phone", ""),
-            billing_address=customer.get("address", ""),
-            billing_city=customer.get("city", ""),
-            billing_state=customer.get("state", ""),
-            billing_pincode=customer.get("pincode", ""),
+            order_date=datetime.now(timezone.utc),
+            pickup_location="Primary",
+            billing_customer_name=customer.get("name", "") or "Customer",
             billing_email=customer.get("email", ""),
-            shipping_customer_name=customer.get("name", ""),
-            shipping_phone=customer.get("phone", ""),
-            shipping_address=customer.get("address", ""),
-            shipping_city=customer.get("city", ""),
-            shipping_state=customer.get("state", ""),
-            shipping_pincode=customer.get("pincode", ""),
-            order_items=shiprocket_items,
-            payment_method="Prepaid",  # Always prepaid since Razorpay handles payment
-            sub_total=order.get("subtotal", 0),
-            length=40,  # Default package dimensions for fabric
+            billing_phone=customer.get("phone", "") or "0000000000",
+            billing_address=customer.get("address", "") or "Address line",
+            billing_city=customer.get("city", "") or "City",
+            billing_state=customer.get("state", "") or "State",
+            billing_pincode=(customer.get("pincode") or "000000")[:6],
+            shipping_is_billing=True,
+            order_items=sr_items,
+            weight=weight_kg,
+            length=40,
             breadth=30,
             height=15,
-            weight=weight_kg
+            payment_method="Prepaid",
+            sub_total=float(order.get("subtotal", 0)),
         )
-        
-        return result
-        
+
+        headers = await auth_service.get_auth_headers_async()
+        async with httpx.AsyncClient(timeout=30) as client:
+            service = OrderService(client, headers)
+            result = await service.create_order(req)
+
+        return {"success": True, **result}
+
     except Exception as e:
         logger.error(f"Error creating Shiprocket shipment: {str(e)}")
         return {"success": False, "error": str(e)}
