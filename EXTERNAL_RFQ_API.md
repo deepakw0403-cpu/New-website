@@ -81,7 +81,7 @@ Locofast supports **four product categories**. The payload shape changes slightl
 | `color_or_shade` | string | ❌ | 0 | 100 chars | Free text | `"Navy Blue"` |
 | `pantone_code` | string | ❌ | 0 | 50 chars | Free text | `"19-3933 TCX"` |
 | `end_use` | string | ❌ | 0 | 100 chars | Free text | `"Men's formal shirts"` |
-| `certifications` | string array | ❌ | 0 items | 20 items | Each item ≤50 chars | `["GOTS", "OEKO-TEX"]` |
+| `certifications` | string array | ❌ | — | — | Array of free-text strings (no hard size limit, but keep ≤20 items for sanity) | `["GOTS", "OEKO-TEX"]` |
 
 **Sub-category cheatsheet** (free text — common values, not enums):
 - **Cotton**: `Poplin`, `Voile`, `Twill`, `Drill`, `Cambric`, `Khadi`, `Lawn`, `Slub`, `Chambray`, `Oxford`, `Canvas`, `Corduroy`, `Flannel`
