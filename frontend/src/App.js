@@ -7,6 +7,7 @@ import { CustomerAuthProvider } from "./context/CustomerAuthContext";
 import { AgentAuthProvider } from "./context/AgentAuthContext";
 import { BrandAuthProvider } from "./context/BrandAuthContext";
 import { BrandCartProvider } from "./context/BrandCartContext";
+import { ConfirmProvider } from "./components/useConfirm";
 import WhatsAppChat from "./components/WhatsAppChat";
 import { useEffect, lazy, Suspense } from "react";
 
@@ -181,6 +182,7 @@ const PolyKnitManufacturers = lazy(() => import("./pages/seo/poly-knit/PolyKnitM
 function App() {
   return (
     <HelmetProvider>
+    <ConfirmProvider>
     <CustomerAuthProvider>
     <AgentAuthProvider>
     <BrandAuthProvider>
@@ -343,6 +345,7 @@ function App() {
     </BrandAuthProvider>
     </AgentAuthProvider>
     </CustomerAuthProvider>
+    </ConfirmProvider>
     </HelmetProvider>
   );
 }
