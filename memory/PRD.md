@@ -360,6 +360,23 @@ Three quick wins on top of Phase 44, all green-tested by the testing agent (10/1
   - `parent_brand_id` is now optional when `type='factory'` — factories can buy for themselves without a brand parent
   - When supplied, parent brand is still validated against the brands collection (regression-safe)
   - Admin form: parent brand dropdown defaults to "— Standalone (no parent brand) —"; factory list rows show italic "Standalone" label when no parent is set
+
+### Phase 46: Full Shiprocket module port + auto-status webhook (Complete - Feb 2026)
+Ported the standalone Shiprocket integration repo (`github.com/deepakw0403-cpu/Shiprocket-integration`) into `/app/backend/shiprocket/` and mounted under `/api/shiprocket`. Replaces the older orphaned `shiprocket_router.py` + `shiprocket_service.py` files (deleted).
+
+- **6 routers mounted** under `/api/shiprocket`: orders, courier, tracking, pickup, returns, webhooks
+- **Singleton `auth_service`** with auto token refresh (24h before expiry) + tenacity retry/backoff on every Shiprocket API call
+- **Webhook → orders updater** (`shiprocket/api/webhooks.py`):
+  - `POST /api/shiprocket/webhooks/tracking` and `POST /api/shiprocket/webhooks/order-status` (already wired in your Shiprocket dashboard)
+  - Maps raw Shiprocket statuses → our 5-stage canonical: `Pickup Scheduled→processing`, `Picked Up / In Transit / OFD→shipped`, `Delivered→delivered`, `RTO Initiated/Lost→cancelled`
+  - **Regression guard** (`_STATUS_RANK`): never flips a delivered order back to processing if Shiprocket retransmits an older event
+  - Stamps `courier_name`, `shipped_at`, `delivered_at`, `shiprocket_last_event` on the order
+  - Writes a per-event audit log to `shiprocket_events` collection
+  - Uses BackgroundTasks → returns 200 to Shiprocket fast (no retry storms)
+  - In-memory ring buffer (200 most recent events) at `GET /api/shiprocket/webhooks/events` for debugging
+- **`orders_router.create_shiprocket_shipment`** migrated to use the new `OrderService` + `CreateOrderRequest` schema (fully validated payloads, type-safe)
+- **Bonus capabilities now available** (not yet surfaced in UI but wired): NDR/RTO actions, manifest generation, pickup-location CRUD, bulk tracking
+- **Tested**: 23/23 backend tests pass, frontend timeline auto-advances (iteration_43.json)
 ## Backlog
 
 ### P1 (High Priority)
