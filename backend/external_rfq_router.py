@@ -29,7 +29,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/external", tags=["External Lead Ingest"])
@@ -40,6 +40,11 @@ db = None
 def set_db(database):
     global db
     db = database
+
+
+import re
+
+GSTIN_REGEX = re.compile(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$")
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -102,25 +107,32 @@ class ContactMeta(BaseModel):
     )
     email: EmailStr = Field(
         ...,
-        description="Buyer's email — used for quote notifications. Mandatory.",
+        description="Buyer's email — used for quote notifications. Mandatory. "
+                    "Used together with phone to deduplicate against existing customers.",
         examples=["aarav@acmegarments.in"],
     )
     phone: str = Field(
         ...,
         min_length=10,
         max_length=15,
-        description="Buyer's mobile (E.164 OR 10-digit Indian). Mandatory.",
+        description="Buyer's mobile (E.164 OR 10-digit Indian). Mandatory. "
+                    "Used together with email to deduplicate against existing customers.",
         examples=["+919876543210"],
     )
-    company: Optional[str] = Field(
-        "", max_length=200,
-        description="Buyer's company name. Optional but strongly recommended.",
+    company: str = Field(
+        ...,
+        min_length=2,
+        max_length=200,
+        description="Buyer's company name. Mandatory.",
         examples=["Acme Garments Pvt Ltd"],
     )
-    gst_number: Optional[str] = Field(
-        "", max_length=20,
-        description="Buyer's GSTIN (15 chars). Optional. If provided, will be "
-                    "shown on resulting quotes/invoices.",
+    gst_number: str = Field(
+        ...,
+        min_length=15,
+        max_length=15,
+        description="Buyer's GSTIN — 15 chars, format: 22AAAAA0000A1Z5. "
+                    "Mandatory. Format-validated only (no live GSTN lookup at ingest "
+                    "time — the customer can re-verify in their profile later).",
         examples=["27AAACR5055K1ZP"],
     )
     website: Optional[str] = Field(
@@ -168,7 +180,7 @@ class ContactMeta(BaseModel):
     external_id: Optional[str] = Field(
         "", max_length=100,
         description="The lead ID in your source system. Used for de-duplication "
-                    "if the same lead is pushed twice. Optional.",
+                    "if the same lead is pushed twice. Optional but strongly recommended.",
         examples=["hubspot-deal-184729"],
     )
     campaign: Optional[str] = Field(
@@ -176,6 +188,31 @@ class ContactMeta(BaseModel):
         description="Marketing campaign / UTM tag. Optional.",
         examples=["winter-25-cotton"],
     )
+
+    @field_validator("gst_number")
+    @classmethod
+    def _validate_gstin(cls, v: str) -> str:
+        v = v.strip().upper()
+        if not GSTIN_REGEX.match(v):
+            raise ValueError(
+                "gst_number must be a valid 15-character GSTIN "
+                "(format: 22AAAAA0000A1Z5)"
+            )
+        return v
+
+    @field_validator("phone")
+    @classmethod
+    def _validate_phone(cls, v: str) -> str:
+        digits = re.sub(r"\D", "", v)
+        if len(digits) == 10:
+            if digits[0] not in "6789":
+                raise ValueError("phone must be a valid 10-digit Indian mobile (starting 6/7/8/9) or full E.164")
+        elif len(digits) == 12 and digits.startswith("91"):
+            if digits[2] not in "6789":
+                raise ValueError("phone must be a valid Indian mobile")
+        elif len(digits) < 10 or len(digits) > 15:
+            raise ValueError("phone must be 10-digit Indian or full E.164 (max 15 digits)")
+        return v
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -259,6 +296,18 @@ class RFQIngestResponse(BaseModel):
         description="True when an existing RFQ with the same `external_id` "
                     "was returned instead of a new one being created.",
     )
+    customer_id: str = Field(
+        "",
+        description="The Locofast customer ID this RFQ is linked to. If the buyer "
+                    "(matched on email or phone) already had an account, this is their "
+                    "existing customer_id; otherwise a fresh customer was auto-created.",
+        examples=["c3a75dae-c5a3-442e-8022-f2b807c36786"],
+    )
+    customer_existed: bool = Field(
+        False,
+        description="True if a Locofast customer with this email or phone "
+                    "already existed before the RFQ was ingested.",
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -286,12 +335,11 @@ class RFQIngestResponse(BaseModel):
     },
 )
 async def ingest_rfq(payload: RFQPayload, _auth: bool = Depends(require_ingest_key)):
-    # De-dupe: if external_id is set and we've seen it before, return the
-    # original RFQ. This makes the endpoint idempotent against CRM retries.
+    # De-dupe on external_id first — idempotent retry safety.
     if payload.external_id:
         existing = await db.rfq_submissions.find_one(
             {"external_id": payload.external_id},
-            {"_id": 0, "id": 1, "rfq_number": 1, "status": 1},
+            {"_id": 0, "id": 1, "rfq_number": 1, "status": 1, "customer_id": 1},
         )
         if existing:
             return RFQIngestResponse(
@@ -300,21 +348,25 @@ async def ingest_rfq(payload: RFQPayload, _auth: bool = Depends(require_ingest_k
                 status=existing.get("status", "new"),
                 message="Existing RFQ returned (deduplicated by external_id)",
                 deduplicated=True,
+                customer_id=existing.get("customer_id", "") or "",
+                customer_existed=True,
             )
+
+    # Customer lookup / auto-create — match on email OR normalized phone
+    # so the RFQ links to a single canonical customer profile, even if the
+    # buyer logged in earlier via email but the CRM is pushing only phone.
+    customer_id, customer_existed = await _resolve_or_create_customer(payload)
 
     rfq_id = str(uuid.uuid4())
     rfq_number = await _generate_rfq_number()
 
-    # Flatten the discriminated payload into a single Mongo doc using the
-    # exact same schema as customer-form RFQs so admin/vendor flows are
-    # unchanged.
     base = payload.model_dump()
     category = base["category"]
 
     rfq_doc = {
         "id": rfq_id,
         "rfq_number": rfq_number,
-        "customer_id": "",  # external leads have no logged-in customer
+        "customer_id": customer_id,  # ← now linked
         "category": category,
         "fabric_requirement_type": base.get("fabric_requirement_type", "") or "",
         "quantity_meters": base.get("quantity_meters", "") or "",
@@ -343,7 +395,6 @@ async def ingest_rfq(payload: RFQPayload, _auth: bool = Depends(require_ingest_k
 
     await db.rfq_submissions.insert_one(rfq_doc)
 
-    # Mirror to enquiries collection so admin /enquiries dashboard sees it
     await db.enquiries.insert_one({
         "id": str(uuid.uuid4()),
         "name": rfq_doc["full_name"],
@@ -359,7 +410,6 @@ async def ingest_rfq(payload: RFQPayload, _auth: bool = Depends(require_ingest_k
         "created_at": rfq_doc["created_at"],
     })
 
-    # Vendor fan-out + admin email — fire-and-forget
     try:
         import asyncio
         from email_router import send_rfq_notification, send_rfq_vendor_fanout
@@ -368,7 +418,10 @@ async def ingest_rfq(payload: RFQPayload, _auth: bool = Depends(require_ingest_k
     except Exception as e:
         logger.warning(f"External RFQ {rfq_number} email queue failed: {e}")
 
-    logger.info(f"External RFQ ingested: {rfq_number} · category={category} · source={rfq_doc['lead_source']}")
+    logger.info(
+        f"External RFQ ingested: {rfq_number} · category={category} · "
+        f"source={rfq_doc['lead_source']} · customer={customer_id} · existed={customer_existed}"
+    )
 
     return RFQIngestResponse(
         rfq_id=rfq_id,
@@ -376,6 +429,8 @@ async def ingest_rfq(payload: RFQPayload, _auth: bool = Depends(require_ingest_k
         status="new",
         message="RFQ ingested",
         deduplicated=False,
+        customer_id=customer_id,
+        customer_existed=customer_existed,
     )
 
 
@@ -389,6 +444,80 @@ async def _generate_rfq_number() -> str:
         n = "RFQ-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
         if not await db.rfq_submissions.find_one({"rfq_number": n}, {"_id": 1}):
             return n
+
+
+def _normalize_phone_for_lookup(raw: str) -> str:
+    """Strip non-digits + ensure 91 prefix so we can match against any
+    historic phone format stored in `customers.phone` (variously '9876543210',
+    '+91 98765 43210', '919876543210')."""
+    digits = re.sub(r"\D", "", raw or "")
+    if len(digits) == 10 and digits[0] in "6789":
+        return "91" + digits
+    return digits
+
+
+async def _resolve_or_create_customer(payload) -> tuple[str, bool]:
+    """Match an existing customer on email OR phone. If found, return their id +
+    True. If not, auto-create a fresh customer doc with the lead data so when
+    the buyer later logs in (email-OTP or WhatsApp-OTP), the RFQ is already
+    waiting in their `/account → My Queries`.
+
+    Returns (customer_id, customer_existed).
+    """
+    email = (payload.email or "").strip().lower()
+    e164_phone = _normalize_phone_for_lookup(payload.phone or "")
+
+    # Lookup — email is the canonical primary; phone is the secondary key.
+    query_or = []
+    if email:
+        query_or.append({"email": email})
+    if e164_phone:
+        query_or.append({"phone": e164_phone})
+        query_or.append({"phone": e164_phone[2:]})  # bare 10-digit
+        query_or.append({"phone": "+" + e164_phone})  # with + prefix
+        query_or.append({"phone": payload.phone})  # raw
+
+    existing = None
+    if query_or:
+        existing = await db.customers.find_one({"$or": query_or}, {"_id": 0, "id": 1, "company": 1, "gstin": 1})
+
+    if existing:
+        # Soft-enrich: backfill any blank fields on the existing customer
+        # without overwriting fields they've curated themselves.
+        soft_update = {}
+        if not existing.get("company") and payload.company:
+            soft_update["company"] = payload.company
+        if not existing.get("gstin") and payload.gst_number:
+            soft_update["gstin"] = payload.gst_number
+        if soft_update:
+            soft_update["updated_at"] = datetime.now(timezone.utc).isoformat()
+            await db.customers.update_one({"id": existing["id"]}, {"$set": soft_update})
+        return existing["id"], True
+
+    # Brand new customer — create with the lead data so they can log in
+    # later via email-OTP and find their RFQ already in My Queries.
+    new_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    customer_doc = {
+        "id": new_id,
+        "email": email,
+        "name": payload.full_name,
+        "phone": e164_phone or payload.phone,
+        "phone_verified": False,
+        "company": payload.company,
+        "gstin": payload.gst_number,
+        "gst_verified": False,  # ingest-time format check only; live verify on profile save
+        "address": "",
+        "city": payload.delivery_city or "",
+        "state": payload.delivery_state or "",
+        "pincode": payload.delivery_pincode or "",
+        "created_via": "external_api",
+        "lead_source": payload.lead_source or "",
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.customers.insert_one(customer_doc)
+    return new_id, False
 
 
 def _format_enquiry_message(d: dict) -> str:

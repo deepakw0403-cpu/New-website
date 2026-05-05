@@ -49,10 +49,10 @@ Locofast supports **four product categories**. The payload shape changes slightl
 |---|---|---|---|---|
 | `category` | string enum | ✅ | One of `cotton`, `viscose`, `denim`, `knits` | `"cotton"` |
 | `full_name` | string | ✅ | Buyer's full name. 2–120 chars. | `"Aarav Sharma"` |
-| `email` | string | ✅ | Buyer's email | `"aarav@acmegarments.in"` |
-| `phone` | string | ✅ | Mobile (E.164 or 10-digit Indian) | `"+919876543210"` |
-| `company` | string | ❌ | Buyer's company name | `"Acme Garments Pvt Ltd"` |
-| `gst_number` | string | ❌ | 15-char GSTIN | `"27AAACR5055K1ZP"` |
+| `email` | string | ✅ | Buyer's email — used for quote notifications and customer dedup. | `"aarav@acmegarments.in"` |
+| `phone` | string | ✅ | 10-digit Indian (starts 6/7/8/9) OR full E.164. Used for customer dedup. | `"+919876543210"` |
+| `company` | string | ✅ | Buyer's company name. 2–200 chars. | `"Acme Garments Pvt Ltd"` |
+| `gst_number` | string | ✅ | 15-char GSTIN (format: `22AAAAA0000A1Z5`). Format-validated; live GSTN lookup happens later when the customer logs in. | `"27AAACR5055K1ZP"` |
 | `website` | string | ❌ | Buyer's company website | `"https://acmegarments.in"` |
 | `message` | string | ❌ | Free-text additional notes | `"Need swatches before 15 Mar"` |
 | `target_price_per_meter` | float | ❌ | Buyer's target ₹/m, passed to vendors | `185.0` |
@@ -61,7 +61,7 @@ Locofast supports **four product categories**. The payload shape changes slightl
 | `delivery_city` | string | ❌ | Delivery city | `"New Delhi"` |
 | `delivery_state` | string | ❌ | Delivery state | `"Delhi"` |
 | `lead_source` | string | ❌ | Where this lead came from (free-form) | `"HubSpot"` / `"Meta Ads · Q2 Cotton"` |
-| `external_id` | string | ❌ | Your CRM lead ID — used for de-dupe | `"hubspot-deal-184729"` |
+| `external_id` | string | ❌ | Your CRM lead ID — used for de-dupe of identical retries | `"hubspot-deal-184729"` |
 | `campaign` | string | ❌ | Marketing campaign / UTM | `"winter-25-cotton"` |
 
 ### 4.2 Cotton & Viscose only
@@ -130,6 +130,7 @@ curl -X POST "https://www.locofast.com/api/external/rfq" \
     "email": "priya@vstextiles.com",
     "phone": "9123456789",
     "company": "VS Textiles",
+    "gst_number": "29AABCU9603R1ZX",
     "lead_source": "Salesforce"
   }'
 ```
@@ -170,6 +171,7 @@ curl -X POST "https://www.locofast.com/api/external/rfq" \
     "email": "sana@activeapparel.in",
     "phone": "9988776655",
     "company": "Active Apparel Co",
+    "gst_number": "07AAACL7707J1ZF",
     "message": "Need black + 2 fluorescent shades",
     "lead_source": "Partner Portal"
   }'
@@ -188,11 +190,34 @@ curl -X POST "https://www.locofast.com/api/external/rfq" \
   "rfq_number": "RFQ-AB12CD",
   "status": "new",
   "message": "RFQ ingested",
-  "deduplicated": false
+  "deduplicated": false,
+  "customer_id": "c3a75dae-c5a3-442e-8022-f2b807c36786",
+  "customer_existed": false
 }
 ```
 
-### 6.2 Idempotent retry — existing RFQ returned (201)
+> `customer_id` is the Locofast customer the RFQ has been linked to.
+> `customer_existed: false` means we auto-created a fresh customer for this lead.
+> When the buyer logs in next via email-OTP or WhatsApp-OTP, this RFQ will already be waiting in their `/account → My Queries`.
+
+### 6.2 Success — linked to existing customer (201)
+
+If the email or phone already matches an existing Locofast customer, we link the RFQ to that customer and surface them via `customer_existed: true`:
+
+```json
+{
+  "success": true,
+  "rfq_id": "5451e681-a102-4510-b8f0-7b89aa74bb98",
+  "rfq_number": "RFQ-5IDWZX",
+  "status": "new",
+  "message": "RFQ ingested",
+  "deduplicated": false,
+  "customer_id": "c3a75dae-c5a3-442e-8022-f2b807c36786",
+  "customer_existed": true
+}
+```
+
+### 6.3 Idempotent retry — existing RFQ returned (201)
 
 If you push the same `external_id` twice, Locofast does **not** create a duplicate. The original RFQ is returned with `deduplicated: true`:
 
@@ -203,11 +228,13 @@ If you push the same `external_id` twice, Locofast does **not** create a duplica
   "rfq_number": "RFQ-AB12CD",
   "status": "new",
   "message": "Existing RFQ returned (deduplicated by external_id)",
-  "deduplicated": true
+  "deduplicated": true,
+  "customer_id": "c3a75dae-c5a3-442e-8022-f2b807c36786",
+  "customer_existed": true
 }
 ```
 
-### 6.3 Errors
+### 6.4 Errors
 
 | HTTP | Body | When |
 |---|---|---|
@@ -219,12 +246,28 @@ If you push the same `external_id` twice, Locofast does **not** create a duplica
 
 ## 7. De-duplication & idempotency
 
+There are **two layers of de-duplication** — both run automatically:
+
+### 7.1 RFQ-level de-dup (via `external_id`)
+
 If your CRM sometimes pushes the same lead twice (network retries, webhook re-delivery, etc.), pass a stable `external_id`:
 
 - First call → creates RFQ, returns `deduplicated: false`
 - All subsequent calls with the same `external_id` → return original RFQ, `deduplicated: true`
 
 This makes the endpoint **safe to retry**. We strongly recommend setting `external_id` for any automated integration.
+
+### 7.2 Customer-level de-dup (via email + phone)
+
+Every RFQ is automatically linked to a Locofast customer. We match against existing customers using:
+
+1. **Email** match (canonical primary)
+2. **Phone** match (normalized — accepts `9876543210`, `+919876543210`, `919876543210` interchangeably)
+
+- If a match is found → RFQ links to that customer. `customer_existed: true`. Any blank fields on the customer profile (`company`, `gstin`) are gently backfilled from the lead — your fields never overwrite curated customer data.
+- If no match → a fresh customer is auto-created with the lead data (`name`, `email`, `phone`, `company`, `gstin`, `city`, `state`, `pincode`). `customer_existed: false`. When the buyer next logs in via email-OTP or WhatsApp-OTP, the RFQ is already waiting in their `/account → My Queries`.
+
+This means the same buyer pushing 5 RFQs across 3 categories from your CRM ends up as **1 customer with 5 linked RFQs** — no duplicate profiles, no orphaned leads.
 
 ---
 
