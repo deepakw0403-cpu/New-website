@@ -49,7 +49,13 @@ JWT_EXPIRATION_HOURS = 24
 UPLOAD_DIR = ROOT_DIR / 'uploads'
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-app = FastAPI()
+app = FastAPI(
+    title="Locofast API",
+    version="2.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+)
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
 
@@ -575,6 +581,11 @@ app.include_router(vendor_rfq_router.router)
 import customer_queries_router
 customer_queries_router.set_db(db)
 app.include_router(customer_queries_router.router)
+
+# External lead-ingest API (CRM, partner integrations) — protected by X-API-Key
+import external_rfq_router
+external_rfq_router.set_db(db)
+app.include_router(external_rfq_router.router)
 
 # ── Shiprocket integration (full module port) ──
 # Mounts orders/courier/tracking/pickup/returns/webhooks under /api/shiprocket.
