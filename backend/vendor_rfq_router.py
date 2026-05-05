@@ -97,6 +97,26 @@ def vendor_carries_rfq(seller_category_ids: List[str], eligible_ids: List[str]) 
     return any(cid in (seller_category_ids or []) for cid in eligible_ids)
 
 
+def vendor_blocked_by_lock(rfq: dict, vendor_id: str) -> bool:
+    """Returns True when a shortfall RFQ has an active first-refusal lock
+    held by *another* vendor. Lock expires after `vendor_lock_expires_at`.
+    """
+    lock_holder = rfq.get("vendor_lock_id") or ""
+    if not lock_holder:
+        return False
+    if lock_holder == vendor_id:
+        return False
+    expires = rfq.get("vendor_lock_expires_at")
+    if not expires:
+        return False
+    try:
+        if datetime.fromisoformat(expires.replace("Z", "+00:00")) <= datetime.now(timezone.utc):
+            return False  # lock expired — open to all
+    except Exception:
+        return False
+    return True  # active lock held by someone else
+
+
 # ==================== MODELS ====================
 class QuoteSpecs(BaseModel):
     warp_count: Optional[str] = ""
@@ -250,6 +270,9 @@ async def list_vendor_rfqs(
             cat_cache[c] = await category_ids_for_rfq(c)
         if not vendor_carries_rfq(seller_cats, cat_cache[c]):
             continue
+        if vendor_blocked_by_lock(r, vendor["id"]):
+            # Other vendor has 24 h first-refusal — stay invisible until lock lifts
+            continue
         eff = await _vendor_status(r["id"], vendor["id"])
         if status == "new" and eff != "pool":
             continue
@@ -280,6 +303,8 @@ async def get_vendor_rfq_detail(rfq_id: str, vendor=Depends(get_current_vendor))
     eligible = await category_ids_for_rfq(rfq.get("category", ""))
     if not vendor_carries_rfq(seller_cats, eligible):
         raise HTTPException(status_code=403, detail="RFQ not in your pool")
+    if vendor_blocked_by_lock(rfq, vendor["id"]):
+        raise HTTPException(status_code=403, detail="RFQ is locked to the source vendor for 24 h")
     await _enrich_rfq_for_vendor(rfq, vendor["id"])
     rfq["effective_status"] = await _vendor_status(rfq_id, vendor["id"])
     return rfq
@@ -294,6 +319,8 @@ async def pick_vendor_rfq(rfq_id: str, vendor=Depends(get_current_vendor)):
     eligible = await category_ids_for_rfq(rfq.get("category", ""))
     if not vendor_carries_rfq(seller_cats, eligible):
         raise HTTPException(status_code=403, detail="RFQ not in your pool")
+    if vendor_blocked_by_lock(rfq, vendor["id"]):
+        raise HTTPException(status_code=403, detail="RFQ is locked to the source vendor for 24 h")
 
     existing = await db.vendor_rfq_picks.find_one(
         {"rfq_id": rfq_id, "vendor_id": vendor["id"]}, {"_id": 0}
@@ -322,6 +349,8 @@ async def submit_quote(rfq_id: str, data: QuoteSubmit, vendor=Depends(get_curren
     eligible = await category_ids_for_rfq(rfq.get("category", ""))
     if not vendor_carries_rfq(seller_cats, eligible):
         raise HTTPException(status_code=403, detail="RFQ not in your pool")
+    if vendor_blocked_by_lock(rfq, vendor["id"]):
+        raise HTTPException(status_code=403, detail="RFQ is locked to the source vendor for 24 h")
 
     # Ensure pick exists (auto-pick if vendor jumps straight to quote)
     await db.vendor_rfq_picks.update_one(

@@ -4,7 +4,7 @@ RFQ Router - Handles Request for Quote submissions with category-specific fields
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from motor.motor_asyncio import AsyncIOMotorClient
 import uuid
 import os
@@ -206,6 +206,152 @@ async def submit_rfq(data: RFQSubmission, request: Request):
     logger.info(f"New RFQ submitted: {rfq_number} for {data.category}")
     
     return RFQResponse(**rfq_doc)
+
+
+# ==================== SHORTFALL RFQ ====================
+class ShortfallRFQ(BaseModel):
+    """Generated when a buyer wants more than what's in stock for a fabric.
+    Inventory portion stays in cart (handled client-side); the shortfall
+    becomes an RFQ with a 24-hour exclusive lock to the SKU's seller, then
+    opens up to all eligible vendors in the same category.
+    """
+    fabric_id: str
+    requested_qty: int
+    available_qty: int
+    shortfall_qty: int
+    full_name: str
+    email: str
+    phone: str
+    gst_number: Optional[str] = ""
+    company: Optional[str] = ""
+    message: Optional[str] = ""
+    # Optional — when the inventory portion is converted to an order, the
+    # caller can patch `linked_order_id` onto the RFQ later.
+
+
+@router.post("/shortfall")
+async def create_shortfall_rfq(data: ShortfallRFQ, request: Request):
+    """Create a shortfall RFQ that is locked to the SKU's seller for 24 h
+    (first-refusal window) and then released to the wider category pool.
+    """
+    if data.shortfall_qty <= 0:
+        raise HTTPException(status_code=400, detail="Shortfall must be > 0")
+
+    fabric = await db.fabrics.find_one({"id": data.fabric_id}, {"_id": 0})
+    if not fabric:
+        raise HTTPException(status_code=404, detail="Fabric not found")
+
+    # Pull the customer_id off the bearer token if present so the RFQ shows
+    # up in the buyer's "My Queries" tab without an extra link step.
+    customer_id = ""
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        try:
+            import jwt as _jwt
+            JWT_SECRET = os.environ.get("JWT_SECRET", "default-secret")
+            payload = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
+            if payload.get("type") == "customer":
+                customer_id = payload.get("customer_id", "") or ""
+        except Exception:
+            customer_id = ""
+
+    rfq_id = str(uuid.uuid4())
+    rfq_number = await generate_rfq_number()
+
+    # Map fabric category_id → RFQ category slug used by vendor pool routing
+    category_slug_map = {
+        "cat-cotton": "cotton",
+        "cat-denim": "denim",
+        "cat-viscose": "viscose",
+        "cat-polyester": "knits",
+        "cat-linen": "cotton",
+        "cat-sustainable": "cotton",
+    }
+    rfq_category = category_slug_map.get(fabric.get("category_id", ""), "cotton")
+
+    now = datetime.now(timezone.utc)
+    lock_expires_at = (now + timedelta(hours=24)).isoformat()
+
+    summary = (
+        f"Inventory shortfall on {fabric.get('fabric_code') or fabric.get('name', '')}. "
+        f"Buyer wants {data.requested_qty} m. {data.available_qty} m available in stock; "
+        f"requesting quote for the remaining {data.shortfall_qty} m."
+    )
+    message = (data.message or "").strip()
+    full_message = (message + "\n\n" if message else "") + summary
+
+    rfq_doc = {
+        "id": rfq_id,
+        "rfq_number": rfq_number,
+        "customer_id": customer_id,
+        "category": rfq_category,
+        "fabric_requirement_type": fabric.get("fabric_requirement_type", "")
+            or ("Greige" if fabric.get("category_id") != "cat-denim" else ""),
+        "quantity_meters": str(data.shortfall_qty),
+        "quantity_kg": "",
+        "knit_quality": "",
+        "denim_specification": "",
+        "full_name": data.full_name,
+        "email": data.email,
+        "phone": data.phone,
+        "gst_number": data.gst_number or "",
+        "website": data.company or "",
+        "message": full_message,
+        "status": "new",
+        "created_at": now.isoformat(),
+        # Shortfall metadata
+        "is_shortfall": True,
+        "linked_fabric_id": data.fabric_id,
+        "linked_fabric_code": fabric.get("fabric_code", ""),
+        "linked_fabric_name": fabric.get("name", ""),
+        "linked_inventory_qty": data.available_qty,
+        "linked_total_requested_qty": data.requested_qty,
+        # Vendor first-refusal lock — only the SKU's seller sees it for 24 h
+        "vendor_lock_id": fabric.get("seller_id") or "",
+        "vendor_lock_expires_at": lock_expires_at,
+    }
+
+    await db.rfq_submissions.insert_one(rfq_doc)
+
+    # Mirror to enquiries collection so it shows up in admin Leads/Enquiries.
+    await db.enquiries.insert_one({
+        "id": str(uuid.uuid4()),
+        "name": data.full_name,
+        "email": data.email,
+        "phone": data.phone,
+        "company": data.company or "",
+        "message": f"**Shortfall RFQ #{rfq_number}**\n{full_message}",
+        "enquiry_type": "rfq_shortfall",
+        "source": "pdp_shortfall_modal",
+        "rfq_id": rfq_id,
+        "rfq_number": rfq_number,
+        "status": "new",
+        "created_at": now.isoformat(),
+    })
+
+    # Fire email notification (best-effort)
+    try:
+        from email_router import send_rfq_notification
+        import asyncio
+        asyncio.create_task(send_rfq_notification(rfq_doc))
+    except Exception as e:
+        logger.warning(f"Failed to queue shortfall RFQ email: {str(e)}")
+
+    logger.info(
+        f"Shortfall RFQ {rfq_number} created — "
+        f"fabric={data.fabric_id}, vendor_lock={rfq_doc['vendor_lock_id']}, "
+        f"shortfall={data.shortfall_qty}m"
+    )
+
+    return {
+        "id": rfq_id,
+        "rfq_number": rfq_number,
+        "shortfall_qty": data.shortfall_qty,
+        "available_qty": data.available_qty,
+        "vendor_lock_id": rfq_doc["vendor_lock_id"],
+        "vendor_lock_expires_at": lock_expires_at,
+    }
+
 
 @router.get("/list")
 async def list_rfqs(
