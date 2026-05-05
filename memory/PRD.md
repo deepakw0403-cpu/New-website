@@ -377,6 +377,14 @@ Ported the standalone Shiprocket integration repo (`github.com/deepakw0403-cpu/S
 - **`orders_router.create_shiprocket_shipment`** migrated to use the new `OrderService` + `CreateOrderRequest` schema (fully validated payloads, type-safe)
 - **Bonus capabilities now available** (not yet surfaced in UI but wired): NDR/RTO actions, manifest generation, pickup-location CRUD, bulk tracking
 - **Tested**: 23/23 backend tests pass, frontend timeline auto-advances (iteration_43.json)
+
+### Phase 47: Tracking History Drawer (Complete - Feb 2026)
+Per-order vertical timeline of every Shiprocket scan, surfaced from the Order Detail page. Tested 13/13 backend + 100% frontend (iteration_44.json).
+
+- **Backend** `GET /api/customer/orders/{id}/tracking` — owner-scoped, returns events newest-first with `raw_status`, `mapped_status`, `courier_name`, `location`, `activity`, `event_time`, `received_at`. 404s on cross-customer access.
+- **Webhook handler** now also extracts `location` (Mumbai, Karnataka, etc.) and `activity` ("Pickup successful", "Bag scanned at hub", etc.) from Shiprocket payloads and persists them on `shiprocket_events`.
+- **Frontend** `<TrackingHistoryDrawer>` — slide-from-right drawer, vertical rail of events, dot color-coded by `mapped_status` (green delivered / blue shipped / amber processing / red cancelled), "Latest" badge on the newest event, MapPin icon for location, footer link out to `shiprocket.co/tracking/<awb>`. Closes via X, backdrop, or Esc. Locks body scroll while open.
+- **Visibility**: button only renders when there's something to show — i.e. when `awb_code` exists OR `shiprocket_last_event` is set OR order is at processing/shipped/delivered status.
 ## Backlog
 
 ### P1 (High Priority)
