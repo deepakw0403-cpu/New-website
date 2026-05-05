@@ -36,6 +36,7 @@ const BrandFabricDetail = () => {
   const [fabric, setFabric] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const [activeImage, setActiveImage] = useState(null);
   const [orderType, setOrderType] = useState("bulk");
   const [qty, setQty] = useState(1);
   const [summary, setSummary] = useState(null);
@@ -58,6 +59,10 @@ const BrandFabricDetail = () => {
         if (fd.has_multiple_colors && variants.length) {
           setSelectedVariant(variants.find((v) => (v.quantity_available ?? 0) > 0) || variants[0]);
         }
+        // Default the gallery hero to the first product image so thumbnails
+        // and the main image stay in sync from the start.
+        const firstImg = (fd.images || [])[0];
+        if (firstImg) setActiveImage(firstImg);
         const moq = Number(fd.moq || 1);
         setQty(moq);
       } catch (err) {
@@ -164,7 +169,7 @@ const BrandFabricDetail = () => {
         <div>
           <div className="group aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden relative">
             <img
-              src={mediumImage(selectedVariant?.image_url || fabricCoverImage(fabric)) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800"}
+              src={mediumImage(activeImage || selectedVariant?.image_url || fabricCoverImage(fabric)) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800"}
               alt={fabric.name}
               className="w-full h-full object-cover"
               loading="lazy"
@@ -177,20 +182,35 @@ const BrandFabricDetail = () => {
             <Watermark size="lg" />
           </div>
           {(fabric.images || []).length > 1 && (
-            <div className="grid grid-cols-5 gap-2 mt-3">
-              {(fabric.images || []).slice(0, 5).map((img, i) => (
-                <img
-                  key={i}
-                  src={thumbImage(img)}
-                  alt={`${fabric.name} ${i + 1}`}
-                  className="aspect-square object-cover rounded border border-gray-200"
-                  loading="lazy"
-                  draggable={false}
-                  onDragStart={(e) => e.preventDefault()}
-                  onContextMenu={(e) => e.preventDefault()}
-                  style={{ WebkitUserDrag: "none", userSelect: "none" }}
-                />
-              ))}
+            <div className="grid grid-cols-5 gap-2 mt-3" data-testid="brand-pdp-thumbs">
+              {(fabric.images || []).slice(0, 5).map((img, i) => {
+                const isActive = (activeImage || fabric.images[0]) === img;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setActiveImage(img)}
+                    className={`aspect-square rounded overflow-hidden border-2 transition ${
+                      isActive
+                        ? "border-blue-500 ring-2 ring-blue-100"
+                        : "border-gray-200 hover:border-gray-400"
+                    }`}
+                    aria-label={`Show image ${i + 1}`}
+                    data-testid={`brand-pdp-thumb-${i}`}
+                  >
+                    <img
+                      src={thumbImage(img)}
+                      alt={`${fabric.name} ${i + 1}`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      draggable={false}
+                      onDragStart={(e) => e.preventDefault()}
+                      onContextMenu={(e) => e.preventDefault()}
+                      style={{ WebkitUserDrag: "none", userSelect: "none" }}
+                    />
+                  </button>
+                );
+              })}
             </div>
           )}
 
