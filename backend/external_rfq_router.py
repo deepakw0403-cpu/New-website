@@ -94,6 +94,57 @@ class KnitsQuantity(str, Enum):
     Q4 = "1000_plus"
 
 
+class StretchType(str, Enum):
+    NONE = "non_stretch"
+    TWO_WAY = "2_way"
+    FOUR_WAY = "4_way"
+    COMFORT_STRETCH = "comfort_stretch"
+    POWER_STRETCH = "power_stretch"
+
+
+class WeavePattern(str, Enum):
+    """Weave patterns for cotton/viscose wovens."""
+    PLAIN = "Plain"
+    TWILL = "Twill"
+    SATIN = "Satin"
+    DOBBY = "Dobby"
+    JACQUARD = "Jacquard"
+    OXFORD = "Oxford"
+    POPLIN = "Poplin"
+    BASKET = "Basket"
+    HERRINGBONE = "Herringbone"
+    OTHER = "Other"
+
+
+class KnitType(str, Enum):
+    """Knit construction types."""
+    SINGLE_JERSEY = "Single Jersey"
+    INTERLOCK = "Interlock"
+    PIQUE = "Pique"
+    RIB_1X1 = "Rib 1x1"
+    RIB_2X2 = "Rib 2x2"
+    FRENCH_TERRY = "French Terry"
+    FLEECE = "Fleece"
+    LOOPKNIT = "Loopknit"
+    WAFFLE = "Waffle"
+    MESH = "Mesh"
+    HONEYCOMB = "Honeycomb"
+    OTHER = "Other"
+
+
+class DenimWashType(str, Enum):
+    """Denim wash / dye treatment."""
+    INDIGO = "Indigo"
+    SULPHUR_BLACK = "Sulphur Black"
+    RAW = "Raw"
+    STONE_WASH = "Stone Wash"
+    ENZYME_WASH = "Enzyme Wash"
+    BLEACH_WASH = "Bleach Wash"
+    ACID_WASH = "Acid Wash"
+    PIGMENT = "Pigment Dyed"
+    OTHER = "Other"
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # Shared contact / metadata block — every category uses this
 # ──────────────────────────────────────────────────────────────────────────
@@ -189,6 +240,78 @@ class ContactMeta(BaseModel):
         examples=["winter-25-cotton"],
     )
 
+    # ── SHARED FABRIC SPEC FIELDS (apply to every category) ──
+    # These all default to optional but the more the buyer fills, the more
+    # accurate the vendor quotes.
+
+    composition: str = Field(
+        ...,
+        min_length=2, max_length=200,
+        description="Fibre composition / blend. Mandatory — vendors cannot "
+                    "quote without knowing the fibre breakdown.",
+        examples=["100% Cotton", "65% Cotton / 35% Polyester", "100% Viscose Lyocell"],
+    )
+    sub_category: Optional[str] = Field(
+        "", max_length=100,
+        description="Sub-category within the chosen category. Free text. "
+                    "E.g. for cotton: Poplin, Twill, Voile, Drill, Cambric, "
+                    "Khadi, Lawn, Slub, Chambray, Oxford, Canvas, Corduroy. "
+                    "For viscose: Modal, Lyocell, Tencel, Viscose-Linen. "
+                    "For denim: Selvedge, Stretch, Bull Denim, Indigo. "
+                    "For knits: see knit_type field instead.",
+        examples=["Poplin"],
+    )
+    gsm: Optional[int] = Field(
+        None, ge=20, le=2000,
+        description="Fabric weight in grams per square metre. "
+                    "Common ranges — voile/lawn: 60-90, poplin: 100-140, "
+                    "twill/drill: 180-300, denim: 280-400, jersey knit: 140-220, "
+                    "fleece: 220-360.",
+        examples=[180],
+    )
+    width_inches: Optional[int] = Field(
+        None, ge=20, le=120,
+        description="Fabric width in inches. Standard widths: 44\", 46\", 58\", 60\", 72\". "
+                    "Open width vs tubular varies for knits — flag in `message` if needed.",
+        examples=[58],
+    )
+    stretch: Optional[StretchType] = Field(
+        None,
+        description="Stretch property. One of: `non_stretch`, `2_way`, "
+                    "`4_way`, `comfort_stretch`, `power_stretch`.",
+        examples=["2_way"],
+    )
+    finish: Optional[str] = Field(
+        "", max_length=200,
+        description="Fabric finishes — comma-separated when multiple. "
+                    "Examples: Mercerized, Sanforized, Pre-shrunk, Calendered, "
+                    "Brushed, Peached, Anti-microbial, Water-repellent.",
+        examples=["Mercerized + Sanforized"],
+    )
+    color_or_shade: Optional[str] = Field(
+        "", max_length=100,
+        description="Required colour/shade. Free text. Use `pantone_code` "
+                    "for exact reference.",
+        examples=["Navy Blue"],
+    )
+    pantone_code: Optional[str] = Field(
+        "", max_length=50,
+        description="Pantone TPX/TCX/TPG colour code. Optional.",
+        examples=["19-3933 TCX"],
+    )
+    end_use: Optional[str] = Field(
+        "", max_length=100,
+        description="What the buyer plans to make from this fabric. Helps "
+                    "vendors recommend appropriate finishes / quality grades.",
+        examples=["Men's formal shirts"],
+    )
+    certifications: Optional[list[str]] = Field(
+        None,
+        description="Required certifications, list of strings. Common: "
+                    "GOTS, OEKO-TEX, BCI, GRS, RDS, Fair Trade, Organic.",
+        examples=[["GOTS", "OEKO-TEX"]],
+    )
+
     @field_validator("gst_number")
     @classmethod
     def _validate_gstin(cls, v: str) -> str:
@@ -231,6 +354,19 @@ class CottonRFQ(ContactMeta):
         description="Mandatory. Bucketed quantity in meters.",
         examples=["5000_20000"],
     )
+    thread_count: Optional[str] = Field(
+        "", max_length=50,
+        description="Warp x weft thread count. Free text — accepts `60x60`, "
+                    "`100x100`, `30s x 20s`, `40s/2 x 40s/2`, etc. "
+                    "Higher counts = finer / smoother fabric.",
+        examples=["60x60"],
+    )
+    weave_pattern: Optional[WeavePattern] = Field(
+        None,
+        description="Weave construction. One of: Plain, Twill, Satin, "
+                    "Dobby, Jacquard, Oxford, Poplin, Basket, Herringbone, Other.",
+        examples=["Twill"],
+    )
 
 
 class ViscoseRFQ(ContactMeta):
@@ -245,6 +381,16 @@ class ViscoseRFQ(ContactMeta):
         ...,
         description="Mandatory. Bucketed quantity in meters.",
         examples=["1000_5000"],
+    )
+    thread_count: Optional[str] = Field(
+        "", max_length=50,
+        description="Warp x weft thread count. Free text.",
+        examples=["100x100"],
+    )
+    weave_pattern: Optional[WeavePattern] = Field(
+        None,
+        description="Weave construction.",
+        examples=["Satin"],
     )
 
 
@@ -261,6 +407,18 @@ class DenimRFQ(ContactMeta):
         description="Mandatory. Bucketed quantity in meters.",
         examples=["7500_25000"],
     )
+    weight_oz: Optional[float] = Field(
+        None, ge=4, le=20,
+        description="Denim weight in oz/sq.yd. Common ranges: lightweight 7-9 oz, "
+                    "mid 10-12 oz, heavy 13-16 oz. Use this OR `gsm`, not both.",
+        examples=[11.0],
+    )
+    wash_type: Optional[DenimWashType] = Field(
+        None,
+        description="Wash / dye treatment. One of: Indigo, Sulphur Black, Raw, "
+                    "Stone Wash, Enzyme Wash, Bleach Wash, Acid Wash, Pigment Dyed, Other.",
+        examples=["Indigo"],
+    )
 
 
 class KnitsRFQ(ContactMeta):
@@ -268,13 +426,20 @@ class KnitsRFQ(ContactMeta):
     category: Literal["knits"] = Field(..., description="Must be 'knits'.")
     knit_quality: str = Field(
         ..., min_length=5, max_length=200,
-        description="Mandatory. Knit quality / GSM specification.",
+        description="Mandatory. Knit quality / GSM specification (free text).",
         examples=["4 Way Lycra 220-230 GSM"],
     )
     quantity_kg: KnitsQuantity = Field(
         ...,
         description="Mandatory. Bucketed quantity in kilograms.",
         examples=["500_1000"],
+    )
+    knit_type: Optional[KnitType] = Field(
+        None,
+        description="Knit construction type. One of: Single Jersey, Interlock, "
+                    "Pique, Rib 1x1, Rib 2x2, French Terry, Fleece, Loopknit, "
+                    "Waffle, Mesh, Honeycomb, Other.",
+        examples=["Single Jersey"],
     )
 
 
@@ -385,6 +550,26 @@ async def ingest_rfq(payload: RFQPayload, _auth: bool = Depends(require_ingest_k
         "delivery_pincode": base.get("delivery_pincode") or "",
         "delivery_city": base.get("delivery_city") or "",
         "delivery_state": base.get("delivery_state") or "",
+
+        # Shared fabric spec
+        "composition": base.get("composition") or "",
+        "sub_category": base.get("sub_category") or "",
+        "gsm": base.get("gsm"),
+        "width_inches": base.get("width_inches"),
+        "stretch": base.get("stretch") or "",
+        "finish": base.get("finish") or "",
+        "color_or_shade": base.get("color_or_shade") or "",
+        "pantone_code": base.get("pantone_code") or "",
+        "end_use": base.get("end_use") or "",
+        "certifications": base.get("certifications") or [],
+
+        # Per-category fabric spec — only the relevant ones populate
+        "thread_count": base.get("thread_count") or "",
+        "weave_pattern": base.get("weave_pattern") or "",
+        "weight_oz": base.get("weight_oz"),
+        "wash_type": base.get("wash_type") or "",
+        "knit_type": base.get("knit_type") or "",
+
         "lead_source": base.get("lead_source") or "",
         "external_id": base.get("external_id") or "",
         "campaign": base.get("campaign") or "",
@@ -529,6 +714,42 @@ def _format_enquiry_message(d: dict) -> str:
         parts.append(f"Spec: {d['denim_specification']}  |  Qty: {d['quantity_meters']} m")
     elif d["category"] == "knits":
         parts.append(f"Quality: {d['knit_quality']}  |  Qty: {d['quantity_kg']} kg")
+
+    # Fabric-spec block — only show fields that have values
+    fabric = []
+    if d.get("composition"):
+        fabric.append(f"Composition: {d['composition']}")
+    if d.get("sub_category"):
+        fabric.append(f"Sub-cat: {d['sub_category']}")
+    if d.get("thread_count"):
+        fabric.append(f"Thread count: {d['thread_count']}")
+    if d.get("weave_pattern"):
+        fabric.append(f"Weave: {d['weave_pattern']}")
+    if d.get("knit_type"):
+        fabric.append(f"Knit type: {d['knit_type']}")
+    if d.get("wash_type"):
+        fabric.append(f"Wash: {d['wash_type']}")
+    if d.get("gsm"):
+        fabric.append(f"GSM: {d['gsm']}")
+    if d.get("weight_oz"):
+        fabric.append(f"Weight: {d['weight_oz']} oz")
+    if d.get("width_inches"):
+        fabric.append(f"Width: {d['width_inches']}\"")
+    if d.get("stretch"):
+        fabric.append(f"Stretch: {d['stretch']}")
+    if d.get("finish"):
+        fabric.append(f"Finish: {d['finish']}")
+    if d.get("color_or_shade"):
+        fabric.append(f"Color: {d['color_or_shade']}")
+    if d.get("pantone_code"):
+        fabric.append(f"Pantone: {d['pantone_code']}")
+    if d.get("end_use"):
+        fabric.append(f"End-use: {d['end_use']}")
+    if d.get("certifications"):
+        fabric.append(f"Certs: {', '.join(d['certifications'])}")
+    if fabric:
+        parts.append("\nFabric spec:\n  " + "\n  ".join(fabric))
+
     if d.get("target_price_per_meter"):
         parts.append(f"Target ₹{d['target_price_per_meter']}/m")
     if d.get("dispatch_required_by"):
