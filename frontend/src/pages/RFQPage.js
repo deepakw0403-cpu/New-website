@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowLeft, ArrowRight, CheckCircle, Send } from "lucide-react";
 import Navbar from "../components/Navbar";
@@ -12,6 +12,9 @@ const RFQPage = () => {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromAccount = searchParams.get("from") === "account";
   
   const [form, setForm] = useState({
     category: "",
@@ -174,7 +177,14 @@ const RFQPage = () => {
 
       const response = await fetch(`${API_URL}/api/rfq/submit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          // If a customer is logged in, attach their token so the RFQ shows
+          // up in /account → My Queries automatically.
+          ...(localStorage.getItem("lf_customer_token")
+            ? { Authorization: `Bearer ${localStorage.getItem("lf_customer_token")}` }
+            : {}),
+        },
         body: JSON.stringify(rfqData)
       });
 
@@ -182,6 +192,10 @@ const RFQPage = () => {
         const result = await response.json();
         setSubmitted(true);
         toast.success(`RFQ ${result.rfq_number} submitted successfully!`);
+        // If the user came from /account, send them back to the queries tab.
+        if (fromAccount) {
+          setTimeout(() => navigate("/account?tab=queries"), 1500);
+        }
       } else {
         const error = await response.json();
         throw new Error(error.detail || "Failed to submit");

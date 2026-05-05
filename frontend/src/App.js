@@ -90,6 +90,7 @@ const RFQPage = lazy(() => import("./pages/RFQPage"));
 const SupplierDetailPage = lazy(() => import("./pages/SupplierDetailPage"));
 const SupplierProfilePage = lazy(() => import("./pages/SupplierProfilePage"));
 const CustomerAccountPage = lazy(() => import("./pages/CustomerAccountPage"));
+const OrderDetailPage = lazy(() => import("./pages/OrderDetailPage"));
 const LoginPreview = lazy(() => import("./pages/LoginPreview"));
 const CustomerQueryDetail = lazy(() => import("./pages/CustomerQueryDetail"));
 const SharedCartPage = lazy(() => import("./pages/SharedCartPage"));
@@ -220,6 +221,7 @@ function App() {
           <Route path="/account" element={<CustomerAccountPage />} />
           <Route path="/dev/login-preview" element={<Suspense fallback={<PageLoader />}><LoginPreview /></Suspense>} />
           <Route path="/account/queries/:rfqId" element={<Suspense fallback={<PageLoader />}><CustomerQueryDetail /></Suspense>} />
+          <Route path="/account/orders/:orderId" element={<Suspense fallback={<PageLoader />}><OrderDetailPage /></Suspense>} />
           
           {/* Shared Cart (customer-facing) */}
           <Route path="/shared-cart/:token" element={<SharedCartPage />} />

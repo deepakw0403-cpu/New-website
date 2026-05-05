@@ -408,7 +408,11 @@ const AdminBrands = () => {
                       {(b.type || "brand") === "factory" ? (
                         <div>
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-800">Factory</span>
-                          {b.parent_brand_name && <div className="text-[11px] text-gray-500 mt-0.5">↳ {b.parent_brand_name}</div>}
+                          {b.parent_brand_name ? (
+                            <div className="text-[11px] text-gray-500 mt-0.5">↳ {b.parent_brand_name}</div>
+                          ) : (
+                            <div className="text-[11px] text-gray-400 mt-0.5 italic">Standalone</div>
+                          )}
                         </div>
                       ) : (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 text-blue-800">Brand</span>
@@ -468,15 +472,14 @@ const AdminBrands = () => {
 
                 {form.type === "factory" && (
                   <div>
-                    <p className="text-xs font-medium text-gray-600 mb-1.5">Parent Brand *</p>
+                    <p className="text-xs font-medium text-gray-600 mb-1.5">Parent Brand <span className="text-gray-400 font-normal">(optional — leave standalone if the factory buys for itself)</span></p>
                     <select
-                      required
                       value={form.parent_brand_id}
                       onChange={(e) => setForm({ ...form, parent_brand_id: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                       data-testid="create-enterprise-parent-brand"
                     >
-                      <option value="">Select parent brand…</option>
+                      <option value="">— Standalone (no parent brand) —</option>
                       {brands.filter((b) => (b.type || "brand") === "brand").map((b) => (
                         <option key={b.id} value={b.id}>{b.name}</option>
                       ))}

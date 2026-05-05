@@ -305,3 +305,55 @@ async def get_customer_orders(request: Request):
     ).sort('created_at', -1).to_list(100)
 
     return orders
+
+
+@router.get("/orders/{order_id}")
+async def get_customer_order(order_id: str, request: Request):
+    """Get a single order — scoped to the logged-in customer's email so
+    customers can only access their own orders. Looks up by id OR order_number.
+    """
+    payload = get_current_customer(request)
+    order = await db.orders.find_one(
+        {
+            "$or": [{"id": order_id}, {"order_number": order_id}],
+            "customer.email": payload["email"],
+        },
+        {"_id": 0}
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
+@router.get("/orders/{order_id}/pay-context")
+async def get_order_pay_context(order_id: str, request: Request):
+    """Return Razorpay re-checkout context for a payment_pending order owned
+    by the customer. Re-uses the original `razorpay_order_id` so the customer
+    can complete payment without creating a duplicate order.
+    """
+    payload = get_current_customer(request)
+    order = await db.orders.find_one(
+        {
+            "$or": [{"id": order_id}, {"order_number": order_id}],
+            "customer.email": payload["email"],
+        },
+        {"_id": 0}
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.get("payment_status") == "paid":
+        raise HTTPException(status_code=400, detail="Order is already paid")
+    if not order.get("razorpay_order_id"):
+        raise HTTPException(status_code=400, detail="Order has no Razorpay order to resume")
+
+    return {
+        "order_id": order.get("id"),
+        "order_number": order.get("order_number"),
+        "razorpay_order_id": order["razorpay_order_id"],
+        "razorpay_key_id": os.environ.get("RAZORPAY_KEY_ID", ""),
+        "amount": order.get("total", 0),
+        "amount_paise": int(round(float(order.get("total", 0)) * 100)),
+        "currency": "INR",
+        "customer": order.get("customer", {}),
+    }
+

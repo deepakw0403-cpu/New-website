@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { User, Package, Mail, Phone, Building2, MapPin, Pencil, Save, Loader2, LogOut, ArrowRight, Clock, CheckCircle, Truck, XCircle, MessageSquare, FileText, ShieldCheck } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -21,7 +21,9 @@ const statusConfig = {
 const CustomerAccountPage = () => {
   const { customer, token, isLoggedIn, logout, updateCustomer } = useCustomerAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("orders");
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") === "queries" ? "queries" : searchParams.get("tab") === "profile" ? "profile" : "orders";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -154,7 +156,7 @@ const CustomerAccountPage = () => {
                     const si = statusConfig[order.status] || statusConfig.payment_pending;
                     const SI = si.icon;
                     return (
-                      <div key={order.id} className="bg-white rounded-xl border p-6 hover:shadow-sm transition-shadow" data-testid={`order-card-${order.order_number}`}>
+                      <div key={order.id} onClick={() => navigate(`/account/orders/${order.id}`)} className="bg-white rounded-xl border p-6 hover:shadow-sm hover:border-blue-200 transition-all cursor-pointer" data-testid={`order-card-${order.order_number}`}>
                         <div className="flex items-start justify-between mb-4">
                           <div>
                             <p className="font-semibold text-gray-900">{order.order_number}</p>
@@ -195,6 +197,11 @@ const CustomerAccountPage = () => {
                             Cancelled: {order.cancellation_reason === 'stock_out' ? 'Stock Out' : order.cancellation_reason === 'credit_limit' ? 'Credit Limit' : order.cancellation_reason}
                           </div>
                         )}
+                        <div className="flex items-center justify-end mt-3 pt-3 border-t border-gray-100">
+                          <span className="text-xs font-medium text-[#2563EB] hover:underline inline-flex items-center gap-1">
+                            View details <ArrowRight size={12} />
+                          </span>
+                        </div>
                       </div>
                     );
                   })}

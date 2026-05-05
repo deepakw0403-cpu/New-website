@@ -212,13 +212,13 @@ async def create_brand(data: BrandCreate, admin=Depends(auth_helpers.get_current
     if entity_type not in ("brand", "factory"):
         raise HTTPException(status_code=400, detail="type must be 'brand' or 'factory'")
     parent_brand_id = (data.parent_brand_id or "").strip() or None
-    if entity_type == "factory":
-        if not parent_brand_id:
-            raise HTTPException(status_code=400, detail="parent_brand_id is required when type='factory'")
+    if entity_type == "factory" and parent_brand_id:
+        # Standalone factories (no parent) are allowed — they buy for themselves.
+        # Only validate the link if a parent_brand_id was actually supplied.
         parent = await db.brands.find_one({"id": parent_brand_id, "$or": [{"type": "brand"}, {"type": {"$exists": False}}]}, {"_id": 0, "id": 1})
         if not parent:
             raise HTTPException(status_code=400, detail="parent_brand_id does not refer to an active brand")
-    else:
+    elif entity_type == "brand":
         parent_brand_id = None
 
     brand_id = str(uuid.uuid4())

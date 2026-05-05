@@ -113,6 +113,10 @@ export const verifyCustomerOTP = (email, otp) => api.post("/customer/verify-otp"
 export const getCustomerProfile = (token) => api.get("/customer/profile", { headers: { Authorization: `Bearer ${token}` } });
 export const updateCustomerProfile = (token, data) => api.put("/customer/profile", data, { headers: { Authorization: `Bearer ${token}` } });
 export const getCustomerOrders = (token) => api.get("/customer/orders", { headers: { Authorization: `Bearer ${token}` } });
+export const getCustomerOrder = (token, orderId) =>
+  api.get(`/customer/orders/${orderId}`, { headers: { Authorization: `Bearer ${token}` } });
+export const getOrderPayContext = (token, orderId) =>
+  api.get(`/customer/orders/${orderId}/pay-context`, { headers: { Authorization: `Bearer ${token}` } });
 
 // Customer Queries (RFQ pipeline)
 export const getCustomerQueries = (token, status = "received") =>
