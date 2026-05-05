@@ -228,15 +228,27 @@ const CustomerAccountPage = () => {
               </div>
 
               <div className="space-y-4">
-                {/* Email — mandatory but immutable (login identity) */}
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Mail size={16} className="text-gray-400" />
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-500">Email <span className="text-red-500">*</span></p>
-                    <p className="font-medium">{customer?.email}</p>
-                  </div>
-                  <span className="text-xs text-gray-400">login identity</span>
-                </div>
+                {/* Email — mandatory but immutable (login identity).
+                    For phone-OTP customers we hide the synthetic placeholder
+                    and prompt them to add a real email instead. */}
+                {(() => {
+                  const e = customer?.email || "";
+                  const isPlaceholder = e.endsWith("@phone.locofast.local");
+                  return (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Mail size={16} className="text-gray-400" />
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500">Email <span className="text-gray-400 font-normal">· optional</span></p>
+                        <p className="font-medium">
+                          {isPlaceholder
+                            ? <span className="text-gray-400 font-normal">Add an email so we can send invoices and updates</span>
+                            : e}
+                        </p>
+                      </div>
+                      {!isPlaceholder && <span className="text-xs text-gray-400">login identity</span>}
+                    </div>
+                  );
+                })()}
 
                 {/* GST Number — mandatory, verified */}
                 <div className="p-3 bg-gray-50 rounded-lg" data-testid="profile-gstin-row">

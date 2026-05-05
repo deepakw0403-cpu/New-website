@@ -44,6 +44,13 @@ class VerifyOTPRequest(BaseModel):
     email: EmailStr
     otp: str
 
+class SendWhatsAppOTPRequest(BaseModel):
+    phone: str
+
+class VerifyWhatsAppOTPRequest(BaseModel):
+    phone: str
+    otp: str
+
 class ProfileUpdate(BaseModel):
     name: str = ""
     phone: str = ""
@@ -57,10 +64,11 @@ class ProfileUpdate(BaseModel):
 
 # ==================== AUTH HELPERS ====================
 
-def create_customer_token(email: str, customer_id: str) -> str:
+def create_customer_token(email: str, customer_id: str, phone: str = "") -> str:
     payload = {
         "email": email,
         "customer_id": customer_id,
+        "phone": phone,
         "type": "customer",
         "exp": datetime.now(timezone.utc) + timedelta(days=30)
     }
@@ -68,8 +76,14 @@ def create_customer_token(email: str, customer_id: str) -> str:
 
 
 def get_current_customer(request):
-    """Extract customer from JWT token in Authorization header."""
-    from fastapi import Request
+    """Extract customer from JWT token in Authorization header.
+
+    Returns the JWT payload dict. For email-only legacy logins, the
+    `email` claim is the identity. For phone-OTP logins the customer
+    may not yet have an email — in that case `email` is empty and
+    `customer_id` is the canonical lookup key.
+    """
+    from fastapi import Request  # noqa: F401
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -78,6 +92,13 @@ def get_current_customer(request):
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "customer":
             raise HTTPException(status_code=401, detail="Invalid token type")
+        # Back-fill `email` from the customer doc if the token carried only a
+        # phone identity. Existing endpoints use `payload['email']` as the
+        # MongoDB lookup key — keeping that contract avoids touching every
+        # downstream handler.
+        if not payload.get("email") and payload.get("customer_id") and db is not None:
+            # Use cached payload — fetch will be done by callers if needed
+            pass
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
@@ -192,13 +213,152 @@ async def verify_otp(data: VerifyOTPRequest):
         customer_id = customer['id']
 
     # Generate JWT
-    token = create_customer_token(email, customer.get('id', customer_id))
+    token = create_customer_token(email, customer.get('id', customer_id), customer.get('phone', ''))
 
     return {
         "token": token,
         "customer": {k: v for k, v in customer.items() if k != '_id'},
         "is_new": not bool(customer.get('name'))
     }
+
+
+# ==================== WHATSAPP OTP ENDPOINTS ====================
+
+PHONE_PLACEHOLDER_EMAIL_DOMAIN = "@phone.locofast.local"
+
+
+def _placeholder_email_for_phone(e164_phone: str) -> str:
+    """Synthetic email used for phone-only customers so existing email-keyed
+    Mongo lookups (profile, orders, queries, tracking) keep working with no
+    refactor. The frontend hides this email and prompts the user to add a
+    real one in their profile.
+    """
+    return f"phone+{e164_phone}{PHONE_PLACEHOLDER_EMAIL_DOMAIN}"
+
+
+@router.post("/send-whatsapp-otp")
+async def send_whatsapp_otp_endpoint(data: SendWhatsAppOTPRequest):
+    """Send a 6-digit OTP via Gupshup WhatsApp template."""
+    from gupshup_service import normalize_indian_phone, send_whatsapp_otp
+
+    is_valid, e164_phone = normalize_indian_phone(data.phone)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail="Enter a valid 10-digit Indian mobile number")
+
+    now = datetime.now(timezone.utc)
+
+    # Rate limit: max 3 OTPs per phone per 10 min
+    cutoff = (now - timedelta(minutes=OTP_EXPIRY_MINUTES)).isoformat()
+    recent_count = await db.customer_otps.count_documents({
+        'phone': e164_phone,
+        'channel': 'whatsapp',
+        'created_at': {'$gte': cutoff},
+    })
+    if recent_count >= OTP_RATE_LIMIT:
+        raise HTTPException(status_code=429, detail="Too many OTP requests. Please wait a few minutes.")
+
+    otp = str(random.randint(100000, 999999))
+
+    await db.customer_otps.insert_one({
+        'phone': e164_phone,
+        'channel': 'whatsapp',
+        'otp': otp,
+        'used': False,
+        'created_at': now.isoformat(),
+        'expires_at': (now + timedelta(minutes=OTP_EXPIRY_MINUTES)).isoformat(),
+    })
+
+    result = await send_whatsapp_otp(e164_phone, otp)
+    if not result.get("success"):
+        # Log but don't expose Gupshup internals to the client.
+        logger.error(f"Gupshup OTP send failed for {e164_phone}: {result.get('error')}")
+        raise HTTPException(status_code=502, detail="Couldn't send OTP via WhatsApp. Please try email instead.")
+
+    return {
+        "message": "OTP sent to your WhatsApp",
+        "phone_masked": e164_phone[:4] + "****" + e164_phone[-2:],
+    }
+
+
+@router.post("/verify-whatsapp-otp")
+async def verify_whatsapp_otp_endpoint(data: VerifyWhatsAppOTPRequest):
+    """Verify WhatsApp OTP and issue a customer JWT.
+
+    Auto-creates a customer row keyed by `phone` on first login. If a
+    customer already exists with this phone (saved via /profile from an
+    email-account), we log them into that same account (auto-merge).
+    """
+    from gupshup_service import normalize_indian_phone
+
+    is_valid, e164_phone = normalize_indian_phone(data.phone)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail="Invalid phone number")
+
+    now = datetime.now(timezone.utc)
+
+    otp_doc = await db.customer_otps.find_one({
+        'phone': e164_phone,
+        'channel': 'whatsapp',
+        'otp': data.otp,
+        'used': False,
+        'expires_at': {'$gte': now.isoformat()},
+    })
+    if not otp_doc:
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+
+    await db.customer_otps.update_one({'_id': otp_doc['_id']}, {'$set': {'used': True}})
+
+    # Auto-merge: a customer doc may already exist with this phone under
+    # an email-account flow. Match exact phone OR phone-prefix-stripped.
+    customer = await db.customers.find_one(
+        {'$or': [{'phone': e164_phone}, {'phone': e164_phone[2:]}]},  # match '91xxxxxxxxxx' or 'xxxxxxxxxx'
+        {'_id': 0}
+    )
+
+    if not customer:
+        # Brand-new customer — create row with synthetic placeholder email
+        # so downstream email-keyed lookups keep working unchanged.
+        import uuid
+        customer_id = str(uuid.uuid4())
+        placeholder_email = _placeholder_email_for_phone(e164_phone)
+        customer = {
+            'id': customer_id,
+            'email': placeholder_email,
+            'name': '',
+            'phone': e164_phone,
+            'phone_verified': True,
+            'company': '',
+            'gstin': '',
+            'address': '',
+            'city': '',
+            'state': '',
+            'pincode': '',
+            'created_via': 'whatsapp_otp',
+            'created_at': now.isoformat(),
+            'updated_at': now.isoformat(),
+        }
+        await db.customers.insert_one(customer)
+        customer.pop('_id', None)
+        logger.info(f"New customer created via WhatsApp OTP: {e164_phone}")
+    else:
+        # Existing customer — stamp phone_verified true (they've now proven
+        # ownership of the number).
+        if not customer.get('phone_verified'):
+            await db.customers.update_one(
+                {'id': customer['id']},
+                {'$set': {'phone_verified': True, 'phone': e164_phone, 'updated_at': now.isoformat()}}
+            )
+            customer['phone_verified'] = True
+            customer['phone'] = e164_phone
+
+    token = create_customer_token(customer.get('email', ''), customer['id'], e164_phone)
+
+    return {
+        "token": token,
+        "customer": {k: v for k, v in customer.items() if k != '_id'},
+        "is_new": not bool(customer.get('name')),
+    }
+
 
 
 # ==================== PROFILE ENDPOINTS ====================

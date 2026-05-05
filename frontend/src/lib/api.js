@@ -110,6 +110,8 @@ export const getCreditBalance = (email) => api.get("/credit/balance", { params: 
 // Customer Auth (OTP)
 export const sendCustomerOTP = (email) => api.post("/customer/send-otp", { email });
 export const verifyCustomerOTP = (email, otp) => api.post("/customer/verify-otp", { email, otp });
+export const sendCustomerWhatsAppOTP = (phone) => api.post("/customer/send-whatsapp-otp", { phone });
+export const verifyCustomerWhatsAppOTP = (phone, otp) => api.post("/customer/verify-whatsapp-otp", { phone, otp });
 export const getCustomerProfile = (token) => api.get("/customer/profile", { headers: { Authorization: `Bearer ${token}` } });
 export const updateCustomerProfile = (token, data) => api.put("/customer/profile", data, { headers: { Authorization: `Bearer ${token}` } });
 export const getCustomerOrders = (token) => api.get("/customer/orders", { headers: { Authorization: `Bearer ${token}` } });
