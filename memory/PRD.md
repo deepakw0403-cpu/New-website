@@ -339,6 +339,27 @@ Embedded multi-lender credit lines + curated catalogue for brand-tier B2B custom
 - **PUT /api/customer/profile** validates mandatory fields, verifies the GSTIN against Sandbox.co.in, auto-fills `company` from `legal_name` (fallback `trade_name`), persists `gst_verified=true`, `gst_business_type`, `gst_status`, and seeds `city`/`state`/`pincode` from the GST registry if user hasn't entered them.
 - **Frontend** (`CustomerAccountPage.js`): client-side validation (mandatory + phone-digit check + 15-char GSTIN), inline red error text per field, server error pinned to GSTIN field if it mentions GST, "Verified" badge with ShieldCheck icon when `gst_verified=true`, save button label flips to "Verifying GST..." during the call.
 - **Tested**: 14/14 backend tests pass, all frontend UI requirements verified (iteration_41.json).
+
+### Phase 45: Order Detail & Tracking + "+ New Query" + Standalone Factories (Complete - Feb 2026)
+Three quick wins on top of Phase 44, all green-tested by the testing agent (10/10 backend, 100% frontend, iteration_42.json).
+
+- **Order Detail & Tracking** (`/account/orders/:orderId`, new `OrderDetailPage.js`):
+  - 5-stage timeline strip: *Payment → Paid → Processing → Shipped → Delivered* (cancelled fork shows red banner)
+  - **Pay-now CTA** for `payment_pending` orders — resumes the original `razorpay_order_id` (no duplicate orders) via new `GET /api/customer/orders/{id}/pay-context`
+  - **Download invoice** button for paid orders → `/api/orders/{id}/invoice`
+  - **Track shipment** link surfaces `https://shiprocket.co/tracking/<awb_code>` whenever Shiprocket has allocated an AWB (also shows the AWB chip)
+  - New owner-scoped backend endpoint `GET /api/customer/orders/{id}` (404s on cross-customer access, 401 without auth)
+  - Order cards in `My Orders` are now clickable cards with a "View details ›" CTA. URLs use `order.id` (UUID) so the `LF/ORD/001` slashes don't break routing.
+
+- **"+ New Query" button** (`CustomerQueriesTab.js`):
+  - Top-right CTA in the My Queries tab navigates to `/rfq?from=account`
+  - `RFQPage` now attaches `Authorization: Bearer <lf_customer_token>` so the resulting RFQ is auto-linked to the customer's account
+  - On success with `from=account`, redirects to `/account?tab=queries`. CustomerAccountPage now reads `?tab=` to deep-link into the right tab.
+
+- **Standalone Factories** (`brand_router.py` + `AdminBrands.js`):
+  - `parent_brand_id` is now optional when `type='factory'` — factories can buy for themselves without a brand parent
+  - When supplied, parent brand is still validated against the brands collection (regression-safe)
+  - Admin form: parent brand dropdown defaults to "— Standalone (no parent brand) —"; factory list rows show italic "Standalone" label when no parent is set
 ## Backlog
 
 ### P1 (High Priority)
