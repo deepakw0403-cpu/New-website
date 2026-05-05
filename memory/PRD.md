@@ -332,6 +332,13 @@ Embedded multi-lender credit lines + curated catalogue for brand-tier B2B custom
   - Each row shows a small `RFQ` or `Inventory` pill next to the order number.
   - `GET /api/vendor/orders` extended with `?source=` param + matches on either `items.fabric_id` (catalog) OR `items.seller_id` (RFQ flow, since the synthetic item id has no fabric document).
 - **Smoke-tested end-to-end**: customer RFQ (Bearer attached) → 2 vendor quotes → list shows 1 query in "Quotes received" with best ₹45.8/m → detail shows 2 quote cards with Best Price + spec chips → place-order on quote 1 creates real order LF/ORD/003 with `source='rfq'`, ₹131,250 total, RFQ flipped to `won`, vendor's orders list shows it tagged `source='rfq'`.
+
+### Phase 44: Customer Profile — Mandatory Fields + Live GST Verification (Complete - Feb 2026)
+- **Mandatory fields** on `/account → Profile`: GST Number, Company Name (auto-filled from GST), Email (read-only login identity), Contact Person Name, Phone. Red asterisk markers + inline error text.
+- **Live GST verification** on every save via `Sandbox.co.in` API (`gst_verify.py` shared helper extracted from server.py — also used by the existing `/api/gst/verify` and supplier signup flow).
+- **PUT /api/customer/profile** validates mandatory fields, verifies the GSTIN against Sandbox.co.in, auto-fills `company` from `legal_name` (fallback `trade_name`), persists `gst_verified=true`, `gst_business_type`, `gst_status`, and seeds `city`/`state`/`pincode` from the GST registry if user hasn't entered them.
+- **Frontend** (`CustomerAccountPage.js`): client-side validation (mandatory + phone-digit check + 15-char GSTIN), inline red error text per field, server error pinned to GSTIN field if it mentions GST, "Verified" badge with ShieldCheck icon when `gst_verified=true`, save button label flips to "Verifying GST..." during the call.
+- **Tested**: 14/14 backend tests pass, all frontend UI requirements verified (iteration_41.json).
 ## Backlog
 
 ### P1 (High Priority)
