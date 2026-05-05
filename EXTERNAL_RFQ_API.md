@@ -43,77 +43,88 @@ Locofast supports **four product categories**. The payload shape changes slightl
 
 ## 4. Field reference
 
-### 4.1 Common fields (every category)
+> **Reading the tables:** Min/Max columns show character length for strings, numeric range for numbers, and array size for arrays. Enums use the "Allowed values" column instead.
 
-#### Buyer / contact (mandatory + optional)
+### 4.1 Buyer / contact fields
 
-| Field | Type | Mandatory | Description | Sample value |
-|---|---|---|---|---|
-| `category` | string enum | ✅ | One of `cotton`, `viscose`, `denim`, `knits` | `"cotton"` |
-| `full_name` | string | ✅ | Buyer's full name. 2–120 chars. | `"Aarav Sharma"` |
-| `email` | string | ✅ | Used for quote notifications + customer dedup. | `"aarav@acmegarments.in"` |
-| `phone` | string | ✅ | 10-digit Indian (starts 6/7/8/9) OR full E.164. | `"+919876543210"` |
-| `company` | string | ✅ | Buyer's company name. 2–200 chars. | `"Acme Garments Pvt Ltd"` |
-| `gst_number` | string | ✅ | 15-char GSTIN (format: `22AAAAA0000A1Z5`). | `"27AAACR5055K1ZP"` |
-| `website` | string | ❌ | Buyer's company website. | `"https://acmegarments.in"` |
-| `message` | string | ❌ | Free-text additional notes. | `"Need swatches before 15 Mar"` |
-| `target_price_per_meter` | float | ❌ | Buyer's target ₹/m, passed to vendors. | `185.0` |
-| `dispatch_required_by` | string | ❌ | ISO date `YYYY-MM-DD`. | `"2026-04-30"` |
-| `delivery_pincode` | string | ❌ | Delivery PIN/postal. | `"110001"` |
-| `delivery_city` | string | ❌ | Delivery city. | `"New Delhi"` |
-| `delivery_state` | string | ❌ | Delivery state. | `"Delhi"` |
-| `lead_source` | string | ❌ | Where the lead came from (free-form). | `"HubSpot"` |
-| `external_id` | string | ❌ | CRM lead ID — used for de-dupe of identical retries. | `"hubspot-deal-184729"` |
-| `campaign` | string | ❌ | Marketing campaign / UTM. | `"winter-25-cotton"` |
+| Field | Type | Mandatory | Min | Max | Format / Allowed values | Sample |
+|---|---|---|---|---|---|---|
+| `category` | string enum | ✅ | — | — | `cotton` \| `viscose` \| `denim` \| `knits` | `"cotton"` |
+| `full_name` | string | ✅ | 2 chars | 120 chars | Free text | `"Aarav Sharma"` |
+| `email` | string | ✅ | — | 254 chars | Valid RFC 5322 email | `"aarav@acme.in"` |
+| `phone` | string | ✅ | 10 chars | 15 chars | Indian 10-digit (starts 6/7/8/9) OR full E.164 | `"+919876543210"` |
+| `company` | string | ✅ | 2 chars | 200 chars | Free text | `"Acme Garments Pvt Ltd"` |
+| `gst_number` | string | ✅ | 15 chars | 15 chars | Regex `^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$` | `"27AAACR5055K1ZP"` |
+| `website` | string | ❌ | 0 | 200 chars | Free text URL | `"https://acme.in"` |
+| `message` | string | ❌ | 0 | 2000 chars | Free text | `"Need swatches by 15 Mar"` |
+| `target_price_per_meter` | float | ❌ | 0 | 10000 | INR per metre | `185.0` |
+| `dispatch_required_by` | string | ❌ | 10 chars | 10 chars | ISO date `YYYY-MM-DD` | `"2026-04-30"` |
+| `delivery_pincode` | string | ❌ | 0 | 10 chars | Free text | `"110001"` |
+| `delivery_city` | string | ❌ | 0 | 100 chars | Free text | `"New Delhi"` |
+| `delivery_state` | string | ❌ | 0 | 100 chars | Free text | `"Delhi"` |
+| `lead_source` | string | ❌ | 0 | 100 chars | Free text | `"HubSpot"` |
+| `external_id` | string | ❌ | 0 | 100 chars | Free text — used for de-dupe | `"hubspot-deal-184729"` |
+| `campaign` | string | ❌ | 0 | 100 chars | Free text | `"winter-25-cotton"` |
 
-#### Fabric spec — common to all categories
+### 4.2 Fabric spec — common to all categories
 
 > ⚠ **The more spec you send, the more accurate the vendor quote.** Sparse RFQs get sparse quotes.
 
-| Field | Type | Mandatory | Description | Sample value |
-|---|---|---|---|---|
-| `composition` | string | ✅ | Fibre composition / blend. Mandatory — vendors cannot quote without knowing the fibre breakdown. | `"100% Cotton"` / `"65% Cotton / 35% Polyester"` |
-| `sub_category` | string | ❌ | Sub-category within the chosen category. Free text. See category notes below. | `"Poplin"` |
-| `gsm` | int | ❌ | Fabric weight in grams per square metre. Range 20–2000. | `180` |
-| `width_inches` | int | ❌ | Fabric width in inches. Common: 44, 46, 58, 60, 72. Range 20–120. | `58` |
-| `stretch` | string enum | ❌ | One of: `non_stretch`, `2_way`, `4_way`, `comfort_stretch`, `power_stretch`. | `"2_way"` |
-| `finish` | string | ❌ | Comma-separated finishes: Mercerized, Sanforized, Pre-shrunk, Calendered, Brushed, Peached, Anti-microbial, Water-repellent. | `"Mercerized + Sanforized"` |
-| `color_or_shade` | string | ❌ | Required colour name. | `"Navy Blue"` |
-| `pantone_code` | string | ❌ | Pantone TPX/TCX/TPG code. | `"19-3933 TCX"` |
-| `end_use` | string | ❌ | What the buyer plans to make. Helps vendors recommend grades. | `"Men's formal shirts"` |
-| `certifications` | string array | ❌ | Required certs. Common: `GOTS`, `OEKO-TEX`, `BCI`, `GRS`, `RDS`, `Fair Trade`, `Organic`. | `["GOTS", "OEKO-TEX"]` |
+| Field | Type | Mandatory | Min | Max | Format / Allowed values | Sample |
+|---|---|---|---|---|---|---|
+| `composition` | string | ✅ | 2 chars | 200 chars | Free text — fibre blend | `"100% Cotton"` / `"65% Cotton / 35% Polyester"` |
+| `sub_category` | string | ❌ | 0 | 100 chars | Free text — see cheatsheet below | `"Poplin"` |
+| `gsm` | int | ❌ | 20 | 2000 | Grams per square metre | `180` |
+| `width_inches` | int | ❌ | 20 | 120 | Fabric width in inches | `58` |
+| `stretch` | string enum | ❌ | — | — | `non_stretch` \| `2_way` \| `4_way` \| `comfort_stretch` \| `power_stretch` | `"2_way"` |
+| `finish` | string | ❌ | 0 | 200 chars | Comma-separated finishes | `"Mercerized + Sanforized"` |
+| `color_or_shade` | string | ❌ | 0 | 100 chars | Free text | `"Navy Blue"` |
+| `pantone_code` | string | ❌ | 0 | 50 chars | Free text | `"19-3933 TCX"` |
+| `end_use` | string | ❌ | 0 | 100 chars | Free text | `"Men's formal shirts"` |
+| `certifications` | string array | ❌ | 0 items | 20 items | Each item ≤50 chars | `["GOTS", "OEKO-TEX"]` |
 
-**Sub-category cheatsheet** (free text — these are common values, not enums):
+**Sub-category cheatsheet** (free text — common values, not enums):
 - **Cotton**: `Poplin`, `Voile`, `Twill`, `Drill`, `Cambric`, `Khadi`, `Lawn`, `Slub`, `Chambray`, `Oxford`, `Canvas`, `Corduroy`, `Flannel`
 - **Viscose**: `Modal`, `Lyocell`, `Tencel`, `Viscose-Linen`, `Viscose-Lycra`, `Rayon`
 - **Denim**: `Selvedge`, `Stretch`, `Comfort Stretch`, `Power Stretch`, `Bull Denim`, `Indigo`, `Sulphur Black`, `Coated`, `Raw`
 - **Knits**: use the dedicated `knit_type` enum field instead
 
-### 4.2 Cotton & Viscose (woven) — extra fields
+### 4.3 Cotton & Viscose (woven) — extra fields
 
-| Field | Type | Mandatory | Allowed values | Sample |
-|---|---|---|---|---|
-| `fabric_requirement_type` | string enum | ✅ | `Greige`, `Dyed`, `RFD`, `Printed` | `"Dyed"` |
-| `quantity_meters` | string enum | ✅ | `1000_5000`, `5000_20000`, `20000_50000`, `50000_plus` | `"5000_20000"` |
-| `thread_count` | string | ❌ | Warp × weft. Free text. Higher = finer/smoother. | `"60x60"`, `"100x100"`, `"30s x 20s"` |
-| `weave_pattern` | string enum | ❌ | `Plain`, `Twill`, `Satin`, `Dobby`, `Jacquard`, `Oxford`, `Poplin`, `Basket`, `Herringbone`, `Other` | `"Twill"` |
+| Field | Type | Mandatory | Min | Max | Format / Allowed values | Sample |
+|---|---|---|---|---|---|---|
+| `fabric_requirement_type` | string enum | ✅ | — | — | `Greige` \| `Dyed` \| `RFD` \| `Printed` | `"Dyed"` |
+| `quantity_meters` | string enum | ✅ | — | — | `1000_5000` \| `5000_20000` \| `20000_50000` \| `50000_plus` | `"5000_20000"` |
+| `thread_count` | string | ❌ | 0 | 50 chars | Free text — warp × weft | `"60x60"` / `"100x100"` / `"30s x 20s"` |
+| `weave_pattern` | string enum | ❌ | — | — | `Plain` \| `Twill` \| `Satin` \| `Dobby` \| `Jacquard` \| `Oxford` \| `Poplin` \| `Basket` \| `Herringbone` \| `Other` | `"Twill"` |
 
-### 4.3 Denim — extra fields
+### 4.4 Denim — extra fields
 
-| Field | Type | Mandatory | Description | Sample |
-|---|---|---|---|---|
-| `denim_specification` | string | ✅ | Free text — composition, weight, finish (5–500 chars). | `"65% Cotton / 35% Poly · 11 oz · Stretch · Indigo"` |
-| `quantity_meters` | string enum | ✅ | `1000_2500`, `2500_7500`, `7500_25000`, `25000_plus` | `"7500_25000"` |
-| `weight_oz` | float | ❌ | Denim weight in oz/sq.yd. Light: 7-9, Mid: 10-12, Heavy: 13-16. Range 4-20. **Use this OR `gsm`, not both.** | `11.0` |
-| `wash_type` | string enum | ❌ | `Indigo`, `Sulphur Black`, `Raw`, `Stone Wash`, `Enzyme Wash`, `Bleach Wash`, `Acid Wash`, `Pigment Dyed`, `Other` | `"Indigo"` |
+| Field | Type | Mandatory | Min | Max | Format / Allowed values | Sample |
+|---|---|---|---|---|---|---|
+| `denim_specification` | string | ✅ | 5 chars | 500 chars | Free text — composition, weight, finish | `"65% Cotton / 35% Poly · 11 oz · Stretch · Indigo"` |
+| `quantity_meters` | string enum | ✅ | — | — | `1000_2500` \| `2500_7500` \| `7500_25000` \| `25000_plus` | `"7500_25000"` |
+| `weight_oz` | float | ❌ | 4 | 20 | oz/sq.yd. **Use this OR `gsm`, not both** | `11.0` |
+| `wash_type` | string enum | ❌ | — | — | `Indigo` \| `Sulphur Black` \| `Raw` \| `Stone Wash` \| `Enzyme Wash` \| `Bleach Wash` \| `Acid Wash` \| `Pigment Dyed` \| `Other` | `"Indigo"` |
 
-### 4.4 Knits — extra fields
+### 4.5 Knits — extra fields
 
-| Field | Type | Mandatory | Description | Sample |
-|---|---|---|---|---|
-| `knit_quality` | string | ✅ | Knit quality / GSM spec (free text, 5–200 chars). | `"4 Way Lycra 220-230 GSM"` |
-| `quantity_kg` | string enum | ✅ | `less_than_200`, `200_500`, `500_1000`, `1000_plus` | `"500_1000"` |
-| `knit_type` | string enum | ❌ | `Single Jersey`, `Interlock`, `Pique`, `Rib 1x1`, `Rib 2x2`, `French Terry`, `Fleece`, `Loopknit`, `Waffle`, `Mesh`, `Honeycomb`, `Other` | `"Single Jersey"` |
+| Field | Type | Mandatory | Min | Max | Format / Allowed values | Sample |
+|---|---|---|---|---|---|---|
+| `knit_quality` | string | ✅ | 5 chars | 200 chars | Free text — quality + GSM | `"4 Way Lycra 220-230 GSM"` |
+| `quantity_kg` | string enum | ✅ | — | — | `less_than_200` \| `200_500` \| `500_1000` \| `1000_plus` | `"500_1000"` |
+| `knit_type` | string enum | ❌ | — | — | `Single Jersey` \| `Interlock` \| `Pique` \| `Rib 1x1` \| `Rib 2x2` \| `French Terry` \| `Fleece` \| `Loopknit` \| `Waffle` \| `Mesh` \| `Honeycomb` \| `Other` | `"Single Jersey"` |
+
+### 4.6 Quick mandatory-fields cheatsheet (per category)
+
+| Category | Mandatory fields (in addition to the contact + common block) |
+|---|---|
+| **Cotton**  | `category="cotton"` · `fabric_requirement_type` · `quantity_meters` · `composition` |
+| **Viscose** | `category="viscose"` · `fabric_requirement_type` · `quantity_meters` · `composition` |
+| **Denim**   | `category="denim"` · `denim_specification` · `quantity_meters` · `composition` |
+| **Knits**   | `category="knits"` · `knit_quality` · `quantity_kg` · `composition` |
+
+Plus the **6 common contact fields** for every category: `full_name`, `email`, `phone`, `company`, `gst_number`. So **every RFQ has at least 9 mandatory fields** (5 contact + composition + category + 2 category-specific).
 
 ---
 
