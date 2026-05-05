@@ -48,6 +48,7 @@ class ProfileUpdate(BaseModel):
     name: str = ""
     phone: str = ""
     company: str = ""
+    gstin: str = ""
     address: str = ""
     city: str = ""
     state: str = ""
@@ -214,18 +215,80 @@ async def get_profile(request: Request):
 
 @router.put("/profile")
 async def update_profile(data: ProfileUpdate, request: Request):
-    """Update customer profile."""
+    """Update customer profile.
+
+    All these fields are mandatory: name (contact person), phone, company, gstin.
+    GSTIN is verified against Sandbox.co.in on every save and the company name
+    is auto-filled from the API response (legal_name preferred, trade_name fallback).
+    """
     payload = get_current_customer(request)
 
-    update_data = {k: v for k, v in data.model_dump().items() if v}
-    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    # Mandatory validation
+    name = (data.name or "").strip()
+    phone = (data.phone or "").strip()
+    gstin = (data.gstin or "").strip().upper()
+    company = (data.company or "").strip()
+
+    missing = []
+    if not name:
+        missing.append("Contact Person Name")
+    if not phone:
+        missing.append("Phone")
+    if not gstin:
+        missing.append("GST Number")
+    if missing:
+        raise HTTPException(status_code=400, detail=f"Required: {', '.join(missing)}")
+
+    # Phone shape: 10 digits (allow optional +91 / spaces)
+    digits = ''.join(c for c in phone if c.isdigit())
+    if len(digits) < 10:
+        raise HTTPException(status_code=400, detail="Phone must be at least 10 digits")
+
+    # Server-side GST verification — always re-verifies on save.
+    from gst_verify import verify_gstin
+    try:
+        gst_result = await verify_gstin(gstin)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"GST verification error: {e}")
+        raise HTTPException(status_code=502, detail="GST verification service unavailable")
+
+    if not gst_result.get("valid"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"GST verification failed: {gst_result.get('message', 'Invalid GSTIN')}"
+        )
+
+    # Auto-fill company from GST API (legal_name preferred). Override user input
+    # if API returns a name — single source of truth.
+    api_company = (gst_result.get("legal_name") or gst_result.get("trade_name") or "").strip()
+    if api_company:
+        company = api_company
+    if not company:
+        raise HTTPException(status_code=400, detail="Company Name could not be resolved from GST")
+
+    update_data = {
+        "name": name,
+        "phone": phone,
+        "company": company,
+        "gstin": gstin,
+        "gst_verified": True,
+        "gst_business_type": gst_result.get("business_type", ""),
+        "gst_status": gst_result.get("gst_status", ""),
+        "address": (data.address or "").strip(),
+        "city": (data.city or "").strip() or gst_result.get("city", ""),
+        "state": (data.state or "").strip() or gst_result.get("state", ""),
+        "pincode": (data.pincode or "").strip() or gst_result.get("pincode", ""),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
 
     await db.customers.update_one(
-        {'email': payload['email']},
-        {'$set': update_data}
+        {"email": payload["email"]},
+        {"$set": update_data}
     )
 
-    customer = await db.customers.find_one({'email': payload['email']}, {'_id': 0})
+    customer = await db.customers.find_one({"email": payload["email"]}, {"_id": 0})
     return customer
 
 
