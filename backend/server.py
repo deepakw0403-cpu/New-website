@@ -382,6 +382,62 @@ async def create_rfq_lead(data: dict):
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     await db.enquiries.insert_one(enquiry_doc)
+
+    # ALSO write a parallel rfq_submissions doc so the lead shows up in
+    # /admin/rfqs (the dedicated RFQ workspace), not just /admin/enquiries.
+    # This unifies the two entry points (PDP modal + /rfq form) into one
+    # place admins triage from.
+    rfq_id = str(uuid.uuid4())
+    rfq_number_simple = f"RFQ-{enquiry_id[:6].upper()}"
+    try:
+        # Resolve customer if logged in (so the lead links back to their profile)
+        customer_id = ""
+        # request not available here without changes; we use header-less anonymous id resolution
+        # Best-effort: match by email/phone in customers
+        match_or = []
+        if email:
+            match_or.append({"email": email.lower().strip()})
+        if phone:
+            cleaned = phone.replace(" ", "").lstrip("+")
+            for variant in {phone, cleaned, cleaned.lstrip("91")}:
+                if variant:
+                    match_or.append({"phone": variant})
+        if match_or:
+            existing = await db.customers.find_one({"$or": match_or}, {"_id": 0, "id": 1})
+            if existing:
+                customer_id = existing.get("id", "")
+
+        # Best-effort category guess from the fabric_type free-text
+        guessed_category = "cotton"
+        if fabric_type:
+            t = fabric_type.lower()
+            if "denim" in t: guessed_category = "denim"
+            elif "knit" in t: guessed_category = "knits"
+            elif "viscose" in t: guessed_category = "viscose"
+
+        await db.rfq_submissions.insert_one({
+            "id": rfq_id,
+            "rfq_number": rfq_number_simple,
+            "customer_id": customer_id,
+            "category": guessed_category,
+            "fabric_requirement_type": fabric_type or "",
+            "full_name": name,
+            "email": email,
+            "phone": phone,
+            "company": company_name,
+            "gst_number": gst_number,
+            "delivery_city": gst_city,
+            "delivery_state": gst_state,
+            "fabric_url": fabric_url,
+            "fabric_name": fabric_name,
+            "lead_source": "SKU Page RFQ" if fabric_url else "Homepage RFQ",
+            "ingested_via": "rfq_lead_modal",
+            "message": data.get('message', '') or "",
+            "status": "new",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception as e:
+        logging.warning(f"Failed to mirror rfq_lead to rfq_submissions: {str(e)}")
     
     # Send email to marketing@locofast.com
     try:

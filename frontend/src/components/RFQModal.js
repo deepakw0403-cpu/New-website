@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, X, Lock } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { trackGenerateLead } from "../lib/analytics";
@@ -138,26 +138,7 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4" data-testid="rfq-form">
-          {loggedInCustomer ? (
-            /* Logged-in: replace 6 contact inputs with a compact summary card.
-               GST is still validated server-side via existing rfq-lead endpoint. */
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3" data-testid="rfq-modal-loggedin-card">
-              <Lock className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-blue-900">Submitting as</p>
-                  <Link to="/account" className="text-xs text-blue-600 hover:underline" onClick={onClose}>Edit profile</Link>
-                </div>
-                <div className="text-sm text-blue-900 space-y-0.5">
-                  {form.name && <p><span className="text-blue-700/70">Name:</span> <span className="font-medium">{form.name}</span></p>}
-                  {form.company_name && <p><span className="text-blue-700/70">Company:</span> <span className="font-medium">{form.company_name}</span></p>}
-                  {form.email && <p><span className="text-blue-700/70">Email:</span> <span className="font-medium break-all">{form.email}</span></p>}
-                  {form.phone && <p><span className="text-blue-700/70">Phone:</span> <span className="font-medium">{form.country_code}{form.phone}</span></p>}
-                  {form.gst_number && <p><span className="text-blue-700/70">GST:</span> <span className="font-medium font-mono text-xs">{form.gst_number}</span></p>}
-                </div>
-              </div>
-            </div>
-          ) : (
+          {loggedInCustomer ? null : (
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
