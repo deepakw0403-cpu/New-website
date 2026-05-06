@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { ArrowRight, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowRight, X, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { trackGenerateLead } from "../lib/analytics";
 
@@ -26,6 +27,39 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
     name: "", phone: "", country_code: "+91", gst_number: "", bin_number: "", company_name: "", email: "", fabric_type: "", location: ""
   });
   const [submitting, setSubmitting] = useState(false);
+  const [loggedInCustomer, setLoggedInCustomer] = useState(null);
+
+  // If a customer is logged in, prefill contact fields and hide the contact
+  // section in the modal — they shouldn't have to retype name/email/phone/GST.
+  useEffect(() => {
+    if (!open) return;
+    const token = localStorage.getItem("lf_customer_token");
+    if (!token) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API}/api/customer/me`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;
+        const me = await res.json();
+        if (cancelled) return;
+        setLoggedInCustomer(me);
+        const realEmail = (me.email || "").endsWith("@phone.locofast.local") ? "" : (me.email || "");
+        // Strip 91 prefix if present (modal expects local part since it shows code separately)
+        let localPhone = (me.phone || "").replace(/^\+/, "").replace(/^91/, "");
+        setForm((prev) => ({
+          ...prev,
+          name: prev.name || me.name || "",
+          email: prev.email || realEmail,
+          phone: prev.phone || localPhone || "",
+          company_name: prev.company_name || me.company || "",
+          gst_number: prev.gst_number || me.gstin || "",
+          location: prev.location || (me.gstin ? "India" : ""),
+          country_code: prev.country_code || "+91",
+        }));
+      } catch { /* manual fallback */ }
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
 
   const isIndia = form.location === "India";
   const isBangladesh = form.location === "Bangladesh";
@@ -44,19 +78,27 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isIndia && !form.gst_number) {
-      toast.error("GST Number is required for India");
-      return;
-    }
-    if (isBangladesh && !form.bin_number) {
-      toast.error("BIN is required for Bangladesh");
-      return;
+    // Logged-in users skip GST/BIN client validation — server uses profile
+    if (!loggedInCustomer) {
+      if (isIndia && !form.gst_number) {
+        toast.error("GST Number is required for India");
+        return;
+      }
+      if (isBangladesh && !form.bin_number) {
+        toast.error("BIN is required for Bangladesh");
+        return;
+      }
     }
     setSubmitting(true);
     try {
       await fetch(`${API}/api/enquiries/rfq-lead`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(localStorage.getItem("lf_customer_token")
+            ? { Authorization: `Bearer ${localStorage.getItem("lf_customer_token")}` }
+            : {}),
+        },
         body: JSON.stringify({
           ...form,
           phone: `${form.country_code}${form.phone}`,
@@ -68,7 +110,13 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
       toast.success("Your enquiry has been submitted! Our team will reach out within 24 hours.");
       trackGenerateLead({ source: fabricUrl ? 'SKU Page RFQ' : 'Homepage RFQ', fabric_type: form.fabric_type, fabric_name: fabricName || '', location: form.location });
       onClose();
-      setForm({ name: "", phone: "", country_code: "+91", gst_number: "", bin_number: "", company_name: "", email: "", fabric_type: "", location: "" });
+      // Don't blow away the prefilled values for logged-in users — only reset
+      // the per-enquiry fields (fabric_type)
+      if (loggedInCustomer) {
+        setForm((p) => ({ ...p, fabric_type: "" }));
+      } else {
+        setForm({ name: "", phone: "", country_code: "+91", gst_number: "", bin_number: "", company_name: "", email: "", fabric_type: "", location: "" });
+      }
     } catch (err) {
       toast.error("Something went wrong. Please try again.");
     } finally {
@@ -91,52 +139,75 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4" data-testid="rfq-form">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500">*</span></label>
-              <input type="text" required value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Your full name" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-name" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Company Location <span className="text-red-500">*</span></label>
-              <select required value={form.location} onChange={handleLocationChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white" data-testid="rfq-location">
-                {LOCATIONS.map(loc => (<option key={loc.value} value={loc.value}>{loc.label}</option>))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
-              <div className="flex">
-                <span className="px-3 py-2.5 bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg text-sm text-gray-700 flex items-center" data-testid="rfq-country-code">
-                  {form.country_code}
-                </span>
-                <input type="tel" required value={form.phone} onChange={(e) => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="Phone number" className="w-full px-3 py-2.5 border border-gray-300 rounded-r-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-phone" />
+          {loggedInCustomer ? (
+            /* Logged-in: replace 6 contact inputs with a compact summary card.
+               GST is still validated server-side via existing rfq-lead endpoint. */
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3" data-testid="rfq-modal-loggedin-card">
+              <Lock className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-blue-900">Submitting as</p>
+                  <Link to="/account" className="text-xs text-blue-600 hover:underline" onClick={onClose}>Edit profile</Link>
+                </div>
+                <div className="text-sm text-blue-900 space-y-0.5">
+                  {form.name && <p><span className="text-blue-700/70">Name:</span> <span className="font-medium">{form.name}</span></p>}
+                  {form.company_name && <p><span className="text-blue-700/70">Company:</span> <span className="font-medium">{form.company_name}</span></p>}
+                  {form.email && <p><span className="text-blue-700/70">Email:</span> <span className="font-medium break-all">{form.email}</span></p>}
+                  {form.phone && <p><span className="text-blue-700/70">Phone:</span> <span className="font-medium">{form.country_code}{form.phone}</span></p>}
+                  {form.gst_number && <p><span className="text-blue-700/70">GST:</span> <span className="font-medium font-mono text-xs">{form.gst_number}</span></p>}
+                </div>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email ID <span className="text-red-500">*</span></label>
-              <input type="email" required value={form.email} onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))} placeholder="you@company.com" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-email" />
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500">*</span></label>
+                  <input type="text" required value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Your full name" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-name" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Company Location <span className="text-red-500">*</span></label>
+                  <select required value={form.location} onChange={handleLocationChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white" data-testid="rfq-location">
+                    {LOCATIONS.map(loc => (<option key={loc.value} value={loc.value}>{loc.label}</option>))}
+                  </select>
+                </div>
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Company Name <span className="text-red-500">*</span></label>
-            <input type="text" required value={form.company_name} onChange={(e) => setForm(p => ({ ...p, company_name: e.target.value }))} placeholder="Your company" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-company" />
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
+                  <div className="flex">
+                    <span className="px-3 py-2.5 bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg text-sm text-gray-700 flex items-center" data-testid="rfq-country-code">
+                      {form.country_code}
+                    </span>
+                    <input type="tel" required value={form.phone} onChange={(e) => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="Phone number" className="w-full px-3 py-2.5 border border-gray-300 rounded-r-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-phone" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email ID <span className="text-red-500">*</span></label>
+                  <input type="email" required value={form.email} onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))} placeholder="you@company.com" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-email" />
+                </div>
+              </div>
 
-          {isIndia && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">GST Number <span className="text-red-500">*</span></label>
-              <input type="text" required value={form.gst_number} onChange={(e) => setForm(p => ({ ...p, gst_number: e.target.value.toUpperCase() }))} placeholder="22AAAAA0000A1Z5" maxLength={15} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-gst" />
-            </div>
-          )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Company Name <span className="text-red-500">*</span></label>
+                <input type="text" required value={form.company_name} onChange={(e) => setForm(p => ({ ...p, company_name: e.target.value }))} placeholder="Your company" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-company" />
+              </div>
 
-          {isBangladesh && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">BIN (Business Identification Number) <span className="text-red-500">*</span></label>
-              <input type="text" required value={form.bin_number} onChange={(e) => setForm(p => ({ ...p, bin_number: e.target.value }))} placeholder="Enter your BIN" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-bin" />
-            </div>
+              {isIndia && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">GST Number <span className="text-red-500">*</span></label>
+                  <input type="text" required value={form.gst_number} onChange={(e) => setForm(p => ({ ...p, gst_number: e.target.value.toUpperCase() }))} placeholder="22AAAAA0000A1Z5" maxLength={15} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-gst" />
+                </div>
+              )}
+
+              {isBangladesh && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">BIN (Business Identification Number) <span className="text-red-500">*</span></label>
+                  <input type="text" required value={form.bin_number} onChange={(e) => setForm(p => ({ ...p, bin_number: e.target.value }))} placeholder="Enter your BIN" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-bin" />
+                </div>
+              )}
+            </>
           )}
 
           {fabricUrl ? (
