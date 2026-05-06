@@ -34,17 +34,22 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
   useEffect(() => {
     if (!open) return;
     const token = localStorage.getItem("lf_customer_token");
+    // eslint-disable-next-line no-console
+    console.log("[RFQModal] open=true, token present:", !!token);
     if (!token) return;
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch(`${API}/api/customer/me`, { headers: { Authorization: `Bearer ${token}` } });
+        // eslint-disable-next-line no-console
+        console.log("[RFQModal] /api/customer/me status:", res.status);
         if (!res.ok) return;
         const me = await res.json();
+        // eslint-disable-next-line no-console
+        console.log("[RFQModal] customer fetched:", { name: me.name, email: me.email, hasGst: !!me.gstin });
         if (cancelled) return;
         setLoggedInCustomer(me);
         const realEmail = (me.email || "").endsWith("@phone.locofast.local") ? "" : (me.email || "");
-        // Strip 91 prefix if present (modal expects local part since it shows code separately)
         let localPhone = (me.phone || "").replace(/^\+/, "").replace(/^91/, "");
         setForm((prev) => ({
           ...prev,
@@ -56,7 +61,10 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
           location: prev.location || (me.gstin ? "India" : ""),
           country_code: prev.country_code || "+91",
         }));
-      } catch { /* manual fallback */ }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[RFQModal] customer fetch failed:", err);
+      }
     })();
     return () => { cancelled = true; };
   }, [open]);
