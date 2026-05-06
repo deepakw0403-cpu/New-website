@@ -8,14 +8,12 @@
   --locofast-blue-dark: #1D4ED8;
   --locofast-blue-light: #3B82F6;
   
-  /* Neutrals — these literal-hex aliases are still consumed by the legacy
-     scrollbar/body styles below. They're separate from the tailwind tokens
-     defined in @layer base :root (further down) which use HSL channels. */
+  /* Neutrals */
   --primary: #1F2937;
   --secondary: #F3F4F6;
-  --color-bg: #FFFFFF;
+  --background: #FFFFFF;
   --surface: #F9FAFB;
-  --color-border: #E5E7EB;
+  --border: #E5E7EB;
   
   /* Status */
   --success: #10B981;
@@ -38,7 +36,7 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--color-bg);
+  background-color: var(--background);
   color: var(--text-primary);
 }
 
@@ -60,7 +58,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: var(--border);
   border-radius: 3px;
 }
 

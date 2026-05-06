@@ -9,10 +9,10 @@
 ## 1. Endpoint
 
 ```
-POST  https://fabric-sourcing-cms.preview.emergentagent.com/api/external/rfq
+POST  https://www.locofast.com/api/external/rfq
 ```
 
-> ⚠ **This is the staging/test environment.** Use this URL to build, test, and certify your integration end-to-end. We'll switch you over to the production URL (`https://www.locofast.com/api/external/rfq`) and rotate API keys once your team is ready to go live.
+> Use the production URL when going live. For testing use the preview URL provided to you separately.
 
 ---
 
@@ -133,7 +133,7 @@ Plus the **6 common contact fields** for every category: `full_name`, `email`, `
 ### 5.1 Cotton — full fabric spec
 
 ```bash
-curl -X POST "https://fabric-sourcing-cms.preview.emergentagent.com/api/external/rfq" \
+curl -X POST "https://www.locofast.com/api/external/rfq" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: lf_ingest_xxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
   -d '{
@@ -174,7 +174,7 @@ curl -X POST "https://fabric-sourcing-cms.preview.emergentagent.com/api/external
 ### 5.2 Viscose
 
 ```bash
-curl -X POST "https://fabric-sourcing-cms.preview.emergentagent.com/api/external/rfq" \
+curl -X POST "https://www.locofast.com/api/external/rfq" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: lf_ingest_xxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
   -d '{
@@ -198,7 +198,7 @@ curl -X POST "https://fabric-sourcing-cms.preview.emergentagent.com/api/external
 ### 5.3 Denim
 
 ```bash
-curl -X POST "https://fabric-sourcing-cms.preview.emergentagent.com/api/external/rfq" \
+curl -X POST "https://www.locofast.com/api/external/rfq" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: lf_ingest_xxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
   -d '{
@@ -226,7 +226,7 @@ curl -X POST "https://fabric-sourcing-cms.preview.emergentagent.com/api/external
 ### 5.4 Knits
 
 ```bash
-curl -X POST "https://fabric-sourcing-cms.preview.emergentagent.com/api/external/rfq" \
+curl -X POST "https://www.locofast.com/api/external/rfq" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: lf_ingest_xxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
   -d '{
@@ -374,8 +374,8 @@ If you need higher limits for a one-time bulk import, let us know and we'll temp
 A machine-readable schema is available at:
 
 ```
-GET  https://fabric-sourcing-cms.preview.emergentagent.com/api/docs
-GET  https://fabric-sourcing-cms.preview.emergentagent.com/api/openapi.json
+GET  https://www.locofast.com/api/docs
+GET  https://www.locofast.com/openapi.json
 ```
 
 The `/api/docs` page is interactive — paste your `X-API-Key` once, then click "Try it out" on any payload to send a real request.

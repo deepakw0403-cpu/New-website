@@ -1,23 +1,23 @@
 """
-Gupshup WhatsApp OTP service — Enterprise Gateway flow.
-
-Uses Gupshup's classic Enterprise Gateway (mediaapi.smsgupshup.com) which
-the user's account is configured to deliver WhatsApp messages through.
-Auth is userid + password (form-urlencoded), not the modern api.gupshup.io
-apikey header.
+Gupshup WhatsApp service — sends OTPs via the approved
+authentication-category template.
 
 Env keys (set in /app/backend/.env):
-  GUPSHUP_USERID    — Numeric userid from Gupshup dashboard (e.g. 2000213118)
-  GUPSHUP_PASSWORD  — Password for the gateway user
+  GUPSHUP_API_KEY            — App API Key from Gupshup dashboard
+  GUPSHUP_APP_NAME           — App name (used as src.name)
+  GUPSHUP_SOURCE_PHONE       — Verified WA Business number, E.164 without '+'
+                                (e.g. 918920724832)
+  GUPSHUP_OTP_TEMPLATE_ID    — Approved template UUID
 """
 import os
 import re
+import json
 import logging
 import httpx
 
 logger = logging.getLogger(__name__)
 
-GUPSHUP_GATEWAY_URL = "https://mediaapi.smsgupshup.com/GatewayAPI/rest"
+GUPSHUP_TEMPLATE_URL = "https://api.gupshup.io/wa/api/v1/template/msg"
 
 
 def normalize_indian_phone(raw: str) -> tuple[bool, str | None]:
@@ -34,6 +34,7 @@ def normalize_indian_phone(raw: str) -> tuple[bool, str | None]:
     digits = re.sub(r"\D", "", str(raw))
 
     if len(digits) == 10:
+        # No country code
         if digits[0] not in "6789":
             return False, None
         return True, "91" + digits
@@ -46,78 +47,50 @@ def normalize_indian_phone(raw: str) -> tuple[bool, str | None]:
     return False, None
 
 
-def _build_otp_message(otp_code: str) -> str:
-    """Locofast-branded OTP body. Multi-line preserved via real newlines —
-    httpx will URL-encode them correctly when posted as form data."""
-    return (
-        f"Hi,\n\n"
-        f"Your Locofast reference number is {otp_code}.\n\n"
-        f"Thanks,\nTeam Locofast"
-    )
-
-
 async def send_whatsapp_otp(destination_phone_e164: str, otp_code: str) -> dict:
     """
-    Send a 6-digit OTP via Gupshup Enterprise Gateway (WhatsApp channel
-    on this account).
+    Send a 6-digit OTP via Gupshup WhatsApp template.
 
     `destination_phone_e164` must be E.164 without leading '+', e.g. 918130087033.
-    Gupshup's gateway accepts `+91...` or `91...` for `send_to`; we send the
-    `+`-prefixed form per the user's verified curl.
-
     Returns dict with `success: bool`, `message_id: str|None`, `error: str|None`.
     """
-    userid = os.environ.get("GUPSHUP_USERID", "").strip()
-    password = os.environ.get("GUPSHUP_PASSWORD", "")  # don't strip — pwd may contain leading/trailing quirks
+    api_key = os.environ.get("GUPSHUP_API_KEY", "").strip()
+    src_name = os.environ.get("GUPSHUP_APP_NAME", "").strip()
+    source = os.environ.get("GUPSHUP_SOURCE_PHONE", "").strip()
+    template_id = os.environ.get("GUPSHUP_OTP_TEMPLATE_ID", "").strip()
 
-    if not userid or not password:
+    if not all([api_key, src_name, source, template_id]):
         return {"success": False, "error": "Gupshup credentials not configured"}
 
-    send_to = destination_phone_e164 if destination_phone_e164.startswith("+") else "+" + destination_phone_e164
-
     payload = {
-        "userid": userid,
-        "password": password,
-        "method": "SendMessage",
-        "send_to": send_to,
-        "msg_type": "TEXT",
-        "v": "1.1",
-        "format": "json",
-        "msg": _build_otp_message(otp_code),
+        "source": source,
+        "destination": destination_phone_e164,
+        "src.name": src_name,
+        "template": json.dumps({"id": template_id, "params": [otp_code]}),
     }
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             r = await client.post(
-                GUPSHUP_GATEWAY_URL,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                GUPSHUP_TEMPLATE_URL,
+                headers={
+                    "apikey": api_key,
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
                 data=payload,
             )
+        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {"raw": r.text}
 
-        # Gupshup gateway returns either JSON (when format=json) or text fallback.
-        try:
-            body = r.json()
-        except Exception:
-            body = {"raw": r.text}
+        if r.status_code in range(200, 300) and (body.get("status") == "submitted" or body.get("messageId")):
+            logger.info(f"Gupshup OTP sent → {destination_phone_e164}: messageId={body.get('messageId')}")
+            return {"success": True, "message_id": body.get("messageId"), "raw": body}
 
-        # Gupshup Enterprise success shape:
-        #   {"response": {"id": "<msgId>", "phone": "+91...", "details": "Message sent successfully", "status": "success"}}
-        # Failure shape:
-        #   {"response": {"status": "error", "details": "<reason>", "id": null, "phone": "+91..."}}
-        resp = (body.get("response") or {}) if isinstance(body, dict) else {}
-        status_str = str(resp.get("status", "")).lower()
-        msg_id = resp.get("id")
-        details = resp.get("details") or ""
-
-        if r.status_code in range(200, 300) and status_str == "success" and msg_id:
-            logger.info(f"Gupshup OTP sent → {send_to}: id={msg_id}")
-            return {"success": True, "message_id": msg_id, "raw": body}
-
-        # Surface the most actionable error string we can find
-        err_msg = details or body.get("message") or f"Gupshup error (HTTP {r.status_code})"
         logger.error(f"Gupshup send failed (status={r.status_code}): {body}")
-        return {"success": False, "error": err_msg, "raw": body}
-
+        return {
+            "success": False,
+            "error": body.get("message") or f"Gupshup error (HTTP {r.status_code})",
+            "raw": body,
+        }
     except httpx.TimeoutException:
         return {"success": False, "error": "Gupshup request timed out"}
     except Exception as e:  # noqa: BLE001 — boundary
