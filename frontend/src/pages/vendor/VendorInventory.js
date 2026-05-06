@@ -132,7 +132,7 @@ const VendorInventoryInner = () => {
   const isKnittedForm = () => (form?.fabric_type || "").toLowerCase() === "knitted";
   const isKnittedFabric = (fabric) => (fabric?.fabric_type || "").toLowerCase() === "knitted";
   const isDenimFabric = (fabric) => fabric?.category_id === DENIM_CATEGORY_ID;
-  const shouldUseKgUnit = () => isKnittedForm() && !isDenim();
+  const shouldUseKgUnit = () => isKnittedForm() && form.category_id !== DENIM_CATEGORY_ID;
   const shouldUseKgForFabric = (fabric) => isKnittedFabric(fabric) && !isDenimFabric(fabric);
   const unit = shouldUseKgUnit() ? "kg" : "m";
   const unitLabel = shouldUseKgUnit() ? "kilograms" : "meters";
