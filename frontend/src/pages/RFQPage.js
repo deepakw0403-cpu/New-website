@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, ArrowRight, CheckCircle, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle, Send, Lock } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ const RFQPage = () => {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [loggedInCustomer, setLoggedInCustomer] = useState(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fromAccount = searchParams.get("from") === "account";
@@ -35,6 +36,35 @@ const RFQPage = () => {
     website: "",
     message: ""
   });
+
+  // If a customer is logged in, pre-fill contact + GST fields from their profile
+  // and hide those inputs in step 3 (saves typing & ensures consistent data).
+  useEffect(() => {
+    const token = localStorage.getItem("lf_customer_token");
+    if (!token) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/customer/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const me = await res.json();
+        if (cancelled) return;
+        setLoggedInCustomer(me);
+        setForm((prev) => ({
+          ...prev,
+          full_name: prev.full_name || me.name || "",
+          email: prev.email || me.email || "",
+          phone: prev.phone || me.phone || "",
+          gst_number: prev.gst_number || me.gstin || "",
+        }));
+      } catch {
+        // Token invalid / network — silently fall back to manual entry
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const categories = [
     { id: "cotton", name: "Cotton", icon: "🧵" },
@@ -506,78 +536,105 @@ const RFQPage = () => {
           {step === 3 && (
             <div data-testid="rfq-step-3">
               <h1 className="text-3xl font-semibold text-neutral-900 mb-2">Contact Details</h1>
-              <p className="text-neutral-600 mb-8">How can we reach you?</p>
+              <p className="text-neutral-600 mb-8">{loggedInCustomer ? "Confirm and submit your request" : "How can we reach you?"}</p>
 
               <div className="bg-white p-6 lg:p-8 rounded-xl border border-neutral-200 space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Full Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.full_name}
-                    onChange={(e) => handleInputChange("full_name", e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:border-[#2563EB] focus:outline-none transition-colors"
-                    placeholder="Enter your full name"
-                    data-testid="rfq-fullname"
-                  />
-                </div>
+                {loggedInCustomer ? (
+                  /* Logged-in: read-only summary card. Saves typing + ensures
+                     consistent contact info across all RFQs from this customer. */
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3" data-testid="rfq-loggedin-card">
+                    <Lock className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-blue-900 mb-2">
+                        Submitting as
+                        <Link to="/account" className="ml-2 text-xs text-blue-600 hover:underline font-normal">
+                          (edit profile)
+                        </Link>
+                      </p>
+                      <div className="text-sm text-blue-900 space-y-0.5">
+                        <p><span className="text-blue-700/70">Name:</span> <span className="font-medium">{form.full_name || "—"}</span></p>
+                        <p><span className="text-blue-700/70">Email:</span> <span className="font-medium break-all">{form.email || "—"}</span></p>
+                        <p><span className="text-blue-700/70">Phone:</span> <span className="font-medium">{form.phone || "—"}</span></p>
+                        {form.gst_number && (
+                          <p><span className="text-blue-700/70">GST:</span> <span className="font-medium font-mono text-xs">{form.gst_number}</span></p>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-blue-700/70 mt-2">We'll use these details for this RFQ. Update your profile anytime.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Full Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={form.full_name}
+                        onChange={(e) => handleInputChange("full_name", e.target.value)}
+                        className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:border-[#2563EB] focus:outline-none transition-colors"
+                        placeholder="Enter your full name"
+                        data-testid="rfq-fullname"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:border-[#2563EB] focus:outline-none transition-colors"
-                    placeholder="you@company.com"
-                    data-testid="rfq-email"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Email <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:border-[#2563EB] focus:outline-none transition-colors"
+                        placeholder="you@company.com"
+                        data-testid="rfq-email"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Phone Number <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={form.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:border-[#2563EB] focus:outline-none transition-colors"
-                    placeholder="+91 98765 43210"
-                    data-testid="rfq-phone"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Phone Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={form.phone}
+                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:border-[#2563EB] focus:outline-none transition-colors"
+                        placeholder="+91 98765 43210"
+                        data-testid="rfq-phone"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Website <span className="text-neutral-400">(Optional)</span>
-                  </label>
-                  <input
-                    type="url"
-                    value={form.website}
-                    onChange={(e) => handleInputChange("website", e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:border-[#2563EB] focus:outline-none transition-colors"
-                    placeholder="https://yourcompany.com"
-                    data-testid="rfq-website"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Website <span className="text-neutral-400">(Optional)</span>
+                      </label>
+                      <input
+                        type="url"
+                        value={form.website}
+                        onChange={(e) => handleInputChange("website", e.target.value)}
+                        className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:border-[#2563EB] focus:outline-none transition-colors"
+                        placeholder="https://yourcompany.com"
+                        data-testid="rfq-website"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    GST Number <span className="text-neutral-400">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.gst_number}
-                    onChange={(e) => handleInputChange("gst_number", e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:border-[#2563EB] focus:outline-none transition-colors"
-                    placeholder="22AAAAA0000A1Z5"
-                    data-testid="rfq-gst"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        GST Number <span className="text-neutral-400">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={form.gst_number}
+                        onChange={(e) => handleInputChange("gst_number", e.target.value)}
+                        className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:border-[#2563EB] focus:outline-none transition-colors"
+                        placeholder="22AAAAA0000A1Z5"
+                        data-testid="rfq-gst"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">

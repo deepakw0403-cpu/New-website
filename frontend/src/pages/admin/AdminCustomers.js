@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Mail, Phone, Building2, FileText, ShoppingCart, CheckCircle2, XCircle, Filter, Plus } from "lucide-react";
+import { Search, Mail, Phone, Building2, FileText, ShoppingCart, CheckCircle2, XCircle, Filter, Plus, Loader2 } from "lucide-react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -77,8 +77,11 @@ const AdminCustomers = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [creating, setCreating] = useState(false);
+  const [gstVerifying, setGstVerifying] = useState(false);
+  const [gstVerified, setGstVerified] = useState(false);
+  const [gstError, setGstError] = useState("");
 
-  const token = localStorage.getItem("admin_token");
+  const token = localStorage.getItem("locofast_token");
   const headers = { Authorization: `Bearer ${token}` };
 
   const fetchStats = async () => {
@@ -126,7 +129,48 @@ const AdminCustomers = () => {
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
+    setGstVerified(false);
+    setGstError("");
     setCreateOpen(true);
+  };
+
+  const verifyGst = async () => {
+    const gstin = (form.gstin || "").trim().toUpperCase();
+    if (gstin.length !== 15) {
+      setGstError("GSTIN must be 15 characters");
+      return;
+    }
+    setGstVerifying(true);
+    setGstError("");
+    setGstVerified(false);
+    try {
+      const r = await fetch(`${API_URL}/api/gst/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gstin }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.valid) {
+        setGstError(data.message || data.detail || "GSTIN not found in registry");
+        return;
+      }
+      // Auto-fill company name + city/state/pincode from the registry
+      setForm((prev) => ({
+        ...prev,
+        gstin,
+        company: data.legal_name || data.trade_name || prev.company,
+        city: prev.city || data.city || "",
+        state: prev.state || data.state || "",
+        pincode: prev.pincode || data.pincode || "",
+        address: prev.address || data.address || "",
+      }));
+      setGstVerified(true);
+      toast.success(`GST verified: ${data.legal_name || data.trade_name}`);
+    } catch (err) {
+      setGstError("GST verification service unavailable");
+    } finally {
+      setGstVerifying(false);
+    }
   };
 
   const submitCreate = async (e) => {
@@ -428,8 +472,38 @@ const AdminCustomers = () => {
                   <Input id="cc-company" data-testid="cc-company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} placeholder="Acme Garments Pvt Ltd" />
                 </div>
                 <div>
-                  <Label htmlFor="cc-gstin">GSTIN</Label>
-                  <Input id="cc-gstin" data-testid="cc-gstin" value={form.gstin} onChange={(e) => setForm({ ...form, gstin: e.target.value.toUpperCase() })} placeholder="27AAACR5055K1ZP" maxLength={15} />
+                  <Label htmlFor="cc-gstin" className="flex items-center gap-1">
+                    GSTIN
+                    {gstVerified && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="cc-gstin"
+                      data-testid="cc-gstin"
+                      value={form.gstin}
+                      onChange={(e) => {
+                        setForm({ ...form, gstin: e.target.value.toUpperCase() });
+                        setGstVerified(false);
+                        setGstError("");
+                      }}
+                      placeholder="27AAACR5055K1ZP"
+                      maxLength={15}
+                      className={`flex-1 font-mono uppercase ${gstError ? "border-red-400" : gstVerified ? "border-emerald-400" : ""}`}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={gstVerified ? "outline" : "secondary"}
+                      onClick={verifyGst}
+                      disabled={gstVerifying || gstVerified || (form.gstin || "").length !== 15}
+                      data-testid="cc-gst-verify-btn"
+                      className="shrink-0"
+                    >
+                      {gstVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : gstVerified ? "✓" : "Verify"}
+                    </Button>
+                  </div>
+                  {gstError && <p className="text-xs text-red-600 mt-1">{gstError}</p>}
+                  {gstVerified && <p className="text-xs text-emerald-600 mt-1">GST verified · Company auto-filled</p>}
                 </div>
                 <div className="col-span-2">
                   <Label htmlFor="cc-address">Address</Label>
