@@ -626,6 +626,10 @@ app.include_router(sitemap_router.router)
 app.include_router(reviews_router.router)
 app.include_router(upload_router.router)
 
+import admin_customers_router
+admin_customers_router.set_db(db)
+app.include_router(admin_customers_router.router)
+
 # Serve uploaded files
 app.mount("/api/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 

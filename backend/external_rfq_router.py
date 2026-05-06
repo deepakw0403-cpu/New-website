@@ -603,6 +603,15 @@ async def ingest_rfq(payload: RFQPayload, _auth: bool = Depends(require_ingest_k
     except Exception as e:
         logger.warning(f"External RFQ {rfq_number} email queue failed: {e}")
 
+    # Push to campaigns.locofast.com admin — same payload shape as the
+    # website RFQ form (server.py:create_rfq_lead) so this lead surfaces in
+    # the campaigns admin alongside organic Website RFQ leads.
+    try:
+        import asyncio
+        asyncio.create_task(_push_to_campaigns_admin(rfq_doc))
+    except Exception as e:
+        logger.warning(f"External RFQ {rfq_number} campaigns push failed: {e}")
+
     logger.info(
         f"External RFQ ingested: {rfq_number} · category={category} · "
         f"source={rfq_doc['lead_source']} · customer={customer_id} · existed={customer_existed}"
@@ -703,6 +712,50 @@ async def _resolve_or_create_customer(payload) -> tuple[str, bool]:
     }
     await db.customers.insert_one(customer_doc)
     return new_id, False
+
+
+async def _push_to_campaigns_admin(rfq_doc: dict) -> None:
+    """Forward a freshly-ingested external RFQ to campaigns.locofast.com so
+    it surfaces in the campaigns admin alongside organic website RFQ leads.
+
+    Mirrors the payload shape used by `server.py:create_rfq_lead` (the
+    public /quote form) so admins see one consistent lead format regardless
+    of source. Tagged `campaign: "Website RFQ"` per business decision —
+    external CRM leads are treated as first-class website leads.
+
+    Failures are swallowed; the RFQ is already persisted locally and will
+    reach admins via the email fan-out anyway.
+    """
+    import httpx
+
+    payload = {
+        "name": rfq_doc.get("full_name") or "",
+        "company": rfq_doc.get("company") or "",
+        "email": rfq_doc.get("email") or "",
+        "phone": rfq_doc.get("phone") or "",
+        "company_type": (rfq_doc.get("category") or "").capitalize() or "Buyer",
+        "campaign": "Website RFQ",
+    }
+
+    gst = rfq_doc.get("gst_number") or ""
+    if gst:
+        payload["gst_info"] = {
+            "legal_name": rfq_doc.get("company") or "",
+            "trade_name": rfq_doc.get("company") or "",
+            "status": "",
+            "city": rfq_doc.get("delivery_city") or "",
+            "state": rfq_doc.get("delivery_state") or "",
+            "address": "",
+            "fabric_type": rfq_doc.get("category") or "",
+            "gstin": gst,
+        }
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            await client.post("https://campaigns.locofast.com/api/leads", json=payload)
+        logger.info(f"External RFQ {rfq_doc.get('rfq_number')} pushed to campaigns admin")
+    except Exception as e:
+        logger.warning(f"campaigns.locofast push failed for {rfq_doc.get('rfq_number')}: {e}")
 
 
 def _format_enquiry_message(d: dict) -> str:
