@@ -34,19 +34,13 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
   useEffect(() => {
     if (!open) return;
     const token = localStorage.getItem("lf_customer_token");
-    // eslint-disable-next-line no-console
-    console.log("[RFQModal] open=true, token present:", !!token);
     if (!token) return;
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch(`${API}/api/customer/profile`, { headers: { Authorization: `Bearer ${token}` } });
-        // eslint-disable-next-line no-console
-        console.log("[RFQModal] /api/customer/profile status:", res.status);
         if (!res.ok) return;
         const me = await res.json();
-        // eslint-disable-next-line no-console
-        console.log("[RFQModal] customer fetched:", { name: me.name, email: me.email, hasGst: !!me.gstin });
         if (cancelled) return;
         setLoggedInCustomer(me);
         const realEmail = (me.email || "").endsWith("@phone.locofast.local") ? "" : (me.email || "");
@@ -61,10 +55,7 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
           location: prev.location || (me.gstin ? "India" : ""),
           country_code: prev.country_code || "+91",
         }));
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.warn("[RFQModal] customer fetch failed:", err);
-      }
+      } catch { /* manual fallback */ }
     })();
     return () => { cancelled = true; };
   }, [open]);
@@ -234,10 +225,10 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
           )}
 
           <button type="submit" disabled={submitting} className="w-full py-3 bg-[#2563EB] text-white font-medium rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors flex items-center justify-center gap-2" data-testid="rfq-submit">
-            {submitting ? "Submitting..." : "Get Fabric Samples"}
+            {submitting ? "Submitting..." : "Submit RFQ"}
             {!submitting && <ArrowRight size={16} />}
           </button>
-          <p className="text-center text-xs text-gray-400">Free samples &middot; No commitment &middot; Expert sourcing support</p>
+          <p className="text-center text-xs text-gray-400">Free quote &middot; No commitment &middot; Expert sourcing support</p>
         </form>
       </div>
     </div>
