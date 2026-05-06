@@ -52,10 +52,11 @@ const RFQPage = () => {
         const me = await res.json();
         if (cancelled) return;
         setLoggedInCustomer(me);
+        const realEmail = (me.email || "").endsWith("@phone.locofast.local") ? "" : (me.email || "");
         setForm((prev) => ({
           ...prev,
           full_name: prev.full_name || me.name || "",
-          email: prev.email || me.email || "",
+          email: prev.email || realEmail,
           phone: prev.phone || me.phone || "",
           gst_number: prev.gst_number || me.gstin || "",
         }));
@@ -541,27 +542,33 @@ const RFQPage = () => {
               <div className="bg-white p-6 lg:p-8 rounded-xl border border-neutral-200 space-y-5">
                 {loggedInCustomer ? (
                   /* Logged-in: read-only summary card. Saves typing + ensures
-                     consistent contact info across all RFQs from this customer. */
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3" data-testid="rfq-loggedin-card">
-                    <Lock className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-blue-900 mb-2">
-                        Submitting as
-                        <Link to="/account" className="ml-2 text-xs text-blue-600 hover:underline font-normal">
-                          (edit profile)
-                        </Link>
-                      </p>
-                      <div className="text-sm text-blue-900 space-y-0.5">
-                        <p><span className="text-blue-700/70">Name:</span> <span className="font-medium">{form.full_name || "—"}</span></p>
-                        <p><span className="text-blue-700/70">Email:</span> <span className="font-medium break-all">{form.email || "—"}</span></p>
-                        <p><span className="text-blue-700/70">Phone:</span> <span className="font-medium">{form.phone || "—"}</span></p>
-                        {form.gst_number && (
-                          <p><span className="text-blue-700/70">GST:</span> <span className="font-medium font-mono text-xs">{form.gst_number}</span></p>
-                        )}
+                     consistent contact info across all RFQs from this customer.
+                     Phone-only logins (WhatsApp OTP) get a synthetic email
+                     `phone+91...@phone.locofast.local` — we suppress that and
+                     show the phone instead so the user sees clean values. */
+                  (() => {
+                    const isSyntheticEmail = (form.email || "").endsWith("@phone.locofast.local");
+                    return (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3" data-testid="rfq-loggedin-card">
+                        <Lock className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-blue-900 mb-2">
+                            Submitting as
+                            <Link to="/account" className="ml-2 text-xs text-blue-600 hover:underline font-normal">
+                              (edit profile)
+                            </Link>
+                          </p>
+                          <div className="text-sm text-blue-900 space-y-0.5">
+                            {form.full_name && <p><span className="text-blue-700/70">Name:</span> <span className="font-medium">{form.full_name}</span></p>}
+                            {!isSyntheticEmail && form.email && <p><span className="text-blue-700/70">Email:</span> <span className="font-medium break-all">{form.email}</span></p>}
+                            {form.phone && <p><span className="text-blue-700/70">Phone:</span> <span className="font-medium">+{form.phone.replace(/^\+/, "")}</span></p>}
+                            {form.gst_number && <p><span className="text-blue-700/70">GST:</span> <span className="font-medium font-mono text-xs">{form.gst_number}</span></p>}
+                          </div>
+                          <p className="text-[11px] text-blue-700/70 mt-2">We'll use these details for this RFQ. Update your profile anytime.</p>
+                        </div>
                       </div>
-                      <p className="text-[11px] text-blue-700/70 mt-2">We'll use these details for this RFQ. Update your profile anytime.</p>
-                    </div>
-                  </div>
+                    );
+                  })()
                 ) : (
                   <>
                     <div>

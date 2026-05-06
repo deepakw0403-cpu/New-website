@@ -113,7 +113,14 @@ const CustomerAccountPage = () => {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">My Account</h1>
-              <p className="text-gray-500 mt-1">{customer?.email}</p>
+              <p className="text-gray-500 mt-1">
+                {(() => {
+                  const e = customer?.email || "";
+                  const isPlaceholder = e.endsWith("@phone.locofast.local");
+                  if (isPlaceholder) return customer?.phone ? `+${customer.phone}` : "Phone-only account";
+                  return e;
+                })()}
+              </p>
             </div>
             <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-200" data-testid="logout-btn">
               <LogOut size={16} />Logout
