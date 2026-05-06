@@ -10,6 +10,7 @@ const AdminLayout = ({ children }) => {
   const navItems = [
     { path: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { path: "/admin/orders", label: "Orders", icon: ShoppingCart },
+    { path: "/admin/customers", label: "Customers", icon: Users },
     { path: "/admin/rfq", label: "RFQ", icon: ClipboardList },
     { path: "/admin/fabrics", label: "Fabrics", icon: Layers },
     { path: "/admin/articles", label: "Articles", icon: Palette },
