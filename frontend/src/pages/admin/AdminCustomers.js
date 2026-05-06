@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
-import { Search, Mail, Phone, Building2, FileText, ShoppingCart, CheckCircle2, XCircle, Filter } from "lucide-react";
+import { Search, Mail, Phone, Building2, FileText, ShoppingCart, CheckCircle2, XCircle, Filter, Plus } from "lucide-react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Textarea } from "../../components/ui/textarea";
 import { Badge } from "../../components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "../../components/ui/dialog";
 import {
   Select,
@@ -27,6 +30,7 @@ const sourceBadge = (via) => {
     external_api: { label: "External API", cls: "bg-purple-50 text-purple-700 border-purple-200" },
     whatsapp_otp: { label: "WhatsApp", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
     email_otp: { label: "Email OTP", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+    admin_manual: { label: "Admin", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   };
   const m = map[via] || { label: via, cls: "bg-gray-50 text-gray-700 border-gray-200" };
   return <Badge variant="outline" className={`text-xs ${m.cls}`}>{m.label}</Badge>;
@@ -55,6 +59,11 @@ const StatCard = ({ label, value, accent = "blue" }) => {
   );
 };
 
+const EMPTY_FORM = {
+  name: "", email: "", phone: "", company: "", gstin: "",
+  address: "", city: "", state: "", pincode: "", notes: "",
+};
+
 const AdminCustomers = () => {
   const [customers, setCustomers] = useState([]);
   const [stats, setStats] = useState(null);
@@ -65,6 +74,9 @@ const AdminCustomers = () => {
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [creating, setCreating] = useState(false);
 
   const token = localStorage.getItem("admin_token");
   const headers = { Authorization: `Bearer ${token}` };
@@ -112,6 +124,60 @@ const AdminCustomers = () => {
     }
   };
 
+  const openCreate = () => {
+    setForm(EMPTY_FORM);
+    setCreateOpen(true);
+  };
+
+  const submitCreate = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim()) {
+      toast.error("Name and email are required");
+      return;
+    }
+    setCreating(true);
+    try {
+      const payload = Object.fromEntries(
+        Object.entries(form).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v])
+      );
+      // Strip empty optional strings — backend treats "" as falsy anyway
+      if (!payload.phone) delete payload.phone;
+      if (!payload.gstin) delete payload.gstin;
+
+      const r = await fetch(`${API_URL}/api/admin/customers/`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await r.json().catch(() => ({}));
+
+      if (r.status === 409) {
+        const ex = data?.detail?.existing_customer;
+        toast.error(`A customer already exists with this email/phone${ex ? `: ${ex.name || ex.email}` : ""}`);
+        return;
+      }
+      if (!r.ok) {
+        const msg = typeof data?.detail === "string"
+          ? data.detail
+          : Array.isArray(data?.detail)
+            ? data.detail.map(e => `${e.loc?.slice(-1)[0]}: ${e.msg}`).join(", ")
+            : "Failed to create customer";
+        toast.error(msg);
+        return;
+      }
+
+      toast.success(`Customer "${form.name}" created`);
+      setCreateOpen(false);
+      setForm(EMPTY_FORM);
+      fetchCustomers();
+      fetchStats();
+    } catch {
+      toast.error("Failed to create customer");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div data-testid="admin-customers-page" className="space-y-6">
@@ -121,14 +187,19 @@ const AdminCustomers = () => {
             <h1 className="text-2xl font-bold">Customers</h1>
             <p className="text-gray-500 text-sm mt-1">All registered buyers across email, WhatsApp, and external API sources</p>
           </div>
+          <Button onClick={openCreate} data-testid="create-customer-btn" className="gap-2">
+            <Plus className="w-4 h-4" />
+            New Customer
+          </Button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <StatCard label="Total Customers" value={stats?.total} accent="blue" />
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <StatCard label="Total" value={stats?.total} accent="blue" />
           <StatCard label="External API" value={stats?.via_external_api} accent="purple" />
           <StatCard label="WhatsApp OTP" value={stats?.via_whatsapp_otp} accent="emerald" />
           <StatCard label="Email OTP" value={stats?.via_email_otp} accent="indigo" />
+          <StatCard label="Admin-added" value={stats?.via_admin_manual} accent="amber" />
           <StatCard label="With GST" value={stats?.with_gst} accent="amber" />
         </div>
 
@@ -154,6 +225,7 @@ const AdminCustomers = () => {
               <SelectItem value="external_api">External API</SelectItem>
               <SelectItem value="whatsapp_otp">WhatsApp OTP</SelectItem>
               <SelectItem value="email_otp">Email OTP</SelectItem>
+              <SelectItem value="admin_manual">Admin-added</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -328,6 +400,66 @@ const AdminCustomers = () => {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Create Customer Dialog */}
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogContent className="max-w-2xl" data-testid="create-customer-modal">
+            <DialogHeader>
+              <DialogTitle>Add new customer</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={submitCreate} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <Label htmlFor="cc-name">Full name <span className="text-red-500">*</span></Label>
+                  <Input id="cc-name" data-testid="cc-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Aarav Sharma" required />
+                </div>
+                <div>
+                  <Label htmlFor="cc-email">Email <span className="text-red-500">*</span></Label>
+                  <Input id="cc-email" data-testid="cc-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="aarav@acme.in" required />
+                </div>
+                <div>
+                  <Label htmlFor="cc-phone">Phone</Label>
+                  <Input id="cc-phone" data-testid="cc-phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+91 98765 43210" />
+                </div>
+                <div>
+                  <Label htmlFor="cc-company">Company</Label>
+                  <Input id="cc-company" data-testid="cc-company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} placeholder="Acme Garments Pvt Ltd" />
+                </div>
+                <div>
+                  <Label htmlFor="cc-gstin">GSTIN</Label>
+                  <Input id="cc-gstin" data-testid="cc-gstin" value={form.gstin} onChange={(e) => setForm({ ...form, gstin: e.target.value.toUpperCase() })} placeholder="27AAACR5055K1ZP" maxLength={15} />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="cc-address">Address</Label>
+                  <Input id="cc-address" data-testid="cc-address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Street, area" />
+                </div>
+                <div>
+                  <Label htmlFor="cc-city">City</Label>
+                  <Input id="cc-city" data-testid="cc-city" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="Mumbai" />
+                </div>
+                <div>
+                  <Label htmlFor="cc-state">State</Label>
+                  <Input id="cc-state" data-testid="cc-state" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} placeholder="Maharashtra" />
+                </div>
+                <div>
+                  <Label htmlFor="cc-pincode">Pincode</Label>
+                  <Input id="cc-pincode" data-testid="cc-pincode" value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} placeholder="400001" maxLength={10} />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="cc-notes">Internal notes</Label>
+                  <Textarea id="cc-notes" data-testid="cc-notes" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Any context for the team — visible only to admins" />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">
+                The customer will be created as an admin-added profile. They can later log in via Email or WhatsApp OTP using this email/phone — orders &amp; RFQs will auto-link.
+              </p>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>Cancel</Button>
+                <Button type="submit" disabled={creating} data-testid="cc-submit">{creating ? "Creating…" : "Create customer"}</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>

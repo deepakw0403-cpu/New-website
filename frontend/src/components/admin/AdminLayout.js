@@ -52,7 +52,7 @@ const AdminLayout = ({ children }) => {
           <p className="text-neutral-500 text-sm">Admin Panel</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto" data-testid="admin-nav-scroll">
           {navItems.map((item) => (
             <Link
               key={item.path}
