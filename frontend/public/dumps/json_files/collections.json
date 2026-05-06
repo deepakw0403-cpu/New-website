@@ -1,0 +1,60 @@
+[
+  {
+    "id": "36f64218-9292-4b19-a1b1-ae6a33c58365",
+    "name": "Summer 2026",
+    "description": "Lightweight breathable fabrics perfect for summer apparel.",
+    "image_url": "https://images.unsplash.com/photo-1706802196296-0c572b2495e9?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200",
+    "fabric_ids": [
+      "1ccd18c8-dca3-43eb-b375-c98d25d567ec",
+      "73939444-8b32-48f7-8bb3-70fef7b69645",
+      "b48164be-6a03-49c1-871c-4d576326e119"
+    ],
+    "is_featured": true,
+    "created_at": "2026-02-09T09:50:29.495729+00:00"
+  },
+  {
+    "id": "74950efa-6149-45a8-af91-7a5e26bf8eb6",
+    "name": "Sun Ready Fabrics",
+    "description": "UV-protective fabrics designed for outdoor and summer wear",
+    "image_url": "https://images.unsplash.com/photo-1634225176815-9d73c7c3b4d6?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200",
+    "fabric_ids": [],
+    "is_featured": false,
+    "created_at": "2026-02-18T12:56:39.708730+00:00"
+  },
+  {
+    "id": "5e9f0a30-9702-450d-bbec-6f96ebe4dc9c",
+    "name": "Soft Weave Studio",
+    "description": "Premium soft-touch fabrics for comfort-focused apparel",
+    "image_url": "https://images.unsplash.com/photo-1673168782357-633ca69ebca3?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200",
+    "fabric_ids": [],
+    "is_featured": false,
+    "created_at": "2026-02-18T12:56:39.870365+00:00"
+  },
+  {
+    "id": "ffa8d8c4-63e7-4e07-a368-eb70eb1979b4",
+    "name": "The Breeze Collection",
+    "description": "Lightweight, breathable fabrics for effortless comfort",
+    "image_url": "https://images.unsplash.com/photo-1747669009668-a45ca9666593?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200",
+    "fabric_ids": [],
+    "is_featured": true,
+    "created_at": "2026-02-18T12:56:39.975278+00:00"
+  },
+  {
+    "id": "1f0c5698-cb14-43f5-88ed-ed200bcac59e",
+    "name": "Air Light Series",
+    "description": "Engineered to be much lighter than conventional alternatives",
+    "image_url": "https://images.unsplash.com/photo-1757382603782-839864de55d7?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200",
+    "fabric_ids": [],
+    "is_featured": false,
+    "created_at": "2026-02-18T12:56:40.114051+00:00"
+  },
+  {
+    "id": "0e7856b3-c400-4df9-b0ec-32af1f493d49",
+    "name": "Summer 2026",
+    "description": "Lightweight breathable fabrics perfect for summer apparel",
+    "image_url": "https://images.unsplash.com/photo-1640746942093-cec8e647596d?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200",
+    "fabric_ids": [],
+    "is_featured": true,
+    "created_at": "2026-02-18T12:56:40.216206+00:00"
+  }
+]

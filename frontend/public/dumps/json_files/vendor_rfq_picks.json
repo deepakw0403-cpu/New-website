@@ -1,0 +1,44 @@
+[
+  {
+    "id": "9526e91a-349c-4dfe-93c2-08e26f4db70a",
+    "rfq_id": "288172b2-22d1-47de-bd0c-653d5b46a262",
+    "vendor_id": "67cfb8c8-76b9-4795-992d-37d7edc3907a",
+    "status": "submitted",
+    "picked_at": "2026-05-02T07:26:58.236447+00:00"
+  },
+  {
+    "rfq_id": "fe323c9d-1539-4327-847a-eb8466335e5e",
+    "vendor_id": "67cfb8c8-76b9-4795-992d-37d7edc3907a",
+    "id": "211b22b2-bdce-42e5-81c2-e62e6d95f887",
+    "picked_at": "2026-05-02T08:03:03.532553+00:00",
+    "status": "submitted"
+  },
+  {
+    "rfq_id": "da1d2cdb-f7f1-4eeb-a49f-f8352349ca0b",
+    "vendor_id": "67cfb8c8-76b9-4795-992d-37d7edc3907a",
+    "id": "225757ca-66ce-4467-8a5a-6450cc972405",
+    "picked_at": "2026-05-02T08:14:30.690339+00:00",
+    "status": "submitted"
+  },
+  {
+    "id": "bb1ac776-cc35-4357-a13f-a8dbfbe8efbe",
+    "rfq_id": "da1d2cdb-f7f1-4eeb-a49f-f8352349ca0b",
+    "vendor_id": "14077644-daf6-4e81-9051-4ecee77302ee",
+    "status": "submitted",
+    "picked_at": "2026-05-02T08:14:46.856505+00:00"
+  },
+  {
+    "rfq_id": "94f8ebd7-a641-4ed6-959d-f35430388568",
+    "vendor_id": "67cfb8c8-76b9-4795-992d-37d7edc3907a",
+    "id": "023731a7-57b2-4be4-ac12-7aa317f5e8af",
+    "picked_at": "2026-05-05T09:27:41.087335+00:00",
+    "status": "submitted"
+  },
+  {
+    "id": "0e0d169f-8d2c-4f35-805f-b9006066cac1",
+    "rfq_id": "94f8ebd7-a641-4ed6-959d-f35430388568",
+    "vendor_id": "14077644-daf6-4e81-9051-4ecee77302ee",
+    "status": "submitted",
+    "picked_at": "2026-05-05T09:27:41.297904+00:00"
+  }
+]

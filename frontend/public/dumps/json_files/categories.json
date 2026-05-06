@@ -1,0 +1,65 @@
+[
+  {
+    "id": "cat-cotton",
+    "name": "Cotton Fabrics",
+    "description": "Woven and knitted cotton fabrics",
+    "image_url": "/api/uploads/d7c449a0-e25e-4e22-a7b4-94e3bce88cea.jpeg",
+    "created_at": "2026-02-09T07:04:53.490395+00:00",
+    "fabric_count": 155,
+    "seo_applications": "<h3 style=\"margin:0 0 10px 0;color:#0f172a;\">Popular Applications</h3><ul style=\"margin:0;padding-left:18px;line-height:1.7;\"><li><strong>Shirting</strong> — Poplin, oxford, chambray in 80-140 GSM</li><li><strong>Bottom-weights</strong> — Twill, canvas, bedford cord in 180-280 GSM</li><li><strong>Home textiles</strong> — Bedsheeting, curtains, upholstery up to 320 GSM</li><li><strong>Kidswear & workwear</strong> — Pre-shrunk washes, enzyme finishing</li></ul>",
+    "seo_intro": "<h2 style=\"margin:0 0 12px 0;color:#0f172a;\">Premium Cotton Fabrics — Direct from Mills</h2><p style=\"margin:0 0 10px 0;\">Discover <strong>200+ cotton SKUs</strong> from verified Indian mills: poplin, twill, canvas, voile, oxford, and more. All fabrics undergo three-step QC with lab-verified GSM, construction, and colour-fastness data.</p><p style=\"margin:0;\">Bulk MOQ starts at 500 meters. Samples shipped within 48 hours. Payment flexibility via embedded credit lines.</p>",
+    "seo_meta_description": "Source cotton fabrics from verified Indian mills. 200+ SKUs: poplin, twill, canvas, denim-weight. GSM 80-320, MOQ from 500m.",
+    "seo_title": "Buy Premium Cotton Fabrics Online — Wholesale Prices"
+  },
+  {
+    "id": "cat-polyester",
+    "name": "Polyester Fabrics",
+    "description": "Polyester wovens and knits",
+    "image_url": "/api/uploads/83515076-4250-4010-badb-d5ca0c6e8cd6.jpg",
+    "created_at": "2026-02-09T07:04:53.490407+00:00",
+    "fabric_count": 18
+  },
+  {
+    "id": "cat-denim",
+    "name": "Denim",
+    "description": "Denim fabrics in various weights",
+    "image_url": "/api/uploads/869c9070-507c-4694-a1f0-ac1100183d70.webp",
+    "created_at": "2026-02-09T07:04:53.490413+00:00"
+  },
+  {
+    "id": "cat-sustainable",
+    "name": "Sustainable Fabrics",
+    "description": "Organic, recycled, and eco-certified fabrics",
+    "image_url": "/api/uploads/aded7f66-309a-41d9-ac86-874750302f77.jpg",
+    "created_at": "2026-02-09T07:04:53.490415+00:00"
+  },
+  {
+    "id": "721e60c5-8237-4983-adad-c1dfc35059d3",
+    "name": "Viscose",
+    "description": "VIscose Dyed Fabric",
+    "image_url": "/api/uploads/c485987b-4018-4809-a424-eef25bd8cbca.jpg",
+    "created_at": "2026-02-16T06:25:06.314159+00:00"
+  },
+  {
+    "id": "e160fe54-1fe0-4545-9977-9a84a16268ff",
+    "name": "TEST_Refactor Category",
+    "description": "Testing refactored router",
+    "image_url": "",
+    "created_at": "2026-04-17T12:22:58.192078+00:00"
+  },
+  {
+    "id": "0ca3d10d-5af7-45d2-96dd-152206031de4",
+    "name": "TEST_Debug Category",
+    "description": "Testing",
+    "image_url": "",
+    "created_at": "2026-04-17T12:23:08.634964+00:00"
+  },
+  {
+    "id": "cat-linen",
+    "name": "Linen",
+    "slug": "linen",
+    "description": "Natural linen fabrics — breathable, durable, elegant.",
+    "image_url": "",
+    "fabric_count": 1
+  }
+]

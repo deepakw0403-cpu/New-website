@@ -1,0 +1,404 @@
+[
+  {
+    "id": "e99fc7b1-c0b6-43f1-85a6-f64b1eb5241f",
+    "token": "272f3411ca41",
+    "agent_id": "dcc86367-ea2d-4dc3-8981-77bfb8d0afb6",
+    "agent_email": "agent@locofast.com",
+    "agent_name": "Test Agent",
+    "items": [
+      {
+        "fabric_id": "test-fabric-1",
+        "fabric_name": "Cotton Poplin 60s",
+        "fabric_code": "",
+        "category_name": "",
+        "seller_company": "",
+        "seller_id": "",
+        "quantity": 500,
+        "price_per_meter": 45.0,
+        "order_type": "bulk",
+        "image_url": "",
+        "hsn_code": ""
+      }
+    ],
+    "customer_email": "customer@test.com",
+    "notes": "",
+    "status": "pending",
+    "created_at": "2026-04-17T09:07:13.211808+00:00",
+    "expires_at": "2026-04-24T09:07:13.211808+00:00"
+  },
+  {
+    "id": "e24fb817-b956-43d7-88d8-91b97fa1cf9a",
+    "token": "74ba6f7c739d",
+    "agent_id": "dcc86367-ea2d-4dc3-8981-77bfb8d0afb6",
+    "agent_email": "agent@locofast.com",
+    "agent_name": "Test Agent",
+    "items": [
+      {
+        "fabric_id": "f620c93c-57cb-4ec2-86ea-518f15482fd0",
+        "fabric_name": "Test Vendor Fabric - Pending Approval",
+        "fabric_code": "TVF-001",
+        "category_name": "Cotton Fabrics",
+        "seller_company": "TFC, Fabric Manufacturer, Mumbai",
+        "seller_id": "67cfb8c8-76b9-4795-992d-37d7edc3907a",
+        "quantity": 500,
+        "price_per_meter": 150.0,
+        "order_type": "bulk",
+        "image_url": "https://images.unsplash.com/photo-1558171814-05506ed68369?w=400",
+        "hsn_code": ""
+      }
+    ],
+    "customer_email": "",
+    "notes": "",
+    "payment_proof_url": "",
+    "status": "pending",
+    "created_at": "2026-04-17T09:42:13.134689+00:00",
+    "expires_at": "2026-04-24T09:42:13.134689+00:00"
+  },
+  {
+    "id": "912f43b0-af05-46c5-a4df-ad8425ac803a",
+    "token": "f96e4fd1e0bf",
+    "agent_id": "dcc86367-ea2d-4dc3-8981-77bfb8d0afb6",
+    "agent_email": "agent@locofast.com",
+    "agent_name": "Test Agent",
+    "items": [
+      {
+        "fabric_id": "f620c93c-57cb-4ec2-86ea-518f15482fd0",
+        "fabric_name": "Test Vendor Fabric - Pending Approval",
+        "fabric_code": "TVF-001",
+        "category_name": "Cotton Fabrics",
+        "seller_company": "TFC, Fabric Manufacturer, Mumbai",
+        "seller_id": "67cfb8c8-76b9-4795-992d-37d7edc3907a",
+        "quantity": 1,
+        "price_per_meter": 500.0,
+        "order_type": "sample",
+        "image_url": "https://images.unsplash.com/photo-1558171814-05506ed68369?w=400",
+        "hsn_code": ""
+      },
+      {
+        "fabric_id": "f620c93c-57cb-4ec2-86ea-518f15482fd0",
+        "fabric_name": "Test Vendor Fabric - Pending Approval",
+        "fabric_code": "TVF-001",
+        "category_name": "Cotton Fabrics",
+        "seller_company": "TFC, Fabric Manufacturer, Mumbai",
+        "seller_id": "67cfb8c8-76b9-4795-992d-37d7edc3907a",
+        "quantity": 500,
+        "price_per_meter": 150.0,
+        "order_type": "bulk",
+        "image_url": "https://images.unsplash.com/photo-1558171814-05506ed68369?w=400",
+        "hsn_code": ""
+      }
+    ],
+    "customer_email": "",
+    "notes": "",
+    "payment_proof_url": "",
+    "status": "pending",
+    "created_at": "2026-04-17T09:46:21.999686+00:00",
+    "expires_at": "2026-04-24T09:46:21.999686+00:00"
+  },
+  {
+    "id": "cce12305-ee64-413e-8ab6-6ac187468fb9",
+    "token": "28194e63222d",
+    "agent_id": "dcc86367-ea2d-4dc3-8981-77bfb8d0afb6",
+    "agent_email": "agent@locofast.com",
+    "agent_name": "Test Agent",
+    "items": [
+      {
+        "fabric_id": "f620c93c-57cb-4ec2-86ea-518f15482fd0",
+        "fabric_name": "Test Vendor Fabric - Pending Approval",
+        "fabric_code": "TVF-001",
+        "category_name": "Cotton Fabrics",
+        "seller_company": "TFC, Fabric Manufacturer, Mumbai",
+        "seller_id": "67cfb8c8-76b9-4795-992d-37d7edc3907a",
+        "quantity": 1,
+        "price_per_meter": 500.0,
+        "order_type": "sample",
+        "image_url": "https://images.unsplash.com/photo-1558171814-05506ed68369?w=400",
+        "hsn_code": ""
+      },
+      {
+        "fabric_id": "f620c93c-57cb-4ec2-86ea-518f15482fd0",
+        "fabric_name": "Test Vendor Fabric - Pending Approval",
+        "fabric_code": "TVF-001",
+        "category_name": "Cotton Fabrics",
+        "seller_company": "TFC, Fabric Manufacturer, Mumbai",
+        "seller_id": "67cfb8c8-76b9-4795-992d-37d7edc3907a",
+        "quantity": 500,
+        "price_per_meter": 150.0,
+        "order_type": "bulk",
+        "image_url": "https://images.unsplash.com/photo-1558171814-05506ed68369?w=400",
+        "hsn_code": ""
+      }
+    ],
+    "customer_email": "",
+    "notes": "",
+    "payment_proof_url": "",
+    "status": "pending",
+    "created_at": "2026-04-17T13:05:58.400144+00:00",
+    "expires_at": "2026-04-24T13:05:58.400144+00:00"
+  },
+  {
+    "id": "dfd05d7f-94a9-48b8-892f-bacb8479ece9",
+    "token": "6bdf586179cb",
+    "agent_id": "dcc86367-ea2d-4dc3-8981-77bfb8d0afb6",
+    "agent_email": "agent@locofast.com",
+    "agent_name": "Test Agent",
+    "items": [
+      {
+        "fabric_id": "f620c93c-57cb-4ec2-86ea-518f15482fd0",
+        "fabric_name": "Cotton Poplin 60s",
+        "fabric_code": "LF-00001",
+        "category_name": "Cotton Fabrics",
+        "seller_company": "",
+        "seller_id": "",
+        "quantity": 1000,
+        "price_per_meter": 150.0,
+        "order_type": "bulk",
+        "image_url": "",
+        "hsn_code": "520911"
+      }
+    ],
+    "customer_email": "buyer@bangladesh.com",
+    "notes": "",
+    "payment_proof_url": "",
+    "dispatch_country": "bangladesh",
+    "bangladesh_charges": {
+      "border_logistics_pct": 1.0,
+      "border_logistics": 1500.0,
+      "export_documentation_pct": 0.4,
+      "export_documentation": 600.0,
+      "custom_clearance_pct": 1.05,
+      "custom_clearance": 1575.0,
+      "total_extra_charges": 3675.0,
+      "inr_to_usd_rate": 0.010724,
+      "subtotal_inr": 150000.0,
+      "subtotal_usd": 1608.6
+    },
+    "usd_rate": 0.010724,
+    "status": "completed",
+    "created_at": "2026-04-17T13:22:08.372943+00:00",
+    "expires_at": "2026-04-24T13:22:08.372943+00:00",
+    "order_id": "157d572a-15d9-4eb5-954b-d0a5f540ee87",
+    "updated_at": "2026-04-17T13:22:36.577631+00:00"
+  },
+  {
+    "id": "9fe51b50-8d3b-4d8a-b6b9-b191573b4f4f",
+    "token": "707ecbe91bea",
+    "agent_id": "dcc86367-ea2d-4dc3-8981-77bfb8d0afb6",
+    "agent_email": "agent@locofast.com",
+    "agent_name": "Test Agent",
+    "items": [
+      {
+        "fabric_id": "f620c93c-57cb-4ec2-86ea-518f15482fd0",
+        "fabric_name": "Cotton Poplin 60s x 60s",
+        "fabric_code": "LF-00001",
+        "category_name": "Cotton Fabrics",
+        "seller_company": "",
+        "seller_id": "",
+        "quantity": 2000,
+        "price_per_meter": 120.0,
+        "order_type": "bulk",
+        "image_url": "",
+        "hsn_code": "520911"
+      }
+    ],
+    "customer_email": "buyer@dhaka.com",
+    "notes": "",
+    "payment_proof_url": "",
+    "dispatch_country": "bangladesh",
+    "bangladesh_charges": {
+      "border_logistics_pct": 1.0,
+      "border_logistics": 2400.0,
+      "export_documentation_pct": 0.4,
+      "export_documentation": 960.0,
+      "custom_clearance_pct": 1.05,
+      "custom_clearance": 2520.0,
+      "total_extra_charges": 5880.0,
+      "inr_to_usd_rate": 0.010724,
+      "subtotal_inr": 240000.0,
+      "subtotal_usd": 2573.76
+    },
+    "usd_rate": 0.010724,
+    "status": "pending",
+    "created_at": "2026-04-17T13:23:39.281112+00:00",
+    "expires_at": "2026-04-24T13:23:39.281112+00:00"
+  },
+  {
+    "id": "79bc5fe2-9260-461b-beec-3227ef271c0a",
+    "token": "a99437995139",
+    "agent_id": "dcc86367-ea2d-4dc3-8981-77bfb8d0afb6",
+    "agent_email": "agent@locofast.com",
+    "agent_name": "Test Agent",
+    "items": [
+      {
+        "fabric_id": "f620c93c-57cb-4ec2-86ea-518f15482fd0",
+        "fabric_name": "Test Vendor Fabric - Pending Approval",
+        "fabric_code": "TVF-001",
+        "category_name": "Cotton Fabrics",
+        "seller_company": "TFC, Fabric Manufacturer, Mumbai",
+        "seller_id": "67cfb8c8-76b9-4795-992d-37d7edc3907a",
+        "quantity": 500,
+        "price_per_meter": 150.0,
+        "order_type": "bulk",
+        "image_url": "https://images.unsplash.com/photo-1558171814-05506ed68369?w=400",
+        "hsn_code": ""
+      }
+    ],
+    "customer_email": "",
+    "notes": "",
+    "payment_proof_url": "",
+    "dispatch_country": "bangladesh",
+    "bangladesh_charges": {
+      "border_logistics_pct": 1.0,
+      "border_logistics": 750.0,
+      "export_documentation_pct": 0.4,
+      "export_documentation": 300.0,
+      "custom_clearance_pct": 1.05,
+      "custom_clearance": 787.5,
+      "total_extra_charges": 1837.5,
+      "inr_to_usd_rate": 0.010765,
+      "subtotal_inr": 75000.0,
+      "subtotal_usd": 807.38
+    },
+    "usd_rate": 0.010765,
+    "status": "completed",
+    "created_at": "2026-04-18T06:49:00.710501+00:00",
+    "expires_at": "2026-04-25T06:49:00.710501+00:00",
+    "order_id": "f5434049-46ed-4070-b2de-52fa6b40c1d0",
+    "updated_at": "2026-04-18T06:49:43.673146+00:00"
+  },
+  {
+    "id": "81ac5d66-6a51-49d2-902f-3ddec33bb24d",
+    "token": "d975587048c1",
+    "agent_id": "dcc86367-ea2d-4dc3-8981-77bfb8d0afb6",
+    "agent_email": "agent@locofast.com",
+    "agent_name": "Test Agent",
+    "items": [
+      {
+        "fabric_id": "f620c93c-57cb-4ec2-86ea-518f15482fd0",
+        "fabric_name": "Test Vendor Fabric - Pending Approval",
+        "fabric_code": "",
+        "category_name": "Cotton Fabrics",
+        "seller_company": "LOSPL, Fabric Manufacturer, Gurugram",
+        "seller_id": "532b7c34-2ab7-4e8e-9889-003f115d9a8f",
+        "quantity": 500,
+        "price_per_meter": 150.0,
+        "order_type": "bulk",
+        "image_url": "",
+        "hsn_code": ""
+      }
+    ],
+    "customer_email": "",
+    "notes": "",
+    "payment_proof_url": "",
+    "dispatch_country": "india",
+    "bangladesh_charges": null,
+    "usd_rate": null,
+    "status": "pending",
+    "created_at": "2026-04-21T07:30:53.048569+00:00",
+    "expires_at": "2026-04-28T07:30:53.048569+00:00"
+  },
+  {
+    "id": "cfaff53f-9cf0-4a4a-86c1-b30fc589fc24",
+    "token": "6d3b6a3446c1",
+    "agent_id": "dcc86367-ea2d-4dc3-8981-77bfb8d0afb6",
+    "agent_email": "agent@locofast.com",
+    "agent_name": "Test Agent",
+    "items": [
+      {
+        "fabric_id": "f620c93c-57cb-4ec2-86ea-518f15482fd0",
+        "fabric_name": "Test Vendor Fabric - Pending Approval",
+        "fabric_code": "TVF-001",
+        "category_name": "Cotton Fabrics",
+        "seller_company": "LOSPL, Fabric Manufacturer, Gurugram",
+        "seller_id": "532b7c34-2ab7-4e8e-9889-003f115d9a8f",
+        "quantity": 100,
+        "price_per_meter": 150.0,
+        "order_type": "bulk",
+        "image_url": "https://images.unsplash.com/photo-1558171814-05506ed68369?w=400",
+        "hsn_code": ""
+      }
+    ],
+    "customer_email": "test@customer.com",
+    "notes": "Test cart from regression suite",
+    "payment_proof_url": "",
+    "dispatch_country": "india",
+    "bangladesh_charges": null,
+    "usd_rate": null,
+    "status": "pending",
+    "created_at": "2026-04-25T06:44:02.579776+00:00",
+    "expires_at": "2026-05-02T06:44:02.579776+00:00"
+  },
+  {
+    "id": "ed47e8e1-503c-4e8f-bfb7-57a36b2a4cf7",
+    "token": "6d2359569fac",
+    "agent_id": "dcc86367-ea2d-4dc3-8981-77bfb8d0afb6",
+    "agent_email": "agent@locofast.com",
+    "agent_name": "Test Agent",
+    "items": [
+      {
+        "fabric_id": "f620c93c-57cb-4ec2-86ea-518f15482fd0",
+        "fabric_name": "Test Vendor Fabric - Pending Approval",
+        "fabric_code": "",
+        "category_name": "",
+        "seller_company": "",
+        "seller_id": "",
+        "quantity": 100,
+        "price_per_meter": 150.0,
+        "order_type": "bulk",
+        "image_url": "",
+        "hsn_code": ""
+      }
+    ],
+    "customer_email": "",
+    "notes": "",
+    "payment_proof_url": "",
+    "dispatch_country": "bangladesh",
+    "bangladesh_charges": {
+      "border_logistics_pct": 1.0,
+      "border_logistics": 150.0,
+      "export_documentation_pct": 0.4,
+      "export_documentation": 60.0,
+      "custom_clearance_pct": 1.05,
+      "custom_clearance": 157.5,
+      "total_extra_charges": 367.5,
+      "inr_to_usd_rate": 0.010606,
+      "subtotal_inr": 15000.0,
+      "subtotal_usd": 159.09
+    },
+    "usd_rate": 0.010606,
+    "status": "pending",
+    "created_at": "2026-04-25T06:44:02.692578+00:00",
+    "expires_at": "2026-05-02T06:44:02.692578+00:00"
+  },
+  {
+    "id": "67eb9f96-2e22-47ef-bff4-aac7aa6f316c",
+    "token": "ae549b8cedcc",
+    "agent_id": "dcc86367-ea2d-4dc3-8981-77bfb8d0afb6",
+    "agent_email": "agent@locofast.com",
+    "agent_name": "Test Agent",
+    "items": [
+      {
+        "fabric_id": "f620c93c-57cb-4ec2-86ea-518f15482fd0",
+        "fabric_name": "Test Vendor Fabric - Pending Approval",
+        "fabric_code": "",
+        "category_name": "",
+        "seller_company": "",
+        "seller_id": "",
+        "quantity": 50,
+        "price_per_meter": 100.0,
+        "order_type": "sample",
+        "image_url": "",
+        "hsn_code": ""
+      }
+    ],
+    "customer_email": "",
+    "notes": "",
+    "payment_proof_url": "",
+    "dispatch_country": "india",
+    "bangladesh_charges": null,
+    "usd_rate": null,
+    "status": "pending",
+    "created_at": "2026-04-25T06:44:02.797914+00:00",
+    "expires_at": "2026-05-02T06:44:02.797914+00:00"
+  }
+]

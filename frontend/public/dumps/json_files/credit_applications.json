@@ -1,0 +1,116 @@
+[
+  {
+    "id": "6cff3754-14d6-45bc-bef7-42165dc6dfc2",
+    "name": "TEST_Credit User",
+    "email": "test_credit@example.com",
+    "phone": "9876543210",
+    "company": "TEST Credit Company",
+    "company_type": "",
+    "turnover": "1-5 Cr",
+    "gst_number": "29ABCDE1234F1Z5",
+    "message": "Test credit application",
+    "documents": [],
+    "status": "pending",
+    "credit_limit": 0,
+    "created_at": "2026-04-17T07:43:59.821681+00:00"
+  },
+  {
+    "id": "0d9463f6-f7ed-496e-a8da-38b7e4b2ddba",
+    "name": "TEST_Credit User",
+    "email": "test_credit@example.com",
+    "phone": "9876543210",
+    "company": "TEST Credit Company",
+    "company_type": "",
+    "turnover": "1-5 Cr",
+    "gst_number": "29ABCDE1234F1Z5",
+    "message": "Test credit application",
+    "documents": [],
+    "status": "pending",
+    "credit_limit": 0,
+    "created_at": "2026-04-17T07:47:58.885227+00:00"
+  },
+  {
+    "id": "7e762a5f-1c24-443e-8f44-db3138036ad0",
+    "name": "Test Proprietor",
+    "email": "test-prop@example.com",
+    "phone": "+919999988888",
+    "company": "Test Proprietor Co.",
+    "company_type": "proprietorship",
+    "turnover": "2-5 Cr",
+    "gst_number": "22AAAAA0000A1Z5",
+    "message": "",
+    "documents": [
+      {
+        "key": "gst_cert",
+        "label": "GST Certificate",
+        "required": true,
+        "type": "upload",
+        "provided": true,
+        "files": [
+          {
+            "name": "gst.pdf",
+            "url": "https://example.com/gst.pdf"
+          }
+        ]
+      },
+      {
+        "key": "kyc_prop",
+        "label": "KYC (Aadhaar + PAN) of Proprietor",
+        "required": true,
+        "type": "upload",
+        "provided": true,
+        "files": [
+          {
+            "name": "aadhaar.pdf",
+            "url": "https://example.com/aadhaar.pdf"
+          },
+          {
+            "name": "pan.pdf",
+            "url": "https://example.com/pan.pdf"
+          }
+        ]
+      },
+      {
+        "key": "bank_stmt",
+        "label": "Bank Statement (1 year)",
+        "required": true,
+        "type": "upload",
+        "provided": true,
+        "files": [
+          {
+            "name": "bank-jan.pdf",
+            "url": "https://example.com/bank-jan.pdf"
+          },
+          {
+            "name": "bank-feb.pdf",
+            "url": "https://example.com/bank-feb.pdf"
+          }
+        ]
+      },
+      {
+        "key": "balance_sheet",
+        "label": "Balance Sheet (Last 2 Years)",
+        "required": true,
+        "type": "upload",
+        "provided": true,
+        "files": [
+          {
+            "name": "bs-fy24.pdf",
+            "url": "https://example.com/bs-fy24.pdf"
+          }
+        ]
+      },
+      {
+        "key": "udc_nach",
+        "label": "UDC & NACH",
+        "required": true,
+        "type": "checkbox",
+        "provided": true,
+        "files": []
+      }
+    ],
+    "status": "pending",
+    "credit_limit": 0,
+    "created_at": "2026-04-21T10:36:22.840894+00:00"
+  }
+]

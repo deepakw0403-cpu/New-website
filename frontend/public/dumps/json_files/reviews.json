@@ -1,0 +1,28 @@
+[
+  {
+    "id": "19ac9778",
+    "seller_id": "14077644-daf6-4e81-9051-4ecee77302ee",
+    "seller_name": "Pali Mills",
+    "customer_name": "FashionMark Apparels",
+    "customer_company": "FashionMark Ltd",
+    "customer_location": "Dhaka, Bangladesh",
+    "rating": 5,
+    "review_text": "Ordered 2,000m of cotton voile, quality is very consistent and GSM was exactly as stated. Shipment reached Chattogram port in 9 days. Will definitely repeat order.",
+    "review_date": "2025-02-14",
+    "is_verified": true,
+    "created_at": "2026-04-09T13:29:34.938784+00:00"
+  },
+  {
+    "id": "4ad29883",
+    "seller_id": "14077644-daf6-4e81-9051-4ecee77302ee",
+    "seller_name": "Pali Mills",
+    "customer_name": "Stitch Label Co",
+    "customer_company": "Stitch Label Co Pvt Ltd",
+    "customer_location": "Mumbai, Maharashtra",
+    "rating": 4,
+    "review_text": "Good fabric quality, communication was excellent throughout. Slight 2-day delay in dispatch but overall very satisfied with the GOTS-certified organic poplin.",
+    "review_date": "2025-01-03",
+    "is_verified": true,
+    "created_at": "2026-04-09T13:29:46.217916+00:00"
+  }
+]
