@@ -396,24 +396,33 @@ const AdminRFQ = () => {
                 {/* Fabric Specifications — only render if at least one populated */}
                 {(selectedRfq.composition || selectedRfq.sub_category || selectedRfq.gsm ||
                   selectedRfq.width_inches || selectedRfq.stretch || selectedRfq.finish ||
-                  selectedRfq.color_or_shade || selectedRfq.pantone_code || selectedRfq.end_use ||
-                  selectedRfq.thread_count || selectedRfq.weave_pattern || selectedRfq.weight_oz ||
+                  selectedRfq.color_or_shade || selectedRfq.color || selectedRfq.pantone_code || selectedRfq.end_use ||
+                  selectedRfq.thread_count || selectedRfq.weave_pattern || selectedRfq.weave_type ||
+                  selectedRfq.yarn_count || selectedRfq.weight_oz ||
                   selectedRfq.wash_type || selectedRfq.knit_type ||
                   (selectedRfq.certifications && selectedRfq.certifications.length > 0)) && (
                   <div className="border rounded-lg p-4">
                     <h3 className="font-semibold text-gray-900 mb-3">Fabric Specifications</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3 text-sm">
-                      <DetailRow label="Composition" value={selectedRfq.composition} />
+                      <DetailRow
+                        label="Composition"
+                        value={
+                          Array.isArray(selectedRfq.composition) && selectedRfq.composition.length > 0
+                            ? selectedRfq.composition.map((c) => `${c.percentage}% ${c.material}`).join(" + ")
+                            : (typeof selectedRfq.composition === "string" ? selectedRfq.composition : null)
+                        }
+                      />
                       <DetailRow label="Sub-category" value={selectedRfq.sub_category} />
                       <DetailRow label="GSM" value={selectedRfq.gsm ? `${selectedRfq.gsm} g/m²` : null} />
                       <DetailRow label="Width" value={selectedRfq.width_inches ? `${selectedRfq.width_inches}"` : null} />
                       <DetailRow label="Stretch" value={selectedRfq.stretch?.replace(/_/g, " ")} />
                       <DetailRow label="Finish" value={selectedRfq.finish} />
-                      <DetailRow label="Colour / Shade" value={selectedRfq.color_or_shade} />
+                      <DetailRow label="Colour / Shade" value={selectedRfq.color || selectedRfq.color_or_shade} />
                       <DetailRow label="Pantone" value={selectedRfq.pantone_code} />
                       <DetailRow label="End Use" value={selectedRfq.end_use} />
                       <DetailRow label="Thread Count" value={selectedRfq.thread_count} />
-                      <DetailRow label="Weave" value={selectedRfq.weave_pattern} />
+                      <DetailRow label="Yarn Count" value={selectedRfq.yarn_count} />
+                      <DetailRow label="Weave" value={selectedRfq.weave_type || selectedRfq.weave_pattern} />
                       <DetailRow label="Weight" value={selectedRfq.weight_oz ? `${selectedRfq.weight_oz} oz` : null} />
                       <DetailRow label="Wash Type" value={selectedRfq.wash_type} />
                       <DetailRow label="Knit Type" value={selectedRfq.knit_type} />
@@ -430,6 +439,49 @@ const AdminRFQ = () => {
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Pricing & Timeline */}
+                {(selectedRfq.target_price_per_unit || selectedRfq.target_price_per_meter ||
+                  selectedRfq.required_by || selectedRfq.dispatch_required_by ||
+                  selectedRfq.sample_needed) && (
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3">Pricing & Timeline</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3 text-sm">
+                      <DetailRow
+                        label={`Target price${selectedRfq.quantity_unit ? `/${selectedRfq.quantity_unit}` : "/m"}`}
+                        value={
+                          (selectedRfq.target_price_per_unit || selectedRfq.target_price_per_meter)
+                            ? `₹${selectedRfq.target_price_per_unit || selectedRfq.target_price_per_meter}`
+                            : null
+                        }
+                      />
+                      <DetailRow label="Required by" value={selectedRfq.required_by || selectedRfq.dispatch_required_by} />
+                      <DetailRow label="Sample needed?" value={selectedRfq.sample_needed ? "Yes" : null} />
+                      <DetailRow
+                        label="Quantity"
+                        value={
+                          selectedRfq.quantity_value
+                            ? `${selectedRfq.quantity_value} ${selectedRfq.quantity_unit || ""}`.trim()
+                            : null
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Reference photos */}
+                {Array.isArray(selectedRfq.reference_images) && selectedRfq.reference_images.length > 0 && (
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3">Reference Photos ({selectedRfq.reference_images.length})</h3>
+                    <div className="flex flex-wrap gap-3">
+                      {selectedRfq.reference_images.map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block w-24 h-24 rounded-lg border border-gray-200 overflow-hidden hover:opacity-80 transition-opacity">
+                          <img src={url} alt={`reference ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
 
