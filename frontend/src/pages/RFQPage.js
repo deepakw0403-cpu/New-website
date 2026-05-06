@@ -133,7 +133,7 @@ const RFQPage = () => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/customer/me`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/api/customer/profile`, { headers: { Authorization: `Bearer ${token}` } });
         if (!res.ok) return;
         const me = await res.json();
         if (cancelled) return;

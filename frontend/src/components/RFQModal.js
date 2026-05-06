@@ -40,9 +40,9 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`${API}/api/customer/me`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API}/api/customer/profile`, { headers: { Authorization: `Bearer ${token}` } });
         // eslint-disable-next-line no-console
-        console.log("[RFQModal] /api/customer/me status:", res.status);
+        console.log("[RFQModal] /api/customer/profile status:", res.status);
         if (!res.ok) return;
         const me = await res.json();
         // eslint-disable-next-line no-console
