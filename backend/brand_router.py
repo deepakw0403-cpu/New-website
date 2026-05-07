@@ -2506,6 +2506,7 @@ class CreditApplication(BaseModel):
     use_case: Optional[str] = ""
     contact_name: Optional[str] = ""
     contact_phone: Optional[str] = ""
+    supporting_doc_url: Optional[str] = ""
 
 
 @router.post("/brand/credit-application")
@@ -2548,6 +2549,7 @@ async def submit_credit_application(data: CreditApplication, user=Depends(get_cu
         "contact_name": (data.contact_name or user.get("name") or "").strip(),
         "contact_email": user.get("email", ""),
         "contact_phone": (data.contact_phone or "").strip(),
+        "supporting_doc_url": (data.supporting_doc_url or "").strip(),
         "submitted_by_user_id": user.get("id"),
         "status": "submitted",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -2571,6 +2573,10 @@ async def _email_credit_application(app_doc: dict, am_doc: Optional[dict]):
     parent_line = f"<p><strong>Parent Brand:</strong> {app_doc.get('parent_brand_name', '—')}</p>" if app_doc.get("brand_type") == "factory" else ""
     amount_line = f"<p><strong>Requested Amount:</strong> ₹{app_doc.get('requested_amount_inr', 0):,.0f}</p>" if app_doc.get("requested_amount_inr") else ""
     use_case_line = f"<p><strong>Use Case:</strong> {app_doc.get('use_case')}</p>" if app_doc.get("use_case") else ""
+    doc_line = (
+        f'<p><strong>Supporting Document:</strong> <a href="{app_doc.get("supporting_doc_url")}">View attached</a></p>'
+        if app_doc.get("supporting_doc_url") else ""
+    )
     html = f"""
     <div style="font-family:system-ui,-apple-system,sans-serif;max-width:600px">
       <h2 style="margin:0 0 12px">New Credit Application</h2>
@@ -2579,6 +2585,7 @@ async def _email_credit_application(app_doc: dict, am_doc: Optional[dict]):
       <p><strong>GSTIN:</strong> {app_doc.get('gst') or '—'}</p>
       {amount_line}
       {use_case_line}
+      {doc_line}
       <hr style="border:none;border-top:1px solid #e5e7eb;margin:18px 0">
       <p style="margin:4px 0"><strong>Requested by:</strong> {app_doc.get('contact_name', '')}</p>
       <p style="margin:4px 0">{app_doc.get('contact_email', '')}{(' · ' + app_doc.get('contact_phone')) if app_doc.get('contact_phone') else ''}</p>

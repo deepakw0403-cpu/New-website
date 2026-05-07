@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { fmtLacs, fmtINR, fmtCount } from "../../lib/inr";
+import BrandFileUpload from "../../components/brand/BrandFileUpload";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const TABS = [
@@ -90,7 +91,7 @@ const FactoryCreditSection = ({ token }) => {
 };
 
 const ApplyCreditModal = ({ entity, token, onClose, onApplied }) => {
-  const [form, setForm] = useState({ requested_amount_inr: "", use_case: "", contact_phone: "" });
+  const [form, setForm] = useState({ requested_amount_inr: "", use_case: "", contact_phone: "", supporting_doc_url: "" });
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     setBusy(true);
@@ -103,6 +104,7 @@ const ApplyCreditModal = ({ entity, token, onClose, onApplied }) => {
           requested_amount_inr: form.requested_amount_inr ? Number(form.requested_amount_inr) : null,
           use_case: form.use_case,
           contact_phone: form.contact_phone,
+          supporting_doc_url: form.supporting_doc_url,
         }),
       });
       const d = await r.json();
@@ -130,6 +132,12 @@ const ApplyCreditModal = ({ entity, token, onClose, onApplied }) => {
             <span className="text-xs text-gray-600 mb-1 block">Contact phone</span>
             <input value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" data-testid="apply-credit-phone" />
           </label>
+          <BrandFileUpload
+            label="Supporting document (optional — bank statement, financials, GST returns)"
+            value={form.supporting_doc_url}
+            onChange={(url) => setForm({ ...form, supporting_doc_url: url })}
+            testid="apply-credit-doc"
+          />
         </div>
         <div className="flex justify-end gap-2 mt-5">
           <button onClick={onClose} className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900">Cancel</button>

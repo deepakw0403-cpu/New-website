@@ -44,11 +44,18 @@ def set_db(database):
 async def _require_am_for_brand(admin: dict, brand_id: str):
     """An admin can act on this brand if they're a regular admin, OR
     if they're an Account Manager whose `managed_brand_ids` includes
-    `brand_id`. Plain admins (no AM flag) are super-users."""
+    `brand_id` (or the brand's `parent_brand_id`, since brand+factories
+    are managed together as a group). Plain admins (no AM flag) are super-users."""
     if admin.get("is_account_manager"):
         managed = set(admin.get("managed_brand_ids") or [])
-        if brand_id not in managed:
-            raise HTTPException(status_code=403, detail="You are not assigned as the Account Manager for this brand")
+        if brand_id in managed:
+            return
+        # If the target is a factory, allow access when the AM manages its parent
+        target = await db.brands.find_one({"id": brand_id}, {"_id": 0, "parent_brand_id": 1, "type": 1})
+        parent = (target or {}).get("parent_brand_id")
+        if parent and parent in managed:
+            return
+        raise HTTPException(status_code=403, detail="You are not assigned as the Account Manager for this brand")
     # else: regular admin — has access to all brands
 
 
@@ -115,9 +122,13 @@ async def admin_assign_brands_to_am(admin_id: str, data: AmAssignment, _admin=De
 
 @router.get("/admin/account-managers")
 async def list_account_managers(_admin=Depends(auth_helpers.get_current_admin)):
-    """List all AMs with their assigned brands+factories (joined names) and capacity."""
+    """List all AMs with their assigned brand-groups (parent brand + nested
+    linked factories) and capacity. Group-level model: a 'brand group' = a
+    parent brand together with all its linked factories, OR a standalone
+    factory. AMs always store parent-level ids in `managed_brand_ids`.
+    Each managed brand row exposes a `factories: []` array so the UI can
+    render the group as a single card."""
     ams = await db.admins.find({"is_account_manager": True}, {"_id": 0, "password": 0}).to_list(length=200)
-    # Resolve brand names + parent_brand_name for factories
     all_brand_ids = []
     for a in ams:
         all_brand_ids.extend(a.get("managed_brand_ids") or [])
@@ -125,19 +136,30 @@ async def list_account_managers(_admin=Depends(auth_helpers.get_current_admin)):
     if all_brand_ids:
         cursor = db.brands.find({"id": {"$in": all_brand_ids}}, {"_id": 0, "id": 1, "name": 1, "type": 1, "parent_brand_id": 1})
         async for b in cursor:
-            entry = {"id": b["id"], "name": b.get("name", ""), "type": b.get("type", "brand")}
-            # For factory entities, also surface the parent brand name for chip context
-            if b.get("type") == "factory" and b.get("parent_brand_id"):
-                parent = await db.brands.find_one({"id": b["parent_brand_id"]}, {"_id": 0, "name": 1})
-                entry["parent_brand_name"] = (parent or {}).get("name", "")
-            brand_map[b["id"]] = entry
+            brand_map[b["id"]] = {
+                "id": b["id"], "name": b.get("name", ""),
+                "type": b.get("type", "brand"),
+                "parent_brand_id": b.get("parent_brand_id"),
+                "factories": [],
+            }
+        # Resolve linked factories for each brand-type entry
+        parent_ids = [bid for bid, e in brand_map.items() if e["type"] != "factory"]
+        if parent_ids:
+            fcursor = db.brands.find(
+                {"parent_brand_id": {"$in": parent_ids}, "type": "factory"},
+                {"_id": 0, "id": 1, "name": 1, "parent_brand_id": 1, "gst": 1},
+            )
+            async for f in fcursor:
+                par = brand_map.get(f["parent_brand_id"])
+                if par:
+                    par["factories"].append({"id": f["id"], "name": f.get("name", ""), "gst": f.get("gst", "")})
     out = []
     for a in ams:
-        brands = [brand_map[bid] for bid in (a.get("managed_brand_ids") or []) if bid in brand_map]
+        groups = [brand_map[bid] for bid in (a.get("managed_brand_ids") or []) if bid in brand_map]
         out.append({
             "id": a["id"], "email": a.get("email", ""), "name": a.get("name", ""),
-            "managed_brands": brands,
-            "capacity_remaining": MAX_BRANDS_PER_AM - len(brands),
+            "managed_brands": groups,
+            "capacity_remaining": MAX_BRANDS_PER_AM - len(groups),
         })
     return out
 

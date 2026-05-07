@@ -9,6 +9,7 @@ import AdminLayout from "../../components/admin/AdminLayout";
 import api from "../../lib/api";
 import { fmtINR } from "../../lib/inr";
 import { useConfirm } from "../../components/useConfirm";
+import FileUploadInput from "../../components/admin/FileUploadInput";
 
 const TABS = [
   { id: "summary", label: "Summary" },
@@ -101,9 +102,25 @@ const InvoicesTab = ({ brandId, data, reload }) => {
           <Field label="GST (₹)" type="number" v={form.gst} on={(x) => setForm({ ...form, gst: x })} />
           <Field label="Other Charges (₹)" type="number" v={form.other_charges} on={(x) => setForm({ ...form, other_charges: x })} />
           <Field label="Total Amount (₹) *" type="number" v={form.amount} on={(x) => setForm({ ...form, amount: x })} testid="inv-amount" />
-          <Field label="Invoice File URL (PDF)" v={form.file_url} on={(x) => setForm({ ...form, file_url: x })} colSpan={3} />
+          <div className="sm:col-span-3">
+            <FileUploadInput
+              label="Invoice PDF (drag-drop or click)"
+              value={form.file_url}
+              onChange={(url) => setForm({ ...form, file_url: url })}
+              folder="uploads/financials/invoices"
+              testid="inv-file-upload"
+            />
+          </div>
           <Field label="E-way Bill Number" v={form.eway_bill_number} on={(x) => setForm({ ...form, eway_bill_number: x })} testid="inv-eway-num" />
-          <Field label="E-way Bill File URL" v={form.eway_bill_url} on={(x) => setForm({ ...form, eway_bill_url: x })} colSpan={2} testid="inv-eway-url" />
+          <div className="sm:col-span-2">
+            <FileUploadInput
+              label="E-way Bill PDF"
+              value={form.eway_bill_url}
+              onChange={(url) => setForm({ ...form, eway_bill_url: url })}
+              folder="uploads/financials/eway"
+              testid="inv-eway-upload"
+            />
+          </div>
           <Field label="Notes" v={form.notes} on={(x) => setForm({ ...form, notes: x })} colSpan={3} />
           <div className="sm:col-span-3 flex justify-end">
             <button onClick={submit} disabled={busy} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg" data-testid="inv-save">
@@ -208,7 +225,15 @@ const NoteTab = ({ brandId, data, reload, type }) => {
               {reasons.map((r) => <option key={r.v} value={r.v}>{r.l}</option>)}
             </select>
           </label>
-          <Field label="File URL" v={form.file_url} on={(x) => setForm({ ...form, file_url: x })} />
+          <div className="sm:col-span-3">
+            <FileUploadInput
+              label="Note PDF"
+              value={form.file_url}
+              onChange={(url) => setForm({ ...form, file_url: url })}
+              folder={`uploads/financials/${isCn ? "cn" : "dn"}`}
+              testid={`${type}-file-upload`}
+            />
+          </div>
           <Field label="Notes / details" v={form.notes} on={(x) => setForm({ ...form, notes: x })} colSpan={3} testid={`${type}-notes`} />
           <div className="sm:col-span-3 flex justify-end">
             <button onClick={submit} disabled={busy} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg" data-testid={`${type}-save`}>
@@ -297,8 +322,16 @@ const PaymentsTab = ({ brandId, data, reload }) => {
               </select>
             </label>
             <Field label="Reference / UTR" v={form.reference} on={(x) => setForm({ ...form, reference: x })} testid="pay-ref" />
-            <Field label="File URL" v={form.file_url} on={(x) => setForm({ ...form, file_url: x })} />
-            <Field label="Notes" v={form.notes} on={(x) => setForm({ ...form, notes: x })} />
+            <div className="sm:col-span-2">
+              <FileUploadInput
+                label="Receipt / Bank Slip PDF"
+                value={form.file_url}
+                onChange={(url) => setForm({ ...form, file_url: url })}
+                folder="uploads/financials/payments"
+                testid="pay-file-upload"
+              />
+            </div>
+            <Field label="Notes" v={form.notes} on={(x) => setForm({ ...form, notes: x })} colSpan={3} />
           </div>
           {unpaidInvoices.length > 0 && (
             <div>
