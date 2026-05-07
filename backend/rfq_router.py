@@ -567,7 +567,7 @@ class RFQPatch(BaseModel):
     knit_quality: Optional[str] = None
     knit_type: Optional[str] = None
     denim_specification: Optional[str] = None
-    composition: Optional[List[Composition]] = None
+    composition: Optional[List[CompositionItem]] = None
     gsm: Optional[float] = None
     weight_oz: Optional[float] = None
     width_inches: Optional[float] = None
