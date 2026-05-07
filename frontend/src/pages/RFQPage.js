@@ -134,14 +134,35 @@ const RFQPage = () => {
 
   const update = (patch) => setForm((prev) => ({ ...prev, ...patch }));
 
-  // Pull profile if customer is logged in (skip step 4 contact fields)
+  // Pull profile if customer or brand is logged in (skip step 4 contact fields).
+  // Brand tokens take precedence — Enterprise Cart / Queries flows always use them.
   useEffect(() => {
-    const token = localStorage.getItem("lf_customer_token");
-    if (!token) return;
+    const brandToken = localStorage.getItem("lf_brand_token");
+    const customerToken = localStorage.getItem("lf_customer_token");
+    if (!brandToken && !customerToken) return;
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/customer/profile`, { headers: { Authorization: `Bearer ${token}` } });
+        if (brandToken) {
+          const res = await fetch(`${API_URL}/api/brand/me`, { headers: { Authorization: `Bearer ${brandToken}` } });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (cancelled) return;
+          const u = data.user || {};
+          const b = data.brand || {};
+          const realEmail = (u.email || "").endsWith("@phone.locofast.local") ? "" : (u.email || "");
+          // Treat brand-user as 'logged-in' for the wizard's contact-card UI.
+          setLoggedInCustomer({ name: u.name || "", email: realEmail, phone: b.phone || "", gstin: b.gst || "", company: b.name || "" });
+          update({
+            full_name: form.full_name || u.name || "",
+            email: form.email || realEmail,
+            phone: form.phone || b.phone || "",
+            gst_number: form.gst_number || b.gst || "",
+          });
+          return;
+        }
+        // Customer fallback
+        const res = await fetch(`${API_URL}/api/customer/profile`, { headers: { Authorization: `Bearer ${customerToken}` } });
         if (!res.ok) return;
         const me = await res.json();
         if (cancelled) return;
