@@ -231,7 +231,7 @@ const AdminCustomers = () => {
             <h1 className="text-2xl font-bold">Customers</h1>
             <p className="text-gray-500 text-sm mt-1">All registered buyers across email, WhatsApp, and external API sources</p>
           </div>
-          <Button onClick={openCreate} data-testid="create-customer-btn" className="gap-2">
+          <Button onClick={openCreate} data-testid="create-customer-btn" className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 shadow-sm">
             <Plus className="w-4 h-4" />
             New Customer
           </Button>
