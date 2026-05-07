@@ -401,7 +401,16 @@ Three P0 enterprise items shipped together. Tested 22/22 backend tests + 100% fr
 Major financial workflow capability. Tested 30/30 backend + 100% frontend (iteration_47.json).
 
 ### Phase 51: AM-for-factories + Factory credit visibility + Address aggregation + E-way Bill everywhere (Complete - Feb 2026)
-4 deliverables building on the AM module. Tested 16/16 backend + 100% frontend (iteration_48.json).
+4 deliverables building on the AM module. Tested 16/16 backend + 100% frontend (iteration_48.json). Detail in CHANGELOG.md.
+
+### Phase 52: Cloudinary uploads + Cart address picker + Brand-group AM picker (Complete - Feb 2026)
+3 UX upgrades. Tested 22/22 backend + 100% frontend (iteration_49.json).
+
+- **Cloudinary file uploads**: New reusable `<FileUploadInput>` (admin) + `<BrandFileUpload>` (brand) components. Drag-drop or click; shows file chip with Replace/Remove after upload. Backend changes: signature endpoint enum extended to `raw|auto|image|video` (PDF support), `verify_admin` accepts brand JWT type. Wired into 5 admin forms (Invoice PDF, E-way Bill PDF, Credit Note PDF, Debit Note PDF, Payment Receipt) + ApplyCreditModal supporting-document field.
+- **Cart saved-address picker**: BrandCart now loads `/api/brand/addresses` on mount and renders saved-address cards (with `REGISTERED OFFICE`, `Default`, `GST-seeded`, `Factory · {name}` badges). Auto-picks the default. "Add new address" toggle reveals the inline form (still saves to backend if "Save as default" is checked). Selection radios with brand colors.
+- **Brand-group AM picker**: `_require_am_for_brand` permission helper now grants access via `parent_brand_id` inheritance — assigning an AM to a parent brand auto-grants finance access to ALL its linked factories (no need to explicitly add each factory to `managed_brand_ids`). `GET /api/admin/account-managers` returns each managed brand entry with its `factories[]` nested. UI shows single "brand group" cards (brand + indented factories list, +1 factory badge) instead of two separate Brands/Factories columns. Capacity copy now says "brand groups".
+
+
 
 - **AM scope extended to factories**: `managed_brand_ids` now accepts factory IDs (which are `brands` records with `type: "factory"`). The Account Managers page renders a 2-column picker (Brands · Factories) with parent-brand context on every factory row. Permission gate `_require_am_for_brand` works identically — AMs see hard 403 on entities not in their list.
 - **Brand sees linked factories' credit**: New `GET /api/brand/factory-credit-summaries` returns per-factory credit summary (allocated/available/outstanding/sample credits). New "Linked Factories' Credit" section in `/enterprise/account` Overview. Empty state shows **"Credit limit not opened"** + **"Apply for credit"** amber CTA. Same CTA at the brand level when the brand itself has no credit lines.
