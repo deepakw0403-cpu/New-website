@@ -395,7 +395,25 @@ Promise-based hook + provider pattern; every native browser popup across `/admin
 - Tested 100% pass — all 11 admin pages verified, dismissal via Cancel/backdrop/Escape all work, no regressions on AdminBrands flows (iteration_45.json).
 
 ### Phase 49: Sample-Order Email Audit Log + Unified Enterprise Account + Enterprise RFQ Portal (Complete - Feb 2026)
-Three P0 enterprise items shipped together. Tested 22/22 backend tests + 100% frontend (iteration_46.json).
+Three P0 enterprise items shipped together. Tested 22/22 backend tests + 100% frontend (iteration_46.json). Detail in CHANGELOG.md.
+
+### Phase 50: Account Manager module + Brand Financial Ledger + Invoice/Email/Shiprocket fixes (Complete - Feb 2026)
+Major financial workflow capability. Tested 30/30 backend + 100% frontend (iteration_47.json).
+
+- **Q3 Invoice fix**: Order numbers like `LF/ORD/014` contain slashes that broke the path-routed invoice URL. Frontend now passes UUID `order.id` (slash-free) in AdminOrders + OrderConfirmationPage; `downloadInvoice()` also URL-encodes defensively; backend handler accepts both.
+- **Q4 Customer email CTA**: `get_order_confirmation_email()` now renders a "Download Tax Invoice (GST)" button linking to `/api/orders/{order.id}/invoice` after every paid order.
+- **Q5 Ashish CC**: `ORDER_NOTIFICATION_EMAILS` now includes `ashish.katiyar@locofast.com`. New `LOCOFAST_ORDER_DELIVERY_CC` env (defaults to ashish) is appended to every brand-order ops handoff.
+- **Q6 Shiprocket on brand orders**: `brand_create_order` now `asyncio.create_task`s a new `_create_shiprocket_shipment_for_brand_order()` helper. Both samples and bulk auto-land on the courier pickup queue (parity with B2C `verify_payment` flow).
+- **Q1+Q2 Account Manager + Multi-doc Ledger**:
+  - **Role**: Admin users get `is_account_manager: bool` + `managed_brand_ids: List[str]` (max 3 brands per AM, 1 AM per brand). Endpoints: `PUT /api/admin/users/{id}/account-manager`, `PUT /api/admin/users/{id}/managed-brands`, `GET /api/admin/account-managers`, `GET /api/admin/brands/{id}/account-manager`.
+  - **Permission helper** `_require_am_for_brand()` — non-AM admins are super-users; AM admins can only act on their assigned brands (everything else returns 403).
+  - **3 new collections**: `brand_invoices`, `brand_credit_notes`, `brand_debit_notes`, `brand_payments`. Full CRUD on each with reason validation (CN: short_delivery / defective / return / quality_issue / discount / other; DN: late_payment / additional_logistics / tax_correction / other) and manual invoice numbers (rejects duplicates per brand).
+  - **Payments with allocation**: One payment splits across multiple invoices via `allocations: [{invoice_id, amount}]`. Validates allocations ≤ payment amount, invoice ownership, and invoice outstanding-balance. Auto-updates invoice `amount_paid` + `status` (unpaid → partially_paid → paid). Cancellation reverses balances.
+  - **Unified financials**: `GET /api/admin/brands/{id}/financials` and `GET /api/brand/financials` (read-only) return summary tiles (invoiced / paid / CN / DN / outstanding) + chronological timeline merging all 4 doc types + linked credit lines + sample-credit history. Brand version also surfaces the assigned AM contact card.
+  - **New admin pages**: `/admin/account-managers` (promote/demote/assign-brands) and `/admin/brands/:brandId/financials` (full management portal with 6 tabs: Summary / Invoices / Credit Notes / Debit Notes / Payments / Timeline).
+  - **Brand-side**: New "Financials" tab in `/enterprise/account` showing 5-tile summary, invoice list with PDF download links, AM contact card, recent activity timeline.
+
+
 
 - **Email Audit Log (#5)** — `email_logs` collection + `log_email()` helper in `email_router.py`. Every order email (customer / Locofast admin / vendor / brand admins / ops) is persisted with `kind`, `recipients`, `subject`, full `html` body, `status` (sent/failed/skipped), `error`, plus `order_id`, `brand_id`, `customer_id` for filtering.
   - Admin endpoints: `GET /api/email/admin/logs?order_id=...&kind=...` (list), `GET /api/email/admin/logs/{log_id}` (single with html).
