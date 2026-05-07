@@ -393,6 +393,30 @@ Promise-based hook + provider pattern; every native browser popup across `/admin
 - **22 native popup sites replaced** across 12 admin pages: AdminBlog (3), AdminCategories (6), AdminFabrics (4), AdminSellerDetail (2), and 1 each in Sellers, Coupons, Reviews, Commission, Collections, Articles, Enquiries.
 - **Single `window.prompt()`** in AdminFabrics ("Add video URL") replaced with a branded text-input modal (Enter submits, Escape cancels, click-backdrop dismisses).
 - Tested 100% pass — all 11 admin pages verified, dismissal via Cancel/backdrop/Escape all work, no regressions on AdminBrands flows (iteration_45.json).
+
+### Phase 49: Sample-Order Email Audit Log + Unified Enterprise Account + Enterprise RFQ Portal (Complete - Feb 2026)
+Three P0 enterprise items shipped together. Tested 22/22 backend tests + 100% frontend (iteration_46.json).
+
+- **Email Audit Log (#5)** — `email_logs` collection + `log_email()` helper in `email_router.py`. Every order email (customer / Locofast admin / vendor / brand admins / ops) is persisted with `kind`, `recipients`, `subject`, full `html` body, `status` (sent/failed/skipped), `error`, plus `order_id`, `brand_id`, `customer_id` for filtering.
+  - Admin endpoints: `GET /api/email/admin/logs?order_id=...&kind=...` (list), `GET /api/email/admin/logs/{log_id}` (single with html).
+  - Brand-side: `GET /api/brand/orders/{id}/emails` (own audit trail, html stripped).
+  - Wired into both `send_order_notification_emails` (B2C orders) and `_notify_order_recipients` (brand orders) — buyer / brand admins / sellers / ops all logged with distinct `kind` strings.
+  - Frontend: `OrderEmailAudit.js` component renders in Admin Order Detail modal with Eye-icon "View body" → iframe-sandboxed HTML preview modal.
+
+- **Unified Enterprise Account (#6)** — `BrandAccount.js` rewritten with 5 tabs (Overview / Profile / Addresses / Orders / Activity Ledger), URL deeplink via `?tab=...`.
+  - **Profile tab**: Edit-in-place enterprise card (name, GST, phone, address) — `PUT /api/brand/profile` (brand_admin only, GST length validation). Read-only "You" card with logged-in user details.
+  - **Addresses tab**: Full CRUD on the address book using existing `/api/brand/addresses` endpoints — saved cards, "Add address" inline form, set-default, remove. GST-seeded default highlighted with shield badge.
+  - **Orders tab**: Sample + Bulk sections with item lists and PDP links per line.
+  - **Activity Ledger**: `GET /api/brand/ledger` enriched with joined `order.products` array (fabric_id, fabric_name, fabric_code, color_name, quantity, unit, pdp_url) — every sample/bulk debit now shows the full product names with deep links to the catalog PDP.
+
+- **Enterprise RFQ & Quotes Portal (#7)** — `rfq_router.submit_rfq` extended to accept brand JWTs and stamp `brand_id` + `brand_user_id`. Brand contact info auto-backfilled from `brand_users` + `brands` profile.
+  - `GET /api/brand/queries?status=received|not_received|closed` — lists RFQs filed by anyone in the brand with `quotes_count`, `best_quote`, `quantity_label`.
+  - `GET /api/brand/queries/{rfq_id}` — full RFQ + sorted vendor quotes with `is_best_price` flag on the cheapest.
+  - Frontend pages: `/enterprise/queries` (3-tab grid with counts + search) and `/enterprise/queries/:rfqId` (spec card + best-price quote comparison). Won quotes get a Trophy badge; lost quotes greyed out.
+  - "Queries" added to `BrandLayout` nav between Catalog and Orders.
+  - `RFQPage.js` now sends `lf_brand_token` first (falls back to `lf_customer_token`); on success while brand-logged-in it redirects to `/enterprise/queries`.
+
+
 ## Backlog
 
 ### P1 (High Priority)
