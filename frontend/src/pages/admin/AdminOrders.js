@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Package, Clock, CheckCircle, Truck, XCircle, Search, RefreshCw, ChevronDown, Mail, Phone, MapPin, Eye, FileText, Wallet, Upload, Pencil, Ban, X, AlertTriangle } from "lucide-react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import BulkCreditUpload from "../../components/admin/BulkCreditUpload";
+import OrderEmailAudit from "../../components/admin/OrderEmailAudit";
 import { listOrders, updateOrderStatus, getOrderStats, sendOrderConfirmation, downloadInvoice, cancelOrder, listCreditWallets, editCreditWallet } from "../../lib/api";
 import { toast } from "sonner";
 
@@ -341,6 +342,7 @@ const AdminOrders = () => {
 
                 <div><h3 className="font-medium mb-3">Commission & Seller Payout</h3><div className="bg-amber-50 rounded-lg p-4 border border-amber-200 space-y-2"><div className="flex justify-between text-sm"><span className="text-gray-600">Commission Rate</span><span className="font-semibold text-amber-600">{selectedOrder.commission_pct || 5}%</span></div><div className="flex justify-between text-sm"><span className="text-gray-600">Commission Amount</span><span className="font-medium text-amber-700">₹{(selectedOrder.commission_amount || 0).toLocaleString()}</span></div><div className="flex justify-between text-sm"><span className="text-gray-600">Rule Applied</span><span className="text-xs text-gray-500">{selectedOrder.commission_rule || 'default'}</span></div><div className="flex justify-between pt-2 border-t border-amber-200"><span className="text-emerald-700 font-semibold">Seller Payout</span><span className="text-emerald-700 font-bold">₹{(selectedOrder.seller_payout || 0).toLocaleString()}</span></div></div></div>
                 {selectedOrder.cancellation_reason && <div className="bg-red-50 border border-red-200 rounded-lg p-4"><p className="text-red-700 font-medium flex items-center gap-2"><AlertTriangle size={16} />Cancelled: {selectedOrder.cancellation_reason === 'stock_out' ? 'Stock Out' : selectedOrder.cancellation_reason === 'credit_limit' ? 'Lack of Credit Limit' : selectedOrder.cancellation_reason}</p></div>}
+                <OrderEmailAudit orderId={selectedOrder.id} orderNumber={selectedOrder.order_number} />
               </div>
               <div className="p-6 border-t flex justify-between">
                 <div className="flex gap-3">

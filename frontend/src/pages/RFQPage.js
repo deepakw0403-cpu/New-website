@@ -300,7 +300,10 @@ const RFQPage = () => {
         message: form.message || "",
       };
 
-      const token = localStorage.getItem("lf_customer_token");
+      // Prefer brand token over customer token so enterprise users land
+      // their RFQs inside the brand portal's "My Queries" view.
+      const brandToken = localStorage.getItem("lf_brand_token");
+      const token = brandToken || localStorage.getItem("lf_customer_token");
       const res = await fetch(`${API_URL}/api/rfq/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -311,7 +314,8 @@ const RFQPage = () => {
       setSubmitted(true);
       setSubmittedRfqNumber(data.rfq_number);
       toast.success(`RFQ ${data.rfq_number} submitted!`);
-      if (fromAccount) setTimeout(() => navigate("/account?tab=queries"), 1500);
+      if (brandToken) setTimeout(() => navigate("/enterprise/queries"), 1500);
+      else if (fromAccount) setTimeout(() => navigate("/account?tab=queries"), 1500);
     } catch (err) {
       toast.error(err.message || "Failed to submit RFQ");
     } finally {

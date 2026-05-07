@@ -166,14 +166,20 @@ async def submit_rfq(data: RFQSubmission, request: Request):
     # If the caller is a logged-in customer, attach their customer_id and
     # backfill missing contact fields from the stored profile.
     customer_id = ""
+    brand_id = ""
+    brand_user_id = ""
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         try:
             import jwt as _jwt
             JWT_SECRET = os.environ.get("JWT_SECRET", "default-secret")
             payload = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
-            if payload.get("type") == "customer":
+            tok_type = payload.get("type")
+            if tok_type == "customer":
                 customer_id = payload.get("customer_id", "") or ""
+            elif tok_type == "brand":
+                brand_id = payload.get("brand_id", "") or ""
+                brand_user_id = payload.get("brand_user_id", "") or ""
         except Exception:
             customer_id = ""
 
@@ -191,6 +197,17 @@ async def submit_rfq(data: RFQSubmission, request: Request):
             profile_name = cust.get("name") or ""
             profile_gst = cust.get("gstin") or ""
             profile_company = cust.get("company") or ""
+    elif brand_id and brand_user_id:
+        # Brand user — backfill from brand_users + brand profile
+        bu = await db.brand_users.find_one({"id": brand_user_id}, {"_id": 0})
+        br = await db.brands.find_one({"id": brand_id}, {"_id": 0})
+        if bu:
+            profile_email = bu.get("email") or ""
+            profile_name = bu.get("name") or ""
+        if br:
+            profile_gst = br.get("gst") or ""
+            profile_company = br.get("name") or ""
+            profile_phone = br.get("phone") or ""
 
     full_name = (data.full_name or profile_name or "").strip()
     email = (data.email or profile_email or "").strip().lower()
@@ -221,6 +238,8 @@ async def submit_rfq(data: RFQSubmission, request: Request):
         'id': rfq_id,
         'rfq_number': rfq_number,
         'customer_id': customer_id,
+        'brand_id': brand_id,
+        'brand_user_id': brand_user_id,
         'category': data.category,
         'fabric_requirement_type': data.fabric_requirement_type or "",
         'quantity_meters': data.quantity_meters or "",

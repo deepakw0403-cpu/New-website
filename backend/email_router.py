@@ -1,18 +1,61 @@
 """
 Email Router - Handles email notifications using Resend
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
+from datetime import datetime, timezone
 import os
+import uuid
 import asyncio
 import logging
 import resend
+import auth_helpers
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/email", tags=["email"])
+
+# ==================== EMAIL AUDIT LOG ====================
+async def log_email(
+    *,
+    kind: str,  # e.g. "order_confirmation", "order_admin", "order_seller", "rfq_notification"
+    recipients: List[str],
+    subject: str,
+    html: str = "",
+    status: str = "sent",  # sent | failed | skipped
+    error: Optional[str] = None,
+    order_id: Optional[str] = None,
+    order_number: Optional[str] = None,
+    brand_id: Optional[str] = None,
+    customer_id: Optional[str] = None,
+    rfq_id: Optional[str] = None,
+    meta: Optional[dict] = None,
+):
+    """Persist every email attempt for Admin audit trail. Fire-and-forget safe."""
+    if db is None:
+        return
+    try:
+        doc = {
+            "id": str(uuid.uuid4()),
+            "kind": kind,
+            "recipients": [r for r in (recipients or []) if r],
+            "subject": subject or "",
+            "html": html or "",
+            "status": status,
+            "error": error,
+            "order_id": order_id,
+            "order_number": order_number,
+            "brand_id": brand_id,
+            "customer_id": customer_id,
+            "rfq_id": rfq_id,
+            "meta": meta or {},
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.email_logs.insert_one(doc)
+    except Exception as e:
+        logger.warning(f"email_logs insert failed: {e}")
 
 # Database reference (set from main server)
 db = None
@@ -583,6 +626,49 @@ def get_customer_enquiry_confirmation_email(enquiry: dict) -> str:
     """
 
 # ==================== EMAIL ENDPOINTS ====================
+
+# ────────── Admin email audit endpoints ──────────
+@router.get("/admin/logs", tags=["email-audit"])
+async def admin_list_email_logs(
+    order_id: Optional[str] = None,
+    order_number: Optional[str] = None,
+    brand_id: Optional[str] = None,
+    customer_id: Optional[str] = None,
+    kind: Optional[str] = None,
+    limit: int = 100,
+    admin=Depends(auth_helpers.get_current_admin),
+):
+    """Return email audit log entries. Filterable by order/brand/customer/kind.
+    Most recent first. Used by the Admin Order Detail view to show the list
+    of emails that were triggered for a given order."""
+    if db is None:
+        return []
+    q: dict = {}
+    if order_id:
+        q["order_id"] = order_id
+    if order_number:
+        q["order_number"] = order_number
+    if brand_id:
+        q["brand_id"] = brand_id
+    if customer_id:
+        q["customer_id"] = customer_id
+    if kind:
+        q["kind"] = kind
+    cursor = db.email_logs.find(q, {"_id": 0}).sort("created_at", -1).limit(max(1, min(int(limit or 100), 500)))
+    return await cursor.to_list(length=limit)
+
+
+@router.get("/admin/logs/{log_id}", tags=["email-audit"])
+async def admin_get_email_log(log_id: str, admin=Depends(auth_helpers.get_current_admin)):
+    """Fetch a single email log entry including the full HTML body — used
+    by the Admin 'View email' modal."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Email logs unavailable")
+    doc = await db.email_logs.find_one({"id": log_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Email log not found")
+    return doc
+
 
 @router.post("/send")
 async def send_email(request: EmailRequest):
@@ -1183,45 +1269,61 @@ async def send_order_notification_emails(order: dict, order_db=None):
     """
     Auto-send order notification emails after payment confirmation.
     Sends to: 1) Customer  2) mail@locofast.com + mohit@locofast.com  3) Each supplier
+    Every attempt is persisted to `email_logs` for Admin audit trail.
     """
+    order_id = order.get("id")
+    order_number = order.get("order_number", "")
+    order_type_label = (order.get("order_type") or "").lower() or ("sample" if any((i.get("order_type") == "sample") for i in (order.get("items") or [])) else "bulk")
+
     if not RESEND_API_KEY:
         logger.warning("Resend not configured - skipping order notification emails")
+        await log_email(
+            kind=f"order_{order_type_label}_bundle",
+            recipients=[],
+            subject=f"Order {order_number} — notifications skipped",
+            status="skipped",
+            error="RESEND_API_KEY not configured",
+            order_id=order_id, order_number=order_number,
+        )
         return {"customer_sent": False, "admin_sent": False, "sellers_notified": []}
     
     use_db = order_db or db
     results = {"customer_sent": False, "admin_sent": False, "sellers_notified": []}
     
     customer_email = order.get("customer", {}).get("email")
-    order_number = order.get("order_number", "")
+    brand_id = order.get("brand_id")
+    customer_id = order.get("customer_id")
     
     # 1. Send customer confirmation email
     if customer_email:
+        subject = f"Order Confirmed - {order_number} | Locofast"
+        html = get_order_confirmation_email(order)
         try:
-            params = {
-                "from": SENDER_EMAIL,
-                "to": [customer_email],
-                "subject": f"Order Confirmed - {order_number} | Locofast",
-                "html": get_order_confirmation_email(order)
-            }
+            params = {"from": SENDER_EMAIL, "to": [customer_email], "subject": subject, "html": html}
             await asyncio.to_thread(resend.Emails.send, params)
             results["customer_sent"] = True
             logger.info(f"Order confirmation email sent to customer: {customer_email}")
+            await log_email(kind=f"order_{order_type_label}_customer", recipients=[customer_email], subject=subject, html=html, status="sent",
+                            order_id=order_id, order_number=order_number, brand_id=brand_id, customer_id=customer_id)
         except Exception as e:
             logger.error(f"Failed to send customer order email: {str(e)}")
+            await log_email(kind=f"order_{order_type_label}_customer", recipients=[customer_email], subject=subject, html=html, status="failed",
+                            error=str(e), order_id=order_id, order_number=order_number, brand_id=brand_id, customer_id=customer_id)
     
     # 2. Send admin notification to mail@locofast.com AND mohit@locofast.com
+    admin_subject = f"New Order - {order_number} | ₹{order.get('total', 0):,.0f} | Locofast"
+    admin_html = get_order_received_admin_email(order)
     try:
-        admin_params = {
-            "from": SENDER_EMAIL,
-            "to": ORDER_NOTIFICATION_EMAILS,
-            "subject": f"New Order - {order_number} | ₹{order.get('total', 0):,.0f} | Locofast",
-            "html": get_order_received_admin_email(order)
-        }
+        admin_params = {"from": SENDER_EMAIL, "to": ORDER_NOTIFICATION_EMAILS, "subject": admin_subject, "html": admin_html}
         await asyncio.to_thread(resend.Emails.send, admin_params)
         results["admin_sent"] = True
         logger.info(f"Admin order notification sent to {ORDER_NOTIFICATION_EMAILS}")
+        await log_email(kind=f"order_{order_type_label}_admin", recipients=ORDER_NOTIFICATION_EMAILS, subject=admin_subject, html=admin_html, status="sent",
+                        order_id=order_id, order_number=order_number, brand_id=brand_id, customer_id=customer_id)
     except Exception as e:
         logger.error(f"Failed to send admin order notification: {str(e)}")
+        await log_email(kind=f"order_{order_type_label}_admin", recipients=ORDER_NOTIFICATION_EMAILS, subject=admin_subject, html=admin_html, status="failed",
+                        error=str(e), order_id=order_id, order_number=order_number, brand_id=brand_id, customer_id=customer_id)
     
     # 3. Send supplier notification emails (grouped by seller)
     items = order.get("items", [])
@@ -1249,24 +1351,36 @@ async def send_order_notification_emails(order: dict, order_db=None):
             seller = await use_db.sellers.find_one({"id": seller_id}, {"_id": 0})
             if not seller:
                 logger.warning(f"Seller {seller_id} not found in DB — skipping email")
+                await log_email(kind=f"order_{order_type_label}_seller", recipients=[], subject=f"Seller notification — {order_number}", status="skipped",
+                                error=f"seller {seller_id} not found",
+                                order_id=order_id, order_number=order_number, brand_id=brand_id, customer_id=customer_id,
+                                meta={"seller_id": seller_id})
                 continue
             
             seller_email = seller.get("contact_email")
             if not seller_email:
                 logger.warning(f"Seller {seller_id} has no contact_email — skipping")
+                await log_email(kind=f"order_{order_type_label}_seller", recipients=[], subject=f"Seller notification — {order_number}", status="skipped",
+                                error="seller has no contact_email",
+                                order_id=order_id, order_number=order_number, brand_id=brand_id, customer_id=customer_id,
+                                meta={"seller_id": seller_id, "seller_name": seller.get("company_name", "")})
                 continue
-            
-            seller_params = {
-                "from": SENDER_EMAIL,
-                "to": [seller_email],
-                "subject": f"New Order Booking - {order_number} | Prepare for Dispatch | Locofast",
-                "html": get_seller_order_notification_email(order, seller_order_items, seller)
-            }
+
+            seller_subject = f"New Order Booking - {order_number} | Prepare for Dispatch | Locofast"
+            seller_html = get_seller_order_notification_email(order, seller_order_items, seller)
+            seller_params = {"from": SENDER_EMAIL, "to": [seller_email], "subject": seller_subject, "html": seller_html}
             await asyncio.to_thread(resend.Emails.send, seller_params)
             results["sellers_notified"].append(seller_email)
             logger.info(f"Supplier notification sent to {seller_email} for order {order_number}")
+            await log_email(kind=f"order_{order_type_label}_seller", recipients=[seller_email], subject=seller_subject, html=seller_html, status="sent",
+                            order_id=order_id, order_number=order_number, brand_id=brand_id, customer_id=customer_id,
+                            meta={"seller_id": seller_id, "seller_name": seller.get("company_name", "")})
         except Exception as e:
             logger.error(f"Failed to send supplier notification to seller {seller_id}: {str(e)}")
+            await log_email(kind=f"order_{order_type_label}_seller", recipients=[], subject=f"Seller notification — {order_number}", status="failed",
+                            error=str(e),
+                            order_id=order_id, order_number=order_number, brand_id=brand_id, customer_id=customer_id,
+                            meta={"seller_id": seller_id})
     
     logger.info(f"Order {order_number} email results: customer={results['customer_sent']}, admin={results['admin_sent']}, sellers={results['sellers_notified']}")
     return results

@@ -493,6 +493,45 @@ async def brand_me(user=Depends(get_current_brand_user)):
     return {"user": user, "brand": brand}
 
 
+class BrandProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    gst: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    logo_url: Optional[str] = None
+
+
+@router.put("/brand/profile")
+async def brand_update_profile(data: BrandProfileUpdate, user=Depends(get_current_brand_user)):
+    """Brand admin edits the enterprise profile (name/phone/GST/address/logo).
+    Other brand_users can view but not edit. GST is uppercased and lightly
+    validated for length/format (15 alphanumeric chars)."""
+    if user["role"] != "brand_admin":
+        raise HTTPException(status_code=403, detail="Only brand admins can edit the profile")
+    updates = {}
+    if data.name is not None:
+        clean = (data.name or "").strip()
+        if not clean:
+            raise HTTPException(status_code=400, detail="Name cannot be empty")
+        updates["name"] = clean[:200]
+    if data.phone is not None:
+        updates["phone"] = (data.phone or "").strip()[:20]
+    if data.address is not None:
+        updates["address"] = (data.address or "").strip()[:500]
+    if data.logo_url is not None:
+        updates["logo_url"] = (data.logo_url or "").strip()[:500]
+    if data.gst is not None:
+        gst = (data.gst or "").strip().upper()
+        if gst and len(gst) != 15:
+            raise HTTPException(status_code=400, detail="GST must be 15 characters")
+        updates["gst"] = gst
+    if not updates:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    await db.brands.update_one({"id": user["brand_id"]}, {"$set": updates})
+    brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
+    return {"message": "Profile updated", "brand": brand}
+
+
 @router.post("/brand/default-ship-to")
 async def brand_save_default_ship_to(data: dict, user=Depends(get_current_brand_user)):
     """Persist this address as the brand's default shipping destination."""
@@ -1404,7 +1443,49 @@ async def brand_credit_summary(user=Depends(get_current_brand_user)):
 
 @router.get("/brand/ledger")
 async def brand_ledger(user=Depends(get_current_brand_user)):
-    entries = await db.brand_credit_ledger.find({"brand_id": user["brand_id"]}, {"_id": 0}).sort("created_at", -1).to_list(length=500)
+    """Returns the brand's credit/sample-credit ledger sorted newest-first.
+    For entries with `order_id`, we join the orders collection so the UI can
+    render the full product names and a link back to the order detail page.
+    """
+    entries = await db.brand_credit_ledger.find(
+        {"brand_id": user["brand_id"]}, {"_id": 0}
+    ).sort("created_at", -1).to_list(length=500)
+
+    # Bulk-fetch the related orders in one round-trip
+    order_ids = list({e["order_id"] for e in entries if e.get("order_id")})
+    orders_map = {}
+    if order_ids:
+        cursor = db.orders.find(
+            {"id": {"$in": order_ids}},
+            {"_id": 0, "id": 1, "order_number": 1, "order_type": 1, "items": 1, "total": 1, "status": 1},
+        )
+        async for o in cursor:
+            items = o.get("items") or []
+            orders_map[o["id"]] = {
+                "order_number": o.get("order_number", ""),
+                "order_type": o.get("order_type", ""),
+                "status": o.get("status", ""),
+                "total": o.get("total", 0),
+                # Surface a compact product list (first 3) for ledger card display
+                "products": [
+                    {
+                        "fabric_id": it.get("fabric_id", ""),
+                        "fabric_name": it.get("fabric_name", ""),
+                        "fabric_code": it.get("fabric_code", ""),
+                        "category_name": it.get("category_name", ""),
+                        "quantity": it.get("quantity", 0),
+                        "unit": it.get("unit", "m"),
+                        "color_name": it.get("color_name", ""),
+                        # Internal-only PDP URL — frontend resolves /enterprise/fabrics/<id>
+                        "pdp_url": f"/enterprise/fabrics/{it.get('fabric_id', '')}" if it.get("fabric_id") else "",
+                    }
+                    for it in items[:5]
+                ],
+                "items_total": len(items),
+            }
+    for e in entries:
+        if e.get("order_id") and e["order_id"] in orders_map:
+            e["order"] = orders_map[e["order_id"]]
     return entries
 
 
@@ -1714,18 +1795,40 @@ def _send_email_sync(to_list, subject, html):
 
 
 async def _notify_order_recipients(order):
-    """Send 4 targeted emails per new brand order: buyer, brand admins, sellers, ops."""
+    """Send 4 targeted emails per new brand order: buyer, brand admins, sellers, ops.
+    Each attempt is persisted to `email_logs` for Admin audit trail."""
+    from email_router import log_email as _audit_log
     try:
         brand_id = order.get("brand_id")
+        order_id = order.get("id")
         order_no = order.get("order_number", "")
         o_type = order.get("order_type", "bulk")
         subject_prefix = f"[Locofast] {o_type.title()} Order {order_no}"
+
+        async def _send_and_log(kind, recipients, subject, html, meta=None):
+            if not recipients:
+                return
+            # Inner try/except so one failing send doesn't abort the rest
+            try:
+                if not RESEND_API_KEY:
+                    await _audit_log(kind=kind, recipients=recipients, subject=subject, html=html, status="skipped",
+                                     error="RESEND_API_KEY not configured",
+                                     order_id=order_id, order_number=order_no, brand_id=brand_id, meta=meta or {})
+                    return
+                await asyncio.to_thread(resend.Emails.send, {"from": SENDER_EMAIL, "to": recipients, "subject": subject, "html": html})
+                await _audit_log(kind=kind, recipients=recipients, subject=subject, html=html, status="sent",
+                                 order_id=order_id, order_number=order_no, brand_id=brand_id, meta=meta or {})
+            except Exception as ex:
+                logging.error(f"Email failed ({kind}) to {recipients}: {ex}")
+                await _audit_log(kind=kind, recipients=recipients, subject=subject, html=html, status="failed",
+                                 error=str(ex),
+                                 order_id=order_id, order_number=order_no, brand_id=brand_id, meta=meta or {})
 
         # 1) Placer (brand user who checked out)
         placer = order.get("brand_user_email")
         if placer:
             html = _order_email_html(order, "Your order has been placed successfully.")
-            await asyncio.to_thread(_send_email_sync, [placer], f"{subject_prefix} — Confirmation", html)
+            await _send_and_log(f"brand_order_{o_type}_buyer", [placer], f"{subject_prefix} — Confirmation", html)
 
         # 2) Brand admins for visibility
         admin_emails = []
@@ -1734,7 +1837,7 @@ async def _notify_order_recipients(order):
                 admin_emails.append(u["email"])
         if admin_emails:
             html = _order_email_html(order, f"New order by {order.get('customer', {}).get('name', 'a team member')}.")
-            await asyncio.to_thread(_send_email_sync, admin_emails, f"{subject_prefix} — New team order", html)
+            await _send_and_log(f"brand_order_{o_type}_admins", admin_emails, f"{subject_prefix} — New team order", html)
 
         # 3) Sellers of each item (deduped)
         seller_ids = list({(it.get("seller_id") or "") for it in order.get("items", []) if it.get("seller_id")})
@@ -1746,11 +1849,12 @@ async def _notify_order_recipients(order):
                     seller_emails.append(e)
             if seller_emails:
                 html = _order_email_html(order, "A new order has been placed for your SKU(s). Please prepare dispatch.")
-                await asyncio.to_thread(_send_email_sync, seller_emails, f"{subject_prefix} — Action required", html)
+                await _send_and_log(f"brand_order_{o_type}_sellers", seller_emails, f"{subject_prefix} — Action required", html,
+                                    meta={"seller_ids": seller_ids})
 
         # 4) Internal Locofast ops
         html = _order_email_html(order, "Internal notification — route for fulfilment.")
-        await asyncio.to_thread(_send_email_sync, [OPS_INBOX], f"{subject_prefix} — Ops handoff", html)
+        await _send_and_log(f"brand_order_{o_type}_ops", [OPS_INBOX], f"{subject_prefix} — Ops handoff", html)
     except Exception as e:
         logging.error(f"_notify_order_recipients failed: {e}")
 
@@ -1762,6 +1866,21 @@ async def brand_list_orders(user=Depends(get_current_brand_user)):
         {"_id": 0},
     ).sort("created_at", -1).to_list(length=200)
     return orders
+
+
+@router.get("/brand/orders/{order_id}/emails")
+async def brand_order_emails(order_id: str, user=Depends(get_current_brand_user)):
+    """Return the email audit trail for one of the brand's own orders.
+    Brand admins can see which stakeholders were notified (status + timestamp).
+    HTML bodies are stripped from list view to keep payload small."""
+    order = await db.orders.find_one({"id": order_id, "brand_id": user["brand_id"]}, {"_id": 0, "id": 1, "order_number": 1})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    logs = await db.email_logs.find(
+        {"order_id": order_id},
+        {"_id": 0, "html": 0},  # hide bodies from brand view
+    ).sort("created_at", -1).to_list(length=100)
+    return logs
 
 
 # ───── BRAND — Razorpay sample-credit top-up (Slice 3) ─────
@@ -2161,3 +2280,90 @@ async def reject_handoff(handoff_id: str, user=Depends(get_current_brand_user)):
     )
     handoff.update({"status": "rejected", "rejected_at": now_iso})
     return _serialize_handoff(handoff)
+
+
+# ════════════════════════════════════════════════════════════════════
+# BRAND RFQ / QUERIES PORTAL (#7)
+# Brand users see their submitted RFQs and the vendor quotes received.
+# Reuses logic from customer_queries_router but scoped by brand_id.
+# ════════════════════════════════════════════════════════════════════
+def _brand_quantity_label(rfq: dict) -> str:
+    qv = rfq.get("quantity_value")
+    qu = (rfq.get("quantity_unit") or "").lower()
+    if qv and qu:
+        try:
+            n = float(qv)
+            n_str = str(int(n)) if n.is_integer() else str(n)
+            return f"{n_str} {qu}"
+        except (TypeError, ValueError):
+            pass
+    cat = (rfq.get("category") or "").lower()
+    is_kg = cat == "knits"
+    raw = rfq.get("quantity_kg", "") if is_kg else rfq.get("quantity_meters", "")
+    if not raw:
+        raw = rfq.get("quantity_meters") or rfq.get("quantity_kg") or ""
+    if not raw:
+        return ""
+    label = raw.replace("_", " – ")
+    return f"{label} {'kg' if is_kg else 'm'}"
+
+
+async def _brand_attach_quotes(rfq: dict) -> dict:
+    quotes = await db.vendor_quotes.find(
+        {"rfq_id": rfq["id"], "status": "submitted"}, {"_id": 0}
+    ).sort("price_per_meter", 1).to_list(50)
+    rfq["quotes_count"] = len(quotes)
+    rfq["best_quote"] = quotes[0] if quotes else None
+    rfq["quantity_label"] = _brand_quantity_label(rfq)
+    return rfq
+
+
+@router.get("/brand/queries")
+async def brand_list_queries(
+    user=Depends(get_current_brand_user),
+    status: str = "received",
+    limit: int = 50,
+    skip: int = 0,
+):
+    """List RFQs filed by anyone in the brand. Buckets:
+       - received: RFQs that have at least 1 vendor quote
+       - not_received: RFQs that have 0 quotes yet
+       - closed: status in {closed, won, lost}
+    """
+    base = {"brand_id": user["brand_id"]}
+    if status == "closed":
+        base["status"] = {"$in": ["closed", "won", "lost"]}
+    rfqs = await db.rfq_submissions.find(base, {"_id": 0}).sort("created_at", -1).to_list(2000)
+
+    out = []
+    for r in rfqs:
+        await _brand_attach_quotes(r)
+        if status == "received" and r["quotes_count"] == 0:
+            continue
+        if status == "not_received" and r["quotes_count"] > 0:
+            continue
+        out.append(r)
+    return {"queries": out[skip: skip + limit], "total": len(out), "skip": skip, "limit": limit}
+
+
+@router.get("/brand/queries/{rfq_id}")
+async def brand_get_query(rfq_id: str, user=Depends(get_current_brand_user)):
+    rfq = await db.rfq_submissions.find_one({"id": rfq_id, "brand_id": user["brand_id"]}, {"_id": 0})
+    if not rfq:
+        raise HTTPException(status_code=404, detail="Query not found")
+
+    if rfq.get("status") == "won":
+        quotes = await db.vendor_quotes.find(
+            {"rfq_id": rfq_id, "status": {"$in": ["submitted", "won", "lost"]}}, {"_id": 0}
+        ).sort("price_per_meter", 1).to_list(50)
+    else:
+        quotes = await db.vendor_quotes.find(
+            {"rfq_id": rfq_id, "status": "submitted"}, {"_id": 0}
+        ).sort("price_per_meter", 1).to_list(50)
+
+    if quotes:
+        quotes[0]["is_best_price"] = True
+
+    rfq["quotes"] = quotes
+    rfq["quantity_label"] = _brand_quantity_label(rfq)
+    return rfq
