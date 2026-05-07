@@ -467,10 +467,21 @@ Vendor quotes now ping the brand portal in real time. Tested 9/9 backend + 100% 
   - "Queries" added to `BrandLayout` nav between Catalog and Orders.
   - `RFQPage.js` now sends `lf_brand_token` first (falls back to `lf_customer_token`); on success while brand-logged-in it redirects to `/enterprise/queries`.
 
+- **RFQ Multi-Step Drafts + PDP Spec Prefill (#8 — Feb 2026)** — Buyers no longer lose work mid-wizard, and PDP-launched RFQs auto-inherit the SKU's specs.
+  - **Backend** (`rfq_router.py`): `POST /api/rfq/submit` accepts new `is_draft: true` flag → creates an RFQ with `status="draft"`. New `PATCH /api/rfq/{rfq_id}` with `RFQPatch` model lets the wizard progressively enrich the same RFQ (composition, GSM, color, target_price…); aliases mirrored (`color → color_or_shade`, `weave_type → weave_pattern`, `target_price_per_unit → target_price_per_meter`, `required_by → dispatch_required_by`). PATCH is owner-only (403 otherwise) and frozen once a `vendor_quotes.status="won"` row exists. `finalize: true` flips draft→`new` and stamps `finalized_at`.
+  - **Frontend RFQPage.js**: Step 1 Continue POSTs `is_draft=true` → stores `rfq_id` and shows a green "Draft RFQ-XXXXXX saved" pill. Steps 2 & 3 PATCH only the fields they own. Final Submit PATCHes delivery + `finalize=true` (no duplicate RFQ). Anonymous users (no JWT) silently fall back to a single legacy POST on Submit.
+  - **PDP Prefill**: `/rfq?fabric_id=<id>` fetches the fabric and pre-fills category, fabric_type, unit, sub_category, composition rows, GSM/oz, width, color, pantone, weave/knit, finish, end_use & certifications. Toast confirms "Specs pre-filled from \<name\>".
+  - **RFQModal**: When launched from a PDP (with `fabric` prop) it now also surfaces an "Open full RFQ form (specs pre-filled)" link that deep-links into the wizard with prefill. `BrandFabricDetail.js` now passes `fabric={fabric}` to the modal so brand-side PDPs get the same flow.
+  - **Brand-logged-in contact card**: RFQPage Step 4 now hydrates from `lf_brand_token` (via `/api/brand/me`) in addition to customer tokens, so brand users see the read-only "Submitting as …" card instead of an empty contact form.
 
 ## Backlog
 
+### P0 (Top Priority — Next)
+- [ ] Auto due-date reminder emails (T-7 / T-3 / T+0): cron scanning `brand_invoices` for unpaid status, sending progressive reminders to brand admins & assigned AMs to reduce DSO.
+
 ### P1 (High Priority)
+- [ ] Outbound webhooks for CRM — POST RFQ status changes (`new → quoted → won`) to an external endpoint
+- [ ] Vendor SLA Timer (Time-to-Quote) — 48h countdown when a vendor opens an RFQ; auto-close on miss
 - [ ] Run `backfill_denim_names.py` on production to standardize legacy denim names/weaves/ounce formatting
 - [ ] Run `POST /api/migrate/compositions?apply=true` on production
 - [ ] Admin workflow: populate `article_id` on existing fabric SKUs so Buy Box dedupe becomes visible on listing
