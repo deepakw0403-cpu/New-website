@@ -15,6 +15,7 @@ const TABS = [
   { id: "profile", label: "Profile", icon: User },
   { id: "addresses", label: "Addresses", icon: MapPin },
   { id: "orders", label: "Orders", icon: ShoppingBag },
+  { id: "financials", label: "Financials", icon: FileText },
   { id: "ledger", label: "Activity Ledger", icon: FileText },
 ];
 
@@ -505,6 +506,115 @@ const LedgerTab = ({ ledger }) => {
   );
 };
 
+// ───────────────────────────────────────────────── FINANCIALS TAB (read-only)
+const FinancialsTab = ({ token }) => {
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    fetch(`${API}/api/brand/financials`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json()).then(setData).catch(() => setData({ summary: {}, timeline: [], invoices: [], payments: [] }));
+  }, [token]);
+  if (!data) return <div className="flex justify-center py-10"><Loader2 className="animate-spin text-emerald-600" /></div>;
+  const s = data.summary || {};
+  const am = data.account_manager;
+
+  return (
+    <div data-testid="brand-financials-tab" className="space-y-5">
+      {am && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-3" data-testid="brand-am-card">
+          <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold">
+            {(am.name || am.email || "?")[0]?.toUpperCase()}
+          </div>
+          <div className="flex-1">
+            <p className="text-xs text-emerald-700 uppercase tracking-wide font-medium">Your Account Manager</p>
+            <p className="text-sm font-semibold text-gray-900">{am.name || am.email}</p>
+            <p className="text-xs text-gray-600 font-mono">{am.email}</p>
+          </div>
+          <a href={`mailto:${am.email}`} className="text-xs px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg">Email</a>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3" data-testid="brand-financial-summary">
+        <SummaryTile label="Invoiced" value={fmtINR(s.invoiced_total || 0)} />
+        <SummaryTile label="Paid" value={fmtINR(s.payments_received || 0)} tone="green" />
+        <SummaryTile label="Credit Notes" value={fmtINR(s.credit_notes_total || 0)} tone="blue" />
+        <SummaryTile label="Debit Notes" value={fmtINR(s.debit_notes_total || 0)} tone="amber" />
+        <SummaryTile label="Outstanding" value={fmtINR(s.outstanding || 0)} tone={(s.outstanding || 0) > 0 ? "red" : "green"} />
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">Invoices</h3>
+        {(data.invoices || []).length === 0 ? (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center text-sm text-gray-500">No invoices yet. Your Account Manager will upload these once orders are billed.</div>
+        ) : (
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                <tr>
+                  <th className="px-3 py-2 text-left">Invoice #</th>
+                  <th className="px-3 py-2 text-left">Date</th>
+                  <th className="px-3 py-2 text-left">Due</th>
+                  <th className="px-3 py-2 text-right">Amount</th>
+                  <th className="px-3 py-2 text-right">Paid</th>
+                  <th className="px-3 py-2 text-right">Balance</th>
+                  <th className="px-3 py-2 text-left">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {data.invoices.map((inv) => (
+                  <tr key={inv.id} data-testid={`brand-inv-row-${inv.id}`}>
+                    <td className="px-3 py-2 font-mono">
+                      {inv.file_url ? <a href={inv.file_url} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">{inv.invoice_number}</a> : inv.invoice_number}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-gray-600">{inv.invoice_date || "—"}</td>
+                    <td className="px-3 py-2 text-xs text-gray-600">{inv.due_date || "—"}</td>
+                    <td className="px-3 py-2 text-right">{fmtINR(inv.amount)}</td>
+                    <td className="px-3 py-2 text-right text-emerald-700">{fmtINR(inv.amount_paid || 0)}</td>
+                    <td className="px-3 py-2 text-right font-semibold">{fmtINR((inv.amount || 0) - (inv.amount_paid || 0))}</td>
+                    <td className="px-3 py-2"><span className={`text-[10px] px-2 py-0.5 rounded-full ${inv.status === "paid" ? "bg-emerald-100 text-emerald-700" : inv.status === "partially_paid" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>{(inv.status || "").replaceAll("_", " ")}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">Recent Activity</h3>
+        {(data.timeline || []).length === 0 ? (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center text-sm text-gray-500">No activity yet.</div>
+        ) : (
+          <div className="space-y-1.5">
+            {data.timeline.slice(0, 20).map((e, i) => (
+              <div key={i} className="bg-white border border-gray-200 rounded-lg p-2.5 flex items-start gap-2 text-sm">
+                <div className={`w-1.5 h-1.5 rounded-full mt-2 ${e.type === "invoice" ? "bg-emerald-500" : e.type === "credit_note" ? "bg-blue-500" : e.type === "debit_note" ? "bg-amber-500" : "bg-purple-500"}`} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] uppercase tracking-wide font-semibold text-gray-500">{e.type.replaceAll("_", " ")}</span>
+                    {e.number && <span className="font-mono text-xs">{e.number}</span>}
+                    {e.mode && <span className="text-xs">{e.mode}</span>}
+                  </div>
+                  <p className="text-[11px] text-gray-500">{e.date}{e.reason ? ` · ${e.reason.replaceAll("_", " ")}` : ""}{e.notes ? ` · ${e.notes}` : ""}</p>
+                </div>
+                <p className={`text-sm font-semibold ${e.type === "payment" || e.type === "credit_note" ? "text-emerald-700" : "text-gray-900"}`}>
+                  {e.type === "payment" || e.type === "credit_note" ? "+" : ""}{fmtINR(e.amount)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const SummaryTile = ({ label, value, tone = "gray" }) => (
+  <div className={`rounded-xl p-3 border ${tone === "green" ? "bg-emerald-50 border-emerald-200" : tone === "red" ? "bg-red-50 border-red-200" : tone === "amber" ? "bg-amber-50 border-amber-200" : tone === "blue" ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"}`}>
+    <p className="text-[10px] uppercase tracking-wide text-gray-500">{label}</p>
+    <p className={`text-lg font-bold mt-0.5 ${tone === "green" ? "text-emerald-700" : tone === "red" ? "text-red-700" : tone === "amber" ? "text-amber-700" : tone === "blue" ? "text-blue-700" : "text-gray-900"}`}>{value}</p>
+  </div>
+);
+
 // ───────────────────────────────────────────────── MAIN PAGE
 const BrandAccount = () => {
   const { user, token } = useBrandAuth();
@@ -634,6 +744,7 @@ const BrandAccount = () => {
         <AddressesTab token={token} isAdmin={user?.role === "brand_admin"} />
       )}
       {tab === "orders" && <OrdersTab token={token} />}
+      {tab === "financials" && <FinancialsTab token={token} />}
       {tab === "ledger" && <LedgerTab ledger={ledger} />}
     </BrandLayout>
   );

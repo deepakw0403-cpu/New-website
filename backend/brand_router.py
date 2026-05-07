@@ -1714,12 +1714,39 @@ async def brand_create_order(data: BrandOrderCreate, user=Depends(get_current_br
     # Email fanout — fire-and-forget so slow Resend doesn't block checkout
     asyncio.create_task(_notify_order_recipients(order_doc))
 
+    # Auto-create Shiprocket shipment for both samples and bulk so the
+    # order automatically lands on the courier's pickup queue. Best-effort
+    # and non-blocking — checkout doesn't fail if Shiprocket is down.
+    asyncio.create_task(_create_shiprocket_shipment_for_brand_order(order_doc))
+
     return {
         "id": order_id,
         "order_number": order_number,
         "total": total,
         "message": "Order placed via brand credit",
     }
+
+
+async def _create_shiprocket_shipment_for_brand_order(order_doc: dict):
+    """Mirror the B2C verify_payment path — calls orders_router.create_shiprocket_shipment
+    and writes back the courier ids on the order."""
+    try:
+        from orders_router import create_shiprocket_shipment
+        result = await create_shiprocket_shipment(order_doc)
+        if result.get("success"):
+            await db.orders.update_one(
+                {"id": order_doc["id"]},
+                {"$set": {
+                    "shiprocket_order_id": result.get("shiprocket_order_id"),
+                    "shiprocket_shipment_id": result.get("shipment_id"),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }},
+            )
+            logging.info(f"[shiprocket] brand order {order_doc.get('order_number')} created · sr_order={result.get('shiprocket_order_id')}")
+        else:
+            logging.error(f"[shiprocket] brand order {order_doc.get('order_number')} failed: {result.get('error')}")
+    except Exception as e:
+        logging.error(f"[shiprocket] brand order shipment exception: {e}")
 
 
 # ────────────────────────────────────────────────────────────────
@@ -2373,3 +2400,26 @@ async def brand_get_query(rfq_id: str, user=Depends(get_current_brand_user)):
     rfq["quotes"] = quotes
     rfq["quantity_label"] = _brand_quantity_label(rfq)
     return rfq
+
+
+# ════════════════════════════════════════════════════════════════════
+# BRAND FINANCIALS (read-only) — unified invoices + CN/DN + payments
+# ════════════════════════════════════════════════════════════════════
+@router.get("/brand/financials")
+async def brand_financial_view(user=Depends(get_current_brand_user)):
+    """Full unified financials for the brand: outstanding balance, invoices,
+    credit notes, debit notes, payments, credit lines and the chronological
+    timeline. Read-only — only the assigned Account Manager (or any admin)
+    can mutate via the admin endpoints."""
+    from account_manager_router import _build_financial_summary
+    summary = await _build_financial_summary(user["brand_id"])
+    # Also surface the AM contact so the brand knows who to escalate to
+    am = await db.admins.find_one(
+        {"is_account_manager": True, "managed_brand_ids": user["brand_id"]},
+        {"_id": 0, "id": 1, "email": 1, "name": 1},
+    )
+    summary["account_manager"] = (
+        {"id": am["id"], "email": am.get("email", ""), "name": am.get("name", "")}
+        if am else None
+    )
+    return summary

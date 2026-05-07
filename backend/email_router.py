@@ -192,6 +192,14 @@ def get_order_confirmation_email(order: dict) -> str:
             </p>
         </div>
         
+        <!-- Invoice CTA -->
+        <div style="background: #fff; padding: 20px; border: 1px solid #e2e8f0; border-top: none; text-align: center;">
+            <a href="{SITE_URL}/api/orders/{order.get('id', '')}/invoice" style="display: inline-block; background: #2563EB; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                Download Tax Invoice (GST)
+            </a>
+            <p style="margin: 10px 0 0 0; font-size: 12px; color: #64748b;">A GST-compliant invoice has been generated for this order.</p>
+        </div>
+
         <!-- Next Steps -->
         <div style="background: #ecfdf5; padding: 20px; border: 1px solid #d1fae5; border-radius: 0 0 12px 12px;">
             <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #065f46;">What's Next?</h3>

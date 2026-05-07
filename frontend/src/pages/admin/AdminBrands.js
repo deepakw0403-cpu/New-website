@@ -714,6 +714,13 @@ const AdminBrands = () => {
                 )}
               </div>
 
+              {/* Quick link to full Financials portal */}
+              <div className="mb-4 flex justify-end">
+                <a href={`/admin/brands/${detail.brand?.id}/financials`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-gray-900 hover:bg-black text-white px-3 py-1.5 rounded-lg text-xs font-medium" data-testid="admin-brand-financials-link">
+                  <Wallet size={12} /> Open Financials Portal
+                </a>
+              </div>
+
               {/* Sample Credits */}
               <div className="mb-6 border border-amber-200 rounded-xl p-4" data-testid="admin-brand-sample-panel">
                 <div className="flex items-center justify-between mb-3">

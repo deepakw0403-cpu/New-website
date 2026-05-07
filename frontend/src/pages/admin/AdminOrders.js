@@ -221,7 +221,7 @@ const AdminOrders = () => {
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-1">
                               <button onClick={() => setSelectedOrder(order)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded" title="View"><Eye size={16} /></button>
-                              {order.payment_status === 'paid' && <a href={downloadInvoice(order.order_number)} target="_blank" rel="noopener noreferrer" className="p-2 text-emerald-500 hover:bg-emerald-50 rounded" title="Invoice"><FileText size={16} /></a>}
+                              {order.payment_status === 'paid' && <a href={downloadInvoice(order.id)} target="_blank" rel="noopener noreferrer" className="p-2 text-emerald-500 hover:bg-emerald-50 rounded" title="Invoice"><FileText size={16} /></a>}
                               {order.status !== 'cancelled' && order.status !== 'delivered' && (
                                 <button onClick={() => { setCancelModal(order); setCancelReason(""); }} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded" title="Cancel" data-testid={`cancel-btn-${order.order_number}`}><Ban size={16} /></button>
                               )}
@@ -347,7 +347,7 @@ const AdminOrders = () => {
               <div className="p-6 border-t flex justify-between">
                 <div className="flex gap-3">
                   <button onClick={() => handleResendConfirmation(selectedOrder.id)} className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Mail size={16} />Resend Email</button>
-                  {selectedOrder.payment_status === 'paid' && <a href={downloadInvoice(selectedOrder.order_number)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><FileText size={16} />Invoice</a>}
+                  {selectedOrder.payment_status === 'paid' && <a href={downloadInvoice(selectedOrder.id)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><FileText size={16} />Invoice</a>}
                 </div>
                 <button onClick={() => setSelectedOrder(null)} className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">Close</button>
               </div>

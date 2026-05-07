@@ -608,6 +608,10 @@ import brand_router
 brand_router.set_db(db)
 app.include_router(brand_router.router, prefix="/api")
 
+import account_manager_router
+account_manager_router.set_db(db)
+app.include_router(account_manager_router.router, prefix="/api")
+
 import commission_router
 commission_router.set_db(db)
 app.include_router(commission_router.router)

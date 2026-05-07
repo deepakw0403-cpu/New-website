@@ -367,9 +367,12 @@ export const bulkUploadCreditWallets = (wallets, mode = "replace") => api.post("
 export const getCreditApplications = () => api.get("/credit/applications");
 export const approveCreditApplication = (id, credit_limit) => api.put(`/credit/applications/${id}/approve`, { credit_limit });
 export const rejectCreditApplication = (id, reason) => api.put(`/credit/applications/${id}/reject`, { reason });
-export const downloadInvoice = (orderId) => {
+export const downloadInvoice = (orderIdOrNumber) => {
   const API_URL = process.env.REACT_APP_BACKEND_URL;
-  return `${API_URL}/api/orders/${orderId}/invoice`;
+  // Order numbers contain slashes (e.g. "LF/ORD/014") which break path
+  // matching, so we URL-encode the segment. Callers should prefer the
+  // UUID `order.id` whenever it's available.
+  return `${API_URL}/api/orders/${encodeURIComponent(orderIdOrNumber)}/invoice`;
 };
 
 // Email

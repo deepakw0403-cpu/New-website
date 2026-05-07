@@ -1228,10 +1228,17 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
 
 @router.get("/{order_id}/invoice")
 async def get_invoice(order_id: str):
-    """Generate and download invoice PDF for an order"""
-    # Find order
+    """Generate and download invoice PDF for an order. `order_id` accepts
+    either the UUID `id` or the human-readable `order_number` (URL-encoded
+    if it contains slashes — e.g. `LF%2FORD%2F014`)."""
+    # Find order — match by UUID, plain order_number, or URL-decoded variant
+    decoded = order_id.replace("%2F", "/").replace("%2f", "/")
     order = await db.orders.find_one(
-        {"$or": [{"id": order_id}, {"order_number": order_id}]},
+        {"$or": [
+            {"id": order_id},
+            {"order_number": order_id},
+            {"order_number": decoded},
+        ]},
         {"_id": 0}
     )
     
