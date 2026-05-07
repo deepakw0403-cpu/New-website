@@ -1126,14 +1126,32 @@ def _render_vendor_rfq_email(rfq: dict, vendor: dict) -> str:
     """
 
 
-# ==================== CUSTOMER QUOTE RECEIVED ====================
+# ==================== CUSTOMER / BRAND QUOTE RECEIVED ====================
 async def send_quote_received_email(rfq: dict, quote: dict, is_first: bool = True):
-    """Let the buyer know a new/updated quote landed on their RFQ."""
-    if not RESEND_API_KEY:
-        return False
+    """Let the buyer know a new/updated quote landed on their RFQ.
+
+    Routing:
+    - If the RFQ has a `brand_id`, fan out the email to **every brand_admin
+      user** on that brand (so procurement heads + their managers all see
+      the price), and ALSO drop a `brand_notifications` row per recipient
+      so the bell icon in the brand portal shows an unread badge.
+    - Otherwise (B2C customer RFQ) — fall back to the customer's email
+      using `customer_id` → email lookup.
+    """
     if db is None:
         return False
     try:
+        rfq_id = rfq.get("id")
+        rfq_number = rfq.get("rfq_number", "")
+        brand_id = (rfq.get("brand_id") or "").strip()
+
+        # Brand-RFQ branch — multi-recipient + in-app notification
+        if brand_id:
+            return await _notify_brand_on_quote(rfq, quote, is_first)
+
+        # B2C customer fallback (existing behaviour)
+        if not RESEND_API_KEY:
+            return False
         customer_id = rfq.get("customer_id")
         recipient = (rfq.get("email") or "").strip()
         if customer_id:
@@ -1144,18 +1162,119 @@ async def send_quote_received_email(rfq: dict, quote: dict, is_first: bool = Tru
             return False
 
         subject_prefix = "New quote" if is_first else "Quote updated"
-        params = {
-            "from": SENDER_EMAIL,
-            "to": [recipient],
-            "subject": f"[{subject_prefix}] ₹{quote.get('price_per_meter', '')}/m on {rfq.get('rfq_number')} · Locofast",
-            "html": _render_customer_quote_email(rfq, quote, is_first),
-        }
+        subject = f"[{subject_prefix}] ₹{quote.get('price_per_meter', '')}/m on {rfq_number} · Locofast"
+        html = _render_customer_quote_email(rfq, quote, is_first)
+        params = {"from": SENDER_EMAIL, "to": [recipient], "subject": subject, "html": html}
         await asyncio.to_thread(resend.Emails.send, params)
-        logger.info(f"Quote-received email sent to {recipient} for RFQ {rfq.get('rfq_number')}")
+        logger.info(f"Quote-received email sent to {recipient} for RFQ {rfq_number}")
+        await log_email(kind="quote_received_customer", recipients=[recipient], subject=subject, html=html, status="sent",
+                        rfq_id=rfq_id, customer_id=customer_id)
         return True
     except Exception as e:
         logger.error(f"Failed to send quote-received email: {str(e)}")
         return False
+
+
+async def _notify_brand_on_quote(rfq: dict, quote: dict, is_first: bool) -> bool:
+    """Brand-side fanout: email every brand_admin + push in-app notification."""
+    rfq_id = rfq.get("id")
+    rfq_number = rfq.get("rfq_number", "")
+    brand_id = rfq.get("brand_id")
+
+    # Resolve recipients (active brand_admin users on this brand)
+    admins = await db.brand_users.find(
+        {"brand_id": brand_id, "role": "brand_admin", "status": "active"},
+        {"_id": 0, "id": 1, "email": 1, "name": 1},
+    ).to_list(length=50)
+    recipients = [a.get("email") for a in admins if a.get("email")]
+
+    # Build the headline so it works for both knits/wovens
+    cat = (rfq.get("category") or "").lower()
+    unit = "kg" if cat == "knits" else "m"
+    headline_qty = ""
+    if rfq.get("quantity_value"):
+        try:
+            qv = float(rfq.get("quantity_value"))
+            qv_str = str(int(qv)) if qv.is_integer() else str(qv)
+            headline_qty = f"{qv_str} {(rfq.get('quantity_unit') or unit).lower()}"
+        except (TypeError, ValueError):
+            pass
+    if not headline_qty:
+        raw = rfq.get("quantity_kg") or rfq.get("quantity_meters") or ""
+        headline_qty = f"{raw.replace('_', '–')} {unit}" if raw else ""
+
+    spec_bits = [rfq.get("fabric_requirement_type"), rfq.get("knit_type"), rfq.get("weave_type")]
+    spec_bits = [s for s in spec_bits if s]
+    if rfq.get("gsm"):
+        spec_bits.append(f"{rfq.get('gsm')} GSM")
+    spec = " · ".join(spec_bits) or "Custom RFQ"
+    vendor_name = quote.get("vendor_company") or "Locofast verified mill"
+    price = quote.get("price_per_meter", "")
+    headline = f"{vendor_name} quoted ₹{price}/{unit} on {rfq_number} ({spec}{', ' + headline_qty if headline_qty else ''})"
+
+    # Push 1 notification per admin so each user has an independent unread state
+    now = datetime.now(timezone.utc).isoformat()
+    notif_docs = []
+    for a in admins:
+        notif_docs.append({
+            "id": str(uuid.uuid4()),
+            "brand_id": brand_id,
+            "brand_user_id": a.get("id"),
+            "kind": "quote_received",
+            "title": headline,
+            "rfq_id": rfq_id,
+            "rfq_number": rfq_number,
+            "vendor_company": vendor_name,
+            "price_per_unit": float(price) if isinstance(price, (int, float)) else (float(price) if isinstance(price, str) and price.replace(".", "").isdigit() else None),
+            "unit": unit,
+            "is_first": is_first,
+            "url": f"/enterprise/queries/{rfq_id}",
+            "read": False,
+            "created_at": now,
+        })
+    if notif_docs:
+        await db.brand_notifications.insert_many(notif_docs)
+
+    if not recipients or not RESEND_API_KEY:
+        # Still record an audit row so we know the in-app notification fired
+        await log_email(kind="quote_received_brand", recipients=recipients, subject=headline, html="", status="skipped" if not RESEND_API_KEY else "skipped",
+                        error="No recipients" if not recipients else "RESEND_API_KEY missing",
+                        rfq_id=rfq_id, brand_id=brand_id)
+        return bool(notif_docs)
+
+    subject = f"[{'New quote' if is_first else 'Quote updated'}] ₹{price}/{unit} on {rfq_number} · Locofast"
+    html = _render_brand_quote_email(rfq, quote, headline, unit)
+    try:
+        await asyncio.to_thread(resend.Emails.send, {
+            "from": SENDER_EMAIL, "to": recipients, "subject": subject, "html": html,
+        })
+        await log_email(kind="quote_received_brand", recipients=recipients, subject=subject, html=html, status="sent",
+                        rfq_id=rfq_id, brand_id=brand_id)
+        logger.info(f"Quote-received email sent to {recipients} for brand RFQ {rfq_number}")
+        return True
+    except Exception as e:
+        logger.error(f"Brand quote-received email failed: {e}")
+        await log_email(kind="quote_received_brand", recipients=recipients, subject=subject, html=html, status="failed",
+                        error=str(e), rfq_id=rfq_id, brand_id=brand_id)
+        return False
+
+
+def _render_brand_quote_email(rfq: dict, quote: dict, headline: str, unit: str) -> str:
+    preview_url = os.environ.get("PUBLIC_APP_URL", "").rstrip("/") + f"/enterprise/queries/{rfq.get('id', '')}"
+    return f"""
+    <div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111827;">
+      <h2 style="margin:0 0 8px;font-size:22px;">You've got a new quote</h2>
+      <p style="color:#374151;margin:0 0 20px;font-size:14px;line-height:1.55">{headline}</p>
+      <div style="background:#ECFDF5;border:1px solid #BBF7D0;border-radius:8px;padding:20px;margin-bottom:20px">
+        <p style="margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#047857;font-weight:600">Vendor Quote</p>
+        <p style="margin:6px 0 2px;font-size:28px;font-weight:700;color:#065F46">₹{quote.get('price_per_meter', '')}<span style="font-size:14px;color:#10B981;font-weight:500">/{unit}</span></p>
+        <p style="margin:0;color:#4B5563;font-size:12px">
+          Lead time: {quote.get('lead_days', '—')} days · MOQ: {quote.get('moq', '—')} {unit}
+        </p>
+      </div>
+      <a href="{preview_url}" style="display:inline-block;background:#10B981;color:white;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px;">View &amp; compare quotes</a>
+      <p style="margin-top:24px;color:#9CA3AF;font-size:11px;">You're receiving this because you're a brand admin on Locofast. Manage notifications in Account → Profile.</p>
+    </div>"""
 
 
 def _render_customer_quote_email(rfq: dict, quote: dict, is_first: bool = True) -> str:

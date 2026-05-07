@@ -2636,3 +2636,56 @@ async def _attach_invoice_links(orders: list, brand_id: str) -> list:
     for o in orders:
         o["invoice"] = invs_by_order.get(o["id"])
     return orders
+
+
+# ════════════════════════════════════════════════════════════════════
+# BRAND NOTIFICATIONS — bell-icon + dropdown
+# Pushed by email_router._notify_brand_on_quote when a vendor submits
+# a quote on one of the brand's RFQs.
+# ════════════════════════════════════════════════════════════════════
+@router.get("/brand/notifications")
+async def brand_list_notifications(
+    user=Depends(get_current_brand_user),
+    unread_only: bool = False,
+    limit: int = 30,
+):
+    """Return the latest notifications for the logged-in brand user. Bell-
+    icon dropdown calls this with limit=10. Notifications page calls with
+    limit=30."""
+    q = {"brand_id": user["brand_id"], "brand_user_id": user["id"]}
+    if unread_only:
+        q["read"] = False
+    rows = await db.brand_notifications.find(
+        q, {"_id": 0}
+    ).sort("created_at", -1).limit(max(1, min(int(limit or 30), 100))).to_list(length=limit)
+    unread = await db.brand_notifications.count_documents({**q, "read": False} if not unread_only else q)
+    return {"notifications": rows, "unread_count": unread}
+
+
+@router.get("/brand/notifications/unread-count")
+async def brand_unread_count(user=Depends(get_current_brand_user)):
+    """Lightweight endpoint polled by the bell icon every ~30s."""
+    n = await db.brand_notifications.count_documents({
+        "brand_id": user["brand_id"], "brand_user_id": user["id"], "read": False,
+    })
+    return {"unread_count": n}
+
+
+@router.post("/brand/notifications/{notif_id}/read")
+async def brand_mark_notification_read(notif_id: str, user=Depends(get_current_brand_user)):
+    res = await db.brand_notifications.update_one(
+        {"id": notif_id, "brand_user_id": user["id"]},
+        {"$set": {"read": True, "read_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"message": "Marked read"}
+
+
+@router.post("/brand/notifications/read-all")
+async def brand_mark_all_read(user=Depends(get_current_brand_user)):
+    res = await db.brand_notifications.update_many(
+        {"brand_id": user["brand_id"], "brand_user_id": user["id"], "read": False},
+        {"$set": {"read": True, "read_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"message": f"Marked {res.modified_count} read", "modified": res.modified_count}

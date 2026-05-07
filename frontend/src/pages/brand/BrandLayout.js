@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useBrandAuth } from "../../context/BrandAuthContext";
 import { useBrandCart } from "../../context/BrandCartContext";
 import { Building2, Package, Users, LogOut, ShoppingBag, Wallet, ShoppingCart, Mail, Phone, HelpCircle, Factory, Send, Inbox, MessageSquareQuote } from "lucide-react";
+import NotificationBell from "../../components/brand/NotificationBell";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -81,6 +82,7 @@ const BrandLayout = ({ children }) => {
                 </span>
               )}
             </Link>
+            <NotificationBell />
             {/* Wallet — unobtrusive link to /brand/account */}
             <Link to="/enterprise/account" title="Credit & Sample balances" data-testid="brand-nav-account"
               className={`p-2 rounded-md transition-colors ${isActive("/enterprise/account") ? "bg-emerald-50 text-emerald-700" : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}>
