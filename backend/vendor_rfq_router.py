@@ -216,12 +216,48 @@ class QuoteUpdate(BaseModel):
 
 
 # ==================== HELPERS ====================
+QUANTITY_BUCKET_LABELS = {
+    "1000_5000": "1,000 – 5,000",
+    "5000_20000": "5,000 – 20,000",
+    "20000_50000": "20,000 – 50,000",
+    "50000_plus": "50,000+",
+    "1000_2500": "1,000 – 2,500",
+    "2500_7500": "2,500 – 7,500",
+    "7500_25000": "7,500 – 25,000",
+    "25000_plus": "25,000+",
+    "less_than_200": "< 200",
+    "200_500": "200 – 500",
+    "500_1000": "500 – 1,000",
+    "1000_plus": "1,000+",
+}
+
+
 def _quantity_label(rfq: dict) -> str:
-    if rfq.get("category") == "knits":
-        v = rfq.get("quantity_kg", "")
-        return f"{v} kg" if v else ""
-    v = rfq.get("quantity_meters", "")
-    return f"{v} m" if v else ""
+    """Humanise the stored quantity into a readable label.
+
+    Priority:
+      1. Exact numeric value + unit (new RFQ wizard)
+      2. Bucketed range (legacy form / external API)
+    """
+    qv = rfq.get("quantity_value")
+    qu = (rfq.get("quantity_unit") or "").lower()
+    if qv and qu:
+        try:
+            n = float(qv)
+            n_str = str(int(n)) if n.is_integer() else str(n)
+            return f"{n_str} {qu}"
+        except (TypeError, ValueError):
+            pass
+    cat = (rfq.get("category") or "").lower()
+    is_kg = cat == "knits"
+    raw = rfq.get("quantity_kg", "") if is_kg else rfq.get("quantity_meters", "")
+    if not raw:
+        # Knits sometimes use quantity_meters too; fall back gracefully
+        raw = rfq.get("quantity_meters") or rfq.get("quantity_kg") or ""
+    if not raw:
+        return ""
+    label = QUANTITY_BUCKET_LABELS.get(raw, raw.replace("_", " – "))
+    return f"{label} {'kg' if is_kg else 'm'}"
 
 
 async def _attach_vendor_state(rfq: dict, vendor_id: str) -> dict:

@@ -276,6 +276,12 @@ const QuoteModal = ({ rfq, existing, onClose, onSaved }) => {
   const isEdit = !!existing;
   const isShortfall = !!rfq?.is_shortfall;
 
+  // Pricing unit comes from the RFQ category — knits per kg, wovens per
+  // meter. Yards override this for international buyers.
+  const priceUnit =
+    (rfq?.quantity_unit && String(rfq.quantity_unit).toLowerCase()) ||
+    ((rfq?.category || "").toLowerCase() === "knits" ? "kg" : "m");
+
   // For shortfall RFQs we lazily fetch the linked SKU so the vendor's
   // form is pre-filled with the exact same specs the buyer is already
   // taking from stock — they only need to confirm price + lead.
@@ -306,7 +312,7 @@ const QuoteModal = ({ rfq, existing, onClose, onSaved }) => {
 
   const handleSave = async () => {
     if (!form.price_per_meter || Number(form.price_per_meter) <= 0) {
-      alert("Enter a valid price per meter");
+      alert(`Enter a valid price per ${priceUnit}`);
       return;
     }
     if (!form.lead_days || Number(form.lead_days) < 1) {
@@ -376,7 +382,7 @@ const QuoteModal = ({ rfq, existing, onClose, onSaved }) => {
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-xs font-medium text-gray-600">Price (₹/m) *</span>
+              <span className="text-xs font-medium text-gray-600">Price (₹/{priceUnit}) *</span>
               <input
                 type="number"
                 step="0.01"
@@ -718,7 +724,7 @@ const QuoteModal = ({ rfq, existing, onClose, onSaved }) => {
                 <input
                   type="number"
                   step="0.01"
-                  placeholder="Price ₹/m"
+                  placeholder={`Price ₹/${priceUnit}`}
                   value={row.price || ""}
                   onChange={(e) => {
                     const list = [...form.specs.pricing_tiers];
@@ -834,6 +840,12 @@ const VendorRfqDetail = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, rfq]);
+
+  // Pricing unit driven by category (knits → kg, wovens → m). Yards
+  // override for international buyers via quantity_unit.
+  const priceUnit =
+    (rfq?.quantity_unit && String(rfq.quantity_unit).toLowerCase()) ||
+    ((rfq?.category || "").toLowerCase() === "knits" ? "kg" : "m");
 
   const fabricItems = useMemo(() => {
     if (!rfq) return [];
@@ -956,7 +968,7 @@ const VendorRfqDetail = () => {
                 </div>
                 <div className="flex items-center gap-3 mb-3 flex-wrap">
                   <span className="text-2xl font-bold text-gray-900">₹ {formatINR(myQuote.price_per_meter)}</span>
-                  <span className="text-gray-500">/ m</span>
+                  <span className="text-gray-500">/ {priceUnit}</span>
                   <Chip accent="gray">{myQuote.basis === "x-factory" ? "Ex-factory" : "Door-delivered"}</Chip>
                   <Chip accent="amber">{myQuote.lead_days} days</Chip>
                   {myQuote.sample_available && <Chip accent="violet">Sample available</Chip>}
