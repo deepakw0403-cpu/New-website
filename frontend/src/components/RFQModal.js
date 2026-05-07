@@ -22,9 +22,10 @@ const LOCATIONS = [
   { value: "Sri Lanka", label: "Sri Lanka", code: "+94" },
 ];
 
-export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
+export default function RFQModal({ open, onClose, fabricUrl, fabricName, fabric }) {
   const [form, setForm] = useState({
-    name: "", phone: "", country_code: "+91", gst_number: "", bin_number: "", company_name: "", email: "", fabric_type: "", location: ""
+    name: "", phone: "", country_code: "+91", gst_number: "", bin_number: "", company_name: "", email: "", fabric_type: "", location: "",
+    quantity: "", quantity_unit: "m", notes: ""
   });
   const [submitting, setSubmitting] = useState(false);
   const [loggedInCustomer, setLoggedInCustomer] = useState(null);
@@ -104,6 +105,9 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
           fabric_type: fabricUrl ? "" : form.fabric_type,
           fabric_url: fabricUrl || "",
           fabric_name: fabricName || "",
+          quantity_value: parseFloat(form.quantity) || 0,
+          quantity_unit: form.quantity_unit,
+          message: form.notes || "",
         })
       });
       toast.success("Your enquiry has been submitted! Our team will reach out within 24 hours.");
@@ -122,6 +126,16 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
       setSubmitting(false);
     }
   };
+
+  // Auto-set the quantity unit based on the fabric being enquired on:
+  // knits use kg, wovens use meters. Fabric-aware default.
+  useEffect(() => {
+    if (!fabric) return;
+    const cat = (fabric.category_id || fabric.category || "").toLowerCase();
+    const fabType = (fabric.fabric_type || "").toLowerCase();
+    const isKnits = cat.includes("knit") || fabType.includes("knit");
+    setForm((p) => ({ ...p, quantity_unit: isKnits ? "kg" : "m" }));
+  }, [fabric]);
 
   if (!open) return null;
 
@@ -190,7 +204,46 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
             </>
           )}
 
-          {fabricUrl ? (
+          {fabric ? (
+            /* Rich fabric specs preview when launched from a fabric detail page —
+               so the buyer can confirm the spec they're enquiring on rather
+               than staring at a blank submit screen. */
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3" data-testid="rfq-fabric-specs">
+              <div className="flex items-start gap-3">
+                {fabric.image_url && (
+                  <img src={fabric.image_url} alt={fabric.name} className="w-16 h-16 object-cover rounded-md border border-gray-200 shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] uppercase tracking-wide text-blue-600 font-medium mb-0.5">Enquiry for</p>
+                  <a href={fabricUrl} className="text-sm font-semibold text-gray-900 hover:text-[#2563EB] hover:underline line-clamp-2" target="_blank" rel="noopener noreferrer" data-testid="rfq-fabric-link">
+                    {fabric.name}
+                  </a>
+                  {fabric.fabric_code && <p className="text-[11px] text-gray-500 font-mono mt-0.5">{fabric.fabric_code}</p>}
+                </div>
+              </div>
+
+              {/* Spec grid — only shows fields that have data */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs pt-2 border-t border-gray-200">
+                {Array.isArray(fabric.composition) && fabric.composition.length > 0 && (
+                  <div className="col-span-2">
+                    <span className="text-gray-500">Composition: </span>
+                    <span className="text-gray-900 font-medium">
+                      {fabric.composition.filter(c => c.material).map(c => `${c.percentage}% ${c.material}`).join(" + ")}
+                    </span>
+                  </div>
+                )}
+                {fabric.gsm && <div><span className="text-gray-500">GSM: </span><span className="text-gray-900 font-medium">{fabric.gsm}</span></div>}
+                {fabric.ounce && !fabric.gsm && <div><span className="text-gray-500">Weight: </span><span className="text-gray-900 font-medium">{fabric.ounce} oz</span></div>}
+                {fabric.width && <div><span className="text-gray-500">Width: </span><span className="text-gray-900 font-medium">{fabric.width}"</span></div>}
+                {fabric.fabric_type && <div><span className="text-gray-500">Type: </span><span className="text-gray-900 font-medium capitalize">{fabric.fabric_type}</span></div>}
+                {fabric.weave_pattern && <div><span className="text-gray-500">Weave: </span><span className="text-gray-900 font-medium">{fabric.weave_pattern}</span></div>}
+                {fabric.knit_type && <div><span className="text-gray-500">Knit: </span><span className="text-gray-900 font-medium">{fabric.knit_type}</span></div>}
+                {fabric.color_or_shade && <div><span className="text-gray-500">Colour: </span><span className="text-gray-900 font-medium">{fabric.color_or_shade}</span></div>}
+                {fabric.starting_price && <div><span className="text-gray-500">Starting price: </span><span className="text-gray-900 font-medium">₹{fabric.starting_price}/{fabric.unit || form.quantity_unit}</span></div>}
+                {Number.isFinite(fabric.moq) && fabric.moq > 0 && <div><span className="text-gray-500">MOQ: </span><span className="text-gray-900 font-medium">{fabric.moq} {fabric.unit || form.quantity_unit}</span></div>}
+              </div>
+            </div>
+          ) : fabricUrl ? (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-xs text-blue-600 font-medium mb-1">Enquiry for</p>
               <a href={fabricUrl} className="text-sm font-medium text-[#2563EB] hover:underline" target="_blank" rel="noopener noreferrer" data-testid="rfq-fabric-link">{fabricName || fabricUrl}</a>
@@ -204,6 +257,28 @@ export default function RFQModal({ open, onClose, fabricUrl, fabricName }) {
               </select>
             </div>
           )}
+
+          {/* Quantity + Notes — useful regardless of source. Quantity unit
+              auto-syncs with the fabric (knit→kg, woven→m) but is editable. */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity required <span className="text-red-500">*</span></label>
+              <input type="number" min="1" step="1" required value={form.quantity} onChange={(e) => setForm(p => ({ ...p, quantity: e.target.value }))} placeholder="e.g. 5000" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" data-testid="rfq-quantity" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+              <select value={form.quantity_unit} onChange={(e) => setForm(p => ({ ...p, quantity_unit: e.target.value }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white" data-testid="rfq-quantity-unit">
+                <option value="m">meters</option>
+                <option value="kg">kilograms</option>
+                <option value="yd">yards</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes / customisation <span className="text-gray-400 font-normal">(optional)</span></label>
+            <textarea rows={2} value={form.notes} onChange={(e) => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Any spec changes, target price, dispatch needs…" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none" data-testid="rfq-notes" />
+          </div>
 
           <button type="submit" disabled={submitting} className="w-full py-3 bg-[#2563EB] text-white font-medium rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors flex items-center justify-center gap-2" data-testid="rfq-submit">
             {submitting ? "Submitting..." : "Submit RFQ"}

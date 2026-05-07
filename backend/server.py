@@ -344,6 +344,10 @@ async def create_rfq_lead(data: dict):
     fabric_url = data.get('fabric_url', '')
     fabric_name = data.get('fabric_name', '')
     location = data.get('location', '')
+    # New fields from PDP modal (fabric-aware)
+    quantity_value = data.get('quantity_value', 0) or 0
+    quantity_unit = (data.get('quantity_unit', '') or '').lower()
+    notes_message = data.get('message', '') or ''
     # GST-verified fields (auto-populated from frontend)
     gst_legal_name = data.get('gst_legal_name', '')
     gst_trade_name = data.get('gst_trade_name', '')
@@ -411,9 +415,12 @@ async def create_rfq_lead(data: dict):
         guessed_category = "cotton"
         if fabric_type:
             t = fabric_type.lower()
-            if "denim" in t: guessed_category = "denim"
-            elif "knit" in t: guessed_category = "knits"
-            elif "viscose" in t: guessed_category = "viscose"
+            if "denim" in t:
+                guessed_category = "denim"
+            elif "knit" in t:
+                guessed_category = "knits"
+            elif "viscose" in t:
+                guessed_category = "viscose"
 
         await db.rfq_submissions.insert_one({
             "id": rfq_id,
@@ -421,6 +428,8 @@ async def create_rfq_lead(data: dict):
             "customer_id": customer_id,
             "category": guessed_category,
             "fabric_requirement_type": fabric_type or "",
+            "quantity_value": float(quantity_value) if quantity_value else 0,
+            "quantity_unit": quantity_unit,
             "full_name": name,
             "email": email,
             "phone": phone,
@@ -432,7 +441,7 @@ async def create_rfq_lead(data: dict):
             "fabric_name": fabric_name,
             "lead_source": "SKU Page RFQ" if fabric_url else "Homepage RFQ",
             "ingested_via": "rfq_lead_modal",
-            "message": data.get('message', '') or "",
+            "message": notes_message,
             "status": "new",
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
