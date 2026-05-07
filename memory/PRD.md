@@ -404,7 +404,16 @@ Major financial workflow capability. Tested 30/30 backend + 100% frontend (itera
 4 deliverables building on the AM module. Tested 16/16 backend + 100% frontend (iteration_48.json). Detail in CHANGELOG.md.
 
 ### Phase 52: Cloudinary uploads + Cart address picker + Brand-group AM picker (Complete - Feb 2026)
-3 UX upgrades. Tested 22/22 backend + 100% frontend (iteration_49.json).
+3 UX upgrades. Tested 22/22 backend + 100% frontend (iteration_49.json). Detail in CHANGELOG.md.
+
+### Phase 53: Realtime quote-arrived notifications — email + bell icon (Complete - Feb 2026)
+Vendor quotes now ping the brand portal in real time. Tested 9/9 backend + 100% frontend (iteration_51.json).
+
+- **Email fanout**: `send_quote_received_email` now branches on `rfq.brand_id`. For brand-RFQs, fans out to ALL active `brand_admin` users on the brand (not just the RFQ author). Subject line: `[New quote] ₹185/kg on RFQ-2026-0042 · Locofast`. HTML body has a green pricing card + "View & compare quotes" emerald CTA linking to `/enterprise/queries/{id}`. Audit row written with `kind=quote_received_brand`.
+- **In-app bell**: New `brand_notifications` collection — one row per brand_admin per quote. New endpoints: `GET /api/brand/notifications?limit=10`, `GET /api/brand/notifications/unread-count`, `POST /api/brand/notifications/{id}/read`, `POST /api/brand/notifications/read-all`.
+- **Frontend `<NotificationBell>` component**: mounted in `BrandLayout` top-nav. Polls unread-count every 30s. Red badge with pulse animation showing count. Click opens 380px dropdown with the latest 10 notifications, "Mark all read" header, "See all queries →" footer. Click on a notification marks-read and navigates to `/enterprise/queries/:id`.
+
+
 
 - **Cloudinary file uploads**: New reusable `<FileUploadInput>` (admin) + `<BrandFileUpload>` (brand) components. Drag-drop or click; shows file chip with Replace/Remove after upload. Backend changes: signature endpoint enum extended to `raw|auto|image|video` (PDF support), `verify_admin` accepts brand JWT type. Wired into 5 admin forms (Invoice PDF, E-way Bill PDF, Credit Note PDF, Debit Note PDF, Payment Receipt) + ApplyCreditModal supporting-document field.
 - **Cart saved-address picker**: BrandCart now loads `/api/brand/addresses` on mount and renders saved-address cards (with `REGISTERED OFFICE`, `Default`, `GST-seeded`, `Factory · {name}` badges). Auto-picks the default. "Add new address" toggle reveals the inline form (still saves to backend if "Save as default" is checked). Selection radios with brand colors.
