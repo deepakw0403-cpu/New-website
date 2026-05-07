@@ -42,6 +42,9 @@ class SellerCreate(BaseModel):
     certifications: Optional[List[str]] = []
     export_markets: Optional[List[str]] = []
     gst_number: Optional[str] = ""
+    gst_verified: Optional[bool] = False
+    gst_legal_name: Optional[str] = ""
+    gst_trade_name: Optional[str] = ""
 
 class SellerUpdate(BaseModel):
     name: Optional[str] = None
@@ -88,6 +91,9 @@ class Seller(BaseModel):
     certifications: List[str] = []
     export_markets: List[str] = []
     gst_number: str = ""
+    gst_verified: bool = False
+    gst_legal_name: str = ""
+    gst_trade_name: str = ""
 
 
 # ==================== HELPERS ====================
@@ -151,6 +157,23 @@ async def get_seller(seller_id: str):
 
 @router.post("/sellers", response_model=Seller)
 async def create_seller(data: SellerCreate, admin=Depends(auth_helpers.get_current_admin)):
+    # ── GST verification gate ──────────────────────────────────────────
+    # Every new seller MUST come in with a verified GSTIN. The admin UI
+    # blocks the Save button until verification succeeds, but we double-
+    # check server-side so direct API calls can't bypass the rule.
+    gstin = (data.gst_number or "").strip().upper()
+    if not gstin:
+        raise HTTPException(status_code=400, detail="GST number is required to onboard a seller")
+    if len(gstin) != 15:
+        raise HTTPException(status_code=400, detail="GST number must be 15 characters")
+    if not data.gst_verified:
+        raise HTTPException(status_code=400, detail="GST must be verified before onboarding the seller. Click 'Verify GST' in the form.")
+
+    # Reject duplicates
+    dup = await db.sellers.find_one({"gst_number": gstin}, {"_id": 0, "id": 1, "company_name": 1})
+    if dup:
+        raise HTTPException(status_code=409, detail=f"A seller with GSTIN {gstin} already exists ({dup.get('company_name','')})")
+
     seller_id = str(uuid.uuid4())
     seller_code = await generate_seller_code()
 
@@ -185,7 +208,11 @@ async def create_seller(data: SellerCreate, admin=Depends(auth_helpers.get_curre
         'turnover_range': data.turnover_range or "",
         'certifications': data.certifications or [],
         'export_markets': data.export_markets or [],
-        'gst_number': data.gst_number or "",
+        'gst_number': gstin,
+        'gst_verified': True,
+        'gst_verified_at': datetime.now(timezone.utc).isoformat(),
+        'gst_legal_name': (data.gst_legal_name or "").strip(),
+        'gst_trade_name': (data.gst_trade_name or "").strip(),
     }
     await db.sellers.insert_one(seller_doc)
     # Remove MongoDB _id before returning (insert_one modifies the dict)

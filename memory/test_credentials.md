@@ -10,6 +10,15 @@
 - Password: vendor123
 - Login URL: /vendor/login
 
+## Denim-Specialist Vendor (Bluerock Denim Mills)
+- Email: denimseller@locofast.com
+- Password: denim@123
+- Login URL: /vendor/login
+- Seller code: LS-EIOY3
+- Categories: Denim
+- GST: 24AABCB1234C1Z5 (verified seed)
+- Use this account to test denim-specific RFQ fan-out, weave taxonomy and quote flows.
+
 ## Alternate Vendor
 - Email: info@palimills.com
 - Password: admin@123
