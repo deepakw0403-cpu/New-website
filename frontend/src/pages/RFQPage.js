@@ -30,8 +30,52 @@ const CATEGORIES = [
 const FABRIC_REQ_TYPES = ["Greige", "Dyed", "RFD", "Printed"];
 const FABRIC_TYPES = ["woven", "knitted", "non-woven"];
 const STRETCH_OPTIONS = ["non_stretch", "2_way", "4_way", "comfort_stretch", "power_stretch"];
-const WEAVE_OPTIONS = ["Plain", "Twill", "Satin", "Dobby", "Jacquard", "Oxford", "Poplin", "Basket", "Herringbone", "Other"];
-const KNIT_OPTIONS = ["Single Jersey", "Interlock", "Pique", "Rib 1x1", "Rib 2x2", "French Terry", "Fleece", "Loopknit", "Waffle", "Mesh", "Honeycomb", "Other"];
+
+// ──────────────────────────────────────────────────────────────────────────
+// Weave / Knit / Pattern / Finish dictionaries — kept in lock-step with the
+// vendor inventory form (`/app/frontend/src/pages/vendor/VendorInventory.js`)
+// so RFQs and SKUs use identical taxonomy. If you edit one, edit both.
+// ──────────────────────────────────────────────────────────────────────────
+const COTTON_WEAVES = [
+  "Voile", "Cambric", "Poplin", "2/1 Twill", "3/1 Twill", "2/2 Twill", "4/1 Satin",
+  "Dobby", "Herringbone", "-Slub", "+Slub", "Double Cloth", "Oxford", "Canvas",
+  "Sheeting", "Crimp Sheeting", "4mm Ripstop", "6mm Ripstop", "Casement", "Lurex",
+];
+const DENIM_WEAVES = [
+  "2/1 RHT", "2/1 LHT", "3/1 RHT", "3/1 LHT", "4/1 Satin",
+  "4/1 Satin RHT", "4/1 Satin LHT", "Dobby", "Herringbone",
+];
+const VISCOSE_WEAVES = [
+  "1x1 Plain", "2/1 Twill", "3/1 Twill", "2/2 Twill", "Dobby", "4/1 Satin", "-Slub", "+Slub",
+];
+const POLYESTER_WOVEN_WEAVES = [
+  "1x1 Plain", "2x1 Twill", "3x1 Twill", "2x2 Twill", "4x1 Satin",
+  "Dobby", "Jacquard", "-Slub", "+Slub", "Magic Slub",
+];
+const KNIT_OPTIONS = [
+  "Single Jersey", "Interlock", "Rice Knit", "Dot Knit", "Mesh", "Pique",
+  "Honeycomb Pique", "Waffle", "Fleece", "Terry", "Baby Terry", "1x1 Rib", "2x2 Rib",
+  "3D Jacquard", "Dobby", "4-Way Lycra", "2-Way Lycra", "Tin Tin", "Sap Matty",
+  "Micro PP", "Jacquard Zombie", "Taiwan Lycra", "Football Knit", "Nirmal Knit",
+  "Reebok Knit", "Adidas Knit", "Super Malai", "Micro Crepe", "Bubble Crepe",
+];
+// Returns the right weave list given the buyer's category + fabric_type pick.
+const weavesForRfq = (category, fabricType) => {
+  if ((fabricType || "").toLowerCase() === "knitted") return KNIT_OPTIONS;
+  if (category === "denim")   return DENIM_WEAVES;
+  if (category === "viscose") return VISCOSE_WEAVES;
+  if (category === "knits")   return POLYESTER_WOVEN_WEAVES;
+  return COTTON_WEAVES; // default for cotton + anything else
+};
+
+const PATTERN_OPTIONS = [
+  "Solid", "Print", "Stripes", "Checks", "Floral", "Geometric", "Digital", "Random", "Greige", "Others",
+];
+const FINISH_OPTIONS = [
+  "Bio", "Double Bio", "Silicon", "Double Silicon", "Enzyme Wash", "Sulphur Wash",
+  "Acid Wash", "Normal Wash", "Stone Wash",
+];
+
 const WASH_TYPES = ["Indigo", "Sulphur Black", "Raw", "Stone Wash", "Enzyme Wash", "Bleach Wash", "Acid Wash", "Pigment Dyed", "Other"];
 const COMMON_MATERIALS = ["Cotton", "Polyester", "Viscose", "Lycra", "Spandex", "Nylon", "Linen", "Modal", "Tencel", "Wool", "Silk", "Acrylic", "Bamboo", "Hemp"];
 const CERTIFICATIONS = ["GOTS", "OEKO-TEX", "GRS", "BCI", "USDA Organic", "Cradle to Cradle"];
@@ -58,6 +102,7 @@ const EMPTY_FORM = {
   width_inches: "",
   color: "",
   pantone_code: "",
+  pattern: "",          // Solid / Print / Stripes / …
   weave_type: "",
   knit_type: "",
   thread_count: "",
@@ -238,6 +283,7 @@ const RFQPage = () => {
           width_inches: f.width ? String(f.width) : "",
           color: f.color_or_shade || "",
           pantone_code: f.pantone_code || "",
+          pattern: f.pattern || "",
           weave_type: f.weave_pattern || "",
           knit_type: f.knit_type || "",
           stretch: f.stretch || "",
@@ -339,6 +385,7 @@ const RFQPage = () => {
         width_inches: parseFloat(form.width_inches) || 0,
         color: form.color || "",
         pantone_code: form.pantone_code || "",
+        pattern: form.pattern || "",
         weave_type: form.weave_type || "",
         knit_type: form.knit_type || "",
         thread_count: form.thread_count || "",
@@ -509,6 +556,7 @@ const RFQPage = () => {
           width_inches: parseFloat(form.width_inches) || 0,
           color: form.color || "",
           pantone_code: form.pantone_code || "",
+          pattern: form.pattern || "",
           weave_type: form.weave_type || "",
           thread_count: form.thread_count || "",
           yarn_count: form.yarn_count || "",
@@ -775,7 +823,13 @@ const RFQPage = () => {
                   <Field label={form.fabric_type === "knitted" ? "Knit Type" : "Weave Type"} optional>
                     <select value={form.fabric_type === "knitted" ? form.knit_type : form.weave_type} onChange={(e) => update(form.fabric_type === "knitted" ? { knit_type: e.target.value } : { weave_type: e.target.value })} className={`${inputCls} bg-white`} data-testid="rfq-weave-knit">
                       <option value="">Select…</option>
-                      {(form.fabric_type === "knitted" ? KNIT_OPTIONS : WEAVE_OPTIONS).map((w) => <option key={w} value={w}>{w}</option>)}
+                      {weavesForRfq(form.category, form.fabric_type).map((w) => <option key={w} value={w}>{w}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Pattern" optional>
+                    <select value={form.pattern} onChange={(e) => update({ pattern: e.target.value })} className={`${inputCls} bg-white`} data-testid="rfq-pattern">
+                      <option value="">Select…</option>
+                      {PATTERN_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </Field>
                   <Field label="Stretch" optional>
@@ -791,7 +845,10 @@ const RFQPage = () => {
                     <input type="text" value={form.yarn_count} onChange={(e) => update({ yarn_count: e.target.value })} placeholder="30s x 20s" className={inputCls} data-testid="rfq-yarn-count" />
                   </Field>
                   <Field label="Finish" optional>
-                    <input type="text" value={form.finish} onChange={(e) => update({ finish: e.target.value })} placeholder="Bio, Silicon, Enzyme Wash" className={inputCls} data-testid="rfq-finish" />
+                    <select value={form.finish} onChange={(e) => update({ finish: e.target.value })} className={`${inputCls} bg-white`} data-testid="rfq-finish">
+                      <option value="">Select…</option>
+                      {FINISH_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+                    </select>
                   </Field>
                   <Field label="End Use" optional>
                     <input type="text" value={form.end_use} onChange={(e) => update({ end_use: e.target.value })} placeholder="Shirts, Dresses, Trousers" className={inputCls} data-testid="rfq-end-use" />

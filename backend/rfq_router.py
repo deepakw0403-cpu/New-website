@@ -58,6 +58,7 @@ class RFQSubmission(BaseModel):
     width_inches: Optional[float] = 0
     color: Optional[str] = ""
     pantone_code: Optional[str] = ""
+    pattern: Optional[str] = ""
     weave_type: Optional[str] = ""
     thread_count: Optional[str] = ""
     yarn_count: Optional[str] = ""
@@ -262,6 +263,7 @@ async def submit_rfq(data: RFQSubmission, request: Request):
         'color': data.color or "",
         'color_or_shade': data.color or "",
         'pantone_code': data.pantone_code or "",
+        'pattern': data.pattern or "",
         'weave_type': data.weave_type or "",
         'weave_pattern': data.weave_type or "",
         'thread_count': data.thread_count or "",
@@ -573,6 +575,7 @@ class RFQPatch(BaseModel):
     width_inches: Optional[float] = None
     color: Optional[str] = None
     pantone_code: Optional[str] = None
+    pattern: Optional[str] = None
     weave_type: Optional[str] = None
     thread_count: Optional[str] = None
     yarn_count: Optional[str] = None
