@@ -1727,6 +1727,11 @@ async def brand_create_order(data: BrandOrderCreate, user=Depends(get_current_br
 # ────────────────────────────────────────────────────────────────
 SUPPORT_EMAIL = os.environ.get("LOCOFAST_SUPPORT_EMAIL", "support@locofast.com")
 OPS_INBOX = os.environ.get("LOCOFAST_OPS_INBOX", "orders@locofast.com")
+# Additional internal stakeholders CC'd on every brand order so they can
+# coordinate delivery directly with the customer.
+ORDER_DELIVERY_CC = [e.strip() for e in os.environ.get(
+    "LOCOFAST_ORDER_DELIVERY_CC", "ashish.katiyar@locofast.com"
+).split(",") if e.strip()]
 
 
 def _order_items_html(order):
@@ -1852,9 +1857,10 @@ async def _notify_order_recipients(order):
                 await _send_and_log(f"brand_order_{o_type}_sellers", seller_emails, f"{subject_prefix} — Action required", html,
                                     meta={"seller_ids": seller_ids})
 
-        # 4) Internal Locofast ops
+        # 4) Internal Locofast ops + delivery coordinators (Ashish etc.)
         html = _order_email_html(order, "Internal notification — route for fulfilment.")
-        await _send_and_log(f"brand_order_{o_type}_ops", [OPS_INBOX], f"{subject_prefix} — Ops handoff", html)
+        ops_recipients = [OPS_INBOX] + [e for e in ORDER_DELIVERY_CC if e and e != OPS_INBOX]
+        await _send_and_log(f"brand_order_{o_type}_ops", ops_recipients, f"{subject_prefix} — Ops handoff", html)
     except Exception as e:
         logging.error(f"_notify_order_recipients failed: {e}")
 
