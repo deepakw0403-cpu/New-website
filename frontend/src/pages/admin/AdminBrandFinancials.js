@@ -61,7 +61,7 @@ const SummaryCard = ({ label, value, tone = "gray", icon: Icon, hint }) => (
 const InvoicesTab = ({ brandId, data, reload }) => {
   const confirm = useConfirm();
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ invoice_number: "", order_id: "", invoice_date: "", due_date: "", subtotal: 0, gst: 0, other_charges: 0, amount: 0, credit_period_days: 30, file_url: "", notes: "" });
+  const [form, setForm] = useState({ invoice_number: "", order_id: "", invoice_date: "", due_date: "", subtotal: 0, gst: 0, other_charges: 0, amount: 0, credit_period_days: 30, file_url: "", eway_bill_number: "", eway_bill_url: "", notes: "" });
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     if (!form.invoice_number.trim()) return toast.error("Invoice number required");
@@ -71,7 +71,7 @@ const InvoicesTab = ({ brandId, data, reload }) => {
       await api.post(`/admin/brands/${brandId}/invoices`, { ...form, amount: Number(form.amount), subtotal: Number(form.subtotal), gst: Number(form.gst), other_charges: Number(form.other_charges), credit_period_days: Number(form.credit_period_days) });
       toast.success("Invoice added");
       setShowAdd(false);
-      setForm({ invoice_number: "", order_id: "", invoice_date: "", due_date: "", subtotal: 0, gst: 0, other_charges: 0, amount: 0, credit_period_days: 30, file_url: "", notes: "" });
+      setForm({ invoice_number: "", order_id: "", invoice_date: "", due_date: "", subtotal: 0, gst: 0, other_charges: 0, amount: 0, credit_period_days: 30, file_url: "", eway_bill_number: "", eway_bill_url: "", notes: "" });
       reload();
     } catch (e) { toast.error(e.response?.data?.detail || "Failed"); }
     setBusy(false);
@@ -101,7 +101,9 @@ const InvoicesTab = ({ brandId, data, reload }) => {
           <Field label="GST (₹)" type="number" v={form.gst} on={(x) => setForm({ ...form, gst: x })} />
           <Field label="Other Charges (₹)" type="number" v={form.other_charges} on={(x) => setForm({ ...form, other_charges: x })} />
           <Field label="Total Amount (₹) *" type="number" v={form.amount} on={(x) => setForm({ ...form, amount: x })} testid="inv-amount" />
-          <Field label="File URL (PDF)" v={form.file_url} on={(x) => setForm({ ...form, file_url: x })} colSpan={3} />
+          <Field label="Invoice File URL (PDF)" v={form.file_url} on={(x) => setForm({ ...form, file_url: x })} colSpan={3} />
+          <Field label="E-way Bill Number" v={form.eway_bill_number} on={(x) => setForm({ ...form, eway_bill_number: x })} testid="inv-eway-num" />
+          <Field label="E-way Bill File URL" v={form.eway_bill_url} on={(x) => setForm({ ...form, eway_bill_url: x })} colSpan={2} testid="inv-eway-url" />
           <Field label="Notes" v={form.notes} on={(x) => setForm({ ...form, notes: x })} colSpan={3} />
           <div className="sm:col-span-3 flex justify-end">
             <button onClick={submit} disabled={busy} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg" data-testid="inv-save">
@@ -136,7 +138,8 @@ const InvoicesTab = ({ brandId, data, reload }) => {
                   <td className="px-3 py-2 text-right font-semibold">{fmtINR((inv.amount || 0) - (inv.amount_paid || 0))}</td>
                   <td className="px-3 py-2"><StatusPill status={inv.status} /></td>
                   <td className="px-3 py-2 text-right">
-                    {inv.file_url && <a href={inv.file_url} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline mr-2"><ExternalLink size={12} className="inline" /></a>}
+                    {inv.file_url && <a href={inv.file_url} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline mr-2" title="Invoice PDF" data-testid={`inv-file-${inv.id}`}><FileText size={12} className="inline" /></a>}
+                    {inv.eway_bill_url && <a href={inv.eway_bill_url} target="_blank" rel="noreferrer" className="text-purple-600 hover:underline mr-2" title={`E-way Bill ${inv.eway_bill_number || ''}`} data-testid={`inv-eway-${inv.id}`}><Receipt size={12} className="inline" /></a>}
                     <button onClick={() => del(inv)} className="text-red-500 hover:bg-red-50 p-1 rounded" data-testid={`del-inv-${inv.id}`}><Trash2 size={12} /></button>
                   </td>
                 </tr>

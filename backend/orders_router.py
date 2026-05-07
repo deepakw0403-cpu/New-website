@@ -614,7 +614,22 @@ async def list_orders(
     
     orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     total = await db.orders.count_documents(query)
-    
+
+    # Join linked brand_invoices so the admin order detail can render an
+    # "E-way Bill" download button when the AM has uploaded one.
+    brand_order_ids = [o["id"] for o in orders if o.get("brand_id") and o.get("id")]
+    if brand_order_ids:
+        cursor = db.brand_invoices.find(
+            {"order_id": {"$in": brand_order_ids}},
+            {"_id": 0, "order_id": 1, "id": 1, "invoice_number": 1, "file_url": 1,
+             "eway_bill_number": 1, "eway_bill_url": 1, "status": 1},
+        )
+        inv_by_order = {}
+        async for inv in cursor:
+            inv_by_order[inv["order_id"]] = inv
+        for o in orders:
+            o["linked_invoice"] = inv_by_order.get(o["id"])
+
     return {
         "orders": orders,
         "total": total,

@@ -600,11 +600,35 @@ async def _ensure_address_book_seeded(brand: dict) -> list:
 
 @router.get("/brand/addresses")
 async def brand_list_addresses(user=Depends(get_current_brand_user)):
-    """Return the brand's address book. Auto-seeds from GST data on first hit."""
+    """Return the brand's address book. Auto-seeds from GST data on first hit.
+    For brand-type enterprises, also merges in every linked factory's GST +
+    manual address entries (read-only on the brand side, tagged with
+    `source: 'factory'` and `factory_name`)."""
     brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")
     book = await _ensure_address_book_seeded(brand)
+
+    # Merge factory addresses for parent brands
+    if brand.get("type") in ("brand", None) or not brand.get("type"):
+        factories = await db.brands.find(
+            {"parent_brand_id": user["brand_id"], "type": "factory"},
+            {"_id": 0, "id": 1, "name": 1},
+        ).to_list(length=100)
+        for f in factories:
+            f_brand = await db.brands.find_one({"id": f["id"]}, {"_id": 0})
+            if f_brand:
+                f_book = await _ensure_address_book_seeded(f_brand)
+                for a in f_book or []:
+                    book.append({
+                        **a,
+                        "id": f"factory-{f['id']}-{a.get('id', '')}",
+                        "source": "factory",
+                        "factory_id": f["id"],
+                        "factory_name": f.get("name", ""),
+                        "is_default": False,  # factory defaults aren't brand defaults
+                        "read_only": True,
+                    })
     return {"addresses": book}
 
 
@@ -1898,6 +1922,7 @@ async def brand_list_orders(user=Depends(get_current_brand_user)):
         {"brand_id": user["brand_id"]},
         {"_id": 0},
     ).sort("created_at", -1).to_list(length=200)
+    await _attach_invoice_links(orders, user["brand_id"])
     return orders
 
 
@@ -2423,3 +2448,184 @@ async def brand_financial_view(user=Depends(get_current_brand_user)):
         if am else None
     )
     return summary
+
+
+# ════════════════════════════════════════════════════════════════════
+# FACTORY CREDIT VISIBILITY (#2) — brand admins see linked factories'
+# credit summaries inline alongside their own.
+# ════════════════════════════════════════════════════════════════════
+@router.get("/brand/factory-credit-summaries")
+async def list_factory_credit_summaries(user=Depends(get_current_brand_user)):
+    """For each factory linked to this brand, return a compact credit summary
+    (lines + total/utilized/available + sample credits + outstanding). Empty
+    arrays mean the factory hasn't been onboarded for credit yet — UI shows
+    'Credit limit not opened' + 'Apply for credit' CTA."""
+    if user["role"] != "brand_admin":
+        raise HTTPException(status_code=403, detail="Only brand admins can view factory credit")
+    brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
+    if not brand or brand.get("type") not in ("brand", None):
+        return []  # factories themselves don't have sub-factories
+    factories = await db.brands.find(
+        {"parent_brand_id": user["brand_id"], "type": "factory"},
+        {"_id": 0, "id": 1, "name": 1, "gst": 1, "sample_credits_total": 1, "sample_credits_used": 1},
+    ).to_list(length=100)
+    out = []
+    for f in factories:
+        lines = await db.brand_credit_lines.find(
+            {"brand_id": f["id"]}, {"_id": 0}
+        ).sort("created_at", 1).to_list(length=50)
+        total = sum(float(l.get("amount_inr", 0)) for l in lines)
+        used = sum(float(l.get("utilized_inr", 0)) for l in lines)
+        # Outstanding from financials (invoiced - paid - cn + dn)
+        invs = await db.brand_invoices.find({"brand_id": f["id"]}, {"_id": 0}).to_list(length=500)
+        cns = await db.brand_credit_notes.find({"brand_id": f["id"]}, {"_id": 0}).to_list(length=500)
+        dns = await db.brand_debit_notes.find({"brand_id": f["id"]}, {"_id": 0}).to_list(length=500)
+        invoiced = sum(float(i.get("amount", 0)) for i in invs)
+        paid = sum(float(i.get("amount_paid", 0)) for i in invs)
+        cn_total = sum(float(c.get("amount", 0)) for c in cns)
+        dn_total = sum(float(d.get("amount", 0)) for d in dns)
+        out.append({
+            "factory_id": f["id"],
+            "factory_name": f.get("name", ""),
+            "gst": f.get("gst", ""),
+            "credit_lines": lines,
+            "credit_allocated": round(total, 2),
+            "credit_utilized": round(used, 2),
+            "credit_available": round(total - used, 2),
+            "sample_credits_total": int(f.get("sample_credits_total", 0)),
+            "sample_credits_used": int(f.get("sample_credits_used", 0)),
+            "outstanding": round(invoiced - paid - cn_total + dn_total, 2),
+            "has_credit": len(lines) > 0,
+        })
+    return out
+
+
+class CreditApplication(BaseModel):
+    entity_id: Optional[str] = None  # brand or factory id; defaults to logged-in brand
+    requested_amount_inr: Optional[float] = None
+    use_case: Optional[str] = ""
+    contact_name: Optional[str] = ""
+    contact_phone: Optional[str] = ""
+
+
+@router.post("/brand/credit-application")
+async def submit_credit_application(data: CreditApplication, user=Depends(get_current_brand_user)):
+    """Send a 'Apply for Credit' email to creditops@locofast.com with the
+    brand/factory + requestor details. Persisted to `credit_applications`
+    so the AM can track progress."""
+    target_id = data.entity_id or user["brand_id"]
+    target = await db.brands.find_one({"id": target_id}, {"_id": 0})
+    if not target:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    # Permission: brand admin can apply for self or for any of their factories
+    if target_id != user["brand_id"]:
+        if user["role"] != "brand_admin":
+            raise HTTPException(status_code=403, detail="Only brand admins can apply on behalf of factories")
+        if target.get("parent_brand_id") != user["brand_id"]:
+            raise HTTPException(status_code=403, detail="That factory is not linked to your brand")
+
+    # Find the assigned AM (if any) so we can BCC them
+    am_doc = await db.admins.find_one(
+        {"is_account_manager": True, "managed_brand_ids": target_id},
+        {"_id": 0, "email": 1, "name": 1},
+    )
+
+    requested_inr = data.requested_amount_inr or 0
+    parent = None
+    if target.get("type") == "factory" and target.get("parent_brand_id"):
+        parent = await db.brands.find_one({"id": target["parent_brand_id"]}, {"_id": 0, "name": 1, "gst": 1})
+
+    app_doc = {
+        "id": str(uuid.uuid4()),
+        "brand_id": target_id,
+        "brand_name": target.get("name", ""),
+        "brand_type": target.get("type", "brand"),
+        "parent_brand_id": target.get("parent_brand_id"),
+        "parent_brand_name": (parent or {}).get("name", "") if parent else "",
+        "gst": target.get("gst", ""),
+        "requested_amount_inr": float(requested_inr),
+        "use_case": (data.use_case or "").strip()[:1000],
+        "contact_name": (data.contact_name or user.get("name") or "").strip(),
+        "contact_email": user.get("email", ""),
+        "contact_phone": (data.contact_phone or "").strip(),
+        "submitted_by_user_id": user.get("id"),
+        "status": "submitted",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.credit_applications.insert_one(app_doc)
+    app_doc.pop("_id", None)
+
+    # Fire email — fire-and-forget, audit-logged
+    asyncio.create_task(_email_credit_application(app_doc, am_doc))
+    return {"message": "Credit application submitted. Locofast Credit Ops will reach out soon.", "application": app_doc}
+
+
+async def _email_credit_application(app_doc: dict, am_doc: Optional[dict]):
+    """Send the application email to creditops@locofast.com (and BCC the AM)."""
+    from email_router import log_email as _audit_log
+    creditops = os.environ.get("LOCOFAST_CREDITOPS_INBOX", "creditops@locofast.com")
+    am_email = (am_doc or {}).get("email")
+    to = [creditops]
+    if am_email and am_email != creditops:
+        to.append(am_email)
+    parent_line = f"<p><strong>Parent Brand:</strong> {app_doc.get('parent_brand_name', '—')}</p>" if app_doc.get("brand_type") == "factory" else ""
+    amount_line = f"<p><strong>Requested Amount:</strong> ₹{app_doc.get('requested_amount_inr', 0):,.0f}</p>" if app_doc.get("requested_amount_inr") else ""
+    use_case_line = f"<p><strong>Use Case:</strong> {app_doc.get('use_case')}</p>" if app_doc.get("use_case") else ""
+    html = f"""
+    <div style="font-family:system-ui,-apple-system,sans-serif;max-width:600px">
+      <h2 style="margin:0 0 12px">New Credit Application</h2>
+      <p><strong>Entity:</strong> {app_doc.get('brand_name', '')} ({app_doc.get('brand_type', 'brand').title()})</p>
+      {parent_line}
+      <p><strong>GSTIN:</strong> {app_doc.get('gst') or '—'}</p>
+      {amount_line}
+      {use_case_line}
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:18px 0">
+      <p style="margin:4px 0"><strong>Requested by:</strong> {app_doc.get('contact_name', '')}</p>
+      <p style="margin:4px 0">{app_doc.get('contact_email', '')}{(' · ' + app_doc.get('contact_phone')) if app_doc.get('contact_phone') else ''}</p>
+      <p style="font-size:12px;color:#6b7280;margin-top:18px">Application ID: <code>{app_doc.get('id')}</code></p>
+    </div>"""
+    subject = f"[Credit App] {app_doc.get('brand_name', '')} — request submitted"
+    try:
+        if RESEND_API_KEY:
+            await asyncio.to_thread(resend.Emails.send, {"from": SENDER_EMAIL, "to": to, "subject": subject, "html": html})
+            await _audit_log(kind="credit_application", recipients=to, subject=subject, html=html, status="sent",
+                             brand_id=app_doc.get("brand_id"), meta={"application_id": app_doc.get("id")})
+        else:
+            await _audit_log(kind="credit_application", recipients=to, subject=subject, html=html, status="skipped",
+                             error="RESEND_API_KEY missing",
+                             brand_id=app_doc.get("brand_id"), meta={"application_id": app_doc.get("id")})
+    except Exception as e:
+        logging.error(f"Credit-application email failed: {e}")
+        await _audit_log(kind="credit_application", recipients=to, subject=subject, html=html, status="failed",
+                         error=str(e),
+                         brand_id=app_doc.get("brand_id"), meta={"application_id": app_doc.get("id")})
+
+
+# ════════════════════════════════════════════════════════════════════
+# Brand orders enriched with linked invoice (file_url + e-way bill) so
+# the orders list can render Invoice + E-way Bill download buttons.
+# ════════════════════════════════════════════════════════════════════
+async def _attach_invoice_links(orders: list, brand_id: str) -> list:
+    """For every order, if a brand_invoice with order_id == order.id exists,
+    attach `invoice` { invoice_number, file_url, eway_bill_number, eway_bill_url }."""
+    if not orders:
+        return orders
+    order_ids = [o["id"] for o in orders if o.get("id")]
+    invs_by_order = {}
+    if order_ids:
+        cursor = db.brand_invoices.find(
+            {"brand_id": brand_id, "order_id": {"$in": order_ids}},
+            {"_id": 0, "id": 1, "order_id": 1, "invoice_number": 1, "file_url": 1, "eway_bill_number": 1, "eway_bill_url": 1, "status": 1},
+        )
+        async for inv in cursor:
+            invs_by_order[inv["order_id"]] = {
+                "id": inv["id"],
+                "invoice_number": inv.get("invoice_number", ""),
+                "file_url": inv.get("file_url", ""),
+                "eway_bill_number": inv.get("eway_bill_number", ""),
+                "eway_bill_url": inv.get("eway_bill_url", ""),
+                "status": inv.get("status", ""),
+            }
+    for o in orders:
+        o["invoice"] = invs_by_order.get(o["id"])
+    return orders

@@ -29,12 +29,126 @@ const loadRazorpay = () =>
     document.body.appendChild(s);
   });
 
+// ───────────────────────────────────────────────── FACTORY CREDIT SECTION
+const FactoryCreditSection = ({ token }) => {
+  const [list, setList] = useState(null);
+  const [applyFor, setApplyFor] = useState(null); // { entity_id, entity_name }
+  const reload = () => {
+    fetch(`${API}/api/brand/factory-credit-summaries`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setList).catch(() => setList([]));
+  };
+  useEffect(() => { reload(); /* eslint-disable-next-line */ }, [token]);
+
+  if (!list) return null;
+  if (list.length === 0) return null;
+
+  return (
+    <>
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-6" data-testid="factory-credit-section">
+        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><Building2 size={14} /> Linked Factories' Credit</h3>
+            <p className="text-xs text-gray-500">Credit limits and outstanding for every factory linked to your brand.</p>
+          </div>
+          <span className="text-xs text-gray-500">{list.length} {list.length === 1 ? "factory" : "factories"}</span>
+        </div>
+        <div className="divide-y divide-gray-100">
+          {list.map((f) => (
+            <div key={f.factory_id} className="p-4" data-testid={`factory-credit-${f.factory_id}`}>
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="font-medium text-gray-900 inline-flex items-center gap-1.5"><Building2 size={12} className="text-orange-500" /> {f.factory_name}</p>
+                  {f.gst && <p className="text-[11px] font-mono text-gray-500 mt-0.5">{f.gst}</p>}
+                </div>
+                {!f.has_credit ? (
+                  <button onClick={() => setApplyFor({ entity_id: f.factory_id, entity_name: f.factory_name })} className="text-xs px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg flex items-center gap-1.5" data-testid={`factory-apply-credit-${f.factory_id}`}>
+                    <Plus size={12} /> Apply for credit
+                  </button>
+                ) : (
+                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Credit active</span>
+                )}
+              </div>
+              {!f.has_credit ? (
+                <p className="text-xs text-gray-500 mt-2 italic">Credit limit not opened. Click "Apply for credit" — Locofast Credit Ops will reach out within 1 working day.</p>
+              ) : (
+                <div className="grid grid-cols-3 gap-3 mt-3 text-sm">
+                  <div><p className="text-[10px] uppercase tracking-wide text-gray-500">Allocated</p><p className="font-medium">{fmtINR(f.credit_allocated)}</p></div>
+                  <div><p className="text-[10px] uppercase tracking-wide text-gray-500">Available</p><p className="font-semibold text-emerald-700">{fmtINR(f.credit_available)}</p></div>
+                  <div><p className="text-[10px] uppercase tracking-wide text-gray-500">Outstanding</p><p className={`font-medium ${f.outstanding > 0 ? "text-red-600" : "text-gray-700"}`}>{fmtINR(f.outstanding)}</p></div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      {applyFor && (
+        <ApplyCreditModal entity={applyFor} token={token} onClose={() => setApplyFor(null)} onApplied={() => { setApplyFor(null); reload(); }} />
+      )}
+    </>
+  );
+};
+
+const ApplyCreditModal = ({ entity, token, onClose, onApplied }) => {
+  const [form, setForm] = useState({ requested_amount_inr: "", use_case: "", contact_phone: "" });
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/api/brand/credit-application`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          entity_id: entity.entity_id,
+          requested_amount_inr: form.requested_amount_inr ? Number(form.requested_amount_inr) : null,
+          use_case: form.use_case,
+          contact_phone: form.contact_phone,
+        }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || "Failed");
+      toast.success(d.message || "Application submitted");
+      onApplied?.();
+    } catch (e) { toast.error(e.message); }
+    setBusy(false);
+  };
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()} data-testid="apply-credit-modal">
+        <h3 className="text-lg font-semibold text-gray-900">Apply for Credit</h3>
+        <p className="text-xs text-gray-500 mt-1">Locofast Credit Ops will reach out to <strong>{entity.entity_name}</strong> within 1 working day.</p>
+        <div className="space-y-3 mt-4">
+          <label className="block">
+            <span className="text-xs text-gray-600 mb-1 block">Requested credit limit (₹)</span>
+            <input type="number" min={0} step={10000} value={form.requested_amount_inr} onChange={(e) => setForm({ ...form, requested_amount_inr: e.target.value })} placeholder="e.g. 2000000" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" data-testid="apply-credit-amount" />
+          </label>
+          <label className="block">
+            <span className="text-xs text-gray-600 mb-1 block">What will you use it for?</span>
+            <textarea rows={3} value={form.use_case} onChange={(e) => setForm({ ...form, use_case: e.target.value })} placeholder="Brief use case so we can size the right limit" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" data-testid="apply-credit-usecase" />
+          </label>
+          <label className="block">
+            <span className="text-xs text-gray-600 mb-1 block">Contact phone</span>
+            <input value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" data-testid="apply-credit-phone" />
+          </label>
+        </div>
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={onClose} className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900">Cancel</button>
+          <button onClick={submit} disabled={busy} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg" data-testid="apply-credit-submit">
+            {busy ? "Submitting…" : "Submit application"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ───────────────────────────────────────────────── OVERVIEW
-const Overview = ({ summary, ledger, topupAmt, setTopupAmt, topupBusy, topup }) => {
+const Overview = ({ summary, ledger, topupAmt, setTopupAmt, topupBusy, topup, token, onApplyForBrand }) => {
   const c = summary.credit;
   const s = summary.sample_credits;
   const creditUtilPct = c.total_allocated > 0 ? Math.min(100, (c.total_utilized / c.total_allocated) * 100) : 0;
   const sampleUtilPct = s.total > 0 ? Math.min(100, (s.used / s.total) * 100) : 0;
+  const brandHasNoCredit = (c.lines || []).length === 0;
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
@@ -99,7 +213,13 @@ const Overview = ({ summary, ledger, topupAmt, setTopupAmt, topupBusy, topup }) 
           <span className="text-xs text-gray-500">{c.lines.length} active</span>
         </div>
         {c.lines.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-500">No credit lines yet. Your Locofast RM will upload soon.</div>
+          <div className="p-8 text-center text-sm text-gray-500">
+            <p className="font-medium text-gray-700">Credit limit not opened</p>
+            <p className="text-xs mt-1">Apply now and our Credit Ops team will reach out within 1 working day.</p>
+            <button onClick={onApplyForBrand} className="mt-4 inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg" data-testid="brand-apply-credit-cta">
+              <Plus size={12} /> Apply for credit
+            </button>
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs uppercase text-gray-500">
@@ -150,6 +270,8 @@ const Overview = ({ summary, ledger, topupAmt, setTopupAmt, topupBusy, topup }) 
           </div>
         </div>
       </div>
+
+      <FactoryCreditSection token={token} />
     </>
   );
 };
@@ -360,8 +482,13 @@ const AddressesTab = ({ token, isAdmin }) => {
               <p className="text-sm text-gray-700 leading-snug">{a.address}</p>
               <p className="text-xs text-gray-500 mt-1">{[a.city, a.state, a.pincode].filter(Boolean).join(", ")}</p>
               {a.phone && <p className="text-xs text-gray-500">{a.phone}</p>}
-              {a.source === "gst" && <span className="text-[10px] inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded mt-2"><ShieldCheck size={10} /> Auto-seeded from GST</span>}
-              {isAdmin && (
+              {a.source === "gst" && !a.factory_name && <span className="text-[10px] inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded mt-2"><ShieldCheck size={10} /> Auto-seeded from GST</span>}
+              {a.source === "factory" && (
+                <span className="text-[10px] inline-flex items-center gap-1 bg-orange-50 text-orange-700 px-1.5 py-0.5 rounded mt-2">
+                  <Building2 size={10} /> from Factory · {a.factory_name}
+                </span>
+              )}
+              {isAdmin && !a.read_only && (
                 <div className="flex justify-end gap-2 mt-3">
                   {!a.is_default && (
                     <button onClick={() => setDefault(a.id)} className="text-xs text-emerald-700 hover:underline" data-testid={`brand-addr-default-${a.id}`}>Set default</button>
@@ -628,6 +755,7 @@ const BrandAccount = () => {
   const [loading, setLoading] = useState(true);
   const [topupAmt, setTopupAmt] = useState(1000);
   const [topupBusy, setTopupBusy] = useState(false);
+  const [brandApplyOpen, setBrandApplyOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -735,7 +863,7 @@ const BrandAccount = () => {
       </div>
 
       {tab === "overview" && (
-        <Overview summary={summary} ledger={ledger} topupAmt={topupAmt} setTopupAmt={setTopupAmt} topupBusy={topupBusy} topup={topup} />
+        <Overview summary={summary} ledger={ledger} topupAmt={topupAmt} setTopupAmt={setTopupAmt} topupBusy={topupBusy} topup={topup} token={token} onApplyForBrand={() => setBrandApplyOpen(true)} />
       )}
       {tab === "profile" && (
         <ProfileTab user={user} brand={brand} token={token} onUpdated={(b) => setBrand(b)} />
@@ -746,6 +874,15 @@ const BrandAccount = () => {
       {tab === "orders" && <OrdersTab token={token} />}
       {tab === "financials" && <FinancialsTab token={token} />}
       {tab === "ledger" && <LedgerTab ledger={ledger} />}
+
+      {brandApplyOpen && (
+        <ApplyCreditModal
+          entity={{ entity_id: user.brand_id, entity_name: brand?.name || "your brand" }}
+          token={token}
+          onClose={() => setBrandApplyOpen(false)}
+          onApplied={() => { setBrandApplyOpen(false); load(); }}
+        />
+      )}
     </BrandLayout>
   );
 };

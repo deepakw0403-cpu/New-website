@@ -115,17 +115,22 @@ async def admin_assign_brands_to_am(admin_id: str, data: AmAssignment, _admin=De
 
 @router.get("/admin/account-managers")
 async def list_account_managers(_admin=Depends(auth_helpers.get_current_admin)):
-    """List all AMs with their assigned brands (joined names) and capacity."""
+    """List all AMs with their assigned brands+factories (joined names) and capacity."""
     ams = await db.admins.find({"is_account_manager": True}, {"_id": 0, "password": 0}).to_list(length=200)
-    # Resolve brand names
+    # Resolve brand names + parent_brand_name for factories
     all_brand_ids = []
     for a in ams:
         all_brand_ids.extend(a.get("managed_brand_ids") or [])
     brand_map = {}
     if all_brand_ids:
-        cursor = db.brands.find({"id": {"$in": all_brand_ids}}, {"_id": 0, "id": 1, "name": 1, "type": 1})
+        cursor = db.brands.find({"id": {"$in": all_brand_ids}}, {"_id": 0, "id": 1, "name": 1, "type": 1, "parent_brand_id": 1})
         async for b in cursor:
-            brand_map[b["id"]] = {"id": b["id"], "name": b.get("name", ""), "type": b.get("type", "brand")}
+            entry = {"id": b["id"], "name": b.get("name", ""), "type": b.get("type", "brand")}
+            # For factory entities, also surface the parent brand name for chip context
+            if b.get("type") == "factory" and b.get("parent_brand_id"):
+                parent = await db.brands.find_one({"id": b["parent_brand_id"]}, {"_id": 0, "name": 1})
+                entry["parent_brand_name"] = (parent or {}).get("name", "")
+            brand_map[b["id"]] = entry
     out = []
     for a in ams:
         brands = [brand_map[bid] for bid in (a.get("managed_brand_ids") or []) if bid in brand_map]
@@ -172,6 +177,9 @@ class InvoiceCreate(BaseModel):
     amount: float  # total invoice amount (incl. GST + charges)
     credit_period_days: Optional[int] = 0
     file_url: Optional[str] = ""
+    # E-way bill (separate doc accompanying the invoice for goods movement)
+    eway_bill_number: Optional[str] = ""
+    eway_bill_url: Optional[str] = ""
     notes: Optional[str] = ""
 
 
@@ -186,6 +194,8 @@ class InvoiceUpdate(BaseModel):
     amount: Optional[float] = None
     credit_period_days: Optional[int] = None
     file_url: Optional[str] = None
+    eway_bill_number: Optional[str] = None
+    eway_bill_url: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[Literal["unpaid", "partially_paid", "paid", "cancelled"]] = None
 
@@ -262,6 +272,8 @@ async def create_invoice(brand_id: str, data: InvoiceCreate, admin=Depends(auth_
         "amount_paid": 0.0,
         "credit_period_days": int(data.credit_period_days or 0),
         "file_url": (data.file_url or "").strip(),
+        "eway_bill_number": (data.eway_bill_number or "").strip(),
+        "eway_bill_url": (data.eway_bill_url or "").strip(),
         "notes": (data.notes or "").strip(),
         "status": "unpaid",
         "created_at": datetime.now(timezone.utc).isoformat(),

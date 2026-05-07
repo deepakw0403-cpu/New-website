@@ -18,11 +18,11 @@ const AdminAccountManagers = () => {
       const [a, u, b] = await Promise.all([
         api.get("/admin/account-managers"),
         api.get("/admin/users"),
-        api.get("/admin/brands?limit=200"),
+        api.get("/admin/brands"),
       ]);
       setAms(a.data || []);
       setAdminUsers(u.data || []);
-      setBrands(b.data?.brands || b.data || []);
+      setBrands(Array.isArray(b.data) ? b.data : (b.data?.brands || []));
     } catch (e) {
       toast.error(e.response?.data?.detail || "Failed to load");
       setAms([]);
@@ -67,6 +67,11 @@ const AdminAccountManagers = () => {
       (am.managed_brands || []).forEach((b) => lockedBrandIds.add(b.id));
     }
   });
+
+  // Group brands into Brands and Factories — factories are linked by parent_brand_id
+  const parentBrands = brands.filter((b) => (b.type || "brand") !== "factory");
+  const factories = brands.filter((b) => b.type === "factory");
+  const brandNameById = Object.fromEntries(parentBrands.map((b) => [b.id, b.name]));
 
   return (
     <AdminLayout>
@@ -128,12 +133,13 @@ const AdminAccountManagers = () => {
                   </div>
                 </div>
 
-                {/* Assigned brands as chips */}
+                {/* Assigned brands as chips — factories show parent in tooltip */}
                 {am.managed_brands.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     {am.managed_brands.map((b) => (
-                      <span key={b.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs rounded-full border border-emerald-200" data-testid={`am-brand-${am.id}-${b.id}`}>
+                      <span key={b.id} className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full border ${b.type === "factory" ? "bg-orange-50 text-orange-700 border-orange-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`} data-testid={`am-brand-${am.id}-${b.id}`} title={b.parent_brand_name ? `Factory of ${b.parent_brand_name}` : undefined}>
                         <Building2 size={10} /> {b.name}
+                        {b.type === "factory" && <span className="text-[9px] uppercase tracking-wide opacity-70">FACTORY</span>}
                       </span>
                     ))}
                   </div>
@@ -142,19 +148,48 @@ const AdminAccountManagers = () => {
                 {/* Brand assignment editor */}
                 {editing?.admin_id === am.id && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-xs text-gray-600 mb-2">Pick up to {MAX_BRANDS} brands. Brands locked to other AMs are shown but not selectable.</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto">
-                      {brands.map((b) => {
-                        const locked = lockedBrandIds.has(b.id);
-                        const checked = editing.selected.includes(b.id);
-                        return (
-                          <label key={b.id} className={`flex items-center gap-2 p-2 border rounded-lg text-sm ${locked ? "bg-gray-50 opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-emerald-400"} ${checked ? "border-emerald-500 bg-emerald-50/40" : "border-gray-200"}`} data-testid={`brand-pick-${b.id}`}>
-                            <input type="checkbox" checked={checked} disabled={locked} onChange={() => !locked && toggleBrand(b.id)} />
-                            <span className="flex-1 truncate">{b.name}</span>
-                            {locked && <span className="text-[10px] text-gray-500">already assigned</span>}
-                          </label>
-                        );
-                      })}
+                    <p className="text-xs text-gray-600 mb-2">Pick up to {MAX_BRANDS} entities (brands and/or factories). Locked entities are already assigned to another AM.</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-72 overflow-y-auto">
+                      {/* Brands column */}
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider font-semibold text-emerald-700 mb-1.5">Brands ({parentBrands.length})</p>
+                        <div className="space-y-1">
+                          {parentBrands.map((b) => {
+                            const locked = lockedBrandIds.has(b.id);
+                            const checked = editing.selected.includes(b.id);
+                            return (
+                              <label key={b.id} className={`flex items-center gap-2 p-2 border rounded-lg text-sm ${locked ? "bg-gray-50 opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-emerald-400"} ${checked ? "border-emerald-500 bg-emerald-50/40" : "border-gray-200"}`} data-testid={`brand-pick-${b.id}`}>
+                                <input type="checkbox" checked={checked} disabled={locked} onChange={() => !locked && toggleBrand(b.id)} />
+                                <span className="flex-1 truncate">{b.name}</span>
+                                {locked && <span className="text-[10px] text-gray-500">assigned</span>}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {/* Factories column */}
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider font-semibold text-orange-700 mb-1.5">Factories ({factories.length})</p>
+                        <div className="space-y-1">
+                          {factories.length === 0 && <p className="text-xs text-gray-400 italic">No factories created yet</p>}
+                          {factories.map((b) => {
+                            const locked = lockedBrandIds.has(b.id);
+                            const checked = editing.selected.includes(b.id);
+                            return (
+                              <label key={b.id} className={`flex items-center gap-2 p-2 border rounded-lg text-sm ${locked ? "bg-gray-50 opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-orange-400"} ${checked ? "border-orange-500 bg-orange-50/40" : "border-gray-200"}`} data-testid={`factory-pick-${b.id}`}>
+                                <input type="checkbox" checked={checked} disabled={locked} onChange={() => !locked && toggleBrand(b.id)} />
+                                <div className="flex-1 min-w-0">
+                                  <p className="truncate">{b.name}</p>
+                                  {b.parent_brand_id && brandNameById[b.parent_brand_id] && (
+                                    <p className="text-[10px] text-gray-500 truncate">↳ of {brandNameById[b.parent_brand_id]}</p>
+                                  )}
+                                </div>
+                                {locked && <span className="text-[10px] text-gray-500">assigned</span>}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                     <div className="flex justify-end gap-2 mt-3">
                       <button onClick={() => setEditing(null)} className="text-xs px-3 py-1.5 text-gray-600 hover:text-gray-900">Cancel</button>
