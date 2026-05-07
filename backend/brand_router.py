@@ -510,6 +510,147 @@ async def brand_save_default_ship_to(data: dict, user=Depends(get_current_brand_
     return {"message": "Default shipping address saved"}
 
 
+# ==================== BRAND ADDRESS BOOK ============================
+# A brand can save multiple shipping addresses (factory office, warehouse,
+# regional hubs) in their address book. The first address is auto-seeded
+# from GST registry the first time the brand opens their account so that
+# checkout works out-of-the-box without re-typing.
+async def _ensure_address_book_seeded(brand: dict) -> list:
+    """Lazy-seed address_book from GST data when the brand first hits the
+    address API. Idempotent — if `address_book` already exists, returns it."""
+    if isinstance(brand.get("address_book"), list) and brand.get("address_book"):
+        return brand["address_book"]
+
+    # Seed sources: prefer existing default_ship_to, else GST-verified data.
+    seed = None
+    if brand.get("default_ship_to") and (brand["default_ship_to"].get("address") or brand["default_ship_to"].get("city")):
+        d = brand["default_ship_to"]
+        seed = {
+            "id": str(uuid.uuid4()),
+            "label": "Registered Office (GST)",
+            "name": d.get("name", "") or brand.get("name", ""),
+            "phone": d.get("phone", ""),
+            "address": d.get("address", ""),
+            "city": d.get("city", ""),
+            "state": d.get("state", ""),
+            "pincode": d.get("pincode", ""),
+            "is_default": True,
+            "source": "gst",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+    elif brand.get("gst_verified_address"):
+        gst = brand["gst_verified_address"]
+        seed = {
+            "id": str(uuid.uuid4()),
+            "label": "Registered Office (GST)",
+            "name": brand.get("name", ""),
+            "phone": "",
+            "address": gst.get("address", ""),
+            "city": gst.get("city", ""),
+            "state": gst.get("state", ""),
+            "pincode": gst.get("pincode", ""),
+            "is_default": True,
+            "source": "gst",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    book = [seed] if seed else []
+    await db.brands.update_one({"id": brand["id"]}, {"$set": {"address_book": book}})
+    return book
+
+
+@router.get("/brand/addresses")
+async def brand_list_addresses(user=Depends(get_current_brand_user)):
+    """Return the brand's address book. Auto-seeds from GST data on first hit."""
+    brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+    book = await _ensure_address_book_seeded(brand)
+    return {"addresses": book}
+
+
+@router.post("/brand/addresses")
+async def brand_add_address(data: dict, user=Depends(get_current_brand_user)):
+    """Append a new address to the brand's address book.
+
+    Optional flags:
+      - `set_default`: also flip is_default to True on this entry (others
+        get is_default=False).
+    """
+    if user["role"] not in ("brand_admin", "brand_user"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+
+    book = await _ensure_address_book_seeded(brand) or []
+    new = {
+        "id": str(uuid.uuid4()),
+        "label": (data.get("label") or "Other Address")[:80],
+        "name": (data.get("name") or "")[:100],
+        "phone": (data.get("phone") or "")[:20],
+        "address": (data.get("address") or "")[:500],
+        "city": (data.get("city") or "")[:100],
+        "state": (data.get("state") or "")[:100],
+        "pincode": (data.get("pincode") or "")[:10],
+        "is_default": False,
+        "source": "manual",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    set_default = bool(data.get("set_default")) or len(book) == 0
+    if set_default:
+        for a in book:
+            a["is_default"] = False
+        new["is_default"] = True
+    book.append(new)
+    await db.brands.update_one({"id": brand["id"]}, {"$set": {"address_book": book}})
+    return {"address": new, "addresses": book}
+
+
+@router.put("/brand/addresses/{address_id}/default")
+async def brand_set_default_address(address_id: str, user=Depends(get_current_brand_user)):
+    """Mark an existing address as the brand default."""
+    if user["role"] != "brand_admin":
+        raise HTTPException(status_code=403, detail="Only brand admins can change the default")
+    brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+    book = brand.get("address_book") or []
+    found = False
+    for a in book:
+        if a.get("id") == address_id:
+            a["is_default"] = True
+            found = True
+        else:
+            a["is_default"] = False
+    if not found:
+        raise HTTPException(status_code=404, detail="Address not found")
+    await db.brands.update_one({"id": brand["id"]}, {"$set": {"address_book": book}})
+    return {"addresses": book}
+
+
+@router.delete("/brand/addresses/{address_id}")
+async def brand_delete_address(address_id: str, user=Depends(get_current_brand_user)):
+    """Remove an address (cannot delete the only address)."""
+    if user["role"] != "brand_admin":
+        raise HTTPException(status_code=403, detail="Only brand admins can delete addresses")
+    brand = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0})
+    if not brand:
+        raise HTTPException(status_code=404, detail="Brand not found")
+    book = brand.get("address_book") or []
+    if len(book) <= 1:
+        raise HTTPException(status_code=400, detail="Cannot delete the last remaining address")
+    target = next((a for a in book if a.get("id") == address_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="Address not found")
+    new_book = [a for a in book if a.get("id") != address_id]
+    if target.get("is_default") and new_book:
+        # Promote the first remaining address to default
+        new_book[0]["is_default"] = True
+    await db.brands.update_one({"id": brand["id"]}, {"$set": {"address_book": new_book}})
+    return {"addresses": new_book}
+
+
 # ==================== BRAND → FACTORY INVITE (self-serve) ====================
 class FactoryInvite(BaseModel):
     name: str

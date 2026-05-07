@@ -56,7 +56,21 @@ const BrandFabricDetail = () => {
         const fd = await fRes.json();
         if (!fRes.ok) throw new Error(fd.detail || "Failed");
         setFabric(fd);
-        setSummary(await sRes.json());
+        const summaryData = await sRes.json();
+        setSummary(summaryData);
+        // #1: If the brand has sample credits, default to Sample order mode —
+        // matches the user's expectation that picking "sample" workflow on
+        // signup carries through to every fabric they open.
+        const sampleAvailable = summaryData?.sample_credits?.available ?? 0;
+        if (sampleAvailable > 0) {
+          setOrderType("sample");
+          // Samples are 1-of, MOQ doesn't apply; show 1 by default
+          setQty(1);
+        } else {
+          // Bulk default — start at MOQ
+          const moq = Number(fd.moq || 1);
+          setQty(moq);
+        }
         const variants = fd.color_variants || [];
         if (fd.has_multiple_colors && variants.length) {
           setSelectedVariant(variants.find((v) => (v.quantity_available ?? 0) > 0) || variants[0]);
@@ -65,8 +79,6 @@ const BrandFabricDetail = () => {
         // and the main image stay in sync from the start.
         const firstImg = (fd.images || [])[0];
         if (firstImg) setActiveImage(firstImg);
-        const moq = Number(fd.moq || 1);
-        setQty(moq);
       } catch (err) {
         toast.error(err.message || "Fabric not found");
         navigate("/enterprise/fabrics");
@@ -166,6 +178,11 @@ const BrandFabricDetail = () => {
     }
     addInventoryLine(qty);
     toast.success(`Added to cart · ${orderType === "sample" ? "Sample" : "Bulk"} · ${qty}${unit}`);
+    // #2: For samples, jump straight to the cart so the buyer can review
+    // and check out without hunting for the cart icon.
+    if (orderType === "sample") {
+      setTimeout(() => navigate("/enterprise/cart"), 250);
+    }
   };
 
   if (loading) {

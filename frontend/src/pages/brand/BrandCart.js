@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useBrandAuth } from "../../context/BrandAuthContext";
 import { useBrandCart } from "../../context/BrandCartContext";
 import BrandLayout from "./BrandLayout";
-import { ShoppingCart, Trash2, ArrowRight, CheckCircle, Loader2, MapPin, Beaker, Upload, Factory, Send, X } from "lucide-react";
+import { ShoppingCart, Trash2, ArrowRight, ArrowLeft, CheckCircle, Loader2, MapPin, Beaker, Upload, Factory, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { fmtINR, fmtLacs, fmtCount } from "../../lib/inr";
 import { thumbImage } from "../../lib/imageUrl";
@@ -419,6 +419,19 @@ const BrandCart = () => {
 
   return (
     <BrandLayout>
+      {/* #3: Back-to-catalog so brands don't lose their browsing context after
+          adding to cart. Uses history when available so filters survive. */}
+      <button
+        type="button"
+        onClick={() => {
+          if (window.history.length > 1) navigate(-1);
+          else navigate("/enterprise/fabrics");
+        }}
+        className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 mb-3 transition-colors"
+        data-testid="brand-cart-back"
+      >
+        <ArrowLeft size={14} /> Back to catalog
+      </button>
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
           <ShoppingCart size={22} /> Shopping Cart
