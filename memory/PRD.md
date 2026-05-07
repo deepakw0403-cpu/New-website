@@ -400,6 +400,21 @@ Three P0 enterprise items shipped together. Tested 22/22 backend tests + 100% fr
 ### Phase 50: Account Manager module + Brand Financial Ledger + Invoice/Email/Shiprocket fixes (Complete - Feb 2026)
 Major financial workflow capability. Tested 30/30 backend + 100% frontend (iteration_47.json).
 
+### Phase 51: AM-for-factories + Factory credit visibility + Address aggregation + E-way Bill everywhere (Complete - Feb 2026)
+4 deliverables building on the AM module. Tested 16/16 backend + 100% frontend (iteration_48.json).
+
+- **AM scope extended to factories**: `managed_brand_ids` now accepts factory IDs (which are `brands` records with `type: "factory"`). The Account Managers page renders a 2-column picker (Brands · Factories) with parent-brand context on every factory row. Permission gate `_require_am_for_brand` works identically — AMs see hard 403 on entities not in their list.
+- **Brand sees linked factories' credit**: New `GET /api/brand/factory-credit-summaries` returns per-factory credit summary (allocated/available/outstanding/sample credits). New "Linked Factories' Credit" section in `/enterprise/account` Overview. Empty state shows **"Credit limit not opened"** + **"Apply for credit"** amber CTA. Same CTA at the brand level when the brand itself has no credit lines.
+- **Apply for credit email**: New `POST /api/brand/credit-application` — persists to `credit_applications` collection and emails `creditops@locofast.com` (BCC's the assigned AM if any) with brand/factory name, GST, requested amount, use case, contact details. Configurable via `LOCOFAST_CREDITOPS_INBOX` env. Permission boundary: brand admin can apply for self or for a linked factory only. Audit-logged in `email_logs`.
+- **Address aggregation**: `GET /api/brand/addresses` (called by a brand admin) now merges every linked factory's GST + manual addresses into the response with `source: "factory"`, `factory_id`, `factory_name`, `read_only: true`. Brand-side cards render a `Building2 · from Factory · {name}` badge and hide the Set-default/Remove buttons.
+- **Invoice + E-way Bill everywhere**:
+  - `brand_invoices` schema gains `eway_bill_number` + `eway_bill_url` fields.
+  - AM Financials portal: Invoice Add/Edit form has both fields; invoice table row renders a purple Receipt icon next to the FileText icon when `eway_bill_url` is set.
+  - Brand Orders page: new **Documents** column showing Invoice (blue) + E-way (purple) chip buttons when the linked invoice exists; "no invoice" italic placeholder otherwise. Powered by `_attach_invoice_links` helper joining `brand_invoices.order_id`.
+  - Admin Order Detail modal: E-way Bill button next to Invoice button when `linked_invoice.eway_bill_url` is set; otherwise renders an "Add E-way Bill" CTA deep-linking to the brand's Financials portal. Powered by `list_orders` admin endpoint joining `brand_invoices`.
+
+
+
 - **Q3 Invoice fix**: Order numbers like `LF/ORD/014` contain slashes that broke the path-routed invoice URL. Frontend now passes UUID `order.id` (slash-free) in AdminOrders + OrderConfirmationPage; `downloadInvoice()` also URL-encodes defensively; backend handler accepts both.
 - **Q4 Customer email CTA**: `get_order_confirmation_email()` now renders a "Download Tax Invoice (GST)" button linking to `/api/orders/{order.id}/invoice` after every paid order.
 - **Q5 Ashish CC**: `ORDER_NOTIFICATION_EMAILS` now includes `ashish.katiyar@locofast.com`. New `LOCOFAST_ORDER_DELIVERY_CC` env (defaults to ashish) is appended to every brand-order ops handoff.
