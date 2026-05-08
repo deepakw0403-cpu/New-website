@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Package, Clock, CheckCircle, Truck, MapPin, Phone } from "lucide-react";
+import { Package, Clock, CheckCircle, Truck, MapPin, Phone, ExternalLink } from "lucide-react";
 import VendorLayout from "../../components/vendor/VendorLayout";
 import { getVendorOrders } from "../../lib/api";
 import { toast } from "sonner";
@@ -139,6 +139,14 @@ const VendorOrders = () => {
                         <p className="text-xs text-gray-500">
                           {order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}m total
                         </p>
+                        {/* Surface the SKU code(s) inline so vendors don't
+                            need to open the modal to identify the fabric. */}
+                        {order.items?.[0]?.fabric_code && (
+                          <p className="text-[11px] text-gray-700 font-mono mt-1 truncate max-w-[180px]" title={order.items.map(i => i.fabric_code).filter(Boolean).join(', ')}>
+                            {order.items[0].fabric_code}
+                            {order.items.length > 1 ? ` +${order.items.length - 1}` : ''}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-4">
                         <p className="font-medium text-gray-900">{order.customer?.name}</p>
@@ -197,11 +205,29 @@ const VendorOrders = () => {
                   <div className="space-y-3">
                     {selectedOrder.items?.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                        <div className="flex-1">
-                          <p className="font-medium">{item.fabric_name}</p>
-                          <p className="text-sm text-gray-500">{item.fabric_code}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{item.fabric_name}</p>
+                          {item.fabric_code && item.fabric_id ? (
+                            <a
+                              href={`/fabrics/${item.fabric_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-violet-700 hover:text-violet-900 mt-0.5 underline underline-offset-2"
+                              data-testid={`vendor-order-sku-link-${item.fabric_id}`}
+                              title="Open live product page"
+                            >
+                              <Package size={11} />
+                              SKU: <span className="font-mono">{item.fabric_code}</span>
+                              <ExternalLink size={10} />
+                            </a>
+                          ) : item.fabric_code ? (
+                            <p className="text-xs text-gray-500 font-mono mt-0.5">SKU: {item.fabric_code}</p>
+                          ) : null}
+                          {item.color_name ? (
+                            <p className="text-[11px] text-gray-500 mt-0.5">Color: {item.color_name}</p>
+                          ) : null}
                         </div>
-                        <div className="text-right">
+                        <div className="text-right whitespace-nowrap">
                           <span className={`px-2 py-0.5 text-xs rounded ${
                             item.order_type === "sample" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
                           }`}>

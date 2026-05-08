@@ -91,6 +91,11 @@ class RFQSubmission(BaseModel):
     # 'Spec sheet partial' pill) but the buyer can keep PATCHing more details
     # via PATCH /api/rfq/{rfq_id} without re-creating a duplicate.
     is_draft: Optional[bool] = False
+    # When the wizard is launched from a Product Detail Page, capture
+    # the source fabric so vendors see "RFQ raised against SKU LF-XXXX"
+    # and can deep-link straight back to the live PDP. Snapshot stored
+    # so renames/un-publishes don't break the historical link.
+    prefill_fabric_id: Optional[str] = ""
 
 class RFQResponse(BaseModel):
     id: str
@@ -291,6 +296,26 @@ async def submit_rfq(data: RFQSubmission, request: Request):
         'status': 'draft' if data.is_draft else 'new',
         'created_at': datetime.now(timezone.utc).isoformat()
     }
+
+    # ── PDP source-fabric snapshot ──────────────────────────────────────
+    # Vendors (and admins) need to know which catalog SKU the RFQ was
+    # raised against. We snapshot id/code/name so renames or un-publishes
+    # later don't orphan the link, and we resolve the live PDP slug for
+    # quick navigation back to the live page.
+    if data.prefill_fabric_id:
+        f = await db.fabrics.find_one(
+            {"id": data.prefill_fabric_id},
+            {"_id": 0, "id": 1, "fabric_code": 1, "name": 1, "slug": 1, "category_id": 1, "category_name": 1, "seller_company": 1},
+        )
+        if f:
+            rfq_doc.update({
+                'linked_fabric_id': f.get("id", ""),
+                'linked_fabric_code': f.get("fabric_code", ""),
+                'linked_fabric_name': f.get("name", ""),
+                'linked_fabric_slug': f.get("slug", "") or f.get("id", ""),
+                'linked_fabric_category': f.get("category_name", "") or f.get("category_id", ""),
+                'linked_fabric_seller': f.get("seller_company", ""),
+            })
 
     await db.rfq_submissions.insert_one(rfq_doc)
     rfq_doc.pop("_id", None)
@@ -596,6 +621,9 @@ class RFQPatch(BaseModel):
     gst_number: Optional[str] = None
     website: Optional[str] = None
     message: Optional[str] = None
+    # PDP source-fabric link (lets a draft created without PDP context
+    # later capture the source SKU, e.g. if the user navigates back).
+    prefill_fabric_id: Optional[str] = None
     # When client sends finalize=true on the LAST step, we promote draft→new
     finalize: Optional[bool] = False
 
@@ -659,6 +687,23 @@ async def patch_rfq(rfq_id: str, data: RFQPatch, request: Request):
         payload["target_price_per_meter"] = payload["target_price_per_unit"]
     if "required_by" in payload:
         payload["dispatch_required_by"] = payload["required_by"]
+
+    # PDP source-fabric snapshot — same logic as POST. If buyer comes
+    # back to a fabric on a later step, persist the link now.
+    if "prefill_fabric_id" in payload:
+        fid = payload.pop("prefill_fabric_id")
+        if fid:
+            f = await db.fabrics.find_one(
+                {"id": fid},
+                {"_id": 0, "id": 1, "fabric_code": 1, "name": 1, "slug": 1, "category_id": 1, "category_name": 1, "seller_company": 1},
+            )
+            if f:
+                payload['linked_fabric_id'] = f.get("id", "")
+                payload['linked_fabric_code'] = f.get("fabric_code", "")
+                payload['linked_fabric_name'] = f.get("name", "")
+                payload['linked_fabric_slug'] = f.get("slug", "") or f.get("id", "")
+                payload['linked_fabric_category'] = f.get("category_name", "") or f.get("category_id", "")
+                payload['linked_fabric_seller'] = f.get("seller_company", "")
 
     promoted_to_new = False
     if data.finalize and rfq.get("status") == "draft":

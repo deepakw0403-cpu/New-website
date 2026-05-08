@@ -371,6 +371,8 @@ const RFQPage = () => {
         fabric_requirement_type: form.fabric_requirement_type || "",
         quantity_value: parseFloat(form.quantity_value) || 0,
         quantity_unit: form.quantity_unit,
+        // Preserve PDP-source link end-to-end so vendors see the SKU
+        prefill_fabric_id: prefillFabricId || "",
       };
     }
     if (s === 2) {
@@ -577,6 +579,7 @@ const RFQPage = () => {
           gst_number: form.gst_number || "",
           website: form.website || "",
           message: form.message || "",
+          prefill_fabric_id: prefillFabricId || "",
         };
         const res = await fetch(`${API_URL}/api/rfq/submit`, {
           method: "POST",
