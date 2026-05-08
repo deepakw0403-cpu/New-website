@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, MessageSquare, Package, ShoppingCart, Clock } from "lucide-react";
+import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, MessageSquare, Package, ShoppingCart, Clock, ArrowLeft } from "lucide-react";
 import { toWebVideoUrl, videoPosterUrl } from "../lib/videoUrl";
 import { thumbImage, fabricCoverImage } from "../lib/imageUrl";
 import { displayFabricName } from "../lib/fabricDisplay";
@@ -350,6 +350,20 @@ const FabricsPage = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-6 sm:mb-8">
             <div>
+              {/* Back-to-All-Fabrics breadcrumb — only when a specific
+                  category is filtered. Clearing it returns the user to
+                  the unfiltered /fabrics view. */}
+              {selectedCategory && (
+                <button
+                  type="button"
+                  onClick={() => { setSelectedCategory(""); setCurrentPage(1); }}
+                  className="inline-flex items-center gap-1.5 text-sm text-[#2563EB] hover:text-blue-700 mb-2 group"
+                  data-testid="back-to-all-fabrics"
+                >
+                  <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
+                  All Fabrics
+                </button>
+              )}
               <h1 className="text-2xl sm:text-3xl font-semibold mb-1">
                 {(() => {
                   const c = categories.find(x => x.id === selectedCategory);
