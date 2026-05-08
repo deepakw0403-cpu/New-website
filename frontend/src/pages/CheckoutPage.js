@@ -85,6 +85,34 @@ const CheckoutPage = () => {
   const [gstVerifying, setGstVerifying] = useState(false);
   const [gstResult, setGstResult] = useState(null);
 
+  // ── Email → GST auto-fill bootstrap ──────────────────────────────────
+  // For buyers who are the authorized email on a wallet but whose
+  // customer profile doesn't carry a GST yet (e.g. shared-cart flow,
+  // first-time checkout), resolve the GSTIN from their email so the
+  // credit balance card can light up automatically.
+  useEffect(() => {
+    const email = (customer.email || "").trim().toLowerCase();
+    if (!email || !email.includes("@")) return;
+    if (gstNumber && gstNumber.length === 15) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/credit/lookup-by-email?email=${encodeURIComponent(email)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.found && data.gst_number) {
+          setGstNumber(data.gst_number);
+          if (data.company && !customer.company) {
+            setCustomer((p) => ({ ...p, company: data.company }));
+          }
+        }
+      } catch { /* silent — user can still type GST manually */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer.email]);
+
   // ── Auto-fire credit lookup whenever a valid 15-char GSTIN is present ─
   // This handles the case where GST is auto-filled from the customer's
   // brand profile (logged-in flow / shared-cart flow) and Sandbox

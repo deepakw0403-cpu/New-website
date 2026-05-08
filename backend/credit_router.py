@@ -213,6 +213,33 @@ async def get_credit_balance(gst_number: str = Query(...)):
     }
 
 
+@router.get("/credit/lookup-by-email")
+async def lookup_wallet_by_email(email: str = Query(...)):
+    """Resolve a credit wallet by buyer email to bootstrap auto-fill.
+
+    Used by the checkout flow when a logged-in customer doesn't have a
+    GSTIN stored on their profile but their email IS the authorized buyer
+    on a credit wallet. We return the GSTIN + company so the form can
+    auto-fill, then the regular `/credit/balance?gst_number=` flow takes
+    over for actual balance display + ordering.
+
+    Stays one-way (email → GST). The main balance endpoint remains
+    GST-only — this one is purely a UX bootstrap helper.
+    """
+    e = (email or "").strip().lower()
+    if not e or "@" not in e:
+        raise HTTPException(status_code=400, detail="Valid email is required")
+    wallet = await db.credit_wallets.find_one({"email": e}, {"_id": 0})
+    if not wallet:
+        return {"email": e, "found": False, "gst_number": "", "company": ""}
+    return {
+        "email": e,
+        "found": True,
+        "gst_number": wallet.get("gst_number", "") or "",
+        "company": wallet.get("company", "") or "",
+    }
+
+
 @router.get("/credit/applications")
 async def get_credit_applications(admin=Depends(get_current_admin)):
     """Admin: list all credit applications."""
