@@ -61,8 +61,6 @@ const AgentDashboardPage = () => {
 
   // Share modal
   const [sharing, setSharing] = useState(false);
-  const [paymentProofUrl, setPaymentProofUrl] = useState("");
-  const [uploading, setUploading] = useState(false);
   const [dispatchCountry, setDispatchCountry] = useState("india");
   const [usdRate, setUsdRate] = useState(null);
   // Inline credit-limit checker (India only). Lets the agent confirm
@@ -201,28 +199,6 @@ const AgentDashboardPage = () => {
     setCart(cart.filter((c) => c.fabric_id !== fabricId));
   };
 
-  const handleUploadProof = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { toast.error("Only image files allowed"); return; }
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const { data } = await axios.post(
-        `${API}/api/agent/upload-payment-proof`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setPaymentProofUrl(data.url);
-      toast.success("Payment proof uploaded");
-    } catch (err) {
-      const msg = err?.response?.data?.detail || err?.message || 'Upload failed';
-      toast.error(msg);
-    }
-    setUploading(false);
-  };
-
   // ── Inline credit-limit lookup (India only) ──────────────────────────
   // Hits the public /credit/balance endpoint by GSTIN. We don't need an
   // agent JWT here because the endpoint is public read-only for B2B sales
@@ -261,14 +237,13 @@ const AgentDashboardPage = () => {
       // by browser extensions/interceptors, causing "body stream already read"
       const { data } = await axios.post(
         `${API}/api/agent/shared-cart`,
-        { items: cart, customer_email: "", notes: "", payment_proof_url: paymentProofUrl, dispatch_country: dispatchCountry },
+        { items: cart, customer_email: "", notes: "", payment_proof_url: "", dispatch_country: dispatchCountry },
         { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
       );
       const link = `${window.location.origin}/shared-cart/${data.token}`;
       try { await navigator.clipboard.writeText(link); } catch { /* clipboard may fail */ }
       toast.success(`Quote link copied: ${link}`);
       setCart([]);
-      setPaymentProofUrl("");
       setDispatchCountry("india");
       setActiveTab("shared");
       fetchSharedCarts();
@@ -846,25 +821,6 @@ const AgentDashboardPage = () => {
                         )}
                       </div>
                     )}
-                    <div className="mb-4">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">RTGS/NEFT Payment Proof</label>
-                      <div className="border-2 border-dashed border-gray-200 rounded-lg p-3 text-center">
-                        {paymentProofUrl ? (
-                          <div className="flex items-center gap-3">
-                            <img src={`${API}${paymentProofUrl}`} alt="Payment proof" className="w-16 h-16 object-cover rounded" />
-                            <div className="flex-1 text-left">
-                              <p className="text-xs text-emerald-600 font-medium">Uploaded</p>
-                              <button onClick={() => setPaymentProofUrl("")} className="text-xs text-red-500 hover:text-red-700">Remove</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <label className="cursor-pointer">
-                            <input type="file" accept="image/*" onChange={handleUploadProof} className="hidden" data-testid="agent-payment-proof-input" />
-                            <p className="text-xs text-gray-500">{uploading ? "Uploading..." : "Click to upload screenshot"}</p>
-                          </label>
-                        )}
-                      </div>
-                    </div>
                     {dispatchCountry === "bangladesh" ? (
                       <div className="space-y-2">
                         <button
