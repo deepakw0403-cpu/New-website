@@ -474,6 +474,12 @@ Vendor quotes now ping the brand portal in real time. Tested 9/9 backend + 100% 
   - **RFQModal**: When launched from a PDP (with `fabric` prop) it now also surfaces an "Open full RFQ form (specs pre-filled)" link that deep-links into the wizard with prefill. `BrandFabricDetail.js` now passes `fabric={fabric}` to the modal so brand-side PDPs get the same flow.
   - **Brand-logged-in contact card**: RFQPage Step 4 now hydrates from `lf_brand_token` (via `/api/brand/me`) in addition to customer tokens, so brand users see the read-only "Submitting as …" card instead of an empty contact form.
 
+- **Credit Period + 1.5%/mo Surcharge (Feb 2026)** — Brand orders paid via Locofast Credit Line now apply a per-month surcharge based on the credit period (30/60/90 days).
+  - **Backend (`brand_router.py`)**: `brands.credit_period_days` (default 30, validated 30/60/90) drives the formula `credit_charge = pre_credit_total * 0.015 * (period/30)` in `brand_create_order`. Razorpay path (`/brand/orders/razorpay/create` + payment_method=razorpay) is surcharge-free. `GET /api/brand/credit-summary` now returns `credit.credit_period_days` so the cart can mirror the math.
+  - **Frontend (`BrandCart.js`)**: Reads `credit_period_days` from credit-summary, computes `bulkCreditCharge` whenever bulk payment method = "credit", renders a "Credit charges (1.5% × N mo)" line in the Bulk summary, and rolls the charge into the bulk-total + grand-total. Locofast Credit Line option label now shows "<period>-day terms" with "1.5%/mo surcharge applies" subtitle. Toggling to Razorpay drops the charge instantly.
+  - **Admin tooling**: `PUT /api/admin/brands/{id}` accepts `credit_period_days` (validates 30/60/90). Bulk Credit Upload modal also seeds the field on first allocation.
+  - **B2C parity**: `CheckoutPage.js` + `orders_router.create_order` apply the same formula keyed on `credit_wallets.credit_period_days` (GST-keyed wallet).
+
 ## Backlog
 
 ### P0 (Top Priority — Next)
