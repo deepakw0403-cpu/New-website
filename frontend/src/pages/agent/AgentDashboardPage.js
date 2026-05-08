@@ -61,11 +61,13 @@ const AgentDashboardPage = () => {
 
   // Share modal
   const [sharing, setSharing] = useState(false);
-  const [customerEmail, setCustomerEmail] = useState("");
   const [paymentProofUrl, setPaymentProofUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [dispatchCountry, setDispatchCountry] = useState("india");
   const [usdRate, setUsdRate] = useState(null);
+  // Inline credit-limit checker (India only). Lets the agent confirm
+  // a buyer's GSTIN has an approved credit line before sharing the cart.
+  const [creditCheck, setCreditCheck] = useState({ gst: "", loading: false, balance: null, company: "", error: "" });
   // PI buyer fields (Bangladesh)
   const [showPIForm, setShowPIForm] = useState(false);
   const [piGenerating, setPiGenerating] = useState(false);
@@ -113,6 +115,7 @@ const AgentDashboardPage = () => {
       const res = await fetch(`${API}/api/agent/shared-carts`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (res.status === 401) { logout(); navigate("/agent/login"); return; }
       setSharedCarts(await res.json());
     } catch {}
     setCartsLoading(false);
@@ -124,6 +127,7 @@ const AgentDashboardPage = () => {
       const res = await fetch(`${API}/api/agent/orders`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (res.status === 401) { logout(); navigate("/agent/login"); return; }
       setOrders(await res.json());
     } catch {}
     setOrdersLoading(false);
@@ -219,6 +223,36 @@ const AgentDashboardPage = () => {
     setUploading(false);
   };
 
+  // ── Inline credit-limit lookup (India only) ──────────────────────────
+  // Hits the public /credit/balance endpoint by GSTIN. We don't need an
+  // agent JWT here because the endpoint is public read-only for B2B sales
+  // ops. Errors are surfaced inline (no toast spam).
+  const handleCheckCredit = async () => {
+    const gstin = (creditCheck.gst || "").trim().toUpperCase();
+    if (gstin.length !== 15) {
+      setCreditCheck({ ...creditCheck, error: "GSTIN must be 15 characters", balance: null });
+      return;
+    }
+    setCreditCheck({ ...creditCheck, loading: true, error: "", balance: null });
+    try {
+      const res = await fetch(`${API}/api/credit/balance?gst_number=${encodeURIComponent(gstin)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setCreditCheck({ gst: gstin, loading: false, balance: null, company: "", error: data.detail || "Lookup failed" });
+        return;
+      }
+      setCreditCheck({
+        gst: gstin,
+        loading: false,
+        balance: data.balance || 0,
+        company: data.company || "",
+        error: "",
+      });
+    } catch {
+      setCreditCheck({ gst: gstin, loading: false, balance: null, company: "", error: "Network error — try again" });
+    }
+  };
+
   const handleShareCart = async (shareType = "quote") => {
     if (!cart.length) return;
     setSharing(true);
@@ -227,19 +261,19 @@ const AgentDashboardPage = () => {
       // by browser extensions/interceptors, causing "body stream already read"
       const { data } = await axios.post(
         `${API}/api/agent/shared-cart`,
-        { items: cart, customer_email: customerEmail, notes: "", payment_proof_url: paymentProofUrl, dispatch_country: dispatchCountry },
+        { items: cart, customer_email: "", notes: "", payment_proof_url: paymentProofUrl, dispatch_country: dispatchCountry },
         { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
       );
       const link = `${window.location.origin}/shared-cart/${data.token}`;
       try { await navigator.clipboard.writeText(link); } catch { /* clipboard may fail */ }
       toast.success(`Quote link copied: ${link}`);
       setCart([]);
-      setCustomerEmail("");
       setPaymentProofUrl("");
       setDispatchCountry("india");
       setActiveTab("shared");
       fetchSharedCarts();
     } catch (err) {
+      if (err?.response?.status === 401) { logout(); navigate("/agent/login"); return; }
       const msg = err?.response?.data?.detail || err?.message || "Failed to generate link";
       toast.error(msg);
     }
@@ -756,17 +790,62 @@ const AgentDashboardPage = () => {
                         </div>
                       )}
                     </div>
-                    <div className="mb-4">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Customer Email (optional)</label>
-                      <input
-                        type="email"
-                        value={customerEmail}
-                        onChange={(e) => setCustomerEmail(e.target.value)}
-                        placeholder="customer@example.com"
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:outline-none"
-                        data-testid="agent-customer-email"
-                      />
-                    </div>
+                    {/* ── Check Credit Limit (India only) ──────────────
+                        Lets the agent verify, before generating a share
+                        link, whether the buyer's GSTIN has an approved
+                        credit line. Hidden for Bangladesh (no INR credit). */}
+                    {dispatchCountry === "india" && (
+                      <div className="mb-4 border border-gray-100 rounded-lg p-3 bg-gray-50/40">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-medium text-gray-700">Check Credit Limit</label>
+                          {creditCheck.balance != null && (
+                            <button
+                              type="button"
+                              onClick={() => { setCreditCheck({ gst: "", loading: false, balance: null, company: "", error: "" }); }}
+                              className="text-[11px] text-gray-400 hover:text-gray-600"
+                            >Clear</button>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            maxLength={15}
+                            value={creditCheck.gst}
+                            onChange={(e) => setCreditCheck({ ...creditCheck, gst: e.target.value.toUpperCase(), error: "", balance: null })}
+                            placeholder="Enter Buyer GSTIN (15 chars)"
+                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono uppercase tracking-wide focus:border-blue-500 focus:outline-none"
+                            data-testid="agent-credit-gst-input"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleCheckCredit}
+                            disabled={creditCheck.loading || creditCheck.gst.length !== 15}
+                            className="px-3 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 inline-flex items-center gap-1.5"
+                            data-testid="agent-credit-check-btn"
+                          >
+                            {creditCheck.loading ? <Loader2 size={14} className="animate-spin" /> : "Check"}
+                          </button>
+                        </div>
+                        {creditCheck.error && (
+                          <p className="mt-2 text-xs text-red-600" data-testid="agent-credit-error">{creditCheck.error}</p>
+                        )}
+                        {creditCheck.balance != null && creditCheck.balance > 0 && (
+                          <div className="mt-2 bg-emerald-50 border border-emerald-200 rounded-lg p-2.5" data-testid="agent-credit-result-ok">
+                            <p className="text-[11px] text-emerald-700 uppercase font-medium tracking-wide">Available Credit</p>
+                            <p className="text-base font-bold text-emerald-900">₹{Number(creditCheck.balance).toLocaleString()}</p>
+                            {creditCheck.company && <p className="text-[11px] text-emerald-700">{creditCheck.company}</p>}
+                            {Number(creditCheck.balance) < cartTotal && (
+                              <p className="text-[11px] text-red-600 mt-1">⚠ Less than cart total ₹{cartTotal.toLocaleString()}</p>
+                            )}
+                          </div>
+                        )}
+                        {creditCheck.balance != null && creditCheck.balance === 0 && !creditCheck.error && (
+                          <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2" data-testid="agent-credit-result-none">
+                            No credit line found for this GSTIN. Buyer can apply at checkout.
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <div className="mb-4">
                       <label className="block text-xs font-medium text-gray-600 mb-1">RTGS/NEFT Payment Proof</label>
                       <div className="border-2 border-dashed border-gray-200 rounded-lg p-3 text-center">
