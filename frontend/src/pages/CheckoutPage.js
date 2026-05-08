@@ -84,6 +84,30 @@ const CheckoutPage = () => {
   const [gstNumber, setGstNumber] = useState("");
   const [gstVerifying, setGstVerifying] = useState(false);
   const [gstResult, setGstResult] = useState(null);
+
+  // ── Auto-fire credit lookup whenever a valid 15-char GSTIN is present ─
+  // This handles the case where GST is auto-filled from the customer's
+  // brand profile (logged-in flow / shared-cart flow) and Sandbox
+  // verification was never triggered. Without this, "Pay via Locofast
+  // Credit" stays "No credit line found yet" even when the wallet exists.
+  useEffect(() => {
+    const cleaned = (gstNumber || "").trim().toUpperCase();
+    if (cleaned.length !== 15) return;
+    // Skip if we already have a balance for this GSTIN (avoid re-lookup
+    // every keystroke once verified).
+    if (creditBalance?.gst_number === cleaned) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getCreditBalance({ gst_number: cleaned });
+        if (cancelled) return;
+        setCreditBalance(res.data);
+        if (res.data?.has_credit) setPaymentMethod("credit");
+      } catch { /* silently ignore — UI shows Apply-for-Credit fallback */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gstNumber]);
   const [gstAddress, setGstAddress] = useState(null);
 
   // Shipping address toggle
@@ -863,17 +887,38 @@ const CheckoutPage = () => {
                       </div>
                     </label>
                     {creditBalance?.has_credit ? (
-                      <label className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'credit' ? 'border-emerald-500 bg-emerald-50/50' : 'border-gray-200 hover:border-gray-300'}`} data-testid="pay-credit-option">
-                        <input type="radio" name="payment" value="credit" checked={paymentMethod === 'credit'} onChange={() => setPaymentMethod('credit')} className="text-emerald-600" />
-                        <Wallet size={20} className="text-emerald-600" />
-                        <div className="flex-1">
-                          <p className="font-medium text-sm text-gray-900">Pay via Locofast Credit</p>
-                          <p className="text-xs text-emerald-600">Available balance: ₹{creditBalance.balance.toLocaleString()}{creditBalance.company ? ` · ${creditBalance.company}` : ''}</p>
-                        </div>
-                        {creditBalance.balance < total && (
-                          <span className="text-xs text-red-500 font-medium">Insufficient balance</span>
-                        )}
-                      </label>
+                      (() => {
+                        // Show an email-mismatch warning (orange) if the
+                        // currently logged-in / entered email doesn't match
+                        // the wallet's authorized buyer.
+                        const authorized = (creditBalance.authorized_email_masked || "").toLowerCase();
+                        const enteredLocal = (customer.email || "").toLowerCase().split("@")[0] || "";
+                        const masked = authorized.split("@")[0] || "";
+                        // Heuristic: if first char of entered local-part doesn't
+                        // match first char of masked local-part, we treat as mismatch.
+                        const looksMismatched = !!(authorized && enteredLocal && (
+                          enteredLocal[0] !== masked[0] || enteredLocal.slice(-1) !== masked.replace(/\*+/g, "").slice(-1)
+                        ));
+                        return (
+                          <label className={`flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'credit' ? 'border-emerald-500 bg-emerald-50/50' : 'border-gray-200 hover:border-gray-300'}`} data-testid="pay-credit-option">
+                            <input type="radio" name="payment" value="credit" checked={paymentMethod === 'credit'} onChange={() => setPaymentMethod('credit')} className="text-emerald-600 mt-1" />
+                            <Wallet size={20} className="text-emerald-600 mt-1" />
+                            <div className="flex-1">
+                              <p className="font-medium text-sm text-gray-900">Pay via Locofast Credit</p>
+                              <p className="text-xs text-emerald-600">Available balance: ₹{creditBalance.balance.toLocaleString()}{creditBalance.company ? ` · ${creditBalance.company}` : ''}</p>
+                              {creditBalance.authorized_email_masked && (
+                                <p className={`text-[11px] mt-0.5 ${looksMismatched ? 'text-orange-600' : 'text-gray-500'}`}>
+                                  Authorized buyer: <span className="font-mono">{creditBalance.authorized_email_masked}</span>
+                                  {looksMismatched && <span className="ml-1">— please sign in with the authorized email to charge this credit line.</span>}
+                                </p>
+                              )}
+                              {creditBalance.balance < total && (
+                                <p className="text-xs text-red-500 font-medium mt-1">Insufficient balance for this order (₹{total.toLocaleString()})</p>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })()
                     ) : (
                       // No credit line on this GST → invite the buyer to apply.
                       // Required disclosure: turnover threshold for eligibility.
@@ -881,7 +926,7 @@ const CheckoutPage = () => {
                         <Wallet size={20} className="text-gray-500 mt-0.5" />
                         <div className="flex-1">
                           <p className="font-medium text-sm text-gray-900">Pay via Locofast Credit</p>
-                          <p className="text-xs text-gray-500 mt-0.5">No credit line found {gstResult?.valid ? `for GSTIN ${gstNumber}` : 'yet'}.</p>
+                          <p className="text-xs text-gray-500 mt-0.5">No credit line found {gstNumber && gstNumber.length === 15 ? `for GSTIN ${gstNumber}` : 'yet'}.</p>
                           <button
                             type="button"
                             onClick={() => setShowCreditApply(true)}

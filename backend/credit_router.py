@@ -195,12 +195,21 @@ async def get_credit_balance(gst_number: str = Query(...)):
             "balance": 0,
             "has_credit": False,
         }
+    # Mask the authorized email so we can show it in the UI without
+    # leaking the full address (e.g. "d***@locofast.com").
+    raw_email = wallet.get("email", "") or ""
+    masked = ""
+    if raw_email and "@" in raw_email:
+        local, domain = raw_email.split("@", 1)
+        masked = (local[:1] + "***" + local[-1:] + "@" + domain) if len(local) >= 2 else (local + "***@" + domain)
     return {
         "gst_number": gstin,
         "company": wallet.get("company", ""),
         "credit_limit": wallet.get("credit_limit", 0),
         "balance": wallet.get("balance", 0),
         "has_credit": wallet.get("balance", 0) > 0,
+        "authorized_email_masked": masked,
+        # Full email is intentionally NOT returned to keep checkout PII-clean.
     }
 
 

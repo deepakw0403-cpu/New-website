@@ -253,7 +253,9 @@ async def create_order(order_data: OrderCreate):
     # Credit payment path — wallets are mapped to a business GSTIN, not a
     # personal email. Customer must supply gst_number on the order. We look
     # up exclusively by GST so multiple users from the same brand share a
-    # single corporate credit line.
+    # single corporate credit line. Additionally, the buyer's email MUST
+    # match the wallet's authorized email — corporate credit lines are
+    # bound to the registered buyer.
     if order_data.payment_method == "credit":
         gstin = (order_data.customer.gst_number or "").strip().upper()
         if not gstin:
@@ -261,6 +263,16 @@ async def create_order(order_data: OrderCreate):
         wallet = await db.credit_wallets.find_one({'gst_number': gstin}, {'_id': 0})
         if not wallet or wallet.get('balance', 0) < final_total:
             raise HTTPException(status_code=400, detail="Insufficient credit balance for this GST")
+
+        # Authorized-buyer check — the email on the order must match the
+        # email registered against this GSTIN's credit line.
+        wallet_email = (wallet.get('email') or "").strip().lower()
+        order_email = (order_data.customer.email or "").strip().lower()
+        if wallet_email and order_email != wallet_email:
+            raise HTTPException(
+                status_code=403,
+                detail="This GST's credit line is registered to a different email. Please sign in as the authorized buyer to pay via credit."
+            )
 
         # Deduct from wallet
         new_balance = wallet['balance'] - final_total
