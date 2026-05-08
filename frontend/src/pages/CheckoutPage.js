@@ -104,8 +104,8 @@ const CheckoutPage = () => {
         state: loggedInCustomer.state || prev.state,
         pincode: loggedInCustomer.pincode || prev.pincode,
       }));
-      if (loggedInCustomer.email) {
-        getCreditBalance({ email: loggedInCustomer.email }).then(res => {
+      if (loggedInCustomer.gstin) {
+        getCreditBalance({ gst_number: loggedInCustomer.gstin }).then(res => {
           setCreditBalance(res.data);
           if (res.data?.has_credit) setPaymentMethod("credit");
         }).catch(() => {});

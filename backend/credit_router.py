@@ -177,40 +177,26 @@ async def apply_for_credit(data: dict):
 
 
 @router.get("/credit/balance")
-async def get_credit_balance(
-    email: str = Query(default=""),
-    gst_number: str = Query(default=""),
-):
-    """Check credit wallet balance.
+async def get_credit_balance(gst_number: str = Query(...)):
+    """Check credit wallet balance by business GSTIN.
 
-    Lookup priority:
-      1. `gst_number` (preferred — credit lines are mapped to a business)
-      2. `email` (legacy — kept for backwards compatibility)
-
+    Credit lines are mapped to a legal entity (GST), not a personal email.
     Returns `has_credit=True` only when the wallet has a positive balance.
     """
     gstin = (gst_number or "").strip().upper()
-    email = (email or "").strip().lower()
-    if not gstin and not email:
-        raise HTTPException(status_code=400, detail="email or gst_number is required")
+    if len(gstin) != 15:
+        raise HTTPException(status_code=400, detail="Valid 15-character GSTIN is required")
 
-    wallet = None
-    if gstin:
-        wallet = await db.credit_wallets.find_one({"gst_number": gstin}, {"_id": 0})
-    if not wallet and email:
-        wallet = await db.credit_wallets.find_one({"email": email}, {"_id": 0})
-
+    wallet = await db.credit_wallets.find_one({"gst_number": gstin}, {"_id": 0})
     if not wallet:
         return {
-            "email": email,
             "gst_number": gstin,
             "credit_limit": 0,
             "balance": 0,
             "has_credit": False,
         }
     return {
-        "email": wallet.get("email", email),
-        "gst_number": wallet.get("gst_number", gstin),
+        "gst_number": gstin,
         "company": wallet.get("company", ""),
         "credit_limit": wallet.get("credit_limit", 0),
         "balance": wallet.get("balance", 0),

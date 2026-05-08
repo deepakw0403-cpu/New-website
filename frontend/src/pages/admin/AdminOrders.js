@@ -96,7 +96,7 @@ const AdminOrders = () => {
   const handleEditSave = async () => {
     if (!editModal) return;
     try {
-      await editCreditWallet(editModal.email, {
+      await editCreditWallet(editModal.gst_number, {
         password: editPassword,
         credit_limit: parseFloat(editLimit) || editModal.credit_limit,
         balance: parseFloat(editBalance) || editModal.balance,
@@ -283,9 +283,9 @@ const AdminOrders = () => {
                   <div className="bg-white rounded-lg border overflow-hidden">
                     <table className="w-full">
                       <thead className="bg-gray-50 border-b"><tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">GSTIN</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Credit Limit</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Available</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Used</th>
@@ -295,11 +295,21 @@ const AdminOrders = () => {
                         {lenderWallets.map((w) => {
                           const used = (w.credit_limit || 0) - (w.balance || 0);
                           const pct = w.credit_limit ? Math.round((used / w.credit_limit) * 100) : 0;
+                          const key = w.gst_number || w.email; // fallback only for legacy rows
                           return (
-                            <tr key={w.email} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 font-medium text-gray-900">{w.name || '—'}</td>
-                              <td className="px-4 py-3 text-sm text-gray-600">{w.company || '—'}</td>
-                              <td className="px-4 py-3 text-sm text-gray-600">{w.email}</td>
+                            <tr key={key} className="hover:bg-gray-50">
+                              <td className="px-4 py-3">
+                                {w.gst_number ? (
+                                  <span className="font-mono text-xs text-gray-800">{w.gst_number}</span>
+                                ) : (
+                                  <span className="text-xs text-amber-600">— legacy (no GST)</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700 font-medium">{w.company || '—'}</td>
+                              <td className="px-4 py-3 text-xs text-gray-500">
+                                {w.name || '—'}<br />
+                                {w.email}
+                              </td>
                               <td className="px-4 py-3 text-right font-semibold">₹{(w.credit_limit || 0).toLocaleString()}</td>
                               <td className="px-4 py-3 text-right font-semibold text-emerald-600">₹{(w.balance || 0).toLocaleString()}</td>
                               <td className="px-4 py-3 text-right">
@@ -307,7 +317,13 @@ const AdminOrders = () => {
                                 <div className="w-20 bg-gray-200 rounded-full h-1.5 mt-1 ml-auto"><div className={`h-1.5 rounded-full ${pct > 80 ? 'bg-red-500' : pct > 50 ? 'bg-yellow-500' : 'bg-emerald-500'}`} style={{width: `${pct}%`}}></div></div>
                               </td>
                               <td className="px-4 py-3 text-center">
-                                <button onClick={() => { setEditModal(w); setEditLimit(String(w.credit_limit || 0)); setEditBalance(String(w.balance || 0)); setEditPassword(""); }} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded" title="Edit" data-testid={`edit-wallet-${w.email}`}><Pencil size={16} /></button>
+                                <button
+                                  onClick={() => { setEditModal(w); setEditLimit(String(w.credit_limit || 0)); setEditBalance(String(w.balance || 0)); setEditPassword(""); }}
+                                  disabled={!w.gst_number}
+                                  className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                                  title={w.gst_number ? "Edit" : "Legacy wallet — backfill GSTIN to edit"}
+                                  data-testid={`edit-wallet-${key}`}
+                                ><Pencil size={16} /></button>
                               </td>
                             </tr>
                           );
@@ -392,7 +408,8 @@ const AdminOrders = () => {
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setEditModal(null)}>
             <div className="bg-white rounded-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()} data-testid="edit-credit-modal">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Edit Credit — {editModal.name || editModal.email}</h3>
+                <h3 className="text-lg font-semibold">Edit Credit — {editModal.company || editModal.name || editModal.gst_number}</h3>
+                {editModal.gst_number && <p className="text-xs text-gray-500 font-mono">GSTIN: {editModal.gst_number}</p>}
                 <button onClick={() => setEditModal(null)}><X size={20} className="text-gray-400" /></button>
               </div>
               <div className="space-y-4">

@@ -105,7 +105,8 @@ export const rejectFabric = (id) => api.put(`/fabrics/${id}`, { status: 'rejecte
 
 // Credit / Wallet
 export const applyForCredit = (data) => api.post("/credit/apply", data);
-export const getCreditBalance = ({ email = "", gst_number = "" } = {}) => api.get("/credit/balance", { params: { email, gst_number } });
+export const getCreditBalance = ({ gst_number }) => api.get("/credit/balance", { params: { gst_number } });
+export const editCreditWallet = (gstNumber, data) => api.put(`/orders/credit/wallets/${gstNumber}/edit`, data);
 
 // Customer Auth (OTP)
 export const sendCustomerOTP = (email) => api.post("/customer/send-otp", { email });
@@ -362,7 +363,6 @@ export const updateOrderStatus = (id, status) => api.put(`/orders/${id}/status?s
 export const cancelOrder = (id, reason) => api.put(`/orders/${id}/cancel`, { reason });
 export const getOrderStats = () => api.get("/orders/stats/summary");
 export const listCreditWallets = () => api.get("/orders/credit/wallets");
-export const editCreditWallet = (email, data) => api.put(`/orders/credit/wallets/${email}/edit`, data);
 export const bulkUploadCreditWallets = (wallets, mode = "replace") => api.post("/orders/credit/wallets/bulk-upload", { wallets, mode });
 export const getCreditApplications = () => api.get("/credit/applications");
 export const approveCreditApplication = (id, credit_limit) => api.put(`/credit/applications/${id}/approve`, { credit_limit });

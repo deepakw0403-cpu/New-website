@@ -250,22 +250,29 @@ async def create_order(order_data: OrderCreate):
     order_number = await generate_order_number()
     now = datetime.now(timezone.utc).isoformat()
 
-    # Credit payment path
+    # Credit payment path — wallets are mapped to a business GSTIN, not a
+    # personal email. Customer must supply gst_number on the order. We look
+    # up exclusively by GST so multiple users from the same brand share a
+    # single corporate credit line.
     if order_data.payment_method == "credit":
-        wallet = await db.credit_wallets.find_one({'email': order_data.customer.email}, {'_id': 0})
+        gstin = (order_data.customer.gst_number or "").strip().upper()
+        if not gstin:
+            raise HTTPException(status_code=400, detail="GST number is required for credit payment")
+        wallet = await db.credit_wallets.find_one({'gst_number': gstin}, {'_id': 0})
         if not wallet or wallet.get('balance', 0) < final_total:
-            raise HTTPException(status_code=400, detail="Insufficient credit balance")
-        
+            raise HTTPException(status_code=400, detail="Insufficient credit balance for this GST")
+
         # Deduct from wallet
         new_balance = wallet['balance'] - final_total
         await db.credit_wallets.update_one(
-            {'email': order_data.customer.email},
+            {'gst_number': gstin},
             {'$set': {'balance': new_balance, 'updated_at': now}}
         )
-        
-        # Log transaction
+
+        # Log transaction (keyed on GST; email kept for trace only)
         await db.credit_transactions.insert_one({
             'id': str(uuid.uuid4()),
+            'gst_number': gstin,
             'email': order_data.customer.email,
             'order_id': order_id,
             'order_number': order_number,
@@ -687,20 +694,21 @@ async def cancel_order(order_id: str, data: dict):
     
     now = datetime.now(timezone.utc).isoformat()
     
-    # If paid via credit, refund the balance
+    # If paid via credit, refund the balance to the GST-keyed wallet
     if order.get('payment_method') == 'credit' and order.get('payment_status') == 'paid':
-        email = order.get('customer', {}).get('email', '')
-        if email:
-            wallet = await db.credit_wallets.find_one({'email': email})
+        gstin = (order.get('customer', {}).get('gst_number') or '').strip().upper()
+        if gstin:
+            wallet = await db.credit_wallets.find_one({'gst_number': gstin})
             if wallet:
                 new_balance = wallet.get('balance', 0) + order.get('total', 0)
                 await db.credit_wallets.update_one(
-                    {'email': email},
+                    {'gst_number': gstin},
                     {'$set': {'balance': new_balance, 'updated_at': now}}
                 )
                 await db.credit_transactions.insert_one({
                     'id': str(uuid.uuid4()),
-                    'email': email,
+                    'gst_number': gstin,
+                    'email': order.get('customer', {}).get('email', ''),
                     'order_id': order['id'],
                     'order_number': order['order_number'],
                     'type': 'refund',
@@ -737,13 +745,14 @@ async def list_credit_wallets():
     wallets = await db.credit_wallets.find({}, {'_id': 0}).to_list(1000)
     return wallets
 
-@router.put("/credit/wallets/{email}/edit")
-async def edit_credit_wallet(email: str, data: dict):
-    """Admin: edit credit limit for a customer. Password protected (0905)."""
+@router.put("/credit/wallets/{gst_number}/edit")
+async def edit_credit_wallet(gst_number: str, data: dict):
+    """Admin: edit credit limit/balance for a business GSTIN. Password protected (0905)."""
     password = data.get('password', '')
     if password != '0905':
         raise HTTPException(status_code=403, detail="Invalid password")
-    
+    gstin = (gst_number or "").strip().upper()
+
     credit_limit = data.get('credit_limit')
     balance = data.get('balance')
     
@@ -753,25 +762,24 @@ async def edit_credit_wallet(email: str, data: dict):
     if balance is not None:
         update['balance'] = balance
     
-    result = await db.credit_wallets.update_one({'email': email}, {'$set': update})
+    result = await db.credit_wallets.update_one({'gst_number': gstin}, {'$set': update})
     if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Wallet not found")
+        raise HTTPException(status_code=404, detail="Wallet not found for this GSTIN")
     
-    return {"success": True, "message": f"Credit updated for {email}"}
+    return {"success": True, "message": f"Credit updated for {gstin}"}
 
 @router.post("/credit/wallets/bulk-upload")
 async def bulk_upload_credit_wallets(data: dict):
-    """Admin: bulk upload credit wallets.
+    """Admin: bulk upload credit wallets — GSTIN is the unique key.
 
-    Body: { wallets: [{email, name, company, credit_limit, lender}], mode: "replace" | "topup" }
+    Body: { wallets: [{gst_number, name, company, email, credit_limit, lender}], mode: "replace" | "topup" }
 
     Modes:
       - "replace" (default): For new rows, create wallet with balance = credit_limit.
-        For existing rows, overwrite credit_limit and reset balance to that limit
-        (this is the legacy behaviour — useful when admin uploads a fresh truth table).
+        For existing rows (matched on GSTIN), overwrite credit_limit and reset balance to that limit.
       - "topup": For new rows, create wallet with balance = credit_limit. For existing
         rows, ADD the uploaded credit_limit to the existing limit AND balance, preserving
-        any used credit. Useful for monthly top-ups from lenders.
+        any used credit.
     """
     wallets = data.get('wallets', [])
     mode = (data.get('mode') or 'replace').strip().lower()
@@ -786,20 +794,20 @@ async def bulk_upload_credit_wallets(data: dict):
     skipped = []  # rows we couldn't ingest, with reason
 
     for idx, w in enumerate(wallets):
-        email = (w.get('email') or '').strip().lower()
-        if not email or '@' not in email:
-            skipped.append({'row': idx + 1, 'email': email, 'reason': 'invalid email'})
+        gstin = (w.get('gst_number') or '').strip().upper()
+        if len(gstin) != 15:
+            skipped.append({'row': idx + 1, 'gst_number': gstin, 'reason': 'GSTIN must be 15 characters'})
             continue
         try:
             limit = float(w.get('credit_limit') or 0)
         except (TypeError, ValueError):
-            skipped.append({'row': idx + 1, 'email': email, 'reason': 'credit_limit not a number'})
+            skipped.append({'row': idx + 1, 'gst_number': gstin, 'reason': 'credit_limit not a number'})
             continue
         if limit < 0:
-            skipped.append({'row': idx + 1, 'email': email, 'reason': 'credit_limit must be ≥ 0'})
+            skipped.append({'row': idx + 1, 'gst_number': gstin, 'reason': 'credit_limit must be ≥ 0'})
             continue
 
-        existing = await db.credit_wallets.find_one({'email': email})
+        existing = await db.credit_wallets.find_one({'gst_number': gstin})
         if existing:
             if mode == 'topup':
                 new_limit = (existing.get('credit_limit') or 0) + limit
@@ -808,20 +816,22 @@ async def bulk_upload_credit_wallets(data: dict):
                 new_limit = limit
                 new_balance = limit
             await db.credit_wallets.update_one(
-                {'email': email},
+                {'gst_number': gstin},
                 {'$set': {
                     'credit_limit': new_limit,
                     'balance': new_balance,
                     'lender': w.get('lender') or existing.get('lender', ''),
                     'name': w.get('name') or existing.get('name', ''),
                     'company': w.get('company') or existing.get('company', ''),
+                    'email': w.get('email') or existing.get('email', ''),
                     'updated_at': now,
                 }}
             )
             updated += 1
         else:
             await db.credit_wallets.insert_one({
-                'email': email,
+                'gst_number': gstin,
+                'email': (w.get('email') or '').strip().lower(),
                 'name': w.get('name', '') or '',
                 'company': w.get('company', '') or '',
                 'credit_limit': limit,
