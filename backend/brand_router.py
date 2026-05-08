@@ -1462,12 +1462,17 @@ async def brand_credit_summary(user=Depends(get_current_brand_user)):
     available = round(total_allocated - total_utilized, 2)
     sample_total = int(brand.get("sample_credits_total", 0))
     sample_used = int(brand.get("sample_credits_used", 0))
+    # Credit period drives the 1.5%/month surcharge in the cart UI
+    credit_period_days = int(brand.get("credit_period_days") or 30)
+    if credit_period_days not in (30, 60, 90):
+        credit_period_days = 30
     return {
         "credit": {
             "total_allocated": round(total_allocated, 2),
             "total_utilized": round(total_utilized, 2),
             "available": available,
             "lines": lines,
+            "credit_period_days": credit_period_days,
         },
         "sample_credits": {
             "total": sample_total,
