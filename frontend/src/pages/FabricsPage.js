@@ -13,8 +13,6 @@ import { getFabrics, getFabricsCount, getCategories, createEnquiry, getFabricFil
 import { getCheapestBulkPrice, formatQtyThreshold } from "../lib/pricing";
 import Watermark from "../components/Watermark";
 import CertificationBadges from "../components/CertificationBadges";
-import CertificationDisclaimer from "../components/CertificationDisclaimer";
-import { CERTIFICATIONS } from "../lib/certifications";
 import { trackViewItemList } from "../lib/analytics";
 import { toast } from "sonner";
 
@@ -527,48 +525,9 @@ const FabricsPage = () => {
                     ))}
                   </select>
                 </div>
-                {/* Certifications facet — multi-select. Shows count per cert
-                    from /api/fabrics/filter-options so buyers know if the
-                    filter will actually narrow results. */}
-                <div className="sm:col-span-2 md:col-span-4">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Certifications</label>
-                  <div className="flex flex-wrap gap-2" data-testid="filter-certifications">
-                    {CERTIFICATIONS.map((c) => {
-                      const count = (filterOptions.certifications || {})[c.key] || 0;
-                      const checked = selectedCerts.includes(c.key);
-                      const disabled = count === 0 && !checked;
-                      return (
-                        <button
-                          key={c.key}
-                          type="button"
-                          disabled={disabled}
-                          onClick={() => {
-                            setSelectedCerts(
-                              checked
-                                ? selectedCerts.filter((k) => k !== c.key)
-                                : [...selectedCerts, c.key]
-                            );
-                            setCurrentPage(1);
-                          }}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium transition-colors ${
-                            checked
-                              ? "bg-[#2563EB] text-white border-[#2563EB]"
-                              : disabled
-                                ? "bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed"
-                                : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"
-                          }`}
-                          data-testid={`filter-cert-${c.key}`}
-                          title={c.fullName}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${checked ? "bg-white/90" : c.dotClass}`} />
-                          {c.label}
-                          <span className={`text-[10px] ${checked ? "text-white/80" : "text-gray-400"}`}>({count})</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <CertificationDisclaimer className="mt-3" testId="filter-cert-disclaimer" />
-                </div>
+                {/* Certifications facet removed per product decision —
+                    moved to PDP/listing card display only. Selected certs
+                    state preserved for backwards compat with shared URLs. */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{isDenimCategory ? "Weight (oz)" : "GSM Range"}</label>
                   <div className="flex gap-2">

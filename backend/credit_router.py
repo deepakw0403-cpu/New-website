@@ -177,16 +177,44 @@ async def apply_for_credit(data: dict):
 
 
 @router.get("/credit/balance")
-async def get_credit_balance(email: str = Query(...)):
-    """Check credit wallet balance for a customer by email."""
-    wallet = await db.credit_wallets.find_one({'email': email}, {'_id': 0})
+async def get_credit_balance(
+    email: str = Query(default=""),
+    gst_number: str = Query(default=""),
+):
+    """Check credit wallet balance.
+
+    Lookup priority:
+      1. `gst_number` (preferred — credit lines are mapped to a business)
+      2. `email` (legacy — kept for backwards compatibility)
+
+    Returns `has_credit=True` only when the wallet has a positive balance.
+    """
+    gstin = (gst_number or "").strip().upper()
+    email = (email or "").strip().lower()
+    if not gstin and not email:
+        raise HTTPException(status_code=400, detail="email or gst_number is required")
+
+    wallet = None
+    if gstin:
+        wallet = await db.credit_wallets.find_one({"gst_number": gstin}, {"_id": 0})
+    if not wallet and email:
+        wallet = await db.credit_wallets.find_one({"email": email}, {"_id": 0})
+
     if not wallet:
-        return {'email': email, 'credit_limit': 0, 'balance': 0, 'has_credit': False}
+        return {
+            "email": email,
+            "gst_number": gstin,
+            "credit_limit": 0,
+            "balance": 0,
+            "has_credit": False,
+        }
     return {
-        'email': email,
-        'credit_limit': wallet.get('credit_limit', 0),
-        'balance': wallet.get('balance', 0),
-        'has_credit': wallet.get('balance', 0) > 0
+        "email": wallet.get("email", email),
+        "gst_number": wallet.get("gst_number", gstin),
+        "company": wallet.get("company", ""),
+        "credit_limit": wallet.get("credit_limit", 0),
+        "balance": wallet.get("balance", 0),
+        "has_credit": wallet.get("balance", 0) > 0,
     }
 
 
@@ -216,6 +244,10 @@ async def approve_credit_application(app_id: str, data: dict, admin=Depends(get_
             'email': app['email'],
             'name': app['name'],
             'company': app['company'],
+            # Mirror the GSTIN onto the wallet so credit can be looked up by
+            # business GST during checkout (B2B credit lines map to a legal
+            # entity, not a personal email).
+            'gst_number': (app.get('gst_number') or '').strip().upper(),
             'credit_limit': credit_limit,
             'balance': credit_limit,
             'updated_at': datetime.now(timezone.utc).isoformat()

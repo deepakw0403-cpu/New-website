@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Truck, CreditCard, CheckCircle2, AlertCircle, Loader2, Package, Tag, Wallet } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Truck, CreditCard, CheckCircle2, AlertCircle, Loader2, Package, Tag, Wallet, X } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getFabric, createOrder, verifyPayment, sendOrderConfirmation, validateCoupon, getCreditBalance } from "../lib/api";
@@ -74,6 +74,11 @@ const CheckoutPage = () => {
   const [total, setTotal] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("razorpay"); // razorpay or credit
   const [creditBalance, setCreditBalance] = useState(null); // { balance, credit_limit, has_credit }
+  // Inline 'Apply for Credit' modal state — visible from checkout when no
+  // credit line exists for the verified GSTIN.
+  const [showCreditApply, setShowCreditApply] = useState(false);
+  const [creditApplyForm, setCreditApplyForm] = useState({ requested_amount_inr: "", turnover: "", message: "" });
+  const [creditApplying, setCreditApplying] = useState(false);
 
   // GST verification
   const [gstNumber, setGstNumber] = useState("");
@@ -100,7 +105,7 @@ const CheckoutPage = () => {
         pincode: loggedInCustomer.pincode || prev.pincode,
       }));
       if (loggedInCustomer.email) {
-        getCreditBalance(loggedInCustomer.email).then(res => {
+        getCreditBalance({ email: loggedInCustomer.email }).then(res => {
           setCreditBalance(res.data);
           if (res.data?.has_credit) setPaymentMethod("credit");
         }).catch(() => {});
@@ -128,12 +133,58 @@ const CheckoutPage = () => {
           company: data.trade_name || data.legal_name || prev.company,
           ...(useGstAddress ? addr : {}),
         }));
+        // ── Credit lookup by GST ─────────────────────────────────────
+        // Credit lines are mapped to a business (GSTIN), not a personal
+        // email. Pull the balance for this GST and switch the default
+        // payment method to credit if a balance is available.
+        try {
+          const creditRes = await getCreditBalance({ gst_number: cleaned });
+          setCreditBalance(creditRes.data);
+          if (creditRes.data?.has_credit) setPaymentMethod("credit");
+        } catch { setCreditBalance(null); }
         toast.success("GST verified — company details auto-filled");
+      } else {
+        // GST changed / failed → clear any previous credit lookup
+        setCreditBalance(null);
       }
     } catch {
       setGstResult({ valid: false, message: "Verification failed" });
     }
     setGstVerifying(false);
+  };
+
+  // ── Submit a credit application directly from checkout ─────────────
+  // Lightweight version of the credit-app form: prefills name / email /
+  // phone / company / GST from what the user has already entered. Posts
+  // to the public `/api/credit/apply` endpoint.
+  const submitCreditApplication = async () => {
+    if (!customer.name || !customer.email || !customer.phone) {
+      toast.error("Fill name, email & phone first"); return;
+    }
+    if (!gstResult?.valid) { toast.error("Verify GST before applying"); return; }
+    setCreditApplying(true);
+    try {
+      const res = await fetch(`${API_URL}/api/credit/apply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+          company: customer.company || gstResult.trade_name || gstResult.legal_name || "",
+          gst_number: gstNumber,
+          turnover: creditApplyForm.turnover,
+          message: `Requested limit: ₹${creditApplyForm.requested_amount_inr || '—'}\n${creditApplyForm.message || ''}`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Failed to submit");
+      toast.success("Credit application submitted — our team will reach out within 1 working day");
+      setShowCreditApply(false);
+      setCreditApplyForm({ requested_amount_inr: "", turnover: "", message: "" });
+    } catch (err) {
+      toast.error(err.message || "Failed to submit credit application");
+    } finally { setCreditApplying(false); }
   };
 
   useEffect(() => {
@@ -278,6 +329,15 @@ const CheckoutPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Hard-gate: GST must be present and verified for every B2B checkout
+    if (!gstNumber || gstNumber.trim().length !== 15) {
+      toast.error("GST Number is required (15 characters)");
+      return;
+    }
+    if (!gstResult?.valid) {
+      toast.error("Please verify your GST before placing the order");
+      return;
+    }
     setSubmitting(true);
     setPaymentError(null);
 
@@ -601,12 +661,6 @@ const CheckoutPage = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
                       <input type="email" required value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
-                        onBlur={async (e) => {
-                          const email = e.target.value;
-                          if (email && email.includes('@')) {
-                            try { const res = await getCreditBalance(email); setCreditBalance(res.data); if (res.data.has_credit) setPaymentMethod("credit"); } catch { setCreditBalance(null); }
-                          }
-                        }}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="you@company.com" data-testid="checkout-email" />
                     </div>
                     <div>
@@ -614,10 +668,11 @@ const CheckoutPage = () => {
                       <input type="tel" required value={customer.phone} onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="+91 98765 43210" data-testid="checkout-phone" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">GST Number <span className="text-red-500">*</span></label>
                       <div className="relative">
                         <input
                           type="text"
+                          required
                           maxLength={15}
                           value={gstNumber}
                           onChange={(e) => {
@@ -687,26 +742,6 @@ const CheckoutPage = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code *</label>
                       <input type="text" required maxLength={6} value={customer.pincode} onChange={(e) => setCustomer({ ...customer, pincode: e.target.value.replace(/\D/g, '') })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="400001" data-testid="checkout-pincode" />
                     </div>
-                  </div>
-                </div>
-
-                {/* Logistics - Free */}
-                <div className="bg-white rounded-xl p-6 border border-gray-200">
-                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Truck size={20} />
-                    Logistics
-                  </h2>
-                  <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle2 className="text-emerald-600" size={20} />
-                      <div>
-                        <p className="font-medium text-gray-900">Free Delivery</p>
-                        <p className="text-sm text-gray-600">
-                          Logistics charges included in the price
-                        </p>
-                      </div>
-                    </div>
-                    <span className="font-semibold text-emerald-600">FREE</span>
                   </div>
                 </div>
 
@@ -827,21 +862,38 @@ const CheckoutPage = () => {
                         <p className="text-xs text-gray-500">UPI, Cards, Net Banking</p>
                       </div>
                     </label>
-                    <label className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'credit' ? 'border-emerald-500 bg-emerald-50/50' : 'border-gray-200 hover:border-gray-300'} ${!creditBalance?.has_credit ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                      <input type="radio" name="payment" value="credit" checked={paymentMethod === 'credit'} onChange={() => creditBalance?.has_credit && setPaymentMethod('credit')} disabled={!creditBalance?.has_credit} className="text-emerald-600" />
-                      <Wallet size={20} className="text-emerald-600" />
-                      <div className="flex-1">
-                        <p className="font-medium text-sm text-gray-900">Pay via Locofast Credit</p>
-                        {creditBalance?.has_credit ? (
-                          <p className="text-xs text-emerald-600">Available balance: ₹{creditBalance.balance.toLocaleString()}</p>
-                        ) : (
-                          <p className="text-xs text-gray-400">Enter your email to check credit balance</p>
+                    {creditBalance?.has_credit ? (
+                      <label className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'credit' ? 'border-emerald-500 bg-emerald-50/50' : 'border-gray-200 hover:border-gray-300'}`} data-testid="pay-credit-option">
+                        <input type="radio" name="payment" value="credit" checked={paymentMethod === 'credit'} onChange={() => setPaymentMethod('credit')} className="text-emerald-600" />
+                        <Wallet size={20} className="text-emerald-600" />
+                        <div className="flex-1">
+                          <p className="font-medium text-sm text-gray-900">Pay via Locofast Credit</p>
+                          <p className="text-xs text-emerald-600">Available balance: ₹{creditBalance.balance.toLocaleString()}{creditBalance.company ? ` · ${creditBalance.company}` : ''}</p>
+                        </div>
+                        {creditBalance.balance < total && (
+                          <span className="text-xs text-red-500 font-medium">Insufficient balance</span>
                         )}
+                      </label>
+                    ) : (
+                      // No credit line on this GST → invite the buyer to apply.
+                      // Required disclosure: turnover threshold for eligibility.
+                      <div className="flex items-start gap-4 p-4 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50/40" data-testid="apply-credit-cta">
+                        <Wallet size={20} className="text-gray-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-medium text-sm text-gray-900">Pay via Locofast Credit</p>
+                          <p className="text-xs text-gray-500 mt-0.5">No credit line found {gstResult?.valid ? `for GSTIN ${gstNumber}` : 'yet'}.</p>
+                          <button
+                            type="button"
+                            onClick={() => setShowCreditApply(true)}
+                            className="mt-2 inline-flex items-center text-xs font-semibold text-[#2563EB] hover:text-blue-700 underline underline-offset-2"
+                            data-testid="apply-credit-btn"
+                          >
+                            Apply for Credit →
+                          </button>
+                          <p className="text-[11px] text-gray-400 mt-1">* Turnover requirement &gt;₹2 Cr needed for credit</p>
+                        </div>
                       </div>
-                      {creditBalance?.has_credit && creditBalance.balance < total && (
-                        <span className="text-xs text-red-500 font-medium">Insufficient balance</span>
-                      )}
-                    </label>
+                    )}
                   </div>
                 </div>
 
@@ -976,6 +1028,83 @@ const CheckoutPage = () => {
         </div>
       </main>
       <Footer />
+
+      {/* ── Apply for Credit modal (inline on checkout) ───────────────── */}
+      {showCreditApply && (
+        <div className="fixed inset-0 z-[80] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowCreditApply(false)}>
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="credit-apply-modal">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Apply for Locofast Credit</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Our team will reach out to <strong>{customer.company || gstResult?.trade_name || '—'}</strong> within 1 working day.</p>
+              </div>
+              <button onClick={() => setShowCreditApply(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-3 text-sm">
+              <div className="bg-gray-50 border border-gray-200 rounded p-3 text-xs space-y-1">
+                <div><span className="text-gray-500">Applicant:</span> <span className="font-medium">{customer.name}</span></div>
+                <div><span className="text-gray-500">GSTIN:</span> <span className="font-mono">{gstNumber}</span></div>
+                <div><span className="text-gray-500">Email:</span> {customer.email} · <span className="text-gray-500">Phone:</span> {customer.phone}</div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Annual turnover (₹) <span className="text-red-500">*</span></label>
+                <select
+                  value={creditApplyForm.turnover}
+                  onChange={(e) => setCreditApplyForm({ ...creditApplyForm, turnover: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded text-sm focus:border-blue-500 focus:outline-none"
+                  data-testid="credit-apply-turnover"
+                >
+                  <option value="">Select range…</option>
+                  <option value="under_2cr">Under ₹2 Cr (not eligible)</option>
+                  <option value="2_5cr">₹2 – 5 Cr</option>
+                  <option value="5_10cr">₹5 – 10 Cr</option>
+                  <option value="10_25cr">₹10 – 25 Cr</option>
+                  <option value="25cr_plus">Above ₹25 Cr</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Requested credit limit (₹)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={50000}
+                  value={creditApplyForm.requested_amount_inr}
+                  onChange={(e) => setCreditApplyForm({ ...creditApplyForm, requested_amount_inr: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded text-sm focus:border-blue-500 focus:outline-none"
+                  placeholder="e.g. 2000000"
+                  data-testid="credit-apply-amount"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Use case</label>
+                <textarea
+                  rows={2}
+                  value={creditApplyForm.message}
+                  onChange={(e) => setCreditApplyForm({ ...creditApplyForm, message: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded text-sm focus:border-blue-500 focus:outline-none resize-none"
+                  placeholder="What will you use the credit for?"
+                  data-testid="credit-apply-usecase"
+                />
+              </div>
+              <p className="text-[11px] text-gray-400">* Turnover requirement &gt;₹2 Cr needed for credit. Approval typically takes 3-5 working days.</p>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowCreditApply(false)} className="flex-1 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button
+                  type="button"
+                  onClick={submitCreditApplication}
+                  disabled={creditApplying || !creditApplyForm.turnover}
+                  className="flex-1 py-2 bg-[#2563EB] text-white rounded text-sm font-medium hover:bg-blue-600 disabled:opacity-50"
+                  data-testid="credit-apply-submit"
+                >
+                  {creditApplying ? "Submitting…" : "Submit Application"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

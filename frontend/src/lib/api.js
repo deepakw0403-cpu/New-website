@@ -105,7 +105,7 @@ export const rejectFabric = (id) => api.put(`/fabrics/${id}`, { status: 'rejecte
 
 // Credit / Wallet
 export const applyForCredit = (data) => api.post("/credit/apply", data);
-export const getCreditBalance = (email) => api.get("/credit/balance", { params: { email } });
+export const getCreditBalance = ({ email = "", gst_number = "" } = {}) => api.get("/credit/balance", { params: { email, gst_number } });
 
 // Customer Auth (OTP)
 export const sendCustomerOTP = (email) => api.post("/customer/send-otp", { email });
