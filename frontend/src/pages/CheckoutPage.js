@@ -329,6 +329,14 @@ const CheckoutPage = () => {
     setTotal(Math.max(0, finalTotal));
   };
 
+  // Credit surcharge: 1.5% per month × (period/30). Only when paying via
+  // Locofast credit. Cash/Razorpay orders are charge-free.
+  const creditPeriodDays = creditBalance?.credit_period_days || 30;
+  const creditCharge = paymentMethod === "credit"
+    ? Math.round(total * 0.015 * (creditPeriodDays / 30) * 100) / 100
+    : 0;
+  const grandTotal = total + creditCharge;
+
   // Apply coupon
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
@@ -932,7 +940,7 @@ const CheckoutPage = () => {
                             <input type="radio" name="payment" value="credit" checked={paymentMethod === 'credit'} onChange={() => setPaymentMethod('credit')} className="text-emerald-600 mt-1" />
                             <Wallet size={20} className="text-emerald-600 mt-1" />
                             <div className="flex-1">
-                              <p className="font-medium text-sm text-gray-900">Pay via Locofast Credit</p>
+                              <p className="font-medium text-sm text-gray-900">Pay via Locofast Credit · {creditPeriodDays}-day terms</p>
                               <p className="text-xs text-emerald-600">Available balance: ₹{creditBalance.balance.toLocaleString()}{creditBalance.company ? ` · ${creditBalance.company}` : ''}</p>
                               {creditBalance.authorized_email_masked && (
                                 <p className={`text-[11px] mt-0.5 ${looksMismatched ? 'text-orange-600' : 'text-gray-500'}`}>
@@ -940,8 +948,8 @@ const CheckoutPage = () => {
                                   {looksMismatched && <span className="ml-1">— please sign in with the authorized email to charge this credit line.</span>}
                                 </p>
                               )}
-                              {creditBalance.balance < total && (
-                                <p className="text-xs text-red-500 font-medium mt-1">Insufficient balance for this order (₹{total.toLocaleString()})</p>
+                              {creditBalance.balance < grandTotal && (
+                                <p className="text-xs text-red-500 font-medium mt-1">Insufficient balance for this order (₹{grandTotal.toLocaleString()})</p>
                               )}
                             </div>
                           </label>
@@ -986,7 +994,7 @@ const CheckoutPage = () => {
                     ) : paymentMethod === 'credit' ? (
                       <>
                         <Wallet size={20} />
-                        Pay with Credit ₹{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        Pay with Credit ₹{grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </>
                     ) : (
                       <>
@@ -1053,9 +1061,15 @@ const CheckoutPage = () => {
                       <span>-₹{discount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                   )}
+                  {creditCharge > 0 && (
+                    <div className="flex justify-between text-orange-600" data-testid="credit-charge-line">
+                      <span>Credit Charges ({(0.015 * (creditPeriodDays / 30) * 100).toFixed(1)}% / {creditPeriodDays}d)</span>
+                      <span>+₹{creditCharge.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between pt-3 border-t border-gray-200 text-lg font-semibold">
                     <span>Total</span>
-                    <span className="text-emerald-600">₹{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="text-emerald-600">₹{grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                   <p className="text-xs text-amber-600 mt-3">For export orders, additional port charges, custom charges, export documentation &amp; cess may be applicable.</p>
                 </div>

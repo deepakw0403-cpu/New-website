@@ -77,6 +77,10 @@ class BrandUpdate(BaseModel):
     status: Optional[str] = None
     type: Optional[str] = None
     parent_brand_id: Optional[str] = None
+    # Credit period in days (30 / 60 / 90). Drives the 1.5%/month
+    # surcharge applied at order time when the brand pays via Locofast
+    # credit. Single value drives all credit lines pooled under this GST.
+    credit_period_days: Optional[int] = None
 
 
 # Job titles surfaced in the invite-user dropdown. Permission level is still
@@ -300,6 +304,14 @@ async def get_brand(brand_id: str, admin=Depends(auth_helpers.get_current_admin)
 @router.put("/admin/brands/{brand_id}")
 async def update_brand(brand_id: str, data: BrandUpdate, admin=Depends(auth_helpers.get_current_admin)):
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    if "credit_period_days" in updates:
+        try:
+            p = int(updates["credit_period_days"])
+            if p not in (30, 60, 90):
+                raise HTTPException(status_code=400, detail="credit_period_days must be 30, 60, or 90")
+            updates["credit_period_days"] = p
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="credit_period_days must be an integer")
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
     res = await db.brands.update_one({"id": brand_id}, {"$set": updates})
@@ -1638,7 +1650,22 @@ async def brand_create_order(data: BrandOrderCreate, user=Depends(get_current_br
         packaging_charge = 0
         logistics_only = 0
         logistics_total = 100.0  # flat ₹100 for samples
-    total = round(subtotal + tax + logistics_total, 2)
+    pre_credit_total = round(subtotal + tax + logistics_total, 2)
+
+    # Credit charges (1.5% per month × period/30) — only when paying via
+    # Locofast credit line. Cash/Razorpay orders are charge-free. Period
+    # is read off the brand profile (single value drives all credit lines
+    # for this GSTIN's lender pool).
+    credit_charge = 0.0
+    credit_period_days = 0
+    if data.order_type != "sample" and data.payment_method != "razorpay":
+        brand_doc = await db.brands.find_one({"id": user["brand_id"]}, {"_id": 0, "credit_period_days": 1}) or {}
+        credit_period_days = int(brand_doc.get("credit_period_days") or 30)
+        if credit_period_days not in (30, 60, 90):
+            credit_period_days = 30
+        months = credit_period_days / 30.0
+        credit_charge = round(pre_credit_total * 0.015 * months, 2)
+    total = round(pre_credit_total + credit_charge, 2)
 
     # Debit BEFORE creating order; on failure nothing is committed
     order_id = str(uuid.uuid4())
@@ -1707,6 +1734,8 @@ async def brand_create_order(data: BrandOrderCreate, user=Depends(get_current_br
         "subtotal": round(subtotal, 2),
         "tax": tax,
         "discount": 0,
+        "credit_charge": credit_charge,
+        "credit_period_days": credit_period_days,
         "total": total,
         "currency": "INR",
         "logistics_charge": logistics_total,

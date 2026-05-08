@@ -28,12 +28,16 @@ const HEADER_ALIASES = {
   company: ["company", "brand", "company_name", "brand_name"],
   credit_limit: ["credit_limit", "credit", "limit", "amount", "credit_amount", "credit limit"],
   lender: ["lender", "lender_name", "bank", "financier"],
+  credit_period_days: [
+    "credit_period_days", "credit_period", "credit period", "credit period (days)",
+    "period", "period_days", "tenure", "tenure_days", "credit days",
+  ],
 };
 
 const TEMPLATE_CSV =
-  "gst_number,company,name,email,credit_limit,lender\n" +
-  "27AABCB1234C1Z5,Brand Co,Raj Kumar,buyer@brand.com,500000,HDFC Bank\n" +
-  "24AAACR5055K1Z6,Fashion Inc,Priya Shah,sourcing@fashion.in,300000,ICICI Bank\n";
+  "gst_number,company,name,email,credit_limit,lender,credit_period_days\n" +
+  "27AABCB1234C1Z5,Brand Co,Raj Kumar,buyer@brand.com,500000,HDFC Bank,30\n" +
+  "24AAACR5055K1Z6,Fashion Inc,Priya Shah,sourcing@fashion.in,300000,ICICI Bank,60\n";
 
 // Map a raw header row to canonical field names. Returns { idxMap, missing }.
 const mapHeaders = (rawHeaders) => {
@@ -57,6 +61,9 @@ const validateRow = (row) => {
   const limit = typeof rawLimit === "number" ? rawLimit : parseFloat(String(rawLimit || "").replace(/[,₹\s]/g, ""));
   if (Number.isNaN(limit)) errors.push("credit_limit not a number");
   else if (limit < 0) errors.push("credit_limit < 0");
+  // Optional credit_period_days — silently default to 30 if missing/invalid
+  let period = parseInt(String(row.credit_period_days || "").trim(), 10);
+  if (!Number.isInteger(period) || ![30, 60, 90].includes(period)) period = 30;
   return {
     ok: errors.length === 0,
     errors,
@@ -67,6 +74,7 @@ const validateRow = (row) => {
       company: String(row.company || "").trim(),
       credit_limit: Number.isNaN(limit) ? 0 : limit,
       lender: String(row.lender || "").trim(),
+      credit_period_days: period,
     },
   };
 };
@@ -209,10 +217,10 @@ const BulkCreditUpload = ({ open, onClose, onSuccess, currentWallets = [] }) => 
       const s = String(v ?? "");
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
-    const header = "gst_number,company,name,email,credit_limit,balance,lender\n";
+    const header = "gst_number,company,name,email,credit_limit,balance,lender,credit_period_days\n";
     const body = currentWallets
       .map((w) =>
-        [w.gst_number || "", w.company, w.name, w.email, w.credit_limit ?? 0, w.balance ?? 0, w.lender]
+        [w.gst_number || "", w.company, w.name, w.email, w.credit_limit ?? 0, w.balance ?? 0, w.lender, w.credit_period_days || 30]
           .map(escape)
           .join(",")
       )
@@ -409,6 +417,9 @@ const BulkCreditUpload = ({ open, onClose, onSuccess, currentWallets = [] }) => 
                           <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                             Limit
                           </th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                            Period
+                          </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                             Lender
                           </th>
@@ -430,6 +441,11 @@ const BulkCreditUpload = ({ open, onClose, onSuccess, currentWallets = [] }) => 
                             <td className="px-3 py-2 text-right text-gray-700">
                               ₹{(r.wallet.credit_limit || 0).toLocaleString()}
                             </td>
+                            <td className="px-3 py-2 text-center">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700">
+                                {r.wallet.credit_period_days || 30}d
+                              </span>
+                            </td>
                             <td className="px-3 py-2 text-gray-500">{r.wallet.lender || "—"}</td>
                             <td className="px-3 py-2">
                               {r.ok ? (
@@ -442,7 +458,7 @@ const BulkCreditUpload = ({ open, onClose, onSuccess, currentWallets = [] }) => 
                         ))}
                         {preview.rows.length > 200 && (
                           <tr>
-                            <td colSpan="6" className="px-3 py-2 text-center text-xs text-gray-500">
+                            <td colSpan="7" className="px-3 py-2 text-center text-xs text-gray-500">
                               … and {preview.rows.length - 200} more rows
                             </td>
                           </tr>

@@ -194,6 +194,7 @@ async def get_credit_balance(gst_number: str = Query(...)):
             "credit_limit": 0,
             "balance": 0,
             "has_credit": False,
+            "credit_period_days": 30,
         }
     # Mask the authorized email so we can show it in the UI without
     # leaking the full address (e.g. "d***@locofast.com").
@@ -209,6 +210,7 @@ async def get_credit_balance(gst_number: str = Query(...)):
         "balance": wallet.get("balance", 0),
         "has_credit": wallet.get("balance", 0) > 0,
         "authorized_email_masked": masked,
+        "credit_period_days": int(wallet.get("credit_period_days", 30) or 30),
         # Full email is intentionally NOT returned to keep checkout PII-clean.
     }
 
@@ -231,12 +233,13 @@ async def lookup_wallet_by_email(email: str = Query(...)):
         raise HTTPException(status_code=400, detail="Valid email is required")
     wallet = await db.credit_wallets.find_one({"email": e}, {"_id": 0})
     if not wallet:
-        return {"email": e, "found": False, "gst_number": "", "company": ""}
+        return {"email": e, "found": False, "gst_number": "", "company": "", "credit_period_days": 30}
     return {
         "email": e,
         "found": True,
         "gst_number": wallet.get("gst_number", "") or "",
         "company": wallet.get("company", "") or "",
+        "credit_period_days": int(wallet.get("credit_period_days", 30) or 30),
     }
 
 

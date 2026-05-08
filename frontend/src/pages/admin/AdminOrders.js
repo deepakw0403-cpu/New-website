@@ -46,6 +46,7 @@ const AdminOrders = () => {
   const [editPassword, setEditPassword] = useState("");
   const [editLimit, setEditLimit] = useState("");
   const [editBalance, setEditBalance] = useState("");
+  const [editPeriod, setEditPeriod] = useState("30");
   // Bulk upload modal toggle (component handles parsing + commit)
   const [showBulkUpload, setShowBulkUpload] = useState(false);
 
@@ -100,9 +101,10 @@ const AdminOrders = () => {
         password: editPassword,
         credit_limit: parseFloat(editLimit) || editModal.credit_limit,
         balance: parseFloat(editBalance) || editModal.balance,
+        credit_period_days: parseInt(editPeriod, 10) || 30,
       });
       toast.success("Credit updated");
-      setEditModal(null); setEditPassword(""); setEditLimit(""); setEditBalance("");
+      setEditModal(null); setEditPassword(""); setEditLimit(""); setEditBalance(""); setEditPeriod("30");
       fetchWallets();
     } catch (err) { toast.error(err.response?.data?.detail || "Failed — check password"); }
   };
@@ -289,6 +291,7 @@ const AdminOrders = () => {
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Credit Limit</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Available</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Used</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Period</th>
                         <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                       </tr></thead>
                       <tbody className="divide-y divide-gray-100">
@@ -317,8 +320,13 @@ const AdminOrders = () => {
                                 <div className="w-20 bg-gray-200 rounded-full h-1.5 mt-1 ml-auto"><div className={`h-1.5 rounded-full ${pct > 80 ? 'bg-red-500' : pct > 50 ? 'bg-yellow-500' : 'bg-emerald-500'}`} style={{width: `${pct}%`}}></div></div>
                               </td>
                               <td className="px-4 py-3 text-center">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                                  {w.credit_period_days || 30}d
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center">
                                 <button
-                                  onClick={() => { setEditModal(w); setEditLimit(String(w.credit_limit || 0)); setEditBalance(String(w.balance || 0)); setEditPassword(""); }}
+                                  onClick={() => { setEditModal(w); setEditLimit(String(w.credit_limit || 0)); setEditBalance(String(w.balance || 0)); setEditPeriod(String(w.credit_period_days || 30)); setEditPassword(""); }}
                                   disabled={!w.gst_number}
                                   className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
                                   title={w.gst_number ? "Edit" : "Legacy wallet — backfill GSTIN to edit"}
@@ -415,6 +423,15 @@ const AdminOrders = () => {
               <div className="space-y-4">
                 <div><label className="block text-xs font-medium text-gray-600 mb-1">Credit Limit (₹)</label><input type="number" value={editLimit} onChange={(e) => setEditLimit(e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" data-testid="edit-credit-limit" /></div>
                 <div><label className="block text-xs font-medium text-gray-600 mb-1">Available Balance (₹)</label><input type="number" value={editBalance} onChange={(e) => setEditBalance(e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" data-testid="edit-credit-balance" /></div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Credit Period</label>
+                  <select value={editPeriod} onChange={(e) => setEditPeriod(e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none bg-white" data-testid="edit-credit-period">
+                    <option value="30">30 days (1.5% surcharge)</option>
+                    <option value="60">60 days (3.0% surcharge)</option>
+                    <option value="90">90 days (4.5% surcharge)</option>
+                  </select>
+                  <p className="text-[11px] text-gray-400 mt-1">Surcharge added to invoice when buyer pays via credit. Cash/Razorpay orders are charge-free.</p>
+                </div>
                 <div><label className="block text-xs font-medium text-gray-600 mb-1">Password (required) *</label><input type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="Enter password to save" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" data-testid="edit-credit-password" /></div>
               </div>
               <div className="flex gap-3 mt-6">

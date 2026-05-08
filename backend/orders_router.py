@@ -256,13 +256,15 @@ async def create_order(order_data: OrderCreate):
     # single corporate credit line. Additionally, the buyer's email MUST
     # match the wallet's authorized email — corporate credit lines are
     # bound to the registered buyer.
+    credit_charge = 0.0
+    credit_period_days = 0
     if order_data.payment_method == "credit":
         gstin = (order_data.customer.gst_number or "").strip().upper()
         if not gstin:
             raise HTTPException(status_code=400, detail="GST number is required for credit payment")
         wallet = await db.credit_wallets.find_one({'gst_number': gstin}, {'_id': 0})
-        if not wallet or wallet.get('balance', 0) < final_total:
-            raise HTTPException(status_code=400, detail="Insufficient credit balance for this GST")
+        if not wallet:
+            raise HTTPException(status_code=400, detail="No credit line found for this GST")
 
         # Authorized-buyer check — the email on the order must match the
         # email registered against this GSTIN's credit line.
@@ -273,6 +275,24 @@ async def create_order(order_data: OrderCreate):
                 status_code=403,
                 detail="This GST's credit line is registered to a different email. Please sign in as the authorized buyer to pay via credit."
             )
+
+        # ── Credit charges: 1.5% per month × (period / 30 days) ──────
+        # Surcharge is computed on the pre-credit-charge order total
+        # (subtotal + tax + logistics − discount). Cash/Razorpay orders
+        # are charge-free; only credit-paid orders attract this fee.
+        credit_period_days = int(wallet.get('credit_period_days', 30) or 30)
+        months = credit_period_days / 30.0
+        credit_charge = round(final_total * 0.015 * months, 2)
+        chargeable_total = round(final_total + credit_charge, 2)
+
+        if wallet.get('balance', 0) < chargeable_total:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Insufficient credit balance. Required ₹{chargeable_total:,.2f} (incl. ₹{credit_charge:,.2f} credit charges for {credit_period_days} days), available ₹{wallet.get('balance', 0):,.2f}"
+            )
+        # Override final_total so subsequent code (deduct + transaction
+        # log) uses the surcharge-inclusive amount.
+        final_total = chargeable_total
 
         # Deduct from wallet
         new_balance = wallet['balance'] - final_total
@@ -290,6 +310,8 @@ async def create_order(order_data: OrderCreate):
             'order_number': order_number,
             'type': 'debit',
             'amount': final_total,
+            'credit_charge': credit_charge,
+            'credit_period_days': credit_period_days,
             'balance_after': new_balance,
             'created_at': now
         })
@@ -308,6 +330,8 @@ async def create_order(order_data: OrderCreate):
             "discount": discount,
             "coupon": order_data.coupon.model_dump() if order_data.coupon else None,
             "total": final_total,
+            "credit_charge": credit_charge,
+            "credit_period_days": credit_period_days,
             "currency": "INR",
             "status": "confirmed",
             "payment_status": "paid",
@@ -767,12 +791,19 @@ async def edit_credit_wallet(gst_number: str, data: dict):
 
     credit_limit = data.get('credit_limit')
     balance = data.get('balance')
+    period_days = data.get('credit_period_days')
     
     update = {'updated_at': datetime.now(timezone.utc).isoformat()}
     if credit_limit is not None:
         update['credit_limit'] = credit_limit
     if balance is not None:
         update['balance'] = balance
+    if period_days is not None:
+        try:
+            p = int(period_days)
+            update['credit_period_days'] = p if p in (30, 60, 90) else 30
+        except (TypeError, ValueError):
+            pass
     
     result = await db.credit_wallets.update_one({'gst_number': gstin}, {'$set': update})
     if result.matched_count == 0:
@@ -819,6 +850,13 @@ async def bulk_upload_credit_wallets(data: dict):
             skipped.append({'row': idx + 1, 'gst_number': gstin, 'reason': 'credit_limit must be ≥ 0'})
             continue
 
+        # credit_period_days: 30/60/90 only. Defaults to 30 if missing or invalid.
+        try:
+            period_raw = int(w.get('credit_period_days') or 30)
+        except (TypeError, ValueError):
+            period_raw = 30
+        period_days = period_raw if period_raw in (30, 60, 90) else 30
+
         existing = await db.credit_wallets.find_one({'gst_number': gstin})
         if existing:
             if mode == 'topup':
@@ -836,6 +874,7 @@ async def bulk_upload_credit_wallets(data: dict):
                     'name': w.get('name') or existing.get('name', ''),
                     'company': w.get('company') or existing.get('company', ''),
                     'email': w.get('email') or existing.get('email', ''),
+                    'credit_period_days': period_days,
                     'updated_at': now,
                 }}
             )
@@ -849,6 +888,7 @@ async def bulk_upload_credit_wallets(data: dict):
                 'credit_limit': limit,
                 'balance': limit,
                 'lender': w.get('lender', '') or '',
+                'credit_period_days': period_days,
                 'updated_at': now,
             })
             created += 1
