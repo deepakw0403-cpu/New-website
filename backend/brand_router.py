@@ -1815,7 +1815,7 @@ OPS_INBOX = os.environ.get("LOCOFAST_OPS_INBOX", "orders@locofast.com")
 # Additional internal stakeholders CC'd on every brand order so they can
 # coordinate delivery directly with the customer.
 ORDER_DELIVERY_CC = [e.strip() for e in os.environ.get(
-    "LOCOFAST_ORDER_DELIVERY_CC", "ashish.katiyar@locofast.com"
+    "LOCOFAST_ORDER_DELIVERY_CC", "ashish.katiyar@locofast.com,accounts@locofast.com"
 ).split(",") if e.strip()]
 
 

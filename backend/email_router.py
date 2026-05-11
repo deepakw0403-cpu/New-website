@@ -69,7 +69,7 @@ def set_db(database):
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 ADMIN_NOTIFICATION_EMAIL = "deepakw0403@gmail.com"
-ORDER_NOTIFICATION_EMAILS = ["mail@locofast.com", "mohit@locofast.com", "ashish.katiyar@locofast.com"]
+ORDER_NOTIFICATION_EMAILS = ["mail@locofast.com", "mohit@locofast.com", "ashish.katiyar@locofast.com", "accounts@locofast.com"]
 SITE_URL = os.environ.get('SITE_URL', 'https://shop.locofast.com')
 
 if RESEND_API_KEY:
