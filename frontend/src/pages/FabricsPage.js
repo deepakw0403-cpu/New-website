@@ -926,19 +926,35 @@ const FabricsPage = () => {
                 </div>
 
                 {/* Pricing Tiers for Bulk */}
-                {modalType === "bulk" && selectedFabric.pricing_tiers && selectedFabric.pricing_tiers.length > 0 && (
+                {modalType === "bulk" && selectedFabric.pricing_tiers && selectedFabric.pricing_tiers.length > 0 && (() => {
+                  const moqMatch = String(selectedFabric.moq || "").match(/[\d,]+/);
+                  const moqNum = moqMatch ? parseInt(moqMatch[0].replace(/,/g, ""), 10) || 0 : 0;
+                  const hasBelowMoq = moqNum > 0 && selectedFabric.pricing_tiers.some((t) => t.max_qty < moqNum);
+                  return (
                   <div className="bg-blue-50 rounded-lg p-4">
                     <p className="text-sm font-medium text-blue-800 mb-2">Bulk Pricing Tiers</p>
                     <div className="space-y-1">
-                      {selectedFabric.pricing_tiers.map((tier, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <span className="text-blue-700">{tier.min_qty} - {tier.max_qty} {getUnit(selectedFabric).plural}</span>
-                          <span className="font-medium text-blue-900">₹{tier.price_per_meter}{getUnit(selectedFabric).priceLabel}</span>
-                        </div>
-                      ))}
+                      {selectedFabric.pricing_tiers.map((tier, idx) => {
+                        const belowMoq = moqNum > 0 && tier.max_qty < moqNum;
+                        return (
+                          <div key={idx} className={`flex justify-between text-sm ${belowMoq ? "opacity-70" : ""}`}>
+                            <span className="text-blue-700">
+                              {tier.min_qty} - {tier.max_qty} {getUnit(selectedFabric).plural}
+                              {belowMoq && <span className="ml-1 text-[10px] uppercase tracking-wide text-amber-700 font-semibold">via RFQ</span>}
+                            </span>
+                            <span className="font-medium text-blue-900">₹{tier.price_per_meter}{getUnit(selectedFabric).priceLabel}</span>
+                          </div>
+                        );
+                      })}
                     </div>
+                    {hasBelowMoq && (
+                      <p className="text-[11px] text-amber-700 mt-2">
+                        Tiers under the {moqNum.toLocaleString()}{getUnit(selectedFabric).short} MOQ are informational — book via RFQ for custom quotes.
+                      </p>
+                    )}
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* Price Summary */}
                 {cartValue && (
