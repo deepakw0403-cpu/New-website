@@ -70,7 +70,7 @@ RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 ADMIN_NOTIFICATION_EMAIL = "deepakw0403@gmail.com"
 ORDER_NOTIFICATION_EMAILS = ["mail@locofast.com", "mohit@locofast.com", "ashish.katiyar@locofast.com", "accounts@locofast.com"]
-SITE_URL = os.environ.get('SITE_URL', 'https://shop.locofast.com')
+SITE_URL = os.environ.get('SITE_URL', 'https://locofast.com')
 
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
@@ -236,7 +236,10 @@ def get_order_received_admin_email(order: dict) -> str:
         amount = qty * rate
         order_type = item.get('order_type', 'bulk')
         type_label = 'Sample' if order_type == 'sample' else 'Bulk'
-        fabric_url = f"{SITE_URL}/fabrics/{item.get('fabric_id', '')}"
+        # Prefer slug over UUID for cleaner, SEO-friendly URLs. Public PDP
+        # route accepts either (id_or_slug), so we always have a valid link.
+        fabric_ref = item.get('fabric_slug') or item.get('fabric_id', '')
+        fabric_url = f"{SITE_URL}/fabrics/{fabric_ref}"
         _color = item.get('color_name') or ''
         _color_hex = item.get('color_hex') or '#ccc'
         _color_chip = (
@@ -248,7 +251,7 @@ def get_order_received_admin_email(order: dict) -> str:
         items_html += f"""
         <tr>
             <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                <a href="{fabric_url}" style="color: #2563EB; font-weight: 600; text-decoration: none;">{item.get('fabric_name', 'Fabric')}</a>{_color_chip}<br>
+                <a href="{fabric_url}" style="color: #2563EB; font-weight: 600; text-decoration: underline;">{item.get('fabric_name', 'Fabric')}</a>{_color_chip}<br>
                 <span style="color: #666; font-size: 12px;">Code: {item.get('fabric_code', 'N/A')} | Seller: {item.get('seller_company', 'N/A')}</span>
             </td>
             <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">
@@ -347,7 +350,8 @@ def get_seller_order_notification_email(order: dict, items: list, seller: dict) 
         type_bg = '#dbeafe' if order_type == 'sample' else '#d1fae5'
         type_color = '#1e40af' if order_type == 'sample' else '#065f46'
         
-        fabric_url = f"{SITE_URL}/fabrics/{item.get('fabric_id', '')}"
+        fabric_ref = item.get('fabric_slug') or item.get('fabric_id', '')
+        fabric_url = f"{SITE_URL}/fabrics/{fabric_ref}"
         image_url = item.get('image_url', '')
         
         items_html += f"""
@@ -356,7 +360,7 @@ def get_seller_order_notification_email(order: dict, items: list, seller: dict) 
                 <div style="display: flex; gap: 12px;">
                     {f'<img src="{image_url}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;" />' if image_url else ''}
                     <div>
-                        <a href="{fabric_url}" style="color: #2563EB; text-decoration: none; font-weight: 600;">{item.get('fabric_name', 'Fabric')}</a><br>
+                        <a href="{fabric_url}" style="color: #2563EB; text-decoration: underline; font-weight: 600;">{item.get('fabric_name', 'Fabric')}</a><br>
                         <span style="color: #666; font-size: 12px;">Code: {item.get('fabric_code', 'N/A')} | {item.get('category_name', '')}</span>
                     </div>
                 </div>

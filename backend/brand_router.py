@@ -1822,8 +1822,14 @@ ORDER_DELIVERY_CC = [e.strip() for e in os.environ.get(
 def _order_items_html(order):
     rows = []
     for it in order.get("items", []):
+        fabric_ref = it.get("fabric_slug") or it.get("fabric_id", "")
+        fabric_url = f"{SITE_URL}/fabrics/{fabric_ref}" if fabric_ref else ""
+        name_cell = (
+            f"<a href='{fabric_url}' style='color:#2563EB;text-decoration:underline;font-weight:600;'>{it.get('fabric_name', '')}</a>"
+            if fabric_url else (it.get("fabric_name", "") or "")
+        )
         rows.append(
-            f"<tr><td style='padding:8px 12px;border-bottom:1px solid #eef2f7;'>{it.get('fabric_name', '')}</td>"
+            f"<tr><td style='padding:8px 12px;border-bottom:1px solid #eef2f7;'>{name_cell}</td>"
             f"<td style='padding:8px 12px;border-bottom:1px solid #eef2f7;'>{it.get('fabric_code', '')}</td>"
             f"<td style='padding:8px 12px;border-bottom:1px solid #eef2f7;text-align:right;'>{it.get('quantity', 0)}</td>"
             f"<td style='padding:8px 12px;border-bottom:1px solid #eef2f7;text-align:right;'>₹{it.get('line_total', 0):,.2f}</td></tr>"
