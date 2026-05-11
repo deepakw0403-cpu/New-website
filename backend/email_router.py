@@ -1420,7 +1420,48 @@ async def send_order_notification_emails(order: dict, order_db=None):
     
     use_db = order_db or db
     results = {"customer_sent": False, "admin_sent": False, "sellers_notified": []}
-    
+
+    # ── Enrich items with seller_company + fabric_slug if missing ───────
+    # Older order rows (and some flows) only persist seller_id/fabric_id.
+    # The admin email surfaces "Seller: <company>" and the linked PDP URL,
+    # so we backfill these fields from the live DB just before sending.
+    if use_db:
+        items_in = order.get("items") or []
+        missing_fabric_ids = list({
+            it.get("fabric_id") for it in items_in
+            if it.get("fabric_id") and (not it.get("seller_company") or not it.get("fabric_slug"))
+        })
+        if missing_fabric_ids:
+            fab_cursor = use_db.fabrics.find(
+                {"id": {"$in": missing_fabric_ids}},
+                {"_id": 0, "id": 1, "slug": 1, "seller_id": 1},
+            )
+            fab_map = {}
+            seller_ids_needed = set()
+            async for f in fab_cursor:
+                fab_map[f["id"]] = f
+                if f.get("seller_id"):
+                    seller_ids_needed.add(f["seller_id"])
+            seller_map = {}
+            if seller_ids_needed:
+                async for s in use_db.sellers.find(
+                    {"id": {"$in": list(seller_ids_needed)}},
+                    {"_id": 0, "id": 1, "company_name": 1, "name": 1},
+                ):
+                    seller_map[s["id"]] = s.get("company_name") or s.get("name") or ""
+            for it in items_in:
+                f = fab_map.get(it.get("fabric_id"))
+                if not f:
+                    continue
+                if not it.get("fabric_slug") and f.get("slug"):
+                    it["fabric_slug"] = f["slug"]
+                if not it.get("seller_company"):
+                    sid = f.get("seller_id") or it.get("seller_id") or ""
+                    if sid and seller_map.get(sid):
+                        it["seller_company"] = seller_map[sid]
+                if not it.get("seller_id") and f.get("seller_id"):
+                    it["seller_id"] = f["seller_id"]
+
     customer_email = order.get("customer", {}).get("email")
     brand_id = order.get("brand_id")
     customer_id = order.get("customer_id")
