@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle, MessageCircle, Shield, Clock, Users, ChevronDo
 import Navbar from "../components/Navbar";
 import RFQModal from "../components/RFQModal";
 import HeroSearchCard from "../components/HeroSearchCard";
+import BrandTicker from "../components/BrandTicker";
 import { getCollections } from "../lib/api";
 import { trackRFQIntent } from "../lib/analytics";
 import CreditApplicationSection from "../components/CreditApplicationSection";
@@ -190,6 +191,9 @@ const HomePage = () => {
             </div>
           </div>
         </section>
+
+        {/* ========== TRUSTED BY GLOBAL BRANDS (ticker) ========== */}
+        <BrandTicker />
 
         {/* ========== WHO WE SERVE ========== */}
         <section className="py-20 lg:py-28 bg-white" data-testid="audience-section">
