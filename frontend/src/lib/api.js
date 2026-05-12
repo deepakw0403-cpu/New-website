@@ -10,6 +10,7 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   // Check for vendor token first (for /vendor/* and /cloudinary/* routes when vendor is logged in)
   const vendorToken = localStorage.getItem("vendor_token");
+  const agentToken = localStorage.getItem("lf_agent_token");
   if (config.url?.startsWith('/vendor') && !config.url?.includes('/vendor/login')) {
     if (vendorToken) {
       config.headers.Authorization = `Bearer ${vendorToken}`;
@@ -22,6 +23,11 @@ api.interceptors.request.use((config) => {
     const token = localStorage.getItem("locofast_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else if (agentToken) {
+      // Agent token — used so internal staff get full vendor visibility on
+      // public-shaped endpoints like /fabrics. Backend recognizes the agent
+      // type and returns seller_company / seller_name accordingly.
+      config.headers.Authorization = `Bearer ${agentToken}`;
     }
   }
   return config;
