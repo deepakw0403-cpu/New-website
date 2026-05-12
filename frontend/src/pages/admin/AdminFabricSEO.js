@@ -555,13 +555,15 @@ const AdminFabricSEO = () => {
                   )}
                 </div>
 
-                {/* progress bar */}
+                {/* progress bar — use filled+errors so the bar moves
+                    on each completed fabric rather than waiting for the
+                    next one to start (which was 5s+ per fabric). */}
                 <div className="h-1.5 bg-emerald-100 rounded-full overflow-hidden mb-2">
                   <div
                     className="h-full bg-emerald-600 transition-all duration-300"
                     style={{
                       width: `${fillJob.total > 0
-                        ? Math.min(100, Math.round((fillJob.processed / fillJob.total) * 100))
+                        ? Math.min(100, Math.round((((fillJob.filled_count || 0) + (fillJob.errors_count || 0)) / fillJob.total) * 100))
                         : (fillJob.status === "completed" ? 100 : 0)}%`,
                     }}
                   />
@@ -572,11 +574,11 @@ const AdminFabricSEO = () => {
                   data-testid="seo-fill-progress-counts"
                 >
                   <span>
-                    {fillJob.processed || 0} / {fillJob.total || 0}
+                    {(fillJob.filled_count || 0) + (fillJob.errors_count || 0)} / {fillJob.total || 0}
                   </span>
                   <span>
                     {fillJob.total > 0
-                      ? `${Math.round(((fillJob.processed || 0) / fillJob.total) * 100)}%`
+                      ? `${Math.round((((fillJob.filled_count || 0) + (fillJob.errors_count || 0)) / fillJob.total) * 100)}%`
                       : "0%"}
                   </span>
                 </div>
