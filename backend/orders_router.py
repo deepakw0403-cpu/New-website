@@ -500,6 +500,15 @@ async def create_order(order_data: OrderCreate):
         except Exception as e:
             logger.warning(f"Failed to split multi-vendor order {order_number}: {e}")
 
+        # Materialize vendor payouts (one per seller in the order)
+        try:
+            from payouts_router import materialize_payouts_for_order
+            # When split, payouts attach to the child orders; otherwise to parent
+            for o in (child_orders or [order_doc]):
+                await materialize_payouts_for_order(o)
+        except Exception as e:
+            logger.warning(f"Failed to materialize payouts for {order_number}: {e}")
+
         # Send confirmation emails
         try:
             await send_order_notification_emails(db, order_doc)
@@ -684,6 +693,14 @@ async def verify_payment(verification: PaymentVerification):
                 logger.info(f"Shiprocket shipment created for {tgt['order_number']}")
         except Exception as e:
             logger.error(f"Failed to create Shiprocket shipment for {tgt.get('order_number')}: {str(e)}")
+
+    # Materialize vendor payouts (one per seller in the order)
+    try:
+        from payouts_router import materialize_payouts_for_order
+        for tgt in (child_orders or [order]):
+            await materialize_payouts_for_order(tgt)
+    except Exception as e:
+        logger.warning(f"Failed to materialize payouts for {order.get('order_number')}: {e}")
     
     # Get updated order
     updated_order = await db.orders.find_one(

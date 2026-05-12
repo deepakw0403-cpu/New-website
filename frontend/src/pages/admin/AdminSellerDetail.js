@@ -263,6 +263,13 @@ const AdminSellerDetail = () => {
               <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">{statusCounts.pending} pending</span>
             )}
           </button>
+          <button
+            onClick={() => setActiveTab("finance")}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "finance" ? "border-[#2563EB] text-[#2563EB]" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+            data-testid="tab-finance"
+          >
+            Finance & Payouts
+          </button>
         </div>
 
         {/* Profile Tab */}
@@ -595,8 +602,103 @@ const AdminSellerDetail = () => {
             )}
           </div>
         )}
+
+        {/* Finance & Payouts Tab */}
+        {activeTab === "finance" && (
+          <FinanceTab seller={seller} onSaved={fetchSeller} />
+        )}
       </div>
     </AdminLayout>
+  );
+};
+
+// ─── Finance tab (vendor payout-related fields) ─────────────────
+const FinanceTab = ({ seller, onSaved }) => {
+  const [form, setForm] = useState({
+    payment_terms: seller?.payment_terms || "",
+    advance_pct: seller?.advance_pct ?? 0,
+    bank_account_name: seller?.bank_account_name || "",
+    bank_account_no: seller?.bank_account_no || "",
+    ifsc_code: seller?.ifsc_code || "",
+    upi_id: seller?.upi_id || "",
+    pan_number: seller?.pan_number || "",
+  });
+  const [saving, setSaving] = useState(false);
+  const token = localStorage.getItem("locofast_token");
+  const API = process.env.REACT_APP_BACKEND_URL;
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/api/payouts/vendors/${seller.id}/finance`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Failed");
+      }
+      const { toast } = await import("sonner");
+      toast.success("Finance details updated");
+      onSaved?.();
+    } catch (e) {
+      const { toast } = await import("sonner");
+      toast.error(e.message || "Failed");
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6 max-w-3xl" data-testid="finance-tab-content">
+      <h2 className="font-semibold text-gray-900 mb-1">Payment terms & payout details</h2>
+      <p className="text-xs text-gray-500 mb-5">Used by the accounts team to settle vendor dues. Advances can only be recorded if "Advance" is in the payment terms.</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div>
+          <label className="text-xs font-medium text-gray-700 mb-1 block">Payment Terms</label>
+          <select value={form.payment_terms} onChange={(e) => setForm({ ...form, payment_terms: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white" data-testid="finance-payment-terms">
+            <option value="">— Not set —</option>
+            <option value="Advance 100%">Advance 100%</option>
+            <option value="Advance 50% + 50% on dispatch">Advance 50% + 50% on dispatch</option>
+            <option value="Advance 30% + 70% on dispatch">Advance 30% + 70% on dispatch</option>
+            <option value="Net 7">Net 7 days</option>
+            <option value="Net 15">Net 15 days</option>
+            <option value="Net 30">Net 30 days</option>
+            <option value="Net 45">Net 45 days</option>
+            <option value="Net 60">Net 60 days</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-700 mb-1 block">Advance %</label>
+          <input type="number" min="0" max="100" value={form.advance_pct} onChange={(e) => setForm({ ...form, advance_pct: Number(e.target.value) })} className="w-full px-3 py-2 border border-gray-200 rounded-lg" placeholder="e.g. 50" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-700 mb-1 block">Bank Account Holder</label>
+          <input value={form.bank_account_name} onChange={(e) => setForm({ ...form, bank_account_name: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-700 mb-1 block">Account Number</label>
+          <input value={form.bank_account_no} onChange={(e) => setForm({ ...form, bank_account_no: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-700 mb-1 block">IFSC Code</label>
+          <input value={form.ifsc_code} onChange={(e) => setForm({ ...form, ifsc_code: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border border-gray-200 rounded-lg uppercase" placeholder="e.g. SBIN0001234" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-700 mb-1 block">UPI ID</label>
+          <input value={form.upi_id} onChange={(e) => setForm({ ...form, upi_id: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg" placeholder="e.g. vendor@hdfc" />
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-xs font-medium text-gray-700 mb-1 block">PAN (mandatory for TDS deduction over ₹50k)</label>
+          <input value={form.pan_number} onChange={(e) => setForm({ ...form, pan_number: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border border-gray-200 rounded-lg uppercase" placeholder="ABCDE1234F" maxLength={10} />
+        </div>
+      </div>
+      <div className="mt-5 flex justify-end">
+        <button onClick={save} disabled={saving} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50" data-testid="finance-save-btn">
+          {saving ? "Saving…" : "Save finance details"}
+        </button>
+      </div>
+    </div>
   );
 };
 

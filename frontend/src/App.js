@@ -146,6 +146,7 @@ const AdminArticles = lazy(() => import("./pages/admin/AdminArticles"));
 const AdminEnquiries = lazy(() => import("./pages/admin/AdminEnquiries"));
 const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const PayoutsPage = lazy(() => import("./pages/admin/PayoutsPage"));
 const AdminRFQ = lazy(() => import("./pages/admin/AdminRFQ"));
 const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
 const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
@@ -300,6 +301,7 @@ function App() {
           <Route path="/admin/enquiries" element={<ProtectedRoute><AdminEnquiries /></ProtectedRoute>} />
           <Route path="/admin/customers" element={<ProtectedRoute><AdminCustomers /></ProtectedRoute>} />
           <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
+          <Route path="/admin/payouts" element={<ProtectedRoute><PayoutsPage /></ProtectedRoute>} />
           <Route path="/admin/rfq" element={<ProtectedRoute><AdminRFQ /></ProtectedRoute>} />
           <Route path="/admin/coupons" element={<ProtectedRoute><AdminCoupons /></ProtectedRoute>} />
           <Route path="/admin/reviews" element={<ProtectedRoute><AdminReviews /></ProtectedRoute>} />
