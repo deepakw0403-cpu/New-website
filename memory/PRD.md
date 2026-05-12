@@ -480,6 +480,18 @@ Vendor quotes now ping the brand portal in real time. Tested 9/9 backend + 100% 
   - **Admin tooling**: `PUT /api/admin/brands/{id}` accepts `credit_period_days` (validates 30/60/90). Bulk Credit Upload modal also seeds the field on first allocation.
   - **B2C parity**: `CheckoutPage.js` + `orders_router.create_order` apply the same formula keyed on `credit_wallets.credit_period_days` (GST-keyed wallet).
 
+### Phase 54: Vendor Payouts Module (Complete - Feb 2026)
+New `accounts` role with restricted admin access. Calculates per-vendor dues from paid orders, applies commission % + advances, generates "Mark Paid" with UTR tracking. Module covers: dashboard at `/admin/payouts`, advances tied to specific orders, vendor finance edit (bank/PAN/payment_terms), email + WhatsApp settlement notifications.
+
+### Phase 55: Vendor Invoice Upload as Prerequisite for Payout (Complete - Feb 2026)
+Compliance gate — vendor must upload their tax invoice before Accounts can release payment. Tested 11/11 backend + 5/5 frontend (iteration_58.json).
+- **Backend (`payouts_router.py`)**: New endpoints `GET /api/vendor/payouts` (vendor JWT), `POST /api/vendor/payouts/{id}/upload-invoice` (vendor JWT), `POST /api/payouts/{id}/reject-invoice` (accounts/admin). Mark-paid endpoint now returns HTTP 400 if `vendor_invoice_status != "uploaded"`. Upload locks once submitted; only rejection unlocks re-upload. Audit history persisted in `vendor_invoice_history` array.
+- **Email triggers (Resend)**: On upload → email to `accounts@locofast.com` (env `ACCOUNTS_NOTIFY_EMAIL`) with invoice metadata + view link. On rejection → email to vendor with reason and call-to-action to re-upload.
+- **Frontend — Vendor Portal**: New `/vendor/payouts` page with 4 stat tiles (pending/uploaded/rejected/paid), filter chips, table of payouts, upload modal with invoice_number + date + amount fields + Cloudinary upload widget (any file type, max 25 MB). Same upload widget reused inside the VendorOrders detail modal so vendors can submit from either flow.
+- **Frontend — Admin/Accounts**: New "Invoice" column in payouts table (badge: Awaiting upload / Uploaded ↗ / Rejected). Detail modal gains "Vendor's Tax Invoice" section showing invoice number/date/claimed amount/uploaded-at + Open link. "Mark Paid" button is disabled (with tooltip) until invoice is uploaded. Inline "Reject invoice" button opens reason modal → fires rejection email to vendor.
+- **New schema fields on `vendor_payouts`**: `vendor_invoice_url`, `vendor_invoice_filename`, `vendor_invoice_number`, `vendor_invoice_date`, `vendor_invoice_amount`, `vendor_invoice_status` ("not_uploaded"/"uploaded"/"rejected"), `vendor_invoice_uploaded_at`, `vendor_invoice_rejection_reason`, `vendor_invoice_rejected_at`, `vendor_invoice_rejected_by`, `vendor_invoice_history[]`.
+- **New components**: `/app/frontend/src/components/vendor/VendorFileUpload.js` (Cloudinary direct-upload via vendor JWT, any file type), `/app/frontend/src/pages/vendor/VendorPayouts.js`.
+
 ## Backlog
 
 ### P0 (Top Priority — Next)
