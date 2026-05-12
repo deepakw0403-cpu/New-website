@@ -330,6 +330,9 @@ export const getRelatedFabrics = (id) => api.get(`/seo/fabric/${id}/related`);
 export const getOtherSellers = (fabricId) => api.get(`/fabrics/${fabricId}/other-sellers`);
 export const batchGenerateSlugs = () => api.post(`/seo/batch-generate-slugs`);
 export const batchFillMissingSEO = () => api.post(`/seo/batch-fill-missing`, null, { timeout: 600000 });
+export const batchFillMissingSEOStart = () => api.post(`/seo/batch-fill-missing/start`);
+export const batchFillMissingSEOStatus = (jobId) => api.get(`/seo/batch-fill-missing/status/${jobId}`);
+export const batchFillMissingSEOLatest = () => api.get(`/seo/batch-fill-missing/latest`);
 export const seoAudit = () => api.get(`/seo/audit`);
 
 // Blog - Categories

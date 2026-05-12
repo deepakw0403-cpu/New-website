@@ -4,6 +4,7 @@ from typing import Optional, List, Dict, Union
 import os
 import re
 import uuid
+import asyncio
 from datetime import datetime, timezone
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -1106,3 +1107,163 @@ async def batch_fill_missing_seo(only_active: bool = True):
         "filled": filled,
         "errors": errors,
     }
+
+
+# ────────────────────────────────────────────────────────────────────
+# Async Batch-Fill Job (with live progress)
+# ────────────────────────────────────────────────────────────────────
+# For ops running on production with 400+ fabrics: a sync request would
+# hang the browser for ~20 min. Instead, we spawn a background asyncio
+# task, persist progress in the `seo_jobs` collection, and let the UI
+# poll `/status/{job_id}` every couple of seconds.
+#
+# The job document is the single source of truth — survives page
+# refresh and lets multiple admins watch the same run.
+
+async def _run_batch_fill_job(job_id: str, only_active: bool):
+    """Background worker — updates `seo_jobs` doc as it processes fabrics."""
+    try:
+        query = {"is_active": {"$ne": False}} if only_active else {}
+        fabrics = await db.fabrics.find(query, {"_id": 0}).to_list(20000)
+        seo_index = {s["fabric_id"]: s async for s in db.fabric_seo.find({}, {"_id": 0})}
+
+        # Pre-compute the work-list so `total` reflects fabrics that
+        # actually need filling, not the whole catalog.
+        work = []
+        skipped_initial = 0
+        for fabric in fabrics:
+            seo = seo_index.get(fabric["id"])
+            miss = _seo_doc_needs_filling(seo)
+            if miss:
+                work.append((fabric, miss))
+            else:
+                skipped_initial += 1
+
+        await db.seo_jobs.update_one(
+            {"job_id": job_id},
+            {"$set": {
+                "total": len(work),
+                "skipped_already_complete": skipped_initial,
+                "status": "running",
+            }},
+        )
+
+        filled, errors = [], []
+        for idx, (fabric, miss) in enumerate(work):
+            await db.seo_jobs.update_one(
+                {"job_id": job_id},
+                {"$set": {
+                    "processed": idx,
+                    "current_fabric": {
+                        "id": fabric["id"],
+                        "name": fabric.get("name", "")[:80],
+                        "fabric_code": fabric.get("fabric_code", ""),
+                    },
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }},
+            )
+            try:
+                await generate_fabric_seo(fabric["id"])
+                filled.append({
+                    "id": fabric["id"],
+                    "fabric_code": fabric.get("fabric_code", ""),
+                    "name": fabric.get("name", ""),
+                    "filled_fields": miss,
+                })
+                await db.seo_jobs.update_one(
+                    {"job_id": job_id},
+                    {"$inc": {"filled_count": 1}},
+                )
+            except Exception as e:
+                errors.append({
+                    "id": fabric["id"],
+                    "fabric_code": fabric.get("fabric_code", ""),
+                    "name": fabric.get("name", ""),
+                    "error": str(e)[:200],
+                })
+                await db.seo_jobs.update_one(
+                    {"job_id": job_id},
+                    {"$inc": {"errors_count": 1}},
+                )
+
+        await db.seo_jobs.update_one(
+            {"job_id": job_id},
+            {"$set": {
+                "processed": len(work),
+                "status": "completed",
+                "current_fabric": None,
+                "finished_at": datetime.now(timezone.utc).isoformat(),
+                "filled_sample": filled[:50],   # cap stored sample to keep doc small
+                "errors": errors[:50],
+            }},
+        )
+    except Exception as e:
+        await db.seo_jobs.update_one(
+            {"job_id": job_id},
+            {"$set": {
+                "status": "failed",
+                "fatal_error": str(e)[:500],
+                "finished_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        )
+
+
+@router.post("/batch-fill-missing/start")
+async def batch_fill_missing_seo_start(only_active: bool = True):
+    """Start the batch-fill as a background job. Returns immediately with
+    a job_id the client can poll via `/batch-fill-missing/status/{job_id}`.
+    """
+    # If another job is currently running, return that one instead of
+    # spawning a duplicate — keeps multiple admin tabs in sync.
+    active = await db.seo_jobs.find_one(
+        {"status": "running"},
+        {"_id": 0},
+        sort=[("started_at", -1)],
+    )
+    if active:
+        return {"job_id": active["job_id"], "already_running": True}
+
+    job_id = str(uuid.uuid4())
+    await db.seo_jobs.insert_one({
+        "job_id": job_id,
+        "status": "queued",
+        "only_active": only_active,
+        "total": 0,
+        "processed": 0,
+        "filled_count": 0,
+        "errors_count": 0,
+        "skipped_already_complete": 0,
+        "current_fabric": None,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "finished_at": None,
+        "filled_sample": [],
+        "errors": [],
+    })
+
+    # Fire-and-forget — Motor + asyncio keeps it alive in the same loop.
+    asyncio.create_task(_run_batch_fill_job(job_id, only_active))
+
+    return {"job_id": job_id, "already_running": False}
+
+
+@router.get("/batch-fill-missing/status/{job_id}")
+async def batch_fill_missing_seo_status(job_id: str):
+    """Live progress for a batch-fill job."""
+    job = await db.seo_jobs.find_one({"job_id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+
+@router.get("/batch-fill-missing/latest")
+async def batch_fill_missing_seo_latest():
+    """Returns the most recent job (running or completed). Used by the UI
+    on page-load to auto-resume the progress panel if a job is in-flight.
+    """
+    job = await db.seo_jobs.find_one(
+        {},
+        {"_id": 0},
+        sort=[("started_at", -1)],
+    )
+    return job or {"job_id": None}
+
