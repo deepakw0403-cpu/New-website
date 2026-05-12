@@ -615,6 +615,76 @@ async def create_shiprocket_shipment(order: dict) -> dict:
         logger.error(f"Error creating Shiprocket shipment: {str(e)}")
         return {"success": False, "error": str(e)}
 
+
+# ────────────────────────────────────────────────────────────────────
+#  ADMIN — Manual "Push to Shiprocket" for orders that didn't auto-push
+#  (e.g. older orders created before the auth bug fix, credit-paid B2C
+#  orders that aren't on the auto-push path, etc.)
+# ────────────────────────────────────────────────────────────────────
+@router.post("/admin/{order_id}/push-to-shiprocket")
+async def admin_push_to_shiprocket(order_id: str, force: bool = False):
+    """Admin-only — manually push an order to Shiprocket. Idempotent by
+    default: re-pushing an already-pushed order returns the existing
+    Shiprocket IDs unless `force=true` is passed (which creates a new SR
+    shipment — useful only if the original SR record was deleted).
+
+    Matches the auth pattern of /status and /cancel endpoints in this
+    router — frontend admin layout is route-protected.
+    """
+    order = await db.orders.find_one(
+        {"$or": [{"id": order_id}, {"order_number": order_id}]},
+        {"_id": 0},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Short-circuit if already pushed
+    if not force and order.get("shiprocket_order_id"):
+        return {
+            "success": True,
+            "already_pushed": True,
+            "shiprocket_order_id": order.get("shiprocket_order_id"),
+            "shipment_id": order.get("shiprocket_shipment_id"),
+            "message": "Order is already in Shiprocket",
+        }
+
+    result = await create_shiprocket_shipment(order)
+    if not result.get("success"):
+        # Surface the underlying error so the admin can fix the order
+        # (e.g. missing pincode, address too short, etc.) and retry.
+        raise HTTPException(
+            status_code=502,
+            detail=result.get("error") or "Shiprocket push failed",
+        )
+
+    # Persist the new SR identifiers on the order doc so future webhooks
+    # can match this order back.
+    sr_order_id = result.get("order_id") or result.get("shiprocket_order_id")
+    shipment_id = result.get("shipment_id")
+    set_fields = {
+        "shiprocket_order_id": str(sr_order_id) if sr_order_id is not None else None,
+        "shiprocket_shipment_id": shipment_id,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if result.get("awb_code"):
+        set_fields["awb_code"] = result["awb_code"]
+    if result.get("courier_name"):
+        set_fields["courier_name"] = result["courier_name"]
+
+    await db.orders.update_one({"id": order["id"]}, {"$set": set_fields})
+    logger.info(f"[shiprocket] manual push ok · order={order.get('order_number')} sr={sr_order_id} shipment={shipment_id}")
+
+    return {
+        "success": True,
+        "already_pushed": False,
+        "shiprocket_order_id": str(sr_order_id) if sr_order_id is not None else None,
+        "shipment_id": shipment_id,
+        "awb_code": result.get("awb_code") or "",
+        "courier_name": result.get("courier_name") or "",
+        "message": "Order pushed to Shiprocket successfully",
+    }
+
+
 @router.get("/{order_id}")
 async def get_order(order_id: str):
     """Get order by ID or order number"""

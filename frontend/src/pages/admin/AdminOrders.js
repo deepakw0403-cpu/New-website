@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Package, Clock, CheckCircle, Truck, XCircle, Search, RefreshCw, ChevronDown, Mail, Phone, MapPin, Eye, FileText, Receipt, Wallet, Upload, Pencil, Ban, X, AlertTriangle } from "lucide-react";
+import { Package, Clock, CheckCircle, Truck, XCircle, Search, RefreshCw, ChevronDown, Mail, Phone, MapPin, Eye, FileText, Receipt, Wallet, Upload, Pencil, Ban, X, AlertTriangle, Send, Loader2 } from "lucide-react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import BulkCreditUpload from "../../components/admin/BulkCreditUpload";
 import OrderEmailAudit from "../../components/admin/OrderEmailAudit";
-import { listOrders, updateOrderStatus, getOrderStats, sendOrderConfirmation, downloadInvoice, cancelOrder, listCreditWallets, editCreditWallet } from "../../lib/api";
+import { listOrders, updateOrderStatus, getOrderStats, sendOrderConfirmation, downloadInvoice, cancelOrder, listCreditWallets, editCreditWallet, pushOrderToShiprocket } from "../../lib/api";
 import { toast } from "sonner";
 
 const statusConfig = {
@@ -49,6 +49,8 @@ const AdminOrders = () => {
   const [editPeriod, setEditPeriod] = useState("30");
   // Bulk upload modal toggle (component handles parsing + commit)
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  // Push-to-Shiprocket state (per-order spinner)
+  const [pushingShiprocket, setPushingShiprocket] = useState(false);
 
   useEffect(() => { fetchOrders(); fetchStats(); }, [statusFilter]);
   useEffect(() => { if (activeTab === "credit") fetchWallets(); }, [activeTab]);
@@ -82,6 +84,33 @@ const AdminOrders = () => {
       fetchOrders(); fetchStats();
     } catch { toast.error("Failed to update status"); }
     setUpdatingStatus(null);
+  };
+
+  const handlePushToShiprocket = async (force = false) => {
+    if (!selectedOrder) return;
+    if (force && !window.confirm("Force re-push will create a duplicate shipment in Shiprocket. Proceed only if the original SR record was deleted. Continue?")) return;
+    setPushingShiprocket(true);
+    try {
+      const { data } = await pushOrderToShiprocket(selectedOrder.id, force);
+      if (data.already_pushed && !force) {
+        toast.info(`Already in Shiprocket (SR #${data.shiprocket_order_id})`);
+      } else {
+        toast.success(`Pushed to Shiprocket · SR #${data.shiprocket_order_id}${data.awb_code ? ` · AWB ${data.awb_code}` : ""}`);
+      }
+      // Refresh the order list and patch the modal's selectedOrder so the badge updates
+      setSelectedOrder((prev) => prev ? {
+        ...prev,
+        shiprocket_order_id: data.shiprocket_order_id,
+        shiprocket_shipment_id: data.shipment_id,
+        awb_code: data.awb_code || prev.awb_code,
+        courier_name: data.courier_name || prev.courier_name,
+      } : prev);
+      fetchOrders();
+    } catch (e) {
+      const msg = e?.response?.data?.detail || "Failed to push to Shiprocket";
+      toast.error(msg);
+    }
+    setPushingShiprocket(false);
   };
 
   const handleCancel = async () => {
@@ -369,11 +398,41 @@ const AdminOrders = () => {
                 <OrderEmailAudit orderId={selectedOrder.id} orderNumber={selectedOrder.order_number} />
               </div>
               <div className="p-6 border-t flex justify-between">
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap">
                   <button onClick={() => handleResendConfirmation(selectedOrder.id)} className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Mail size={16} />Resend Email</button>
                   {selectedOrder.payment_status === 'paid' && <a href={downloadInvoice(selectedOrder.id)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" data-testid="admin-order-invoice-btn"><FileText size={16} />Invoice</a>}
                   {selectedOrder.linked_invoice?.eway_bill_url && <a href={selectedOrder.linked_invoice.eway_bill_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 text-purple-600 hover:bg-purple-50 rounded-lg" data-testid="admin-order-eway-btn" title={`E-way Bill ${selectedOrder.linked_invoice.eway_bill_number || ''}`}><Receipt size={16} />E-way Bill</a>}
                   {selectedOrder.brand_id && !selectedOrder.linked_invoice && <a href={`/admin/brands/${selectedOrder.brand_id}/financials`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 text-purple-600 hover:bg-purple-50 rounded-lg text-sm" title="Upload E-way Bill via Financials"><Receipt size={16} />Add E-way Bill</a>}
+
+                  {/* Shiprocket push — visible for every order. Shows current state + push/re-push controls. */}
+                  {selectedOrder.shiprocket_order_id ? (
+                    <div className="flex items-center gap-2" data-testid="admin-order-sr-status">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 text-sm font-medium" title={`Shipment ID: ${selectedOrder.shiprocket_shipment_id || '—'}`}>
+                        <Truck size={14} /> Shiprocket #{selectedOrder.shiprocket_order_id}
+                        {selectedOrder.awb_code && <span className="text-[11px] text-emerald-600 ml-1">· AWB {selectedOrder.awb_code}</span>}
+                      </span>
+                      <button
+                        onClick={() => handlePushToShiprocket(true)}
+                        disabled={pushingShiprocket}
+                        className="px-2 py-2 text-amber-600 hover:bg-amber-50 rounded-lg disabled:opacity-50 text-xs"
+                        title="Force re-push (creates duplicate — use only if SR record was deleted)"
+                        data-testid="admin-order-sr-repush"
+                      >
+                        {pushingShiprocket ? <Loader2 size={14} className="animate-spin" /> : "Re-push"}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handlePushToShiprocket(false)}
+                      disabled={pushingShiprocket || selectedOrder.status === 'cancelled'}
+                      className="flex items-center gap-2 px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50"
+                      data-testid="admin-order-sr-push"
+                      title="Create shipment in Shiprocket"
+                    >
+                      {pushingShiprocket ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                      Push to Shiprocket
+                    </button>
+                  )}
                 </div>
                 <button onClick={() => setSelectedOrder(null)} className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">Close</button>
               </div>

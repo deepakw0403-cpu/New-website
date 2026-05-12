@@ -361,6 +361,8 @@ export const getOrderByRazorpayId = (razorpayOrderId) => api.get(`/orders/by-raz
 export const listOrders = (params) => api.get("/orders", { params });
 export const updateOrderStatus = (id, status) => api.put(`/orders/${id}/status?status=${status}`);
 export const cancelOrder = (id, reason) => api.put(`/orders/${id}/cancel`, { reason });
+export const pushOrderToShiprocket = (id, force = false) =>
+  api.post(`/orders/admin/${id}/push-to-shiprocket${force ? "?force=true" : ""}`);
 export const getOrderStats = () => api.get("/orders/stats/summary");
 export const listCreditWallets = () => api.get("/orders/credit/wallets");
 export const bulkUploadCreditWallets = (wallets, mode = "replace") => api.post("/orders/credit/wallets/bulk-upload", { wallets, mode });
