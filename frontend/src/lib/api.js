@@ -375,6 +375,12 @@ export const bulkUploadCreditWallets = (wallets, mode = "replace") => api.post("
 export const upsertCreditWallet = (data) => api.post("/orders/credit/wallets/upsert", data);
 export const lookupCreditWalletByGst = (gstNumber) =>
   api.get(`/orders/credit/wallets/lookup?gst_number=${encodeURIComponent(gstNumber)}`);
+
+// Admin order edit + audit trail
+export const adminEditOrder = (orderId, payload) =>
+  api.patch(`/orders/${orderId}/edit`, payload);
+export const listOrderEdits = (orderId) =>
+  api.get(`/orders/${orderId}/edits`);
 export const getCreditApplications = () => api.get("/credit/applications");
 export const approveCreditApplication = (id, credit_limit) => api.put(`/credit/applications/${id}/approve`, { credit_limit });
 export const rejectCreditApplication = (id, reason) => api.put(`/credit/applications/${id}/reject`, { reason });

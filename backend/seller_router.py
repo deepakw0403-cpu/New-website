@@ -66,6 +66,17 @@ class SellerUpdate(BaseModel):
     certifications: Optional[List[str]] = None
     export_markets: Optional[List[str]] = None
     gst_number: Optional[str] = None
+    # Pickup (Ship-From) — used when creating Shiprocket shipments for this
+    # vendor. `shiprocket_pickup_nickname` is the name as registered in the
+    # Shiprocket dashboard's Pickup Locations. If empty, the auto-push helper
+    # creates one on-the-fly using the address fields below.
+    pickup_address: Optional[str] = None
+    pickup_city: Optional[str] = None
+    pickup_state: Optional[str] = None
+    pickup_pincode: Optional[str] = None
+    pickup_contact_name: Optional[str] = None
+    pickup_contact_phone: Optional[str] = None
+    shiprocket_pickup_nickname: Optional[str] = None
 
 class Seller(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -94,6 +105,14 @@ class Seller(BaseModel):
     gst_verified: bool = False
     gst_legal_name: str = ""
     gst_trade_name: str = ""
+    # Pickup (Ship-From) fields for Shiprocket integration
+    pickup_address: str = ""
+    pickup_city: str = ""
+    pickup_state: str = ""
+    pickup_pincode: str = ""
+    pickup_contact_name: str = ""
+    pickup_contact_phone: str = ""
+    shiprocket_pickup_nickname: str = ""
 
 
 # ==================== HELPERS ====================

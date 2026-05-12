@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Package, Clock, CheckCircle, Truck, XCircle, Search, RefreshCw, ChevronDown, Mail, Phone, MapPin, Eye, FileText, Receipt, Wallet, Upload, Pencil, Ban, X, AlertTriangle, Send, Loader2, Plus } from "lucide-react";
+import { Package, Clock, CheckCircle, Truck, XCircle, Search, RefreshCw, ChevronDown, Mail, Phone, MapPin, Eye, FileText, Receipt, Wallet, Upload, Pencil, Ban, X, AlertTriangle, Send, Loader2, Plus, Edit3 } from "lucide-react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import BulkCreditUpload from "../../components/admin/BulkCreditUpload";
 import SetCreditByGstModal from "../../components/admin/SetCreditByGstModal";
+import EditOrderModal from "../../components/admin/EditOrderModal";
 import OrderEmailAudit from "../../components/admin/OrderEmailAudit";
 import { listOrders, updateOrderStatus, getOrderStats, sendOrderConfirmation, downloadInvoice, cancelOrder, listCreditWallets, editCreditWallet, pushOrderToShiprocket } from "../../lib/api";
 import { toast } from "sonner";
@@ -52,6 +53,8 @@ const AdminOrders = () => {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   // Single-entry "Set credit limit by GST" modal
   const [showSetByGst, setShowSetByGst] = useState(false);
+  // Edit Order modal — opens from the order detail panel
+  const [editingOrder, setEditingOrder] = useState(null);
   // Push-to-Shiprocket state (per-order spinner)
   const [pushingShiprocket, setPushingShiprocket] = useState(false);
 
@@ -410,6 +413,13 @@ const AdminOrders = () => {
               </div>
               <div className="p-6 border-t flex justify-between">
                 <div className="flex gap-3 flex-wrap">
+                  <button
+                    onClick={() => setEditingOrder(selectedOrder)}
+                    className="flex items-center gap-2 px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg border border-indigo-200"
+                    data-testid="admin-order-edit-btn"
+                  >
+                    <Edit3 size={16} />Edit Order
+                  </button>
                   <button onClick={() => handleResendConfirmation(selectedOrder.id)} className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Mail size={16} />Resend Email</button>
                   {selectedOrder.payment_status === 'paid' && <a href={downloadInvoice(selectedOrder.id)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" data-testid="admin-order-invoice-btn"><FileText size={16} />Invoice</a>}
                   {selectedOrder.linked_invoice?.eway_bill_url && <a href={selectedOrder.linked_invoice.eway_bill_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 text-purple-600 hover:bg-purple-50 rounded-lg" data-testid="admin-order-eway-btn" title={`E-way Bill ${selectedOrder.linked_invoice.eway_bill_number || ''}`}><Receipt size={16} />E-way Bill</a>}
@@ -527,6 +537,20 @@ const AdminOrders = () => {
           onSuccess={fetchWallets}
           existingWallets={wallets}
         />
+
+        {/* ===== EDIT ORDER MODAL ===== */}
+        {editingOrder && (
+          <EditOrderModal
+            order={editingOrder}
+            onClose={() => setEditingOrder(null)}
+            onSaved={(updated) => {
+              setEditingOrder(null);
+              setSelectedOrder(updated);
+              fetchOrders();
+              fetchStats();
+            }}
+          />
+        )}
       </div>
     </AdminLayout>
   );

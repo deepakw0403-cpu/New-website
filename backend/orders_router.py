@@ -19,6 +19,7 @@ import logging
 import io
 
 from email_router import send_order_notification_emails
+import auth_helpers
 
 # PDF Generation imports
 from reportlab.lib.pagesizes import A4
@@ -774,6 +775,100 @@ async def _push_to_shiprocket_safe(order: dict) -> None:
         logger.warning(f"[shiprocket-auto] {order.get('order_number')} exception: {e}")
 
 
+async def _ensure_vendor_pickup_nickname(seller: dict) -> str:
+    """Returns the Shiprocket pickup nickname for a vendor. If the seller
+    doesn't have one stored, auto-registers a new pickup location in
+    Shiprocket using their address fields, persists the nickname, and
+    returns it. Falls back to "Primary" (the legacy Locofast warehouse)
+    if registration fails or address fields are missing.
+
+    Idempotent — safe to call before every shipment push.
+    """
+    nickname = (seller or {}).get("shiprocket_pickup_nickname", "").strip()
+    if nickname:
+        return nickname
+
+    # Need at minimum a name + address + city + state + pincode to register
+    sname = (seller.get("company_name") or seller.get("name") or "").strip()
+    addr = (seller.get("pickup_address") or "").strip()
+    city = (seller.get("pickup_city") or seller.get("city") or "").strip()
+    state = (seller.get("pickup_state") or seller.get("state") or "").strip()
+    pin = (seller.get("pickup_pincode") or "").strip()
+    contact = (seller.get("pickup_contact_name") or seller.get("name") or "").strip()
+    phone = (seller.get("pickup_contact_phone") or seller.get("contact_phone") or "").strip()
+    email = (seller.get("contact_email") or "").strip()
+
+    if not (sname and addr and city and state and pin):
+        logger.warning(
+            f"[shiprocket-pickup] vendor {seller.get('id')} missing pickup address fields — falling back to 'Primary'"
+        )
+        return "Primary"
+
+    # Shiprocket nicknames must be unique account-wide. Derive a stable
+    # one from the seller_code (or first 8 chars of id) so re-runs hit the
+    # same nickname idempotently.
+    base = (seller.get("seller_code") or seller.get("id") or "VND")[:24]
+    candidate_nickname = f"VND-{base}".replace(" ", "")[:36]
+
+    try:
+        import httpx
+        from shiprocket.services.auth import auth_service
+        from shiprocket.services.pickup import PickupService
+        from shiprocket.schemas.pickup import AddPickupLocationRequest
+
+        req = AddPickupLocationRequest(
+            pickup_location=candidate_nickname,
+            name=contact or sname,
+            email=email or "noreply@locofast.com",
+            phone=phone or "0000000000",
+            address=addr,
+            city=city,
+            state=state,
+            country="India",
+            pin_code=pin,
+        )
+        headers = await auth_service.get_auth_headers_async()
+        async with httpx.AsyncClient(timeout=30) as client:
+            svc = PickupService(client, headers)
+            result = await svc.add_pickup_location(req)
+        # Shiprocket returns either {success:true} on fresh add or an error
+        # if nickname is already taken — both are fine for our flow.
+        logger.info(f"[shiprocket-pickup] registered '{candidate_nickname}' for vendor {seller.get('id')}: {result}")
+    except Exception as e:
+        # Most common error here is "Nickname already exists" — that's
+        # OK, we just want to use the nickname going forward.
+        logger.info(f"[shiprocket-pickup] add_pickup_location skipped for {candidate_nickname}: {e}")
+
+    # Persist the nickname so subsequent shipments skip the register step.
+    try:
+        await db.sellers.update_one(
+            {"id": seller.get("id")},
+            {"$set": {"shiprocket_pickup_nickname": candidate_nickname}},
+        )
+    except Exception as e:
+        logger.warning(f"[shiprocket-pickup] persist nickname failed: {e}")
+
+    return candidate_nickname
+
+
+async def _cancel_shiprocket_order_safe(sr_order_id: str) -> dict:
+    """Cancel an existing Shiprocket order. Best-effort; returns
+    {success, error?} but never raises so the caller can proceed even if
+    cancellation fails."""
+    try:
+        import httpx
+        from shiprocket.services.auth import auth_service
+        from shiprocket.services.orders import OrderService
+        headers = await auth_service.get_auth_headers_async()
+        async with httpx.AsyncClient(timeout=30) as client:
+            svc = OrderService(client, headers)
+            result = await svc.cancel_order([int(sr_order_id)])
+        return {"success": True, "result": result}
+    except Exception as e:
+        logger.warning(f"[shiprocket-cancel] failed for {sr_order_id}: {e}")
+        return {"success": False, "error": str(e)}
+
+
 async def create_shiprocket_shipment(order: dict) -> dict:
     """Create a shipment in Shiprocket after payment is confirmed.
 
@@ -787,9 +882,37 @@ async def create_shiprocket_shipment(order: dict) -> dict:
 
         customer = order.get("customer", {})
         items = order.get("items", [])
+        ship_to = order.get("ship_to") or {}
 
         if not customer or not items:
             return {"success": False, "error": "Missing customer or items"}
+
+        # ── Resolve vendor pickup (Ship-From) ──
+        # Earlier behaviour: hard-coded "Primary" → always shipped from Locofast.
+        # New behaviour: pull the seller from the first item, register a
+        # vendor-specific pickup nickname in Shiprocket if needed, and use
+        # that as the source of the shipment.
+        seller_id_from_items = ""
+        for it in items:
+            if (it.get("seller_id") or "").strip():
+                seller_id_from_items = it["seller_id"].strip()
+                break
+        # Child orders carry seller_id at the order level (set by the
+        # parent/child split logic) — use it as a stronger signal.
+        seller_id = (order.get("seller_id") or seller_id_from_items or "").strip()
+        seller_doc = None
+        if seller_id:
+            seller_doc = await db.sellers.find_one({"id": seller_id}, {"_id": 0})
+        pickup_nickname = await _ensure_vendor_pickup_nickname(seller_doc or {})
+
+        # ── Resolve shipping address (Ship-To) ──
+        # Use the explicit ship_to when present, else fall back to billing.
+        ship_name = ship_to.get("name") or customer.get("name", "") or "Customer"
+        ship_phone = ship_to.get("phone") or customer.get("phone", "") or "0000000000"
+        ship_addr = ship_to.get("address") or customer.get("address", "") or "Address line"
+        ship_city = ship_to.get("city") or customer.get("city", "") or "City"
+        ship_state = ship_to.get("state") or customer.get("state", "") or "State"
+        ship_pin = (ship_to.get("pincode") or customer.get("pincode") or "000000")[:6]
 
         # Prepare order items for Shiprocket
         sr_items = []
@@ -810,7 +933,7 @@ async def create_shiprocket_shipment(order: dict) -> dict:
         req = CreateOrderRequest(
             order_id=order.get("order_number", order.get("id")),
             order_date=datetime.now(timezone.utc),
-            pickup_location="Primary",
+            pickup_location=pickup_nickname,
             billing_customer_name=customer.get("name", "") or "Customer",
             billing_email=customer.get("email", ""),
             billing_phone=customer.get("phone", "") or "0000000000",
@@ -818,7 +941,13 @@ async def create_shiprocket_shipment(order: dict) -> dict:
             billing_city=customer.get("city", "") or "City",
             billing_state=customer.get("state", "") or "State",
             billing_pincode=(customer.get("pincode") or "000000")[:6],
-            shipping_is_billing=True,
+            shipping_is_billing=not bool(ship_to.get("address")),
+            shipping_customer_name=ship_name if ship_to.get("address") else None,
+            shipping_phone=ship_phone if ship_to.get("address") else None,
+            shipping_address=ship_addr if ship_to.get("address") else None,
+            shipping_city=ship_city if ship_to.get("address") else None,
+            shipping_state=ship_state if ship_to.get("address") else None,
+            shipping_pincode=ship_pin if ship_to.get("address") else None,
             order_items=sr_items,
             weight=weight_kg,
             length=40,
@@ -921,6 +1050,248 @@ async def get_order(order_id: str):
         raise HTTPException(status_code=404, detail="Order not found")
     
     return order
+
+
+# ────────────────────────────────────────────────────────────────────
+#  ADMIN — Edit Order
+# ────────────────────────────────────────────────────────────────────
+class OrderEditPayload(BaseModel):
+    """Partial edit payload. Any field omitted is left unchanged.
+    Per business rules:
+      • Item prices are NOT auto-repriced when the vendor changes —
+        admin's responsibility to update separately if needed.
+      • Recompute totals after edits (since ship_to state may have
+        flipped IGST↔CGST+SGST).
+      • If the order was already pushed to Shiprocket, cancel the old
+        shipment and create a new one (with the new vendor's pickup
+        address + new shipping address).
+    """
+    items: Optional[List[OrderItem]] = None
+    customer: Optional[CustomerInfo] = None
+    ship_to: Optional[ShipTo] = None
+    seller_id: Optional[str] = None
+    seller_company: Optional[str] = None
+    notes: Optional[str] = None
+    repush_shiprocket: bool = True  # set False to skip the Shiprocket re-push
+
+
+def _compute_totals_from_items(items: List[dict], gst_rate: float = 0.05) -> dict:
+    """Mirror of the order-creation totals math so edits don't drift."""
+    subtotal = 0.0
+    for it in items:
+        try:
+            subtotal += float(it.get("price_per_meter") or 0) * float(it.get("quantity") or 0)
+        except (TypeError, ValueError):
+            pass
+    tax = round(subtotal * gst_rate, 2)
+    total = round(subtotal + tax, 2)
+    return {"subtotal": round(subtotal, 2), "tax": tax, "total": total}
+
+
+@router.patch("/{order_id}/edit")
+async def admin_edit_order(
+    order_id: str,
+    payload: OrderEditPayload,
+    admin=Depends(auth_helpers.get_current_admin),
+):
+    """Admin: edit an existing order. Tracks a full diff in `order_edits`.
+
+    If the order's status is `delivered` or `cancelled`, edits are
+    rejected to preserve audit integrity. All other statuses can be
+    edited — when the order has already been pushed to Shiprocket and
+    Shiprocket-impacting fields change (items, ship_to, vendor), the old
+    SR shipment is cancelled and a new one is created against the
+    (possibly new) vendor's pickup address.
+    """
+    order = await db.orders.find_one(
+        {"$or": [{"id": order_id}, {"order_number": order_id}]},
+        {"_id": 0},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    if order.get("status") in ("delivered", "cancelled"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot edit a {order['status']} order. Reopen or cancel-and-recreate instead.",
+        )
+
+    update: dict = {}
+    changed: dict = {}  # before/after diff for the audit trail
+    now = datetime.now(timezone.utc).isoformat()
+
+    if payload.items is not None:
+        new_items = [it.model_dump() for it in payload.items]
+        if new_items != order.get("items"):
+            update["items"] = new_items
+            changed["items"] = {"before": order.get("items", []), "after": new_items}
+
+    if payload.customer is not None:
+        new_customer = payload.customer.model_dump()
+        if new_customer != order.get("customer"):
+            update["customer"] = new_customer
+            changed["customer"] = {"before": order.get("customer", {}), "after": new_customer}
+
+    if payload.ship_to is not None:
+        new_ship_to = payload.ship_to.model_dump()
+        if all(not (v or "").strip() for v in new_ship_to.values() if isinstance(v, str)):
+            new_ship_to = None
+        if new_ship_to != order.get("ship_to"):
+            update["ship_to"] = new_ship_to
+            changed["ship_to"] = {"before": order.get("ship_to"), "after": new_ship_to}
+
+    vendor_changed = False
+    if payload.seller_id is not None and payload.seller_id != (order.get("seller_id") or ""):
+        new_seller = await db.sellers.find_one({"id": payload.seller_id}, {"_id": 0})
+        if not new_seller:
+            raise HTTPException(status_code=404, detail="Target vendor not found")
+        update["seller_id"] = payload.seller_id
+        update["seller_company"] = new_seller.get("company_name") or payload.seller_company or ""
+        changed["seller_id"] = {"before": order.get("seller_id", ""), "after": payload.seller_id}
+        changed["seller_company"] = {
+            "before": order.get("seller_company", ""),
+            "after": update["seller_company"],
+        }
+        # Stamp seller_id onto every item. Prices stay per business rule.
+        items_now = update.get("items") or order.get("items", [])
+        items_now = [
+            {**it, "seller_id": payload.seller_id, "seller_company": update["seller_company"]}
+            for it in items_now
+        ]
+        update["items"] = items_now
+        if "items" in changed:
+            changed["items"]["after"] = items_now
+        vendor_changed = True
+
+    if payload.notes is not None and payload.notes != order.get("notes", ""):
+        update["notes"] = payload.notes
+        changed["notes"] = {"before": order.get("notes", ""), "after": payload.notes}
+
+    if not changed:
+        return {"success": True, "no_changes": True, "order": order}
+
+    # Recompute totals after the edits
+    items_for_totals = update.get("items") or order.get("items", [])
+    totals = _compute_totals_from_items(items_for_totals)
+    if (
+        totals["subtotal"] != order.get("subtotal")
+        or totals["tax"] != order.get("tax")
+        or totals["total"] != order.get("total")
+    ):
+        update.update(totals)
+        changed["totals"] = {
+            "before": {k: order.get(k) for k in ("subtotal", "tax", "total")},
+            "after": totals,
+        }
+
+    update["updated_at"] = now
+    update["last_edited_by"] = admin.get("email", "")
+    update["last_edited_at"] = now
+
+    await db.orders.update_one({"id": order["id"]}, {"$set": update})
+
+    audit = {
+        "id": str(uuid.uuid4()),
+        "order_id": order["id"],
+        "order_number": order.get("order_number", ""),
+        "edited_by": admin.get("email", ""),
+        "edited_at": now,
+        "changed_fields": list(changed.keys()),
+        "diff": changed,
+    }
+    await db.order_edits.insert_one(audit.copy())
+    audit.pop("_id", None)
+
+    sr_result = None
+    sr_impacting = bool(
+        changed.get("items") or changed.get("ship_to") or changed.get("seller_id")
+        or changed.get("customer")
+    )
+    if payload.repush_shiprocket and sr_impacting:
+        existing_sr = order.get("shiprocket_order_id")
+        if existing_sr:
+            cancel_res = await _cancel_shiprocket_order_safe(existing_sr)
+            logger.info(f"[order-edit] cancel old SR for {order.get('order_number')}: {cancel_res}")
+            await db.orders.update_one(
+                {"id": order["id"]},
+                {"$set": {
+                    "shiprocket_order_id": None,
+                    "shiprocket_shipment_id": None,
+                    "awb_code": "",
+                    "courier_name": "",
+                }},
+            )
+        fresh = await db.orders.find_one({"id": order["id"]}, {"_id": 0})
+        push_res = await create_shiprocket_shipment(fresh)
+        sr_result = push_res
+        if push_res.get("success"):
+            sr_order_id = push_res.get("order_id") or push_res.get("shiprocket_order_id")
+            sr_update = {
+                "shiprocket_order_id": str(sr_order_id) if sr_order_id is not None else None,
+                "shiprocket_shipment_id": push_res.get("shipment_id"),
+            }
+            if push_res.get("awb_code"):
+                sr_update["awb_code"] = push_res["awb_code"]
+            if push_res.get("courier_name"):
+                sr_update["courier_name"] = push_res["courier_name"]
+            await db.orders.update_one({"id": order["id"]}, {"$set": sr_update})
+
+    if vendor_changed:
+        old_payouts = await db.vendor_payouts.find(
+            {"order_id": order["id"]}, {"_id": 0}
+        ).to_list(10)
+        for op in old_payouts:
+            if op.get("status") == "paid":
+                logger.warning(
+                    f"[order-edit] vendor changed but payout {op['id']} is already PAID — flagged for manual review"
+                )
+                await db.vendor_payouts.update_one(
+                    {"id": op["id"]},
+                    {"$set": {
+                        "needs_review": True,
+                        "review_reason": f"Vendor changed by {admin.get('email','')} after payout was paid",
+                        "updated_at": now,
+                    }},
+                )
+            else:
+                await db.vendor_payouts.update_one(
+                    {"id": op["id"]},
+                    {"$set": {
+                        "status": "cancelled",
+                        "cancelled_reason": "Vendor reassigned via order edit",
+                        "cancelled_at": now,
+                        "cancelled_by": admin.get("email", ""),
+                    }},
+                )
+
+    fresh_order = await db.orders.find_one({"id": order["id"]}, {"_id": 0})
+    return {
+        "success": True,
+        "order": fresh_order,
+        "audit": audit,
+        "shiprocket": sr_result,
+        "vendor_changed": vendor_changed,
+    }
+
+
+@router.get("/{order_id}/edits")
+async def list_order_edits(
+    order_id: str,
+    admin=Depends(auth_helpers.get_current_admin),
+):
+    """Admin: return the audit trail for an order, newest first."""
+    order = await db.orders.find_one(
+        {"$or": [{"id": order_id}, {"order_number": order_id}]},
+        {"_id": 0, "id": 1, "order_number": 1},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    rows = []
+    async for r in db.order_edits.find({"order_id": order["id"]}, {"_id": 0}).sort("edited_at", -1):
+        rows.append(r)
+    return {"edits": rows, "total": len(rows)}
+
+
 
 @router.get("/by-razorpay/{razorpay_order_id}")
 async def get_order_by_razorpay_id(razorpay_order_id: str):

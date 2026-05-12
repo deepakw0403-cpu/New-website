@@ -623,6 +623,19 @@ const FinanceTab = ({ seller, onSaved }) => {
     upi_id: seller?.upi_id || "",
     pan_number: seller?.pan_number || "",
   });
+  // Pickup ("Ship-From") form is saved through the standard
+  // PUT /api/sellers/{id} endpoint (admin only), kept separate from
+  // the finance form because it's edited by a different team.
+  const [pickup, setPickup] = useState({
+    pickup_address: seller?.pickup_address || "",
+    pickup_city: seller?.pickup_city || seller?.city || "",
+    pickup_state: seller?.pickup_state || seller?.state || "",
+    pickup_pincode: seller?.pickup_pincode || "",
+    pickup_contact_name: seller?.pickup_contact_name || seller?.name || "",
+    pickup_contact_phone: seller?.pickup_contact_phone || seller?.contact_phone || "",
+    shiprocket_pickup_nickname: seller?.shiprocket_pickup_nickname || "",
+  });
+  const [savingPickup, setSavingPickup] = useState(false);
   const [saving, setSaving] = useState(false);
   const token = localStorage.getItem("locofast_token");
   const API = process.env.REACT_APP_BACKEND_URL;
@@ -647,6 +660,28 @@ const FinanceTab = ({ seller, onSaved }) => {
       toast.error(e.message || "Failed");
     }
     setSaving(false);
+  };
+
+  const savePickup = async () => {
+    setSavingPickup(true);
+    try {
+      const res = await fetch(`${API}/api/sellers/${seller.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(pickup),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Failed");
+      }
+      const { toast } = await import("sonner");
+      toast.success("Pickup address updated — next Shiprocket shipment will use this");
+      onSaved?.();
+    } catch (e) {
+      const { toast } = await import("sonner");
+      toast.error(e.message || "Failed");
+    }
+    setSavingPickup(false);
   };
 
   return (
@@ -697,6 +732,53 @@ const FinanceTab = ({ seller, onSaved }) => {
         <button onClick={save} disabled={saving} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50" data-testid="finance-save-btn">
           {saving ? "Saving…" : "Save finance details"}
         </button>
+      </div>
+
+      {/* ── Pickup / Ship-From — drives Shiprocket pickup_location ── */}
+      <div className="mt-8 border-t pt-6" data-testid="pickup-section">
+        <h2 className="font-semibold text-gray-900 mb-1">Pickup address (Ship-From)</h2>
+        <p className="text-xs text-gray-500 mb-5">
+          Used as the Shiprocket pickup location for orders fulfilled by this vendor. If the Shiprocket nickname is blank, a new pickup location will be auto-registered on the next shipment push using these fields.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="md:col-span-2">
+            <label className="text-xs font-medium text-gray-700 mb-1 block">Street Address</label>
+            <input value={pickup.pickup_address} onChange={(e) => setPickup({ ...pickup, pickup_address: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg" placeholder="Plot/Building, Street, Area" data-testid="pickup-address-input" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">City</label>
+            <input value={pickup.pickup_city} onChange={(e) => setPickup({ ...pickup, pickup_city: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg" data-testid="pickup-city-input" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">State</label>
+            <input value={pickup.pickup_state} onChange={(e) => setPickup({ ...pickup, pickup_state: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg" data-testid="pickup-state-input" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">PIN Code</label>
+            <input value={pickup.pickup_pincode} onChange={(e) => setPickup({ ...pickup, pickup_pincode: e.target.value.replace(/\D/g, "") })} maxLength={6} className="w-full px-3 py-2 border border-gray-200 rounded-lg" data-testid="pickup-pincode-input" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">Pickup Contact Name</label>
+            <input value={pickup.pickup_contact_name} onChange={(e) => setPickup({ ...pickup, pickup_contact_name: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">Pickup Contact Phone</label>
+            <input value={pickup.pickup_contact_phone} onChange={(e) => setPickup({ ...pickup, pickup_contact_phone: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-xs font-medium text-gray-700 mb-1 block">
+              Shiprocket Pickup Nickname
+              <span className="ml-2 text-[10px] text-gray-500 font-normal">(leave blank to auto-create)</span>
+            </label>
+            <input value={pickup.shiprocket_pickup_nickname} onChange={(e) => setPickup({ ...pickup, shiprocket_pickup_nickname: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg font-mono text-xs" placeholder="e.g. VND-LS-ZW7NB" data-testid="pickup-nickname-input" />
+            <p className="text-[11px] text-gray-500 mt-1">Must match a registered pickup location in Shiprocket dashboard. Auto-generated as "VND-{`{seller_code}`}" if blank.</p>
+          </div>
+        </div>
+        <div className="mt-5 flex justify-end">
+          <button onClick={savePickup} disabled={savingPickup} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50" data-testid="pickup-save-btn">
+            {savingPickup ? "Saving…" : "Save pickup address"}
+          </button>
+        </div>
       </div>
     </div>
   );
