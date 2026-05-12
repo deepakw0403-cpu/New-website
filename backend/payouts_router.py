@@ -497,11 +497,11 @@ async def _notify_vendor_payout(payout: dict):
         subject = f"Payout received: {payout['order_number']} — ₹{payout['net_payable']:,.2f}"
         body = _build_payout_email_html(payout)
         params = {
-            "from": os.environ.get("RESEND_FROM_EMAIL", "Locofast Accounts <accounts@locofast.com>"),
+            "from": os.environ.get("RESEND_FROM_EMAIL", "Locofast Accounts <creditoperations@locofast.com>"),
             "to": [seller_email],
             "subject": subject,
             "html": body,
-            "reply_to": "accounts@locofast.com",
+            "reply_to": "creditoperations@locofast.com",
         }
         await _aio.to_thread(resend.Emails.send, params)
         logger.info(f"[payout-notify] email sent to {seller_email}")
@@ -571,7 +571,7 @@ def _build_payout_email_html(payout: dict) -> str:
     </div>
     {f'<p style="margin-top:14px;color:#6b7280;font-size:12px">Notes: {payout["notes"]}</p>' if payout.get('notes') else ''}
     <p style="margin-top:18px">If anything looks off, reply to this email and we'll fix it.</p>
-    <p>— Locofast Accounts<br/>accounts@locofast.com</p>
+    <p>— Locofast Accounts<br/>creditoperations@locofast.com</p>
   </div>
 </div>"""
 
@@ -630,7 +630,7 @@ async def vendor_upload_invoice(
     """Vendor uploads (or re-uploads after rejection) their tax invoice
     for this payout. After upload:
       • status flips to `uploaded` (locked — no further uploads until Accounts rejects)
-      • email goes to accounts@locofast.com
+      • email goes to creditoperations@locofast.com (via ACCOUNTS_NOTIFY_EMAIL env)
     """
     from auth_helpers import db as _db
     payout = await _db.vendor_payouts.find_one({"id": payout_id}, {"_id": 0})
@@ -790,7 +790,7 @@ def _build_vendor_invoice_rejected_email_html(payout: dict, reason: str) -> str:
     </div>
     <p style="margin-top:14px">Please log in to your Vendor Portal → <strong>My Payouts</strong> → and re-upload a corrected invoice. Payout will be released as soon as the corrected invoice is accepted.</p>
     <p style="margin-top:18px;color:#6b7280;font-size:12px">If you need help, reply to this email and our Accounts team will assist.</p>
-    <p>— Locofast Accounts<br/>accounts@locofast.com</p>
+    <p>— Locofast Accounts<br/>creditoperations@locofast.com</p>
   </div>
 </div>"""
 
@@ -799,14 +799,14 @@ async def _notify_accounts_invoice_uploaded(payout: dict):
     try:
         import asyncio as _aio
         import resend
-        to_email = os.environ.get("ACCOUNTS_NOTIFY_EMAIL", "accounts@locofast.com")
+        to_email = os.environ.get("ACCOUNTS_NOTIFY_EMAIL", "creditoperations@locofast.com")
         subject = f"New vendor invoice: {payout.get('seller_company','')} → {payout.get('order_number','')} (₹{payout.get('net_payable',0):,.2f})"
         params = {
-            "from": os.environ.get("RESEND_FROM_EMAIL", "Locofast Accounts <accounts@locofast.com>"),
+            "from": os.environ.get("RESEND_FROM_EMAIL", "Locofast Accounts <creditoperations@locofast.com>"),
             "to": [to_email],
             "subject": subject,
             "html": _build_accounts_invoice_email_html(payout),
-            "reply_to": payout.get("seller_email", "accounts@locofast.com"),
+            "reply_to": payout.get("seller_email", "creditoperations@locofast.com"),
         }
         await _aio.to_thread(resend.Emails.send, params)
         logger.info(f"[invoice-notify] accounts email sent for {payout.get('order_number')}")
@@ -824,11 +824,11 @@ async def _notify_vendor_invoice_rejected(payout: dict, reason: str):
             return
         subject = f"Invoice rejected for order {payout.get('order_number','')} — action required"
         params = {
-            "from": os.environ.get("RESEND_FROM_EMAIL", "Locofast Accounts <accounts@locofast.com>"),
+            "from": os.environ.get("RESEND_FROM_EMAIL", "Locofast Accounts <creditoperations@locofast.com>"),
             "to": [to_email],
             "subject": subject,
             "html": _build_vendor_invoice_rejected_email_html(payout, reason),
-            "reply_to": "accounts@locofast.com",
+            "reply_to": "creditoperations@locofast.com",
         }
         await _aio.to_thread(resend.Emails.send, params)
         logger.info(f"[invoice-reject-notify] vendor email sent to {to_email}")

@@ -2,7 +2,7 @@
 Orders Router - Handles order creation, payment, and management
 Phase 1: Razorpay Integration + Order Management
 """
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import List, Optional
@@ -1086,6 +1086,113 @@ async def edit_credit_wallet(gst_number: str, data: dict):
     
     return {"success": True, "message": f"Credit updated for {gstin}"}
 
+@router.post("/credit/wallets/upsert")
+async def upsert_credit_wallet(data: dict):
+    """Admin: create or update a credit wallet for a single GSTIN.
+
+    Used by the Credit Management UI's "Set Credit Limit by GST" flow —
+    one-at-a-time alternative to the bulk CSV upload. Idempotent on GSTIN.
+
+    Body:
+      {
+        password: "0905"             # same password gate as edit endpoint
+        gst_number: "27AABCB1234C1Z5"
+        credit_limit: 500000          # required, ≥ 0
+        balance: 500000               # optional. defaults to credit_limit on create,
+                                      #           OR keeps existing used-credit on update
+        mode: "replace" | "topup"     # only matters when wallet exists. default "replace"
+        company, name, email, lender, credit_period_days: optional metadata
+      }
+
+    Modes (when wallet already exists):
+      - replace (default): credit_limit ← uploaded amount; balance ← uploaded amount
+                           (resets used credit to 0 — Accounts override)
+      - topup:             credit_limit ← old + uploaded; balance ← old_balance + uploaded
+                           (preserves used credit — vendor extension)
+    """
+    if (data.get('password') or '').strip() != '0905':
+        raise HTTPException(status_code=403, detail="Invalid password")
+
+    gstin = (data.get('gst_number') or '').strip().upper().replace(' ', '')
+    if len(gstin) != 15:
+        raise HTTPException(status_code=400, detail="GSTIN must be 15 characters")
+
+    try:
+        limit = float(data.get('credit_limit'))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="credit_limit must be a number")
+    if limit < 0:
+        raise HTTPException(status_code=400, detail="credit_limit must be ≥ 0")
+
+    mode = (data.get('mode') or 'replace').strip().lower()
+    if mode not in ('replace', 'topup'):
+        raise HTTPException(status_code=400, detail="mode must be 'replace' or 'topup'")
+
+    # credit_period_days: 30/60/90 — soft validation, default 30
+    try:
+        period_raw = int(data.get('credit_period_days') or 30)
+    except (TypeError, ValueError):
+        period_raw = 30
+    period_days = period_raw if period_raw in (30, 60, 90) else 30
+
+    now = datetime.now(timezone.utc).isoformat()
+    existing = await db.credit_wallets.find_one({'gst_number': gstin}, {'_id': 0})
+
+    if existing:
+        if mode == 'topup':
+            new_limit = (existing.get('credit_limit') or 0) + limit
+            new_balance = (existing.get('balance') or 0) + limit
+        else:  # replace — Accounts override
+            new_limit = limit
+            # If admin explicitly passed `balance`, honour it; else reset.
+            new_balance = float(data['balance']) if data.get('balance') is not None else limit
+
+        update = {
+            'credit_limit': new_limit,
+            'balance': new_balance,
+            'credit_period_days': period_days,
+            'updated_at': now,
+        }
+        # Optional metadata — only overwrite if the caller actually sent it
+        for k in ('company', 'name', 'email', 'lender'):
+            if data.get(k):
+                update[k] = (data[k] or '').strip().lower() if k == 'email' else (data[k] or '').strip()
+        await db.credit_wallets.update_one({'gst_number': gstin}, {'$set': update})
+        wallet = await db.credit_wallets.find_one({'gst_number': gstin}, {'_id': 0})
+        return {"success": True, "created": False, "updated": True, "mode": mode, "wallet": wallet}
+
+    # Create new wallet
+    doc = {
+        'gst_number': gstin,
+        'email': (data.get('email') or '').strip().lower(),
+        'name': (data.get('name') or '').strip(),
+        'company': (data.get('company') or '').strip(),
+        'credit_limit': limit,
+        'balance': float(data['balance']) if data.get('balance') is not None else limit,
+        'lender': (data.get('lender') or '').strip(),
+        'credit_period_days': period_days,
+        'created_at': now,
+        'updated_at': now,
+    }
+    await db.credit_wallets.insert_one(doc.copy())
+    doc.pop('_id', None)
+    return {"success": True, "created": True, "updated": False, "mode": mode, "wallet": doc}
+
+
+@router.get("/credit/wallets/lookup")
+async def lookup_credit_wallet(gst_number: str = Query(...)):
+    """Admin: lookup a single credit wallet by GSTIN. Returns wallet or
+    {found: False} so the UI can decide whether to render an update or
+    create form."""
+    gstin = (gst_number or "").strip().upper().replace(' ', '')
+    if len(gstin) != 15:
+        raise HTTPException(status_code=400, detail="GSTIN must be 15 characters")
+    wallet = await db.credit_wallets.find_one({'gst_number': gstin}, {'_id': 0})
+    if not wallet:
+        return {"found": False, "gst_number": gstin}
+    return {"found": True, "wallet": wallet}
+
+
 @router.post("/credit/wallets/bulk-upload")
 async def bulk_upload_credit_wallets(data: dict):
     """Admin: bulk upload credit wallets — GSTIN is the unique key.
@@ -1806,7 +1913,7 @@ def generate_pi_pdf(order: dict) -> io.BytesIO:
     company_info = [
         [Paragraph("<b>Locofast Online Services Pvt Ltd</b>", bold_style),
          Paragraph(f"<b>PI No:</b> {pi_number}", normal)],
-        [Paragraph("First Floor, Khasra No 385, Deskconnect<br/>100 Feet Road, Opp. Corporation Bank, Ghitorni,<br/>New Delhi, Delhi - 110030, India<br/>GSTIN: 07AADCL8794N1ZM<br/>Email: accounts@locofast.com", small_style),
+        [Paragraph("First Floor, Khasra No 385, Deskconnect<br/>100 Feet Road, Opp. Corporation Bank, Ghitorni,<br/>New Delhi, Delhi - 110030, India<br/>GSTIN: 07AADCL8794N1ZM<br/>Email: creditoperations@locofast.com", small_style),
          Paragraph(f"<b>Date:</b> {pi_date}<br/><b>Payment:</b> LC 90 days from date of LR<br/><b>Validity:</b> 15 Days From PI Date", normal)],
     ]
     company_table = Table(company_info, colWidths=[100*mm, 70*mm])

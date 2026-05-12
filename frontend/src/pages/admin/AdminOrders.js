@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Package, Clock, CheckCircle, Truck, XCircle, Search, RefreshCw, ChevronDown, Mail, Phone, MapPin, Eye, FileText, Receipt, Wallet, Upload, Pencil, Ban, X, AlertTriangle, Send, Loader2 } from "lucide-react";
+import { Package, Clock, CheckCircle, Truck, XCircle, Search, RefreshCw, ChevronDown, Mail, Phone, MapPin, Eye, FileText, Receipt, Wallet, Upload, Pencil, Ban, X, AlertTriangle, Send, Loader2, Plus } from "lucide-react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import BulkCreditUpload from "../../components/admin/BulkCreditUpload";
+import SetCreditByGstModal from "../../components/admin/SetCreditByGstModal";
 import OrderEmailAudit from "../../components/admin/OrderEmailAudit";
 import { listOrders, updateOrderStatus, getOrderStats, sendOrderConfirmation, downloadInvoice, cancelOrder, listCreditWallets, editCreditWallet, pushOrderToShiprocket } from "../../lib/api";
 import { toast } from "sonner";
@@ -49,6 +50,8 @@ const AdminOrders = () => {
   const [editPeriod, setEditPeriod] = useState("30");
   // Bulk upload modal toggle (component handles parsing + commit)
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  // Single-entry "Set credit limit by GST" modal
+  const [showSetByGst, setShowSetByGst] = useState(false);
   // Push-to-Shiprocket state (per-order spinner)
   const [pushingShiprocket, setPushingShiprocket] = useState(false);
 
@@ -151,7 +154,14 @@ const AdminOrders = () => {
   const filteredWallets = wallets.filter(w => {
     if (!creditSearch) return true;
     const s = creditSearch.toLowerCase();
-    return w.email?.toLowerCase().includes(s) || w.name?.toLowerCase().includes(s) || w.company?.toLowerCase().includes(s) || w.lender?.toLowerCase().includes(s);
+    const sUpper = creditSearch.toUpperCase().replace(/\s+/g, "");
+    return (
+      w.gst_number?.toUpperCase().includes(sUpper) ||
+      w.email?.toLowerCase().includes(s) ||
+      w.name?.toLowerCase().includes(s) ||
+      w.company?.toLowerCase().includes(s) ||
+      w.lender?.toLowerCase().includes(s)
+    );
   });
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-";
@@ -282,6 +292,7 @@ const AdminOrders = () => {
             <div className="flex items-center justify-between mb-6">
               <div><h1 className="text-2xl font-semibold">Credit Management</h1><p className="text-gray-500 mt-1">Manage customer credit limits and wallets by lender</p></div>
               <div className="flex gap-3">
+                <button onClick={() => setShowSetByGst(true)} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700" data-testid="set-credit-by-gst-btn"><Plus size={16} />Set Limit by GST</button>
                 <button onClick={() => setShowBulkUpload(true)} className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg hover:bg-blue-700" data-testid="bulk-upload-btn"><Upload size={16} />Bulk Upload</button>
                 <button onClick={fetchWallets} className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"><RefreshCw size={16} />Refresh</button>
               </div>
@@ -297,7 +308,7 @@ const AdminOrders = () => {
             {/* Search */}
             <div className="relative mb-6">
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Search by name, email, company, lender..." value={creditSearch} onChange={(e) => setCreditSearch(e.target.value)} className="w-full pl-12 pr-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" data-testid="credit-search" />
+              <input type="text" placeholder="Search by GSTIN, name, email, company, lender..." value={creditSearch} onChange={(e) => setCreditSearch(e.target.value)} className="w-full pl-12 pr-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" data-testid="credit-search" />
             </div>
 
             {/* Wallets grouped by lender */}
@@ -507,6 +518,14 @@ const AdminOrders = () => {
           onClose={() => setShowBulkUpload(false)}
           onSuccess={fetchWallets}
           currentWallets={wallets}
+        />
+
+        {/* ===== SET CREDIT LIMIT BY GST (single-entry) ===== */}
+        <SetCreditByGstModal
+          open={showSetByGst}
+          onClose={() => setShowSetByGst(false)}
+          onSuccess={fetchWallets}
+          existingWallets={wallets}
         />
       </div>
     </AdminLayout>

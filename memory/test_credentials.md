@@ -5,12 +5,13 @@
 - Password: admin123
 - Login URL: /admin/login
 
-## Accounts (Vendor Payouts panel)
-- Email: accounts@locofast.com
+## Credit Operations (Vendor Payouts panel)
+- Email: creditoperations@locofast.com
 - Password: Accounts@123
 - Login URL: /admin/login
 - Role: `accounts` — focused nav (Payouts · Orders read · Vendors)
 - Permissions: read all orders/sellers/payouts, mark payouts paid, edit ONLY bank/PAN/payment_terms on vendors
+- Note: previously seeded as `accounts@locofast.com`, renamed Feb 2026 because that DL has no inbox.
 
 ## Vendor
 - Email: vendor@test.com

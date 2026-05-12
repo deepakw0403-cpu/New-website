@@ -372,6 +372,9 @@ export const pushOrderToShiprocket = (id, force = false) =>
 export const getOrderStats = () => api.get("/orders/stats/summary");
 export const listCreditWallets = () => api.get("/orders/credit/wallets");
 export const bulkUploadCreditWallets = (wallets, mode = "replace") => api.post("/orders/credit/wallets/bulk-upload", { wallets, mode });
+export const upsertCreditWallet = (data) => api.post("/orders/credit/wallets/upsert", data);
+export const lookupCreditWalletByGst = (gstNumber) =>
+  api.get(`/orders/credit/wallets/lookup?gst_number=${encodeURIComponent(gstNumber)}`);
 export const getCreditApplications = () => api.get("/credit/applications");
 export const approveCreditApplication = (id, credit_limit) => api.put(`/credit/applications/${id}/approve`, { credit_limit });
 export const rejectCreditApplication = (id, reason) => api.put(`/credit/applications/${id}/reject`, { reason });
