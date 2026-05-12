@@ -148,6 +148,15 @@ const CheckoutPage = () => {
 
   // Shipping address toggle
   const [useGstAddress, setUseGstAddress] = useState(true);
+  // Separate "Ship To" payload populated ONLY when the buyer chooses
+  // "Ship to a different address". Drives the order-doc `ship_to` field
+  // which, in turn, drives CGST/IGST routing on the invoice (POS = ship
+  // state, per CGST §10).
+  const [shipTo, setShipTo] = useState({
+    name: '', company: '', gst_number: '', address: '', city: '', state: '', pincode: '', phone: ''
+  });
+  const [shipGstVerifying, setShipGstVerifying] = useState(false);
+  const [shipGstResult, setShipGstResult] = useState(null); // {valid, trade_name, legal_name, address, city, state, pincode, message}
   const { customer: loggedInCustomer, isLoggedIn } = useCustomerAuth();
 
   // Auto-fill from customer profile
@@ -216,6 +225,44 @@ const CheckoutPage = () => {
       setGstResult({ valid: false, message: "Verification failed" });
     }
     setGstVerifying(false);
+  };
+
+  // ── Verify the SHIPPING address GSTIN ───────────────────────────────
+  // Different from `verifyGst` (which handles the billing GST). When the
+  // customer ships to a different address we MUST capture the
+  // consignee's GSTIN so the invoice correctly determines CGST vs IGST
+  // (Place of Supply = shipping state, per CGST §10). On a successful
+  // verify we auto-fill firm name + address + state and LOCK the state
+  // field so the buyer can't drift it off the GSTN-registered state.
+  const verifyShipGst = async (gstin) => {
+    const cleaned = (gstin || '').trim().toUpperCase();
+    if (cleaned.length !== 15 || shipGstVerifying) return;
+    setShipGstVerifying(true);
+    try {
+      const res = await fetch(`${API_URL}/api/gst/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gstin: cleaned })
+      });
+      const data = await res.json();
+      setShipGstResult(data);
+      if (data.valid) {
+        setShipTo(prev => ({
+          ...prev,
+          gst_number: cleaned,
+          company: data.trade_name || data.legal_name || prev.company,
+          name: prev.name || data.trade_name || data.legal_name || '',
+          address: data.address || prev.address,
+          city: data.city || prev.city,
+          state: data.state || prev.state,
+          pincode: data.pincode || prev.pincode,
+        }));
+        toast.success("Shipping GST verified — address auto-filled");
+      }
+    } catch {
+      setShipGstResult({ valid: false, message: "Verification failed" });
+    }
+    setShipGstVerifying(false);
   };
 
   // ── Submit a credit application directly from checkout ─────────────
@@ -474,6 +521,18 @@ const CheckoutPage = () => {
       toast.error("Please verify your GST before placing the order");
       return;
     }
+    // If shipping to a different address, the consignee GST must be
+    // verified — it's what drives the CGST/IGST decision on the invoice.
+    if (gstAddress && !useGstAddress) {
+      if (!shipTo.gst_number || shipTo.gst_number.length !== 15 || !shipGstResult?.valid) {
+        toast.error("Please verify the consignee GST for the shipping address");
+        return;
+      }
+      if (!shipTo.address || !shipTo.city || !shipTo.state || !shipTo.pincode) {
+        toast.error("Complete the shipping address before placing the order");
+        return;
+      }
+    }
     setSubmitting(true);
     setPaymentError(null);
 
@@ -516,6 +575,16 @@ const CheckoutPage = () => {
       const orderData = {
         items: itemsPayload,
         customer: { ...customer, gst_number: gstNumber },
+        ship_to: (gstAddress && !useGstAddress) ? {
+          name: shipTo.name || customer.name,
+          company: shipTo.company,
+          gst_number: shipTo.gst_number,
+          address: shipTo.address,
+          city: shipTo.city,
+          state: shipTo.state,
+          pincode: shipTo.pincode,
+          phone: shipTo.phone || customer.phone,
+        } : null,
         notes: notes,
         logistics_charge: logistics,
         packaging_charge: packagingCharge,
@@ -924,40 +993,162 @@ const CheckoutPage = () => {
                   {gstAddress && (
                     <div className="mb-4 space-y-2">
                       <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer ${useGstAddress ? 'border-[#2563EB] bg-blue-50/30' : 'border-gray-200'}`}>
-                        <input type="radio" name="addressType" checked={useGstAddress} onChange={() => { setUseGstAddress(true); setCustomer(prev => ({ ...prev, ...gstAddress })); }} />
+                        <input type="radio" name="addressType" checked={useGstAddress} onChange={() => { setUseGstAddress(true); setCustomer(prev => ({ ...prev, ...gstAddress })); }} data-testid="ship-addr-same" />
                         <div>
                           <p className="font-medium text-sm">GST Registered Address</p>
                           <p className="text-xs text-gray-500">{[gstAddress.address, gstAddress.city, gstAddress.state, gstAddress.pincode].filter(Boolean).join(', ')}</p>
                         </div>
                       </label>
                       <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer ${!useGstAddress ? 'border-[#2563EB] bg-blue-50/30' : 'border-gray-200'}`}>
-                        <input type="radio" name="addressType" checked={!useGstAddress} onChange={() => { setUseGstAddress(false); setCustomer(prev => ({ ...prev, address: '', city: '', state: '', pincode: '' })); }} />
+                        <input type="radio" name="addressType" checked={!useGstAddress} onChange={() => { setUseGstAddress(false); }} data-testid="ship-addr-different" />
                         <div>
                           <p className="font-medium text-sm">Ship to a Different Address</p>
-                          <p className="text-xs text-gray-500">Enter a custom shipping address below</p>
+                          <p className="text-xs text-gray-500">Provide the consignee's GSTIN — we'll auto-fill the registered address.</p>
                         </div>
                       </label>
                     </div>
                   )}
 
-                  <div className={`grid md:grid-cols-2 gap-4 ${gstAddress && useGstAddress ? 'opacity-60 pointer-events-none' : ''}`}>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Street Address *</label>
-                      <input type="text" required value={customer.address} onChange={(e) => setCustomer({ ...customer, address: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="Street address, building, floor" data-testid="checkout-address" />
+                  {/* Same-as-billing path — read-only echo, no editable inputs */}
+                  {(!gstAddress || useGstAddress) && (
+                    <div className="grid md:grid-cols-2 gap-4 opacity-90">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Street Address *</label>
+                        <input type="text" required value={customer.address} onChange={(e) => setCustomer({ ...customer, address: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="Street address, building, floor" data-testid="checkout-address" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+                        <input type="text" required value={customer.city} onChange={(e) => setCustomer({ ...customer, city: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="Mumbai" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
+                        <input type="text" required value={customer.state} onChange={(e) => setCustomer({ ...customer, state: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="Maharashtra" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code *</label>
+                        <input type="text" required maxLength={6} value={customer.pincode} onChange={(e) => setCustomer({ ...customer, pincode: e.target.value.replace(/\D/g, '') })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="400001" data-testid="checkout-pincode" />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
-                      <input type="text" required value={customer.city} onChange={(e) => setCustomer({ ...customer, city: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="Mumbai" />
+                  )}
+
+                  {/* DIFFERENT-ADDRESS path — GST-first form. Buyer must
+                      enter the consignee's GSTIN; we auto-fill the
+                      address from GSTN and LOCK the state field so the
+                      CGST/IGST determination is always correct. */}
+                  {gstAddress && !useGstAddress && (
+                    <div className="space-y-4" data-testid="ship-to-different-form">
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 flex items-start gap-2">
+                        <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+                        <div>
+                          <strong>GST required for shipping</strong> — we use the consignee's GSTIN to determine whether this is an intra-state (CGST+SGST) or inter-state (IGST) supply on your tax invoice.
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Consignee GST Number *</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            required
+                            maxLength={15}
+                            value={shipTo.gst_number}
+                            onChange={(e) => {
+                              const v = e.target.value.toUpperCase().replace(/\s+/g, "");
+                              setShipTo(prev => ({ ...prev, gst_number: v }));
+                              if (v.length !== 15) setShipGstResult(null);
+                              if (v.length === 15) verifyShipGst(v);
+                            }}
+                            placeholder="22AAAAA0000A1Z5"
+                            className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none pr-10 font-mono tracking-wider ${shipGstResult?.valid ? 'border-emerald-500 bg-emerald-50/30' : shipGstResult?.valid === false ? 'border-red-400' : 'border-gray-200 focus:border-blue-500'}`}
+                            data-testid="ship-gst-input"
+                          />
+                          {shipGstVerifying && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-blue-500" />}
+                          {shipGstResult?.valid && <CheckCircle2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" />}
+                          {shipGstResult?.valid === false && <AlertCircle size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400" />}
+                        </div>
+                        {shipGstResult?.valid && <p className="text-xs text-emerald-600 mt-1">{shipGstResult.trade_name || shipGstResult.legal_name}</p>}
+                        {shipGstResult?.valid === false && <p className="text-xs text-red-500 mt-1">{shipGstResult.message || 'Invalid GST'}</p>}
+                      </div>
+
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Consignee / Firm Name *</label>
+                          <input
+                            type="text"
+                            required
+                            value={shipTo.name}
+                            onChange={(e) => setShipTo({ ...shipTo, name: e.target.value })}
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none bg-gray-50"
+                            placeholder={shipGstResult?.valid ? '' : 'Verify GST to auto-fill'}
+                            data-testid="ship-name-input"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Street Address *</label>
+                          <input
+                            type="text"
+                            required
+                            value={shipTo.address}
+                            onChange={(e) => setShipTo({ ...shipTo, address: e.target.value })}
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+                            placeholder={shipGstResult?.valid ? '' : 'Verify GST to auto-fill'}
+                            data-testid="ship-address-input"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+                          <input
+                            type="text"
+                            required
+                            value={shipTo.city}
+                            onChange={(e) => setShipTo({ ...shipTo, city: e.target.value })}
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+                            data-testid="ship-city-input"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            State *
+                            {shipGstResult?.valid && (
+                              <span className="ml-2 text-[10px] text-emerald-600 font-normal">🔒 locked from GSTN</span>
+                            )}
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={shipTo.state}
+                            readOnly={!!shipGstResult?.valid}
+                            onChange={(e) => setShipTo({ ...shipTo, state: e.target.value })}
+                            className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none ${shipGstResult?.valid ? 'bg-gray-100 cursor-not-allowed text-gray-700' : ''}`}
+                            data-testid="ship-state-input"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code *</label>
+                          <input
+                            type="text"
+                            required
+                            maxLength={6}
+                            value={shipTo.pincode}
+                            onChange={(e) => setShipTo({ ...shipTo, pincode: e.target.value.replace(/\D/g, '') })}
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+                            data-testid="ship-pincode-input"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Consignee Phone</label>
+                          <input
+                            type="text"
+                            value={shipTo.phone}
+                            onChange={(e) => setShipTo({ ...shipTo, phone: e.target.value })}
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+                            placeholder="+91 98xxxxxxxx"
+                            data-testid="ship-phone-input"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
-                      <input type="text" required value={customer.state} onChange={(e) => setCustomer({ ...customer, state: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="Maharashtra" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code *</label>
-                      <input type="text" required maxLength={6} value={customer.pincode} onChange={(e) => setCustomer({ ...customer, pincode: e.target.value.replace(/\D/g, '') })} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="400001" data-testid="checkout-pincode" />
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Coupon Code */}

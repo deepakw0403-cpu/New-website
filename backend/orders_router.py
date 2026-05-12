@@ -87,6 +87,22 @@ class CustomerInfo(BaseModel):
     state: str = ""
     pincode: str = ""
 
+class ShipTo(BaseModel):
+    """Optional shipping address — different from the customer's billing
+    address. When provided, the order's GST/IGST calculation and the
+    "Place of Supply" on the tax invoice are driven by this address's
+    state code (not the buyer's billing GST). This matches the Indian
+    GST rule that POS = location of delivery for goods supply.
+    """
+    name: str = ""
+    company: str = ""
+    gst_number: str = ""  # 15-char GSTIN of the consignee (recommended for B2B)
+    address: str = ""
+    city: str = ""
+    state: str = ""
+    pincode: str = ""
+    phone: str = ""
+
 class ShippingInfo(BaseModel):
     courier_id: Optional[int] = None
     courier_name: Optional[str] = None
@@ -102,6 +118,7 @@ class CouponInfo(BaseModel):
 class OrderCreate(BaseModel):
     items: List[OrderItem]
     customer: CustomerInfo
+    ship_to: Optional[ShipTo] = None
     notes: str = ""
     coupon: Optional[CouponInfo] = None
     discount: float = 0
@@ -451,6 +468,7 @@ async def create_order(order_data: OrderCreate):
             "order_number": order_number,
             "items": [item.model_dump() for item in order_data.items],
             "customer": order_data.customer.model_dump(),
+            "ship_to": order_data.ship_to.model_dump() if order_data.ship_to else None,
             "subtotal": totals["subtotal"],
             "tax": totals["tax"],
             "logistics_charge": totals["logistics_charge"],
@@ -562,6 +580,7 @@ async def create_order(order_data: OrderCreate):
         "order_number": order_number,
         "items": [item.model_dump() for item in order_data.items],
         "customer": order_data.customer.model_dump(),
+        "ship_to": order_data.ship_to.model_dump() if order_data.ship_to else None,
         "subtotal": totals["subtotal"],
         "tax": totals["tax"],
         "logistics_charge": totals["logistics_charge"],
@@ -1421,7 +1440,9 @@ def _state_code_from_state_text(state: str) -> str:
 
 
 def _resolve_buyer_state(customer: dict) -> tuple[str, str]:
-    """Return (state_code, state_name) for the buyer.
+    """Return (state_code, state_name) for the buyer (billing).
+
+    Kept for callers that only have customer info (no shipping address).
 
     Priority:
       1. GSTIN first 2 digits (most reliable — set by the GST portal)
@@ -1435,6 +1456,37 @@ def _resolve_buyer_state(customer: dict) -> tuple[str, str]:
     state_text = (customer or {}).get('state', '') or ''
     code = _state_code_from_state_text(state_text)
     return code, state_text
+
+
+def _resolve_pos_state(order: dict, customer: dict) -> tuple[str, str]:
+    """Return (state_code, state_name) for the Place of Supply.
+
+    Indian GST rule (CGST Section 10): for goods supply, the Place of
+    Supply is the LOCATION OF DELIVERY — i.e. the shipping address, not
+    the buyer's billing address. So CGST+SGST vs IGST is decided by the
+    shipping state, not by the buyer's billing GST.
+
+    Resolution priority (most reliable first):
+      1. ship_to.gst_number  → first 2 digits = state code
+      2. ship_to.state       → reverse-lookup
+      3. customer.gst_number → first 2 digits (fallback when no ship_to)
+      4. customer.state      → reverse-lookup
+      5. Empty (caller must handle)
+    """
+    ship_to = (order or {}).get('ship_to') or {}
+    # 1) Ship-to GSTIN
+    ship_gst = (ship_to.get('gst_number') or '').strip().upper()
+    if ship_gst and len(ship_gst) >= 2 and ship_gst[:2].isdigit():
+        code = ship_gst[:2]
+        return code, GST_STATE_CODES.get(code, ship_to.get('state', '') or '')
+    # 2) Ship-to state text
+    ship_state = (ship_to.get('state') or '').strip()
+    if ship_state:
+        code = _state_code_from_state_text(ship_state)
+        if code:
+            return code, ship_state
+    # 3 + 4) Fall back to billing
+    return _resolve_buyer_state(customer)
 
 
 def number_to_words(num: float) -> str:
@@ -1552,8 +1604,10 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     elements.append(invoice_table)
     elements.append(Spacer(1, 5*mm))
     
-    # Resolve buyer state (drives Place of Supply + GST type)
-    buyer_state_code, buyer_state_name = _resolve_buyer_state(customer)
+    # Resolve PLACE OF SUPPLY (drives IGST vs CGST+SGST and the POS line).
+    # Per CGST Section 10, POS for goods = shipping state, not the buyer's
+    # billing state. So we look at ship_to first, falling back to billing.
+    buyer_state_code, buyer_state_name = _resolve_pos_state(order, customer)
     is_interstate = bool(buyer_state_code) and buyer_state_code != SELLER_STATE_CODE_DEFAULT
     pos_label = (
         f"{buyer_state_name} ({buyer_state_code})" if buyer_state_code
@@ -1576,8 +1630,11 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     if cust_gst:
         gst_line = f'<b>GSTIN:</b> {cust_gst}<br/>'
 
-    buyer_state_line = (
-        f'<b>State Code:</b> {buyer_state_code} ({buyer_state_name})<br/>' if buyer_state_code else ''
+    # Bill-To shows the BILLING state derived purely from the buyer's
+    # billing GST/state (independent of where goods are shipped).
+    bill_state_code, bill_state_name = _resolve_buyer_state(customer)
+    bill_state_line = (
+        f'<b>State Code:</b> {bill_state_code} ({bill_state_name})<br/>' if bill_state_code else ''
     )
 
     buyer_info = f"""<b>Bill To:</b><br/>
@@ -1586,7 +1643,7 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     {gst_line}{customer.get('address', 'N/A')}<br/>
     {customer.get('city', '')}, {customer.get('state', '')}<br/>
     PIN: {customer.get('pincode', 'N/A')}<br/>
-    {buyer_state_line}<b>Phone:</b> {customer.get('phone', 'N/A')}<br/>
+    {bill_state_line}<b>Phone:</b> {customer.get('phone', 'N/A')}<br/>
     <b>Email:</b> {customer.get('email', 'N/A')}"""
 
     # Ship-To block — only included when different from billing. Most B2C
@@ -1595,11 +1652,21 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     ship_to = order.get('ship_to') or {}
     ship_addr = ship_to.get('address') or order.get('ship_to_address') or ''
     if ship_addr and ship_addr.strip() != (customer.get('address') or '').strip():
+        ship_gst_line = f"<b>GSTIN:</b> {ship_to.get('gst_number')}<br/>" if ship_to.get('gst_number') else ''
+        # POS state-code line for the ship-to block — this is the state
+        # that drives CGST vs IGST on this invoice (per CGST §10 — goods
+        # supply POS = location of delivery).
+        ship_state_line = (
+            f"<b>State Code:</b> {buyer_state_code} ({buyer_state_name})<br/>"
+            if buyer_state_code else ''
+        )
+        ship_company = ship_to.get('company', '')
         ship_info = f"""<b>Ship To:</b><br/>
         {ship_to.get('name') or customer.get('name', 'N/A')}<br/>
-        {ship_addr}<br/>
+        {(ship_company + '<br/>') if ship_company else ''}{ship_gst_line}{ship_addr}<br/>
         {ship_to.get('city') or order.get('ship_to_city', '')}, {ship_to.get('state') or order.get('ship_to_state', '')}<br/>
-        PIN: {ship_to.get('pincode') or order.get('ship_to_pincode', '')}"""
+        PIN: {ship_to.get('pincode') or order.get('ship_to_pincode', '')}<br/>
+        {ship_state_line}"""
         address_table = Table([
             [Paragraph(seller_info, small_style), Paragraph(buyer_info, small_style), Paragraph(ship_info, small_style)]
         ], colWidths=[60*mm, 60*mm, 60*mm])
