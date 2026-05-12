@@ -186,25 +186,64 @@ def generate_bulk_details(moq: str, dispatch_timeline: str, is_bookable: bool) -
     }
 
 def infer_applications(category_name: str, fabric_type: str, tags: List[str], composition) -> List[str]:
-    """Infer likely applications from fabric properties"""
-    applications = []
-    
-    # From category
-    category_lower = category_name.lower()
+    """Infer likely applications from fabric properties.
+
+    Order of precedence:
+      1. Category keyword match (denim, cotton, polyester, knit, blend, …)
+      2. Fabric-name keyword match (taffeta, sateen, lyocell, viscose, …)
+      3. Tag keyword match (shirt/dress/sport/uniform)
+      4. Composition fallback (cotton/poly/blend)
+      5. Generic apparel fallback — guarantees we never return an empty list
+         (used to leave fabrics with sparse metadata blank, which then
+         showed as "missing applications" in the SEO audit).
+    """
+    applications: List[str] = []
+
+    category_lower = (category_name or "").lower()
     if "denim" in category_lower:
         applications.extend(["Jeans manufacturing", "Denim jackets", "Casual wear", "Workwear"])
     elif "cotton" in category_lower:
         applications.extend(["Shirting", "Casual wear", "Summer clothing"])
-    elif "polyester" in category_lower:
+    elif "polyester" in category_lower or "poly" in category_lower:
         applications.extend(["Sportswear", "Activewear", "Uniforms"])
     elif "knit" in category_lower:
         applications.extend(["T-shirts", "Casual tops", "Athleisure"])
     elif "blend" in category_lower:
         applications.extend(["Uniforms", "Workwear", "Institutional wear"])
-    
+    elif "silk" in category_lower:
+        applications.extend(["Eveningwear", "Lingerie", "Premium dresses"])
+    elif "linen" in category_lower:
+        applications.extend(["Summer shirting", "Resortwear", "Trousers"])
+    elif "wool" in category_lower:
+        applications.extend(["Suiting", "Outerwear", "Winter wear"])
+    elif "viscose" in category_lower or "rayon" in category_lower:
+        applications.extend(["Dresses", "Blouses", "Drape-led fashion"])
+
+    # Fabric-name fallback — many SKUs name the fabric variety in the
+    # title (taffeta, sateen, lyocell…). Match those too.
+    fabric_name_lower = (fabric_type or "").lower()
+    name_map = {
+        "taffeta": ["Outerwear", "Jackets", "Linings"],
+        "sateen": ["Premium shirting", "Bedding", "Drapery"],
+        "lyocell": ["Premium dresses", "Workwear", "Sustainable apparel"],
+        "tencel": ["Premium dresses", "Workwear", "Sustainable apparel"],
+        "modal": ["T-shirts", "Innerwear", "Athleisure"],
+        "twill": ["Trousers", "Workwear", "Uniforms"],
+        "fleece": ["Hoodies", "Joggers", "Winter wear"],
+        "jersey": ["T-shirts", "Casual tops", "Athleisure"],
+        "rib": ["T-shirts", "Cuffs & necklines", "Athleisure"],
+        "chambray": ["Shirting", "Casual wear", "Childrenswear"],
+        "oxford": ["Premium shirting", "Formal shirts"],
+        "poplin": ["Shirting", "Dresses", "Uniforms"],
+        "satin": ["Eveningwear", "Lingerie", "Linings"],
+    }
+    for kw, apps in name_map.items():
+        if kw in fabric_name_lower or kw in (category_name or "").lower():
+            applications.extend(apps)
+
     # From tags
-    for tag in tags:
-        tag_lower = tag.lower()
+    for tag in (tags or []):
+        tag_lower = (tag or "").lower()
         if "shirt" in tag_lower:
             applications.append("Shirting")
         elif "dress" in tag_lower:
@@ -213,15 +252,29 @@ def infer_applications(category_name: str, fabric_type: str, tags: List[str], co
             applications.append("Sportswear")
         elif "uniform" in tag_lower:
             applications.append("Uniforms")
-    
-    # Remove duplicates and limit
+        elif "denim" in tag_lower:
+            applications.append("Jeans manufacturing")
+        elif "outer" in tag_lower:
+            applications.append("Outerwear")
+
+    # Composition fallback (when category/name don't match)
+    if not applications:
+        materials = [m for m in get_composition_materials(composition or []) if m]
+        if any("cotton" in m for m in materials):
+            applications.extend(["Shirting", "Casual wear", "Summer clothing"])
+        elif any("poly" in m for m in materials):
+            applications.extend(["Sportswear", "Activewear", "Uniforms"])
+
+    # Generic apparel fallback — guarantees a non-empty list
+    if not applications:
+        applications = ["Apparel manufacturing", "Fashion garments", "Womenswear", "Menswear"]
+
     seen = set()
     unique = []
     for app in applications:
         if app.lower() not in seen:
             seen.add(app.lower())
             unique.append(app)
-    
     return unique[:6]
 
 def generate_why_fabric_bullets(fabric: Dict) -> List[str]:
@@ -598,7 +651,10 @@ async def generate_fabric_seo(fabric_id: str):
     
     seo_applications = infer_applications(
         category_name,
-        fabric.get('fabric_type', ''),
+        # Compose a lookup blob: fabric_type + name → catches "Taffeta"
+        # / "Sateen" / "Lyocell" appearing in the product name, which
+        # the name_map inside infer_applications uses for fallback.
+        f"{fabric.get('fabric_type','')} {fabric.get('name','')}",
         fabric.get('tags', []),
         fabric.get('composition', [])
     ) if modes.get('applications', 'auto') == 'auto' else (existing_seo.get('seo_applications', []) if existing_seo else [])
@@ -917,3 +973,136 @@ async def batch_generate_slugs():
             updated += 1
     
     return {"message": f"Generated slugs for {updated} fabrics", "updated_count": updated}
+
+
+# ────────────────────────────────────────────────────────────────────
+# Batch-fill missing SEO data
+# ────────────────────────────────────────────────────────────────────
+def _seo_doc_needs_filling(seo: dict | None) -> list[str]:
+    """Return list of missing/empty SEO fields. Empty list => fully populated."""
+    if not seo:
+        return ["__no_doc__"]
+    missing = []
+    if not (seo.get("meta_title") or "").strip():       missing.append("meta_title")
+    if not (seo.get("meta_description") or "").strip(): missing.append("meta_description")
+    if not (seo.get("seo_h1") or "").strip():           missing.append("seo_h1")
+    intro = (seo.get("seo_intro") or "").strip()
+    # Mirror the audit definition used elsewhere — intros below ~120 words
+    # are flagged as "too short" in the SEO Manager UI.
+    if len(intro) < 600: missing.append("seo_intro")
+    if not seo.get("seo_applications"):                 missing.append("seo_applications")
+    if not seo.get("seo_faq"):                          missing.append("seo_faq")
+    if not seo.get("seo_why_fabric"):                   missing.append("seo_why_fabric")
+    if not seo.get("seo_bulk_details"):                 missing.append("seo_bulk_details")
+    return missing
+
+
+@router.get("/audit")
+async def seo_audit():
+    """Read-only audit — counts fabrics with each kind of missing SEO data
+    plus the list of pages not currently indexable (no SEO doc, or is_indexed=False).
+    """
+    fabrics = await db.fabrics.find({}, {"_id": 0, "id": 1, "name": 1, "fabric_code": 1, "is_active": 1}).to_list(20000)
+    seo_index = {s["fabric_id"]: s async for s in db.fabric_seo.find({}, {"_id": 0})}
+
+    counts = {
+        "meta_title": 0, "meta_description": 0, "seo_h1": 0, "seo_intro": 0,
+        "seo_applications": 0, "seo_faq": 0, "seo_why_fabric": 0,
+        "seo_bulk_details": 0, "no_seo_doc": 0, "noindex": 0,
+    }
+    needs_fill_ids: list[dict] = []
+    not_indexable: list[dict] = []
+
+    for f in fabrics:
+        seo = seo_index.get(f["id"])
+        miss = _seo_doc_needs_filling(seo)
+        if "__no_doc__" in miss:
+            counts["no_seo_doc"] += 1
+        else:
+            for k in miss:
+                counts[k] = counts.get(k, 0) + 1
+        if miss:
+            needs_fill_ids.append({
+                "id": f["id"],
+                "fabric_code": f.get("fabric_code", ""),
+                "name": f.get("name", "")[:80],
+                "missing": miss,
+            })
+        # Indexability
+        if not seo:
+            not_indexable.append({
+                "id": f["id"],
+                "fabric_code": f.get("fabric_code", ""),
+                "name": f.get("name", ""),
+                "reason": "No SEO doc — won't appear in sitemap.xml",
+                "is_active": f.get("is_active", True),
+            })
+        elif seo.get("is_indexed") is False:
+            counts["noindex"] += 1
+            not_indexable.append({
+                "id": f["id"],
+                "fabric_code": f.get("fabric_code", ""),
+                "name": f.get("name", ""),
+                "reason": "is_indexed=False (manually blocked)",
+                "is_active": f.get("is_active", True),
+            })
+
+    return {
+        "total_fabrics": len(fabrics),
+        "total_seo_docs": len(seo_index),
+        "needs_fill_count": len(needs_fill_ids),
+        "not_indexable_count": len(not_indexable),
+        "counts": counts,
+        "needs_fill": needs_fill_ids,
+        "not_indexable": not_indexable,
+    }
+
+
+@router.post("/batch-fill-missing")
+async def batch_fill_missing_seo(only_active: bool = True):
+    """One-shot: scan every fabric and run `generate_fabric_seo` for any
+    fabric whose SEO doc is missing OR has empty auto-fields.
+
+    `only_active=True` (default) → fills only `is_active=True` fabrics.
+    Set to false to also fill draft / archived rows.
+
+    Idempotent — running it twice is a no-op for already-complete docs.
+    """
+    # `is_active` is missing on every legacy fabric — treat absent as
+    # active. Inactive only excluded when the field is explicitly False.
+    query = {"is_active": {"$ne": False}} if only_active else {}
+    fabrics = await db.fabrics.find(query, {"_id": 0}).to_list(20000)
+
+    seo_index = {s["fabric_id"]: s async for s in db.fabric_seo.find({}, {"_id": 0})}
+
+    filled, errors, skipped = [], [], 0
+    for fabric in fabrics:
+        seo = seo_index.get(fabric["id"])
+        miss = _seo_doc_needs_filling(seo)
+        if not miss:
+            skipped += 1
+            continue
+        try:
+            doc = await generate_fabric_seo(fabric["id"])
+            filled.append({
+                "id": fabric["id"],
+                "fabric_code": fabric.get("fabric_code", ""),
+                "name": fabric.get("name", ""),
+                "filled_fields": miss,
+                "meta_title": doc.get("meta_title", "")[:60],
+            })
+        except Exception as e:
+            errors.append({
+                "id": fabric["id"],
+                "fabric_code": fabric.get("fabric_code", ""),
+                "name": fabric.get("name", ""),
+                "error": str(e)[:200],
+            })
+
+    return {
+        "filled_count": len(filled),
+        "skipped_already_complete": skipped,
+        "errors_count": len(errors),
+        "filled": filled,
+        "errors": errors,
+    }

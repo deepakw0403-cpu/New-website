@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, RefreshCw, Eye, AlertTriangle, Check, ChevronDown, ChevronUp, Sparkles, X, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { getFabrics, getFabricSEO, generateFabricSEO, regenerateSEOBlock, updateFabricSEO, getSEOPreview, batchGenerateSlugs } from "../../lib/api";
+import { getFabrics, getFabricSEO, generateFabricSEO, regenerateSEOBlock, updateFabricSEO, getSEOPreview, batchGenerateSlugs, batchFillMissingSEO, seoAudit } from "../../lib/api";
 
 const AdminFabricSEO = () => {
   const [fabrics, setFabrics] = useState([]);
@@ -178,6 +178,33 @@ const AdminFabricSEO = () => {
     } catch (err) {
       toast.error("Failed to generate slugs");
     }
+  };
+
+  // Scans every fabric, calls generate for any with missing/empty SEO
+  // fields. Idempotent — second run on a clean corpus is a no-op.
+  // Can take 30-60s because each gap triggers an LLM call.
+  const [filling, setFilling] = useState(false);
+  const handleFillMissing = async () => {
+    setFilling(true);
+    try {
+      // Quick audit first so the toast tells ops what they're about to do
+      const auditRes = await seoAudit();
+      const need = auditRes.data?.needs_fill_count || 0;
+      if (need === 0) {
+        toast.info("All fabrics already have complete SEO data");
+        setFilling(false);
+        return;
+      }
+      toast.info(`Filling SEO for ${need} fabric${need > 1 ? "s" : ""}… this may take ~${Math.ceil(need * 3)} sec`);
+      const res = await batchFillMissingSEO();
+      const { filled_count, errors_count } = res.data || {};
+      toast.success(`Filled ${filled_count} fabric${filled_count !== 1 ? "s" : ""}${errors_count ? ` · ${errors_count} error(s)` : ""}`);
+      loadFabrics();
+      if (selectedFabric) loadSEO(selectedFabric.id);
+    } catch (err) {
+      toast.error("Fill failed: " + (err?.response?.data?.detail || err.message || "unknown"));
+    }
+    setFilling(false);
   };
 
   const toggleBlock = (blockName) => {
@@ -433,6 +460,16 @@ const AdminFabricSEO = () => {
             >
               <Sparkles size={14} />
               Batch Generate Slugs
+            </button>
+            <button
+              onClick={handleFillMissing}
+              disabled={filling}
+              className="w-full mt-2 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg flex items-center justify-center gap-2"
+              data-testid="seo-fill-missing-btn"
+              title="Scan every fabric and auto-fill any missing meta title, intro, applications, FAQ, why-this-fabric or bulk-details blocks. Idempotent — safe to run any time."
+            >
+              <Sparkles size={14} className={filling ? "animate-spin" : ""} />
+              {filling ? "Filling…" : "Fill Missing SEO"}
             </button>
           </div>
           
