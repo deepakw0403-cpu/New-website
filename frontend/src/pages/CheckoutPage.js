@@ -349,19 +349,20 @@ const CheckoutPage = () => {
   // sample / bulk logistics formula on the aggregate. This keeps the
   // customer-facing total identical to what they would have seen if the
   // agent had built a single-vendor cart of the same value.
+  // Tax base (Feb 2026+): 5% GST is computed on goods + packaging +
+  // logistics — per Schedule II of the CGST Act, all of these are part
+  // of the value of supply.
   const calculateMultiItemPricing = () => {
     if (cartItems.length === 0) return;
     const sub = cartItems.reduce(
       (s, it) => s + (Number(it.quantity) || 0) * (Number(it.price_per_meter) || 0),
       0
     );
-    const taxAmount = sub * 0.05;
     const hasBulk = cartItems.some((it) => (it.order_type || "bulk") === "bulk");
     let totalLogistics = 0;
     let packaging = 0;
     let logisticsOnly = 0;
     if (!hasBulk) {
-      // Pure-sample cart → flat ₹100 per item shipment fee
       totalLogistics = 100 * cartItems.length;
     } else {
       const totalQty = cartItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
@@ -369,7 +370,9 @@ const CheckoutPage = () => {
       packaging = totalQty * 1;
       logisticsOnly = Math.max(0, totalLogistics - packaging);
     }
-    const finalTotal = sub + taxAmount + totalLogistics - discount;
+    const taxBase = sub + packaging + totalLogistics;
+    const taxAmount = Math.round(taxBase * 0.05 * 100) / 100;
+    const finalTotal = taxBase + taxAmount - discount;
     setSubtotal(sub);
     setTax(taxAmount);
     setLogistics(totalLogistics);
@@ -422,8 +425,7 @@ const CheckoutPage = () => {
     }
     
     const sub = price * quantity;
-    const taxAmount = sub * 0.05; // 5% GST
-    
+
     // Logistics calculation
     let totalLogistics = 0;
     let packaging = 0;
@@ -439,9 +441,12 @@ const CheckoutPage = () => {
       logisticsOnly = Math.max(0, totalLogistics - packaging);
     }
     const logisticsPerUnit = quantity > 0 ? totalLogistics / quantity : 0;
-    
-    const finalTotal = sub + taxAmount + totalLogistics - discount;
-    
+
+    // Tax base (Feb 2026+) = goods + packaging + logistics
+    const taxBase = sub + packaging + totalLogistics;
+    const taxAmount = Math.round(taxBase * 0.05 * 100) / 100; // 5% GST
+    const finalTotal = taxBase + taxAmount - discount;
+
     setPricePerMeter(price);
     setSubtotal(sub);
     setTax(taxAmount);
@@ -1382,12 +1387,8 @@ const CheckoutPage = () => {
                     </>
                   )}
                   <div className="flex justify-between pt-3 border-t border-gray-100">
-                    <span className="text-gray-600">Subtotal</span>
+                    <span className="text-gray-600">Goods Subtotal</span>
                     <span>₹{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">GST (5%)</span>
-                    <span>₹{tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                   {(isMultiItem ? packagingCharge > 0 : orderType === "bulk") ? (
                     <>
@@ -1412,6 +1413,14 @@ const CheckoutPage = () => {
                       <span>₹{logistics.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                   )}
+                  <div className="flex justify-between text-gray-500 text-xs pt-1 border-t border-dashed border-gray-100">
+                    <span>Taxable value (Goods + Packaging + Logistics)</span>
+                    <span>₹{(subtotal + packagingCharge + logistics).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">GST (5%)</span>
+                    <span>₹{tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-600">
                       <span>Coupon Discount</span>

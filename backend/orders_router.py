@@ -174,17 +174,40 @@ async def generate_order_number() -> str:
     return f'LF/ORD/{seq:03d}'
 
 def calculate_totals(items: List[OrderItem], logistics_charge: float = 0, packaging_charge: float = 0, logistics_only_charge: float = 0) -> dict:
-    """Calculate order totals"""
-    subtotal = sum(item.quantity * item.price_per_meter for item in items)
-    tax = round(subtotal * 0.05, 2)
-    total = round(subtotal + tax + logistics_charge, 2)
+    """Calculate order totals.
+
+    GST treatment (per Schedule II of the CGST Act): packaging and
+    logistics charged by the supplier are part of the value of supply
+    and are taxable at the same rate as the principal goods (5% for
+    fabric here). So our taxable value is:
+        goods_subtotal + packaging + logistics
+
+    Old orders (pre-Feb 2026) were charged tax only on goods; they keep
+    their stored `tax`/`total` values and the PDF renderer detects that
+    via the `tax_on_charges_v2` flag (absent = legacy presentation).
+    """
+    goods_subtotal = sum(item.quantity * item.price_per_meter for item in items)
+    # Normalize the two ways `logistics` can come in:
+    #   • Bulk orders split it into `packaging_charge` + `logistics_only_charge`
+    #   • Simpler orders use the single `logistics_charge`
+    if packaging_charge > 0 or logistics_only_charge > 0:
+        eff_packaging = packaging_charge
+        eff_logistics = logistics_only_charge
+    else:
+        eff_packaging = 0.0
+        eff_logistics = logistics_charge
+    taxable_value = round(goods_subtotal + eff_packaging + eff_logistics, 2)
+    tax = round(taxable_value * 0.05, 2)
+    total = round(taxable_value + tax, 2)
     return {
-        "subtotal": round(subtotal, 2),
+        "subtotal": round(goods_subtotal, 2),
         "tax": tax,
-        "logistics_charge": round(logistics_charge, 2),
-        "packaging_charge": round(packaging_charge, 2),
-        "logistics_only_charge": round(logistics_only_charge, 2),
-        "total": total
+        "logistics_charge": round(eff_logistics, 2),
+        "packaging_charge": round(eff_packaging, 2),
+        "logistics_only_charge": round(eff_logistics if eff_packaging > 0 else 0.0, 2),
+        "taxable_value": taxable_value,
+        "tax_on_charges_v2": True,
+        "total": total,
     }
 
 def verify_razorpay_signature(order_id: str, payment_id: str, signature: str) -> bool:
@@ -475,6 +498,8 @@ async def create_order(order_data: OrderCreate):
             "logistics_charge": totals["logistics_charge"],
             "packaging_charge": totals["packaging_charge"],
             "logistics_only_charge": totals["logistics_only_charge"],
+            "taxable_value": totals["taxable_value"],
+            "tax_on_charges_v2": True,
             "discount": discount,
             "coupon": order_data.coupon.model_dump() if order_data.coupon else None,
             "total": final_total,
@@ -587,6 +612,8 @@ async def create_order(order_data: OrderCreate):
         "logistics_charge": totals["logistics_charge"],
         "packaging_charge": totals["packaging_charge"],
         "logistics_only_charge": totals["logistics_only_charge"],
+        "taxable_value": totals["taxable_value"],
+        "tax_on_charges_v2": True,
         "discount": discount,
         "coupon": order_data.coupon.model_dump() if order_data.coupon else None,
         "total": final_total,
@@ -2178,34 +2205,55 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     packaging = order.get('packaging_charge', 0)
     logistics_only = order.get('logistics_only_charge', 0)
     total = order.get('total', 0)
-    
-    totals_data = [
-        ['Subtotal:', f"Rs {subtotal:,.2f}"],
-    ]
-    if is_interstate:
-        # Inter-state supply → single IGST line at the combined 5% rate.
-        totals_data.append(['IGST (5%):', f"Rs {tax:,.2f}"])
+
+    # ── v2 ordering rule (Feb 2026+): packaging + logistics are part of
+    # the taxable value (Schedule II of CGST Act — bundled supply).
+    # Legacy orders (no flag) keep the historical presentation so we
+    # don't lie about what was actually charged.
+    is_v2 = bool(order.get('tax_on_charges_v2'))
+    totals_data = []
+
+    if is_v2:
+        # Goods subtotal first, then charges, then taxable value, then GST.
+        totals_data.append(['Goods Subtotal:', f"Rs {subtotal:,.2f}"])
+        if packaging > 0:
+            totals_data.append(['Packaging Charge:', f"Rs {packaging:,.2f}"])
+        eff_log = logistics_only if (logistics_only > 0) else logistics
+        if eff_log > 0:
+            totals_data.append(['Logistics Charge:', f"Rs {eff_log:,.2f}"])
+        taxable_value = order.get('taxable_value') or round(subtotal + packaging + eff_log, 2)
+        totals_data.append(['Taxable Value:', f"Rs {taxable_value:,.2f}"])
+        if is_interstate:
+            totals_data.append(['IGST (5%):', f"Rs {tax:,.2f}"])
+        else:
+            cgst = round(tax / 2, 2)
+            sgst = round(tax - cgst, 2)
+            totals_data.append(['CGST (2.5%):', f"Rs {cgst:,.2f}"])
+            totals_data.append(['SGST (2.5%):', f"Rs {sgst:,.2f}"])
     else:
-        # Intra-state supply → CGST + SGST split equally
-        cgst = tax / 2
-        sgst = tax / 2
-        totals_data.append(['CGST (2.5%):', f"Rs {cgst:,.2f}"])
-        totals_data.append(['SGST (2.5%):', f"Rs {sgst:,.2f}"])
-    
-    # Show packaging and logistics separately for bulk orders
-    if packaging > 0 and logistics_only > 0:
-        totals_data.append(['Packaging:', f"Rs {packaging:,.2f}"])
-        totals_data.append(['Logistics:', f"Rs {logistics_only:,.2f}"])
-    elif logistics > 0:
-        totals_data.append(['Logistics:', f"Rs {logistics:,.2f}"])
-    else:
-        totals_data.append(['Logistics:', 'FREE (Included)'])
-    
+        # Legacy presentation — preserves exactly what these old orders
+        # were charged at checkout (packaging/logistics were NOT taxed).
+        totals_data.append(['Subtotal:', f"Rs {subtotal:,.2f}"])
+        if is_interstate:
+            totals_data.append(['IGST (5%):', f"Rs {tax:,.2f}"])
+        else:
+            cgst = tax / 2
+            sgst = tax / 2
+            totals_data.append(['CGST (2.5%):', f"Rs {cgst:,.2f}"])
+            totals_data.append(['SGST (2.5%):', f"Rs {sgst:,.2f}"])
+        if packaging > 0 and logistics_only > 0:
+            totals_data.append(['Packaging:', f"Rs {packaging:,.2f}"])
+            totals_data.append(['Logistics:', f"Rs {logistics_only:,.2f}"])
+        elif logistics > 0:
+            totals_data.append(['Logistics:', f"Rs {logistics:,.2f}"])
+        else:
+            totals_data.append(['Logistics:', 'FREE (Included)'])
+
     if discount > 0:
         coupon = order.get('coupon', {})
         coupon_code = coupon.get('code', 'DISCOUNT') if coupon else 'DISCOUNT'
         totals_data.append([f'Coupon ({coupon_code}):', f"-Rs {discount:,.2f}"])
-    
+
     totals_data.append(['TOTAL:', f"Rs {total:,.2f}"])
     
     totals_table = Table(totals_data, colWidths=[130*mm, 46*mm])
