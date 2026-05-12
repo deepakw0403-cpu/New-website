@@ -195,6 +195,13 @@ const AgentDashboardPage = () => {
     setCart(cart.map((c) => c.fabric_id === fabricId ? { ...c, quantity: Math.max(1, c.quantity + delta) } : c));
   };
 
+  // Direct quantity setter — used by the typeable input. Coerces to a sensible
+  // minimum (1) and ignores non-numeric input gracefully.
+  const setCartQty = (fabricId, value) => {
+    const next = Math.max(1, parseInt(value, 10) || 1);
+    setCart(cart.map((c) => c.fabric_id === fabricId ? { ...c, quantity: next } : c));
+  };
+
   const removeFromCart = (fabricId) => {
     setCart(cart.filter((c) => c.fabric_id !== fabricId));
   };
@@ -785,13 +792,43 @@ Locofast Online Services`,
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <button onClick={() => removeFromCart(item.fabric_id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
-                          <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-1">
-                            {/* Step size: bulk moves in 10m increments, samples move in 1m
-                                 increments. Samples are still measured in meters — typical
-                                 swatch lengths are 1-5m. */}
-                            <button onClick={() => updateCartQty(item.fabric_id, item.order_type === "sample" ? -1 : -10)} className="p-1 text-gray-500 hover:text-gray-700"><Minus size={14} /></button>
-                            <span className="text-sm font-medium w-12 text-center">{item.quantity}m</span>
-                            <button onClick={() => updateCartQty(item.fabric_id, item.order_type === "sample" ? 1 : 10)} className="p-1 text-gray-500 hover:text-gray-700"><Plus size={14} /></button>
+                          {/* Quantity controls — typeable input + quick steppers.
+                               Big steppers do ±10m for bulk and ±1m for samples,
+                               so common adjustments are one click; for unusual
+                               quantities (e.g. 273m) the agent types directly. */}
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => updateCartQty(item.fabric_id, item.order_type === "sample" ? -1 : -100)}
+                              className="px-1.5 py-1 bg-gray-100 text-gray-600 text-[10px] font-medium rounded hover:bg-gray-200"
+                              title={item.order_type === "sample" ? "-1m" : "-100m"}
+                              data-testid={`cart-qty-decr-big-${item.fabric_id}`}
+                            >
+                              {item.order_type === "sample" ? "−1" : "−100"}
+                            </button>
+                            <div className="flex items-center bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                              <button onClick={() => updateCartQty(item.fabric_id, item.order_type === "sample" ? -1 : -10)} className="px-2 py-1.5 text-gray-500 hover:bg-gray-100"><Minus size={12} /></button>
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) => setCartQty(item.fabric_id, e.target.value)}
+                                onBlur={(e) => setCartQty(item.fabric_id, e.target.value)}
+                                onFocus={(e) => e.target.select()}
+                                className="w-16 text-center text-sm font-semibold bg-transparent border-x border-gray-200 py-1 focus:outline-none focus:bg-white"
+                                data-testid={`cart-qty-input-${item.fabric_id}`}
+                                aria-label="Quantity in meters"
+                              />
+                              <button onClick={() => updateCartQty(item.fabric_id, item.order_type === "sample" ? 1 : 10)} className="px-2 py-1.5 text-gray-500 hover:bg-gray-100"><Plus size={12} /></button>
+                            </div>
+                            <button
+                              onClick={() => updateCartQty(item.fabric_id, item.order_type === "sample" ? 1 : 100)}
+                              className="px-1.5 py-1 bg-gray-100 text-gray-600 text-[10px] font-medium rounded hover:bg-gray-200"
+                              title={item.order_type === "sample" ? "+1m" : "+100m"}
+                              data-testid={`cart-qty-incr-big-${item.fabric_id}`}
+                            >
+                              {item.order_type === "sample" ? "+1" : "+100"}
+                            </button>
+                            <span className="text-[11px] text-gray-500 ml-0.5">m</span>
                           </div>
                           <span className="text-sm font-semibold">₹{(item.quantity * item.price_per_meter).toLocaleString()}</span>
                         </div>
