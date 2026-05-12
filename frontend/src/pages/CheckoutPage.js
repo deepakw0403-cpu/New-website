@@ -145,10 +145,15 @@ const CheckoutPage = () => {
   // Auto-fill from customer profile
   useEffect(() => {
     if (isLoggedIn && loggedInCustomer) {
+      // Phone-only customers get a synthetic email like
+      // `phone+91xxxxx@phone.locofast.local` so backend lookups work.
+      // Never surface this placeholder in the checkout form — the
+      // customer will see the prompt to add a real email instead.
+      const isSyntheticEmail = (em) => typeof em === "string" && em.endsWith("@phone.locofast.local");
       setCustomer(prev => ({
         ...prev,
         name: loggedInCustomer.name || prev.name,
-        email: loggedInCustomer.email || prev.email,
+        email: isSyntheticEmail(loggedInCustomer.email) ? "" : (loggedInCustomer.email || prev.email),
         phone: loggedInCustomer.phone || prev.phone,
         company: loggedInCustomer.company || prev.company,
         address: loggedInCustomer.address || prev.address,
