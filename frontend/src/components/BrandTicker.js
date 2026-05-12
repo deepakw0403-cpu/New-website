@@ -1,84 +1,107 @@
 // "Trusted by global brands production network" ticker.
 //
-// Logo strategy — Feb 2026 update:
-//   The original plan was to fetch logos from logo.clearbit.com but that
-//   API was retired in Dec 2025. Until the user provides official SVG
-//   files for each brand (which would be the highest-quality option) we
-//   render clean text wordmarks in each brand's signature colour.
+// Logo strategy (Feb 2026):
+//   • Each brand maps to its OFFICIAL website domain
+//   • Logos fetched from Logo.dev (https://logo.dev) — successor to the
+//     retired Clearbit Logo API, built by the same team
+//   • `theme=dark` returns full-colour PNG; `retina=true` doubles the
+//     resolution for crisp rendering on Retina displays
+//   • Client publishable key lives in REACT_APP_LOGODEV_PK (safe to
+//     expose — same idea as Stripe's pk_ keys)
+//   • If Logo.dev cannot find a domain (small/regional brand not in
+//     their corpus), onError falls back to a styled text wordmark in
+//     the brand's signature colour — we never invent a fake logo
 //
-//   To upgrade to actual SVGs later:
-//     1. Drop the SVG file under /app/frontend/public/brand-logos/{slug}.svg
-//     2. Set `logoSrc: "/brand-logos/{slug}.svg"` on the brand below
-//     3. The component already prefers logoSrc over text rendering
-//
-//   For brands flagged `confirmed: false`, the brand name in the user's
-//   input ("Skiva", "Izumi", "Children's Apparel", "Golden Touch")
-//   matches multiple companies — UI shows a discreet "?" so ops can
-//   verify on review. Once confirmed, drop the `confirmed: false` flag.
-import { useMemo } from "react";
+// Brands marked `confirmed: false` are AMBIGUOUS — the brand name in
+// the user's input matches multiple companies. UI shows an amber "?"
+// so ops can verify on review. Once confirmed, flip the flag + update
+// `domain` if needed.
+import { useMemo, useState } from "react";
+
+const LOGO_DEV_PK = process.env.REACT_APP_LOGODEV_PK || "";
 
 const BRANDS = [
   // ── Confirmed (well-known global brands) ────────────────────────
-  { slug: "lidl",         name: "Lidl",            confirmed: true,  color: "#0050AA", weight: 900, italic: false },
-  { slug: "walmart",      name: "Walmart",         confirmed: true,  color: "#0071CE", weight: 800, italic: false },
-  { slug: "levis",        name: "Levi's",          confirmed: true,  color: "#B91C1C", weight: 900, italic: false },
-  { slug: "target",       name: "Target",          confirmed: true,  color: "#CC0000", weight: 900, italic: false },
-  { slug: "c-and-a",      name: "C&A",             confirmed: true,  color: "#1E3A8A", weight: 900, italic: false },
-  { slug: "mango",        name: "MANGO",           confirmed: true,  color: "#000000", weight: 700, italic: false, tracking: "0.2em" },
-  { slug: "firstcry",     name: "FirstCry",        confirmed: true,  color: "#EC4899", weight: 800, italic: false },
-  { slug: "landmark",     name: "Landmark Group",  confirmed: true,  color: "#0F172A", weight: 700, italic: false },
-  { slug: "lpp",          name: "LPP",             confirmed: true,  color: "#1F2937", weight: 900, italic: false },
+  { slug: "lidl",         name: "Lidl",            domain: "lidl.com",            confirmed: true,  color: "#0050AA", weight: 900 },
+  { slug: "walmart",      name: "Walmart",         domain: "walmart.com",         confirmed: true,  color: "#0071CE", weight: 800 },
+  { slug: "levis",        name: "Levi's",          domain: "levi.com",            confirmed: true,  color: "#B91C1C", weight: 900 },
+  { slug: "target",       name: "Target",          domain: "target.com",          confirmed: true,  color: "#CC0000", weight: 900 },
+  { slug: "c-and-a",      name: "C&A",             domain: "c-and-a.com",         confirmed: true,  color: "#1E3A8A", weight: 900 },
+  { slug: "mango",        name: "MANGO",           domain: "mango.com",           confirmed: true,  color: "#000000", weight: 700, tracking: "0.2em" },
+  { slug: "firstcry",     name: "FirstCry",        domain: "firstcry.com",        confirmed: true,  color: "#EC4899", weight: 800 },
+  { slug: "landmark",     name: "Landmark Group",  domain: "landmarkgroup.com",   confirmed: true,  color: "#0F172A", weight: 700 },
+  { slug: "lpp",          name: "LPP",             domain: "lppsa.com",           confirmed: true,  color: "#1F2937", weight: 900 },
 
-  // ── Ambiguous — please confirm which company these refer to ────
-  { slug: "skiva",        name: "Skiva",           confirmed: false, color: "#0F172A", weight: 800, italic: false },
-  { slug: "izumi",        name: "Izumi",           confirmed: false, color: "#DC2626", weight: 800, italic: false },
-  { slug: "childrens",    name: "Children's Apparel", confirmed: false, color: "#0F172A", weight: 700, italic: false },
-  { slug: "golden-touch", name: "Golden Touch",    confirmed: false, color: "#D97706", weight: 700, italic: true  },
+  // ── Ambiguous — please confirm which company these represent ────
+  { slug: "skiva",        name: "Skiva",           domain: "skivaintl.com",       confirmed: false, color: "#0F172A", weight: 800 },
+  { slug: "izumi",        name: "Izumi",           domain: "izumi.co.jp",         confirmed: false, color: "#DC2626", weight: 800 },
+  { slug: "childrens",    name: "Children's Apparel", domain: "childrensapparel.com", confirmed: false, color: "#0F172A", weight: 700 },
+  { slug: "golden-touch", name: "Golden Touch",    domain: "goldentouchimports.com", confirmed: false, color: "#D97706", weight: 700, italic: true },
 ];
 
-const LogoCard = ({ brand }) => (
-  <div
-    className="flex-shrink-0 w-48 h-20 mx-3 bg-white rounded-xl border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.05)] flex items-center justify-center px-4 relative group hover:shadow-md hover:-translate-y-0.5 transition-all"
-    title={
-      brand.confirmed
-        ? brand.name
-        : `${brand.name} — please confirm which "${brand.name}" company this represents`
-    }
-    data-testid={`brand-card-${brand.slug}`}
-  >
-    {brand.logoSrc ? (
-      <img
-        src={brand.logoSrc}
-        alt={brand.name}
-        loading="lazy"
-        className="max-h-11 max-w-full object-contain grayscale group-hover:grayscale-0 transition-all duration-300"
-      />
-    ) : (
-      <span
-        className="text-[17px] sm:text-lg font-extrabold whitespace-nowrap"
-        style={{
-          color: brand.color,
-          fontWeight: brand.weight,
-          fontStyle: brand.italic ? "italic" : "normal",
-          letterSpacing: brand.tracking || "-0.01em",
-        }}
-      >
-        {brand.name}
-      </span>
-    )}
-    {!brand.confirmed && (
-      <span
-        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-100 border border-amber-300 text-amber-700 text-[9px] font-bold flex items-center justify-center shadow-sm"
-        title="Ambiguous brand name — please confirm correct company"
-      >
-        ?
-      </span>
-    )}
-  </div>
-);
+const buildLogoUrl = (domain) => {
+  if (!LOGO_DEV_PK) return null;
+  // size=160 keeps the file small (we visually cap at ~44px); retina=true
+  // doubles native resolution for crisp rendering on Retina displays.
+  // NOTE: don't pass `theme=light` — logo.dev returns 404 for that value,
+  // default rendering already works on light backgrounds.
+  return `https://img.logo.dev/${domain}?token=${LOGO_DEV_PK}&size=160&retina=true`;
+};
+
+const LogoCard = ({ brand }) => {
+  const [errored, setErrored] = useState(false);
+  const url = buildLogoUrl(brand.domain);
+  const useImage = url && !errored;
+
+  return (
+    <div
+      className="flex-shrink-0 w-48 h-20 mx-3 bg-white rounded-xl border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.05)] flex items-center justify-center px-4 relative group hover:shadow-md hover:-translate-y-0.5 transition-all"
+      title={
+        brand.confirmed
+          ? brand.name
+          : `${brand.name} — please confirm which "${brand.name}" company this represents`
+      }
+      data-testid={`brand-card-${brand.slug}`}
+    >
+      {useImage ? (
+        <img
+          src={url}
+          alt={brand.name}
+          loading="lazy"
+          onError={() => setErrored(true)}
+          className="max-h-11 max-w-full object-contain grayscale group-hover:grayscale-0 transition-all duration-300"
+          data-testid={`brand-logo-${brand.slug}`}
+        />
+      ) : (
+        // Fallback — never fake a logo, just render the wordmark.
+        <span
+          className="text-[17px] sm:text-lg font-extrabold whitespace-nowrap"
+          style={{
+            color: brand.color,
+            fontWeight: brand.weight,
+            fontStyle: brand.italic ? "italic" : "normal",
+            letterSpacing: brand.tracking || "-0.01em",
+          }}
+          data-testid={`brand-wordmark-${brand.slug}`}
+        >
+          {brand.name}
+        </span>
+      )}
+      {!brand.confirmed && (
+        <span
+          className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-100 border border-amber-300 text-amber-700 text-[9px] font-bold flex items-center justify-center shadow-sm"
+          title="Ambiguous brand name — please confirm correct company"
+        >
+          ?
+        </span>
+      )}
+    </div>
+  );
+};
 
 const BrandTicker = () => {
   // Duplicate the list so the marquee animation loops seamlessly
+  // (single set would create a visible jump at the end).
   const doubled = useMemo(() => [...BRANDS, ...BRANDS], []);
 
   return (
