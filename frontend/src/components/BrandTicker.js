@@ -21,22 +21,23 @@ import { useMemo, useState } from "react";
 const LOGO_DEV_PK = process.env.REACT_APP_LOGODEV_PK || "";
 
 const BRANDS = [
-  // ── Confirmed (well-known global brands) ────────────────────────
-  { slug: "lidl",         name: "Lidl",            domain: "lidl.com",            confirmed: true,  color: "#0050AA", weight: 900 },
-  { slug: "walmart",      name: "Walmart",         domain: "walmart.com",         confirmed: true,  color: "#0071CE", weight: 800 },
-  { slug: "levis",        name: "Levi's",          domain: "levi.com",            confirmed: true,  color: "#B91C1C", weight: 900 },
-  { slug: "target",       name: "Target",          domain: "target.com",          confirmed: true,  color: "#CC0000", weight: 900 },
-  { slug: "c-and-a",      name: "C&A",             domain: "c-and-a.com",         confirmed: true,  color: "#1E3A8A", weight: 900 },
-  { slug: "mango",        name: "MANGO",           domain: "mango.com",           confirmed: true,  color: "#000000", weight: 700, tracking: "0.2em" },
-  { slug: "firstcry",     name: "FirstCry",        domain: "firstcry.com",        confirmed: true,  color: "#EC4899", weight: 800 },
-  { slug: "landmark",     name: "Landmark Group",  domain: "landmarkgroup.com",   confirmed: true,  color: "#0F172A", weight: 700 },
-  { slug: "lpp",          name: "LPP",             domain: "lppsa.com",           confirmed: true,  color: "#1F2937", weight: 900 },
+  // ── Top 10 confirmed brands — clearest Logo.dev rendering ───────
+  { slug: "lidl",         name: "Lidl",            domain: "lidl.com",          confirmed: true,  color: "#0050AA", weight: 900 },
+  { slug: "walmart",      name: "Walmart",         domain: "walmart.com",       confirmed: true,  color: "#0071CE", weight: 800 },
+  { slug: "levis",        name: "Levi's",          domain: "levi.com",          confirmed: true,  color: "#B91C1C", weight: 900 },
+  { slug: "target",       name: "Target",          domain: "target.com",        confirmed: true,  color: "#CC0000", weight: 900 },
+  { slug: "c-and-a",      name: "C&A",             domain: "c-and-a.com",       confirmed: true,  color: "#1E3A8A", weight: 900 },
+  { slug: "mango",        name: "MANGO",           domain: "mango.com",         confirmed: true,  color: "#000000", weight: 700, tracking: "0.2em" },
+  { slug: "firstcry",     name: "FirstCry",        domain: "firstcry.com",      confirmed: true,  color: "#EC4899", weight: 800 },
+  { slug: "landmark",     name: "Landmark Group",  domain: "landmarkgroup.com", confirmed: true,  color: "#0F172A", weight: 700 },
+  { slug: "lpp",          name: "LPP",             domain: "lppsa.com",         confirmed: true,  color: "#1F2937", weight: 900 },
+  { slug: "izumi",        name: "Izumi",           domain: "izumi.co.jp",       confirmed: false, color: "#DC2626", weight: 800 },
 
-  // ── Ambiguous — please confirm which company these represent ────
-  { slug: "skiva",        name: "Skiva",           domain: "skivaintl.com",       confirmed: false, color: "#0F172A", weight: 800 },
-  { slug: "izumi",        name: "Izumi",           domain: "izumi.co.jp",         confirmed: false, color: "#DC2626", weight: 800 },
-  { slug: "childrens",    name: "Children's Apparel", domain: "childrensapparel.com", confirmed: false, color: "#0F172A", weight: 700 },
-  { slug: "golden-touch", name: "Golden Touch",    domain: "goldentouchimports.com", confirmed: false, color: "#D97706", weight: 700, italic: true },
+  // Dropped from earlier set — Logo.dev returned wrong/unclear logos:
+  //   Skiva ("S" mark — generic, not the apparel co)
+  //   Children's Apparel ("you me" wordmark — wrong company entirely)
+  //   Golden Touch (too generic to verify)
+  // Please share correct domains for these and we can re-add them.
 ];
 
 const buildLogoUrl = (domain) => {
@@ -55,7 +56,7 @@ const LogoCard = ({ brand }) => {
 
   return (
     <div
-      className="flex-shrink-0 w-48 h-20 mx-3 bg-white rounded-xl border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.05)] flex items-center justify-center px-4 relative group hover:shadow-md hover:-translate-y-0.5 transition-all"
+      className="flex-shrink-0 w-56 h-28 mx-4 bg-white rounded-xl border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.05)] flex items-center justify-center px-5 relative group hover:shadow-md hover:-translate-y-0.5 transition-all"
       title={
         brand.confirmed
           ? brand.name
@@ -69,13 +70,13 @@ const LogoCard = ({ brand }) => {
           alt={brand.name}
           loading="lazy"
           onError={() => setErrored(true)}
-          className="max-h-11 max-w-full object-contain grayscale group-hover:grayscale-0 transition-all duration-300"
+          className="max-h-16 max-w-full object-contain grayscale group-hover:grayscale-0 transition-all duration-300"
           data-testid={`brand-logo-${brand.slug}`}
         />
       ) : (
         // Fallback — never fake a logo, just render the wordmark.
         <span
-          className="text-[17px] sm:text-lg font-extrabold whitespace-nowrap"
+          className="text-xl sm:text-[22px] font-extrabold whitespace-nowrap"
           style={{
             color: brand.color,
             fontWeight: brand.weight,
