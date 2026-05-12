@@ -30,6 +30,12 @@
 - Email: info@palimills.com
 - Password: admin@123
 
+## Vendor — Cotton Manufacturer (for Payout Invoice test)
+- Email: bhuvnesh.sharma@nsltextiles.com
+- Password: vendor123
+- Login URL: /vendor/login
+- Used to test the "Vendor uploads invoice → Accounts mark paid" flow.
+
 ## Agent
 - Email: agent@locofast.com
 - Auth: OTP-based (code sent via Resend email)

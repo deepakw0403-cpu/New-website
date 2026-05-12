@@ -316,6 +316,15 @@ async def mark_payout_paid(
     if payout.get("status") == "paid":
         return {"success": True, "already_paid": True, "payout": payout}
 
+    # Mandatory: vendor must have uploaded their tax invoice (and it
+    # must not be in a rejected state) before Accounts can release funds.
+    inv_status = payout.get("vendor_invoice_status", "not_uploaded")
+    if inv_status != "uploaded" or not payout.get("vendor_invoice_url"):
+        raise HTTPException(
+            status_code=400,
+            detail="Vendor invoice not uploaded. The vendor must upload their tax invoice for this order before payout can be released.",
+        )
+
     paid_at = payload.paid_at or datetime.now(timezone.utc).isoformat()
     update = {
         "status": "paid",
@@ -565,3 +574,263 @@ def _build_payout_email_html(payout: dict) -> str:
     <p>— Locofast Accounts<br/>accounts@locofast.com</p>
   </div>
 </div>"""
+
+
+# ─────────────────────────────────────────────────────────────────
+# Vendor Invoice Upload  (prerequisite for payout release)
+# ─────────────────────────────────────────────────────────────────
+class UploadVendorInvoicePayload(BaseModel):
+    invoice_url: str = Field(..., min_length=8)
+    filename: str = ""
+    invoice_number: str = ""
+    invoice_date: str = ""  # ISO date, optional
+    amount: Optional[float] = None  # what vendor is claiming, optional
+
+
+async def _get_current_vendor_local(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Local copy of vendor JWT verification to avoid circular import.
+    Mirrors `vendor_router.get_current_vendor` exactly."""
+    from auth_helpers import db as _db
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "vendor":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        seller_id = payload.get("seller_id")
+        seller = await _db.sellers.find_one(
+            {"id": seller_id, "is_active": True},
+            {"_id": 0, "password_hash": 0},
+        )
+        if not seller:
+            raise HTTPException(status_code=401, detail="Vendor not found or inactive")
+        return seller
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+@router.get("/vendor/payouts")
+async def vendor_list_my_payouts(vendor=Depends(_get_current_vendor_local)):
+    """List all payouts owed to the calling vendor (newest first)."""
+    from auth_helpers import db as _db
+    rows = []
+    async for p in _db.vendor_payouts.find(
+        {"seller_id": vendor["id"]}, {"_id": 0}
+    ).sort("created_at", -1):
+        rows.append(p)
+    return {"payouts": rows, "total": len(rows)}
+
+
+@router.post("/vendor/payouts/{payout_id}/upload-invoice")
+async def vendor_upload_invoice(
+    payout_id: str,
+    payload: UploadVendorInvoicePayload,
+    vendor=Depends(_get_current_vendor_local),
+):
+    """Vendor uploads (or re-uploads after rejection) their tax invoice
+    for this payout. After upload:
+      • status flips to `uploaded` (locked — no further uploads until Accounts rejects)
+      • email goes to accounts@locofast.com
+    """
+    from auth_helpers import db as _db
+    payout = await _db.vendor_payouts.find_one({"id": payout_id}, {"_id": 0})
+    if not payout:
+        raise HTTPException(status_code=404, detail="Payout not found")
+    if payout["seller_id"] != vendor["id"]:
+        raise HTTPException(status_code=403, detail="Not your payout")
+    if payout.get("status") == "paid":
+        raise HTTPException(status_code=400, detail="Payout already paid — cannot modify invoice")
+
+    current = payout.get("vendor_invoice_status", "not_uploaded")
+    # Allow upload when nothing has been submitted or when Accounts has rejected.
+    if current == "uploaded":
+        raise HTTPException(
+            status_code=400,
+            detail="Invoice already submitted. Accounts must reject the current invoice before you can re-upload.",
+        )
+
+    now = datetime.now(timezone.utc).isoformat()
+    update = {
+        "vendor_invoice_url": payload.invoice_url.strip(),
+        "vendor_invoice_filename": payload.filename.strip(),
+        "vendor_invoice_number": payload.invoice_number.strip(),
+        "vendor_invoice_date": payload.invoice_date.strip(),
+        "vendor_invoice_amount": float(payload.amount) if payload.amount is not None else None,
+        "vendor_invoice_status": "uploaded",
+        "vendor_invoice_uploaded_at": now,
+        "vendor_invoice_rejection_reason": "",
+        "updated_at": now,
+    }
+    await _db.vendor_payouts.update_one({"id": payout_id}, {"$set": update})
+    final = {**payout, **update}
+
+    # Fire-and-forget notify accounts
+    try:
+        import asyncio as _aio
+        _aio.create_task(_notify_accounts_invoice_uploaded(final))
+    except Exception as e:
+        logger.warning(f"[invoice-notify] schedule failed: {e}")
+
+    return {"success": True, "payout": final}
+
+
+class RejectInvoicePayload(BaseModel):
+    reason: str = Field(..., min_length=3)
+
+
+@router.post("/payouts/{payout_id}/reject-invoice")
+async def reject_vendor_invoice(
+    payout_id: str,
+    payload: RejectInvoicePayload,
+    user=Depends(get_current_accounts_or_admin),
+):
+    """Accounts rejects a vendor's uploaded invoice with a reason. This
+    unlocks the upload slot so the vendor can submit a corrected invoice.
+    An email is sent to the vendor with the reason.
+    """
+    from auth_helpers import db as _db
+    payout = await _db.vendor_payouts.find_one({"id": payout_id}, {"_id": 0})
+    if not payout:
+        raise HTTPException(status_code=404, detail="Payout not found")
+    if payout.get("status") == "paid":
+        raise HTTPException(status_code=400, detail="Payout already paid — cannot reject invoice")
+    if payout.get("vendor_invoice_status") != "uploaded":
+        raise HTTPException(status_code=400, detail="No invoice uploaded to reject")
+
+    now = datetime.now(timezone.utc).isoformat()
+    # Snapshot the rejected invoice for audit, then clear it so vendor can re-upload.
+    history_entry = {
+        "url": payout.get("vendor_invoice_url", ""),
+        "filename": payout.get("vendor_invoice_filename", ""),
+        "invoice_number": payout.get("vendor_invoice_number", ""),
+        "amount": payout.get("vendor_invoice_amount"),
+        "uploaded_at": payout.get("vendor_invoice_uploaded_at", ""),
+        "rejected_at": now,
+        "rejected_by": user.get("email", ""),
+        "reason": payload.reason.strip(),
+    }
+    update = {
+        "vendor_invoice_status": "rejected",
+        "vendor_invoice_url": "",
+        "vendor_invoice_rejection_reason": payload.reason.strip(),
+        "vendor_invoice_rejected_at": now,
+        "vendor_invoice_rejected_by": user.get("email", ""),
+        "updated_at": now,
+    }
+    await _db.vendor_payouts.update_one(
+        {"id": payout_id},
+        {"$set": update, "$push": {"vendor_invoice_history": history_entry}},
+    )
+    final = {**payout, **update}
+
+    try:
+        import asyncio as _aio
+        _aio.create_task(_notify_vendor_invoice_rejected(final, payload.reason.strip()))
+    except Exception as e:
+        logger.warning(f"[invoice-reject-notify] schedule failed: {e}")
+
+    return {"success": True, "payout": final}
+
+
+# ─────────────────────────────────────────────────────────────────
+# Email notifications for vendor invoice flow
+# ─────────────────────────────────────────────────────────────────
+def _build_accounts_invoice_email_html(payout: dict) -> str:
+    inv_url = payout.get("vendor_invoice_url", "")
+    inv_num = payout.get("vendor_invoice_number", "—")
+    inv_date = payout.get("vendor_invoice_date", "—")
+    amt = payout.get("vendor_invoice_amount")
+    amt_str = f"₹{amt:,.2f}" if amt is not None else "—"
+    return f"""
+<div style="font-family:Inter,Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#111827">
+  <div style="background:#0f766e;color:white;padding:18px;border-radius:8px 8px 0 0">
+    <h2 style="margin:0">New vendor invoice uploaded</h2>
+    <p style="margin:4px 0 0;font-size:13px;opacity:.9">Awaiting payout release</p>
+  </div>
+  <div style="padding:18px;border:1px solid #e5e7eb;border-top:0;border-radius:0 0 8px 8px">
+    <p>Hi Accounts team,</p>
+    <p><strong>{payout.get('seller_company','—')}</strong> has uploaded their tax invoice for order
+    <strong>{payout.get('order_number','')}</strong> and is ready for payout.</p>
+    <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:13px">
+      <tr><td style="padding:6px 0;color:#6b7280">Vendor</td><td style="padding:6px 0;text-align:right">{payout.get('seller_company','')}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Order</td><td style="padding:6px 0;text-align:right">{payout.get('order_number','')}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Net payable</td><td style="padding:6px 0;text-align:right;font-weight:700;color:#047857">₹{payout.get('net_payable',0):,.2f}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Vendor invoice #</td><td style="padding:6px 0;text-align:right">{inv_num}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Invoice date</td><td style="padding:6px 0;text-align:right">{inv_date}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Claimed amount</td><td style="padding:6px 0;text-align:right">{amt_str}</td></tr>
+    </table>
+    <div style="margin-top:14px;text-align:center">
+      <a href="{inv_url}" target="_blank"
+         style="display:inline-block;background:#0f766e;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600">
+        View vendor invoice
+      </a>
+    </div>
+    <p style="margin-top:18px;font-size:12px;color:#6b7280">
+      Open the Payouts dashboard → find this order → verify the invoice matches the platform calculation → click "Mark Paid" once UTR is processed.<br/>
+      If the invoice has errors, use the "Reject Invoice" button to send the vendor a reason and unlock re-upload.
+    </p>
+  </div>
+</div>"""
+
+
+def _build_vendor_invoice_rejected_email_html(payout: dict, reason: str) -> str:
+    return f"""
+<div style="font-family:Inter,Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#111827">
+  <div style="background:#b91c1c;color:white;padding:18px;border-radius:8px 8px 0 0">
+    <h2 style="margin:0">Invoice rejected — please re-upload</h2>
+    <p style="margin:4px 0 0;font-size:13px;opacity:.9">Order {payout.get('order_number','')}</p>
+  </div>
+  <div style="padding:18px;border:1px solid #e5e7eb;border-top:0;border-radius:0 0 8px 8px">
+    <p>Hi {payout.get('seller_company','')},</p>
+    <p>Our Accounts team reviewed the tax invoice you uploaded for order
+    <strong>{payout.get('order_number','')}</strong> and could not process it.</p>
+    <div style="margin-top:10px;background:#fef2f2;border:1px solid #fecaca;padding:12px 14px;border-radius:6px">
+      <p style="margin:0;font-weight:600;color:#991b1b">Reason</p>
+      <p style="margin:6px 0 0">{reason}</p>
+    </div>
+    <p style="margin-top:14px">Please log in to your Vendor Portal → <strong>My Payouts</strong> → and re-upload a corrected invoice. Payout will be released as soon as the corrected invoice is accepted.</p>
+    <p style="margin-top:18px;color:#6b7280;font-size:12px">If you need help, reply to this email and our Accounts team will assist.</p>
+    <p>— Locofast Accounts<br/>accounts@locofast.com</p>
+  </div>
+</div>"""
+
+
+async def _notify_accounts_invoice_uploaded(payout: dict):
+    try:
+        import asyncio as _aio
+        import resend
+        to_email = os.environ.get("ACCOUNTS_NOTIFY_EMAIL", "accounts@locofast.com")
+        subject = f"New vendor invoice: {payout.get('seller_company','')} → {payout.get('order_number','')} (₹{payout.get('net_payable',0):,.2f})"
+        params = {
+            "from": os.environ.get("RESEND_FROM_EMAIL", "Locofast Accounts <accounts@locofast.com>"),
+            "to": [to_email],
+            "subject": subject,
+            "html": _build_accounts_invoice_email_html(payout),
+            "reply_to": payout.get("seller_email", "accounts@locofast.com"),
+        }
+        await _aio.to_thread(resend.Emails.send, params)
+        logger.info(f"[invoice-notify] accounts email sent for {payout.get('order_number')}")
+    except Exception as e:
+        logger.warning(f"[invoice-notify] accounts email failed: {e}")
+
+
+async def _notify_vendor_invoice_rejected(payout: dict, reason: str):
+    try:
+        import asyncio as _aio
+        import resend
+        to_email = payout.get("seller_email", "")
+        if not to_email:
+            logger.info(f"[invoice-reject-notify] no seller_email for {payout.get('order_number')}")
+            return
+        subject = f"Invoice rejected for order {payout.get('order_number','')} — action required"
+        params = {
+            "from": os.environ.get("RESEND_FROM_EMAIL", "Locofast Accounts <accounts@locofast.com>"),
+            "to": [to_email],
+            "subject": subject,
+            "html": _build_vendor_invoice_rejected_email_html(payout, reason),
+            "reply_to": "accounts@locofast.com",
+        }
+        await _aio.to_thread(resend.Emails.send, params)
+        logger.info(f"[invoice-reject-notify] vendor email sent to {to_email}")
+    except Exception as e:
+        logger.warning(f"[invoice-reject-notify] vendor email failed: {e}")

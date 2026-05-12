@@ -121,6 +121,7 @@ const VendorInventory = lazy(() => import("./pages/vendor/VendorInventory"));
 const VendorOrders = lazy(() => import("./pages/vendor/VendorOrders"));
 const VendorRfqs = lazy(() => import("./pages/vendor/VendorRfqs"));
 const VendorRfqDetail = lazy(() => import("./pages/vendor/VendorRfqDetail"));
+const VendorPayouts = lazy(() => import("./pages/vendor/VendorPayouts"));
 const VendorProtectedRoute = lazy(() => import("./components/VendorProtectedRoute"));
 
 // Tools pages
@@ -347,6 +348,7 @@ function App() {
           <Route path="/vendor/orders" element={<Suspense fallback={<PageLoader />}><VendorProtectedRoute><VendorOrders /></VendorProtectedRoute></Suspense>} />
           <Route path="/vendor/rfqs" element={<Suspense fallback={<PageLoader />}><VendorProtectedRoute><VendorRfqs /></VendorProtectedRoute></Suspense>} />
           <Route path="/vendor/rfqs/:rfqId" element={<Suspense fallback={<PageLoader />}><VendorProtectedRoute><VendorRfqDetail /></VendorProtectedRoute></Suspense>} />
+          <Route path="/vendor/payouts" element={<Suspense fallback={<PageLoader />}><VendorProtectedRoute><VendorPayouts /></VendorProtectedRoute></Suspense>} />
         </Routes>
         </Suspense>
         <WhatsAppChat />

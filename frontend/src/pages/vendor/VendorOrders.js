@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
-import { Package, Clock, CheckCircle, Truck, MapPin, Phone, ExternalLink } from "lucide-react";
+import { Package, Clock, CheckCircle, Truck, MapPin, Phone, ExternalLink, FileText, Upload, AlertTriangle, Loader2 } from "lucide-react";
 import VendorLayout from "../../components/vendor/VendorLayout";
+import VendorFileUpload from "../../components/vendor/VendorFileUpload";
 import { getVendorOrders } from "../../lib/api";
 import { toast } from "sonner";
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const statusConfig = {
   payment_pending: { label: "Payment Pending", color: "bg-yellow-100 text-yellow-700", icon: Clock },
@@ -282,6 +285,9 @@ const VendorOrders = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Vendor invoice upload (tied to payout) */}
+                <VendorOrderInvoiceBlock order={selectedOrder} />
               </div>
 
               <div className="p-6 border-t border-gray-100">
@@ -301,3 +307,186 @@ const VendorOrders = () => {
 };
 
 export default VendorOrders;
+
+// ─── Invoice Upload block inside Order detail modal ───────────────
+const VendorOrderInvoiceBlock = ({ order }) => {
+  const [loading, setLoading] = useState(true);
+  const [payout, setPayout] = useState(null);
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10));
+  const [amount, setAmount] = useState("");
+  const [fileMeta, setFileMeta] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const token = localStorage.getItem("vendor_token");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API}/api/vendor/payouts`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) throw new Error("Failed");
+        const data = await res.json();
+        const match = (data.payouts || []).find((p) => p.order_id === order.id);
+        if (cancelled) return;
+        setPayout(match || null);
+        if (match) {
+          setInvoiceNumber(match.vendor_invoice_number || "");
+          setInvoiceDate(match.vendor_invoice_date || new Date().toISOString().slice(0, 10));
+          setAmount(match.vendor_invoice_amount ?? match.net_payable ?? "");
+          if (match.vendor_invoice_url) {
+            setFileMeta({ url: match.vendor_invoice_url, filename: match.vendor_invoice_filename || match.vendor_invoice_url.split("/").pop() });
+          }
+        }
+      } catch (e) {
+        // ignore — payout simply doesn't exist yet
+      }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [order.id, token]);
+
+  if (loading) {
+    return (
+      <div className="text-xs text-gray-500 flex items-center gap-1">
+        <Loader2 size={12} className="animate-spin" /> Checking payout status…
+      </div>
+    );
+  }
+
+  if (!payout) {
+    return (
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600">
+        <p className="font-medium text-gray-700 mb-0.5">Invoice upload not available yet</p>
+        Payout becomes available once the customer's payment is settled. You can upload your invoice from
+        <strong> My Payouts</strong> after that.
+      </div>
+    );
+  }
+
+  const status = payout.vendor_invoice_status || "not_uploaded";
+
+  const submit = async () => {
+    if (!fileMeta?.url) { toast.error("Please upload an invoice file first"); return; }
+    if (!invoiceNumber.trim()) { toast.error("Invoice number is required"); return; }
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API}/api/vendor/payouts/${payout.id}/upload-invoice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          invoice_url: fileMeta.url,
+          filename: fileMeta.filename || "",
+          invoice_number: invoiceNumber.trim(),
+          invoice_date: invoiceDate,
+          amount: amount ? Number(amount) : null,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Failed");
+      }
+      const data = await res.json();
+      toast.success("Invoice submitted. Locofast Accounts has been notified.");
+      setPayout(data.payout);
+    } catch (e) {
+      toast.error(e.message || "Failed");
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <div className="border border-emerald-200 bg-emerald-50/30 rounded-lg p-4" data-testid="vendor-order-invoice-block">
+      <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-1">
+        <FileText size={14} className="text-emerald-600" />
+        Tax Invoice for Payout
+      </h3>
+
+      <div className="text-[12px] text-gray-700 mb-3">
+        Net payable to you: <strong className="text-emerald-700">₹{Number(payout.net_payable || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+      </div>
+
+      {status === "uploaded" && (
+        <div className="bg-blue-50 border border-blue-200 rounded p-3 text-xs">
+          <p className="font-semibold text-blue-800 mb-1">Invoice submitted — awaiting payout</p>
+          <p className="text-blue-700">
+            Submitted on {(payout.vendor_invoice_uploaded_at || "").slice(0, 19).replace("T", " ")}.
+          </p>
+          {payout.vendor_invoice_url && (
+            <a
+              href={payout.vendor_invoice_url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-blue-700 hover:underline mt-1"
+              data-testid="vendor-order-invoice-link"
+            >
+              <ExternalLink size={11} /> View uploaded invoice
+            </a>
+          )}
+        </div>
+      )}
+
+      {status === "rejected" && (
+        <div className="bg-red-50 border border-red-200 rounded p-3 text-xs mb-3">
+          <p className="font-semibold text-red-800 flex items-center gap-1">
+            <AlertTriangle size={12} /> Previous invoice was rejected
+          </p>
+          <p className="text-red-700 mt-1">Reason: {payout.vendor_invoice_rejection_reason || "—"}</p>
+          <p className="text-red-600 mt-1">Please re-upload a corrected invoice below.</p>
+        </div>
+      )}
+
+      {payout.status === "paid" && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded p-3 text-xs">
+          <p className="font-semibold text-emerald-800 flex items-center gap-1">
+            <CheckCircle size={12} /> Payout received
+          </p>
+          <p className="text-emerald-700 mt-1">UTR: {payout.utr || "—"} · Paid on {(payout.paid_at || "").slice(0, 10)}</p>
+        </div>
+      )}
+
+      {(status === "not_uploaded" || status === "rejected") && payout.status !== "paid" && (
+        <>
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <input
+              value={invoiceNumber}
+              onChange={(e) => setInvoiceNumber(e.target.value)}
+              placeholder="Invoice number *"
+              className="px-2.5 py-1.5 border border-gray-200 rounded text-xs"
+              data-testid="vendor-order-invoice-number"
+            />
+            <input
+              type="date"
+              value={invoiceDate}
+              onChange={(e) => setInvoiceDate(e.target.value)}
+              className="px-2.5 py-1.5 border border-gray-200 rounded text-xs"
+            />
+          </div>
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder={`Invoice total (optional, default ₹${payout.net_payable})`}
+            className="w-full px-2.5 py-1.5 border border-gray-200 rounded text-xs mb-2"
+          />
+          <VendorFileUpload
+            value={fileMeta}
+            onChange={setFileMeta}
+            folder="uploads/payouts/vendor-invoices"
+            testid="vendor-order-invoice-upload"
+          />
+          <button
+            onClick={submit}
+            disabled={submitting || !fileMeta?.url || !invoiceNumber.trim()}
+            className="mt-3 w-full px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            data-testid="vendor-order-invoice-submit"
+          >
+            {submitting ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+            Submit invoice for payout
+          </button>
+        </>
+      )}
+    </div>
+  );
+};

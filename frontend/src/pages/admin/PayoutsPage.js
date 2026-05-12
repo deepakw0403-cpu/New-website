@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { Loader2, Search, CheckCircle, Clock, IndianRupee, RotateCw, FileText, X, Mail, Phone, Plus, AlertCircle, Building2 } from "lucide-react";
+import { Loader2, Search, CheckCircle, Clock, IndianRupee, RotateCw, FileText, X, Mail, Phone, Plus, AlertCircle, Building2, ExternalLink, XCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -169,6 +169,7 @@ const PayoutsPage = () => {
                   <th className="px-4 py-3 text-right">Commission</th>
                   <th className="px-4 py-3 text-right">Advances</th>
                   <th className="px-4 py-3 text-right">Net Payable</th>
+                  <th className="px-4 py-3">Invoice</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3"></th>
                 </tr>
@@ -188,6 +189,9 @@ const PayoutsPage = () => {
                     <td className="px-4 py-3 text-right text-red-600">−{fmtINR(p.commission_total)}</td>
                     <td className="px-4 py-3 text-right text-red-600">{p.advances_applied > 0 ? `−${fmtINR(p.advances_applied)}` : "—"}</td>
                     <td className="px-4 py-3 text-right font-semibold text-emerald-700">{fmtINR(p.net_payable)}</td>
+                    <td className="px-4 py-3">
+                      <InvoiceStatusBadge payout={p} />
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
                         p.status === "paid" ? "bg-emerald-100 text-emerald-700"
@@ -220,6 +224,10 @@ const PayoutsPage = () => {
           onClose={() => setSelectedPayout(null)}
           onPaid={() => { setShowMarkPaid(false); setSelectedPayout(null); fetchDashboard(); }}
           onRecalc={() => handleRecalc(selectedPayout.id)}
+          onChanged={(updated) => {
+            setSelectedPayout(updated);
+            setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+          }}
           showMarkPaid={showMarkPaid}
           setShowMarkPaid={setShowMarkPaid}
           showAdvance={showAdvance}
@@ -232,7 +240,7 @@ const PayoutsPage = () => {
 };
 
 // ─── Detail Modal ────────────────────────────────────────────────
-const PayoutDetailModal = ({ payout, token, viewerRole, onClose, onPaid, onRecalc, showMarkPaid, setShowMarkPaid, showAdvance, setShowAdvance, onAdvanceCreated }) => {
+const PayoutDetailModal = ({ payout, token, viewerRole, onClose, onPaid, onRecalc, onChanged, showMarkPaid, setShowMarkPaid, showAdvance, setShowAdvance, onAdvanceCreated }) => {
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto" data-testid="payouts-detail-modal">
       <div className="bg-white rounded-xl w-full max-w-3xl my-8">
@@ -290,6 +298,9 @@ const PayoutDetailModal = ({ payout, token, viewerRole, onClose, onPaid, onRecal
             <div className="flex justify-between font-bold text-base border-t border-blue-200 pt-2 mt-2"><span>Net payable</span><span className="text-emerald-700" data-testid="payouts-detail-net">{fmtINR(payout.net_payable)}</span></div>
           </div>
 
+          {/* Vendor invoice block */}
+          <VendorInvoiceSection payout={payout} token={token} onChanged={onChanged} />
+
           {payout.status === "paid" && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm">
               <p className="font-semibold text-emerald-800">✓ Paid</p>
@@ -315,9 +326,18 @@ const PayoutDetailModal = ({ payout, token, viewerRole, onClose, onPaid, onRecal
             )}
           </div>
           <div className="flex gap-2">
-            {payout.status !== "paid" && (
-              <button onClick={() => setShowMarkPaid(true)} className="flex items-center gap-2 px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700" data-testid="payouts-mark-paid-btn"><CheckCircle size={14} />Mark Paid</button>
-            )}
+            {payout.status !== "paid" && (() => {
+              const invOk = payout.vendor_invoice_status === "uploaded" && payout.vendor_invoice_url;
+              return (
+                <button
+                  onClick={() => setShowMarkPaid(true)}
+                  disabled={!invOk}
+                  title={!invOk ? "Vendor must upload tax invoice before payout can be released" : ""}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="payouts-mark-paid-btn"
+                ><CheckCircle size={14} />Mark Paid</button>
+              );
+            })()}
             <button onClick={onClose} className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Close</button>
           </div>
         </div>
@@ -476,3 +496,193 @@ const AddAdvanceModal = ({ payout, token, onClose, onSuccess }) => {
 };
 
 export default PayoutsPage;
+
+// ─── Invoice status badge (table column) ────────────────────────
+const InvoiceStatusBadge = ({ payout }) => {
+  const status = payout.vendor_invoice_status || "not_uploaded";
+  if (payout.status === "paid" && status === "uploaded") {
+    return (
+      <a
+        href={payout.vendor_invoice_url}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1 text-[11px] text-emerald-700 hover:underline"
+      >
+        <FileText size={11} /> Invoice
+      </a>
+    );
+  }
+  if (status === "uploaded") {
+    return (
+      <a
+        href={payout.vendor_invoice_url}
+        target="_blank"
+        rel="noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+        data-testid={`payouts-invoice-link-${payout.id}`}
+      >
+        <FileText size={10} /> Uploaded <ExternalLink size={9} />
+      </a>
+    );
+  }
+  if (status === "rejected") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-700 border border-red-200">
+        <XCircle size={10} /> Rejected
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+      <Clock size={10} /> Awaiting upload
+    </span>
+  );
+};
+
+// ─── Vendor Invoice section in detail modal ─────────────────────
+const VendorInvoiceSection = ({ payout, token, onChanged }) => {
+  const [rejecting, setRejecting] = useState(false);
+  const status = payout.vendor_invoice_status || "not_uploaded";
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="font-semibold text-gray-900 flex items-center gap-1 text-sm">
+          <FileText size={14} /> Vendor's Tax Invoice
+        </h4>
+        {status === "uploaded" && payout.vendor_invoice_url && (
+          <a
+            href={payout.vendor_invoice_url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-blue-700 hover:underline"
+            data-testid="payouts-detail-invoice-link"
+          >
+            <ExternalLink size={11} /> Open
+          </a>
+        )}
+      </div>
+
+      {status === "not_uploaded" && (
+        <div className="bg-amber-50 border border-amber-200 rounded p-3 text-xs text-amber-800 flex items-center gap-2" data-testid="payouts-invoice-missing">
+          <AlertTriangle size={14} />
+          Vendor has not uploaded their tax invoice yet. Payout cannot be released until they upload.
+        </div>
+      )}
+
+      {status === "uploaded" && (
+        <div className="grid grid-cols-3 gap-3 text-xs">
+          <div>
+            <p className="text-gray-500">Invoice #</p>
+            <p className="font-medium font-mono">{payout.vendor_invoice_number || "—"}</p>
+          </div>
+          <div>
+            <p className="text-gray-500">Invoice date</p>
+            <p className="font-medium">{payout.vendor_invoice_date || "—"}</p>
+          </div>
+          <div>
+            <p className="text-gray-500">Vendor's claimed amount</p>
+            <p className="font-medium">
+              {payout.vendor_invoice_amount != null ? `₹${Number(payout.vendor_invoice_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
+            </p>
+          </div>
+          <div className="col-span-3">
+            <p className="text-gray-500">Uploaded at</p>
+            <p className="font-medium">{(payout.vendor_invoice_uploaded_at || "").slice(0, 19).replace("T", " ")}</p>
+          </div>
+          {payout.status !== "paid" && (
+            <div className="col-span-3 flex justify-end">
+              <button
+                onClick={() => setRejecting(true)}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-red-700 border border-red-200 rounded hover:bg-red-50"
+                data-testid="payouts-reject-invoice-btn"
+              >
+                <XCircle size={12} /> Reject invoice
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {status === "rejected" && (
+        <div className="bg-red-50 border border-red-200 rounded p-3 text-xs">
+          <p className="font-semibold text-red-800">Invoice rejected · awaiting vendor re-upload</p>
+          <p className="text-red-700 mt-1">Reason: {payout.vendor_invoice_rejection_reason || "—"}</p>
+          <p className="text-red-600 mt-1">
+            Rejected by {payout.vendor_invoice_rejected_by || "—"} on {(payout.vendor_invoice_rejected_at || "").slice(0, 10)}
+          </p>
+        </div>
+      )}
+
+      {rejecting && (
+        <RejectInvoiceModal
+          payout={payout}
+          token={token}
+          onClose={() => setRejecting(false)}
+          onSuccess={(updated) => { setRejecting(false); onChanged?.(updated); }}
+        />
+      )}
+    </div>
+  );
+};
+
+const RejectInvoiceModal = ({ payout, token, onClose, onSuccess }) => {
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async () => {
+    if (reason.trim().length < 5) { toast.error("Please provide a clear reason (min 5 chars)"); return; }
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API}/api/payouts/${payout.id}/reject-invoice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Failed");
+      }
+      const data = await res.json();
+      toast.success("Invoice rejected · vendor notified to re-upload");
+      onSuccess(data.payout);
+    } catch (e) {
+      toast.error(e.message || "Failed");
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4" data-testid="payouts-reject-modal">
+      <div className="bg-white rounded-xl w-full max-w-md p-5">
+        <h3 className="font-semibold text-gray-900 mb-1">Reject vendor's invoice</h3>
+        <p className="text-xs text-gray-500 mb-4">{payout.order_number} · {payout.seller_company}</p>
+        <label className="text-xs font-medium text-gray-700 mb-1 block">Rejection reason *</label>
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          rows={4}
+          placeholder="e.g. Invoice amount does not match net payable; GST number is incorrect; HSN code missing…"
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+          data-testid="payouts-reject-reason-input"
+        />
+        <p className="text-[11px] text-gray-500 mt-1">
+          The vendor will receive an email with this reason and be able to re-upload a corrected invoice.
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <button onClick={onClose} className="px-3 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button
+            onClick={submit}
+            disabled={submitting}
+            className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 inline-flex items-center gap-2"
+            data-testid="payouts-reject-confirm"
+          >
+            {submitting ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+            Reject and notify vendor
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
