@@ -566,12 +566,17 @@ const AgentDashboardPage = () => {
                     <div className={`grid sm:grid-cols-2 ${showFilters ? "lg:grid-cols-3" : "lg:grid-cols-4"} gap-4`}>
                       {fabrics.map((f) => (
                         <div key={f.id} className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow" data-testid={`agent-fabric-${f.id}`}>
-                          <div className="relative">
+                          <Link to={`/fabrics/${f.slug || f.id}`} target="_blank" rel="noreferrer" className="block relative" title="Open product details in new tab">
                             <img src={thumbImage(f.images?.[0]) || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=300"} alt={f.name} className="w-full h-40 object-cover" loading="lazy" />
                             <Watermark size="sm" />
-                          </div>
+                            <span className="absolute top-2 right-2 inline-flex items-center gap-1 text-[10px] font-medium bg-white/90 text-gray-700 px-1.5 py-0.5 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                              <ExternalLink size={10} /> View specs
+                            </span>
+                          </Link>
                           <div className="p-4">
-                            <h3 className="font-medium text-sm text-gray-900 truncate">{f.name}</h3>
+                            <Link to={`/fabrics/${f.slug || f.id}`} target="_blank" rel="noreferrer" className="font-medium text-sm text-gray-900 truncate block hover:text-[#2563EB]" data-testid={`agent-fabric-name-${f.id}`}>
+                              {f.name}
+                            </Link>
                             <p className="text-xs text-gray-500 mt-0.5">{f.category_name}</p>
                             {/* Vendor pill — prominent on Agent platform (hidden on B2C) */}
                             {f.seller_company ? (
