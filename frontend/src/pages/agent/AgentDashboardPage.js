@@ -651,9 +651,22 @@ const AgentDashboardPage = () => {
                   <div className="lg:col-span-2 space-y-3">
                     {cart.map((item) => (
                       <div key={`${item.fabric_id}-${item.order_type}`} className="bg-white rounded-xl p-4 border border-gray-200 flex gap-4" data-testid={`cart-item-${item.fabric_id}`}>
-                        {item.image_url && <img src={item.image_url} alt={item.fabric_name} className="w-20 h-20 object-cover rounded-lg" />}
+                        {item.image_url && (
+                          <Link to={`/fabrics/${item.fabric_slug || item.fabric_id}`} target="_blank" rel="noreferrer">
+                            <img src={item.image_url} alt={item.fabric_name} className="w-20 h-20 object-cover rounded-lg hover:opacity-80 transition" />
+                          </Link>
+                        )}
                         <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{item.fabric_name}</h3>
+                          <Link
+                            to={`/fabrics/${item.fabric_slug || item.fabric_id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-gray-900 hover:text-[#2563EB] inline-flex items-center gap-1.5 group"
+                            data-testid={`cart-item-pdp-${item.fabric_id}`}
+                          >
+                            {item.fabric_name}
+                            <ExternalLink size={11} className="text-gray-400 group-hover:text-[#2563EB]" />
+                          </Link>
                           <p className="text-xs text-gray-500">{item.category_name}</p>
                           {/* Vendor pill — agent must know which vendor to coordinate with */}
                           {item.seller_company ? (
@@ -896,10 +909,24 @@ const AgentDashboardPage = () => {
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {sc.items?.slice(0, 3).map((item, i) => (
-                          <span key={i} className="text-xs bg-gray-50 border border-gray-100 px-2 py-1 rounded">
-                            <span className={`inline-block mr-1 px-1 py-0 rounded text-[10px] font-bold ${item.order_type === 'sample' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>{item.order_type === 'sample' ? 'S' : 'B'}</span>
-                            {item.fabric_name} ({item.quantity}m)
-                          </span>
+                          item.fabric_id ? (
+                            <Link
+                              key={i}
+                              to={`/fabrics/${item.fabric_slug || item.fabric_id}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs bg-gray-50 border border-gray-100 px-2 py-1 rounded hover:border-blue-300 hover:text-[#2563EB] inline-flex items-center"
+                              title="View full specs"
+                            >
+                              <span className={`inline-block mr-1 px-1 py-0 rounded text-[10px] font-bold ${item.order_type === 'sample' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>{item.order_type === 'sample' ? 'S' : 'B'}</span>
+                              {item.fabric_name} ({item.quantity}m)
+                            </Link>
+                          ) : (
+                            <span key={i} className="text-xs bg-gray-50 border border-gray-100 px-2 py-1 rounded">
+                              <span className={`inline-block mr-1 px-1 py-0 rounded text-[10px] font-bold ${item.order_type === 'sample' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>{item.order_type === 'sample' ? 'S' : 'B'}</span>
+                              {item.fabric_name} ({item.quantity}m)
+                            </span>
+                          )
                         ))}
                         {sc.items?.length > 3 && <span className="text-xs text-gray-400">+{sc.items.length - 3} more</span>}
                       </div>
