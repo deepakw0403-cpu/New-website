@@ -42,6 +42,14 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
+
+  // ── Multi-item shared-cart support ──────────────────────────────────
+  // When the user lands here from a shared cart link, the agent might
+  // have curated 2+ items across multiple vendors. We fetch the whole
+  // cart and keep the list in `cartItems`. Single-item PDP checkouts
+  // still use the `fabric` state below (cartItems stays empty).
+  const [cartItems, setCartItems] = useState([]); // [{fabric_id, fabric_name, quantity, price_per_meter, order_type, image_url, seller_id, seller_company, ...}]
+  const isMultiItem = cartItems.length > 0;
   
   // Customer form
   const [customer, setCustomer] = useState({
@@ -245,20 +253,83 @@ const CheckoutPage = () => {
   };
 
   useEffect(() => {
+    // Multi-item path — when a shared cart token is present, fetch the
+    // full cart and load every item. Single fabric_id fallback handles
+    // both the legacy single-item shared-cart redirect AND direct PDP
+    // checkout where there's no token.
+    if (sharedCartToken) {
+      (async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/agent/cart/${sharedCartToken}`);
+          if (!res.ok) throw new Error("Cart not found");
+          const data = await res.json();
+          const items = Array.isArray(data.items) ? data.items : [];
+          if (items.length > 1) {
+            setCartItems(items);
+            setLoading(false);
+            return;
+          }
+          // Single-item cart — still use the legacy fabric flow below
+        } catch {
+          // fall through to single fabric_id load
+        }
+        if (fabricId) fetchFabric();
+        else setLoading(false);
+      })();
+      return;
+    }
+
     if (!fabricId) {
       toast.error("No fabric selected");
       navigate("/fabrics");
       return;
     }
-    
+
     fetchFabric();
-  }, [fabricId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fabricId, sharedCartToken]);
 
   useEffect(() => {
-    if (fabric) {
+    if (isMultiItem) {
+      calculateMultiItemPricing();
+    } else if (fabric) {
       calculatePricing();
     }
-  }, [fabric, quantity, orderType, discount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fabric, quantity, orderType, discount, cartItems]);
+
+  // Multi-vendor pricing: sum subtotals across items, apply the same
+  // sample / bulk logistics formula on the aggregate. This keeps the
+  // customer-facing total identical to what they would have seen if the
+  // agent had built a single-vendor cart of the same value.
+  const calculateMultiItemPricing = () => {
+    if (cartItems.length === 0) return;
+    const sub = cartItems.reduce(
+      (s, it) => s + (Number(it.quantity) || 0) * (Number(it.price_per_meter) || 0),
+      0
+    );
+    const taxAmount = sub * 0.05;
+    const hasBulk = cartItems.some((it) => (it.order_type || "bulk") === "bulk");
+    let totalLogistics = 0;
+    let packaging = 0;
+    let logisticsOnly = 0;
+    if (!hasBulk) {
+      // Pure-sample cart → flat ₹100 per item shipment fee
+      totalLogistics = 100 * cartItems.length;
+    } else {
+      const totalQty = cartItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+      totalLogistics = Math.max(sub * 0.03, 3000);
+      packaging = totalQty * 1;
+      logisticsOnly = Math.max(0, totalLogistics - packaging);
+    }
+    const finalTotal = sub + taxAmount + totalLogistics - discount;
+    setSubtotal(sub);
+    setTax(taxAmount);
+    setLogistics(totalLogistics);
+    setPackagingCharge(packaging);
+    setLogisticsCharge(logisticsOnly);
+    setTotal(Math.max(0, finalTotal));
+  };
 
   const [fetchError, setFetchError] = useState(false);
 
@@ -407,24 +478,43 @@ const CheckoutPage = () => {
     setPaymentError(null);
 
     try {
-      // Create order data
+      // Build items payload — multi-item from shared cart OR single-item from PDP
+      const itemsPayload = isMultiItem
+        ? cartItems.map((it) => ({
+            fabric_id: it.fabric_id,
+            fabric_name: it.fabric_name || "",
+            fabric_code: it.fabric_code || "",
+            category_name: it.category_name || "",
+            seller_company: it.seller_company || "",
+            seller_id: it.seller_id || "",
+            quantity: Number(it.quantity) || 0,
+            price_per_meter: Number(it.price_per_meter) || 0,
+            order_type: it.order_type || "bulk",
+            image_url: it.image_url || "",
+            hsn_code: it.hsn_code || "",
+            color_name: it.color_name || "",
+            color_hex: it.color_hex || "",
+            dispatch_timeline: it.dispatch_timeline || (it.order_type === "bulk" ? "15-20 days" : "Ready Stock"),
+          }))
+        : [{
+            fabric_id: fabric.id,
+            fabric_name: fabric.name,
+            fabric_code: fabric.fabric_code || "",
+            category_name: fabric.category_name || "",
+            seller_company: fabric.seller_company || "",
+            seller_id: fabric.seller_id || "",
+            quantity: quantity,
+            price_per_meter: pricePerMeter,
+            order_type: orderType,
+            image_url: fabric.images?.[0] || "",
+            hsn_code: fabric.hsn_code || "",
+            color_name: colorName || "",
+            color_hex: colorHex || "",
+            dispatch_timeline: fabric.dispatch_timeline || (orderType === 'bulk' ? '15-20 days' : 'Ready Stock')
+          }];
+
       const orderData = {
-        items: [{
-          fabric_id: fabric.id,
-          fabric_name: fabric.name,
-          fabric_code: fabric.fabric_code || "",
-          category_name: fabric.category_name || "",
-          seller_company: fabric.seller_company || "",
-          seller_id: fabric.seller_id || "",
-          quantity: quantity,
-          price_per_meter: pricePerMeter,
-          order_type: orderType,
-          image_url: fabric.images?.[0] || "",
-          hsn_code: fabric.hsn_code || "",
-          color_name: colorName || "",
-          color_hex: colorHex || "",
-          dispatch_timeline: fabric.dispatch_timeline || (orderType === 'bulk' ? '15-20 days' : 'Ready Stock')
-        }],
+        items: itemsPayload,
         customer: { ...customer, gst_number: gstNumber },
         notes: notes,
         logistics_charge: logistics,
@@ -474,7 +564,9 @@ const CheckoutPage = () => {
         amount: orderInfo.amount_paise,
         currency: orderInfo.currency,
         name: "Locofast",
-        description: `${orderType === "sample" ? "Sample" : "Bulk"} Order - ${fabric.name}`,
+        description: isMultiItem
+          ? `Locofast cart · ${cartItems.length} item${cartItems.length !== 1 ? "s" : ""}`
+          : `${orderType === "sample" ? "Sample" : "Bulk"} Order - ${fabric?.name || ""}`,
         order_id: orderInfo.razorpay_order_id,
         handler: async function (response) {
           // Verify payment
@@ -577,7 +669,7 @@ const CheckoutPage = () => {
     );
   }
 
-  if (!fabric) {
+  if (!fabric && !isMultiItem) {
     return (
       <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
         <Navbar />
@@ -642,8 +734,60 @@ const CheckoutPage = () => {
                   <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <ShoppingCart size={20} />
                     Order Summary
+                    {isMultiItem && (
+                      <span className="ml-2 text-xs font-medium bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                        {cartItems.length} items
+                      </span>
+                    )}
                   </h2>
-                  
+
+                  {isMultiItem ? (
+                    <div className="space-y-3" data-testid="checkout-multi-items">
+                      {cartItems.map((it, idx) => (
+                        <div key={idx} className="flex gap-3 pb-3 border-b border-gray-100 last:border-0">
+                          <img
+                            src={it.image_url || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=200"}
+                            alt={it.fabric_name}
+                            className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-gray-900 text-sm truncate">{it.fabric_name}</h3>
+                            {it.category_name && <p className="text-xs text-gray-500">{it.category_name}</p>}
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                it.order_type === "sample" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
+                              }`}>{it.order_type === "sample" ? "Sample" : "Bulk"}</span>
+                              <span className="text-gray-600">{it.quantity} {it.unit || "m"}</span>
+                              <span className="text-gray-500">@ ₹{Number(it.price_per_meter).toLocaleString()}</span>
+                              {it.color_name && (
+                                <span className="inline-flex items-center gap-1 text-gray-600">
+                                  <span className="w-2.5 h-2.5 rounded-full border border-gray-300" style={{ backgroundColor: it.color_hex || '#ccc' }} />
+                                  {it.color_name}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right text-sm font-semibold whitespace-nowrap">
+                            ₹{(Number(it.quantity) * Number(it.price_per_meter)).toLocaleString()}
+                          </div>
+                        </div>
+                      ))}
+                      {/* Multi-vendor heads-up */}
+                      {(() => {
+                        const sellers = new Set(cartItems.map((it) => it.seller_id).filter(Boolean));
+                        if (sellers.size <= 1) return null;
+                        return (
+                          <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2" data-testid="checkout-multi-vendor-note">
+                            <Truck size={14} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                            <p className="text-xs text-amber-800">
+                              Items in this order ship from <strong>{sellers.size} different mills</strong>. You'll receive {sellers.size} separate shipments with individual tracking links once dispatched.
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    <>
                   <div className="flex gap-4">
                     <img
                       src={fabric.images?.[0] || "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=200"}
@@ -672,8 +816,13 @@ const CheckoutPage = () => {
                       </div>
                     </div>
                   </div>
+                  </>
+                  )}
                   
-                  {/* Estimated Delivery Timeline */}
+                  {/* Estimated Delivery Timeline — only shown in single-item flow
+                       where we have the full fabric record. Multi-item carts get
+                       a vendor-count note above instead. */}
+                  {!isMultiItem && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <div className="flex items-start gap-2 text-sm">
                       <Truck size={16} className="text-emerald-600 mt-0.5" />
@@ -709,6 +858,7 @@ const CheckoutPage = () => {
                       </div>
                     </div>
                   </div>
+                  )}
                 </div>
 
                 {/* Billing & GST */}
@@ -1021,6 +1171,15 @@ const CheckoutPage = () => {
                 </h2>
 
                 <div className="space-y-3 text-sm">
+                  {isMultiItem ? (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Items</span>
+                      <span data-testid="checkout-multi-items-count">
+                        {cartItems.length} from {new Set(cartItems.map((it) => it.seller_id).filter(Boolean)).size || 1} mill{(new Set(cartItems.map((it) => it.seller_id).filter(Boolean)).size || 1) !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  ) : (
+                    <>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Price per {getUnit(fabric).singular}</span>
                     <span>₹{pricePerMeter.toLocaleString()}</span>
@@ -1029,6 +1188,8 @@ const CheckoutPage = () => {
                     <span className="text-gray-600">Quantity</span>
                     <span>{quantity} {getUnit(fabric).plural}</span>
                   </div>
+                    </>
+                  )}
                   <div className="flex justify-between pt-3 border-t border-gray-100">
                     <span className="text-gray-600">Subtotal</span>
                     <span>₹{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
@@ -1037,11 +1198,11 @@ const CheckoutPage = () => {
                     <span className="text-gray-600">GST (5%)</span>
                     <span>₹{tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
-                  {orderType === "bulk" ? (
+                  {(isMultiItem ? packagingCharge > 0 : orderType === "bulk") ? (
                     <>
                       <div className="flex justify-between">
                         <span className="text-gray-600">
-                          Packaging (₹1/{getUnit(fabric).short})
+                          Packaging{!isMultiItem && ` (₹1/${getUnit(fabric).short})`}
                         </span>
                         <span>₹{packagingCharge.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>

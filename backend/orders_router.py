@@ -186,6 +186,135 @@ def verify_razorpay_signature(order_id: str, payment_id: str, signature: str) ->
     return hmac.compare_digest(expected_signature, signature)
 
 
+# ════════════════════════════════════════════════════════════════════
+#  Multi-vendor order splitting
+# ════════════════════════════════════════════════════════════════════
+# When a single checkout contains items from multiple sellers, we keep
+# the original `orders` document as the "parent" (customer-facing
+# financial record) and create one "child" order per seller. Children
+# inherit the customer + payment metadata but carry only that seller's
+# line items + a proportional share of logistics/tax. This lets:
+#   • each vendor see ONLY their items in /vendor/orders (filter by
+#     `seller_id` on child docs — parents are tagged is_parent_order=True
+#     and skipped from the vendor view)
+#   • Shiprocket gets one shipment per vendor pickup origin (correct
+#     real-world behavior)
+#   • the customer's orders page shows each shipment as a separate row
+#     so they can track each leg independently.
+# ════════════════════════════════════════════════════════════════════
+async def split_order_into_child_orders(parent_order: dict) -> List[dict]:
+    """Group parent_order.items by seller_id and persist one child per
+    seller. Returns the list of child docs created (or [] if there's
+    only one seller — in which case the parent already does the job).
+    Idempotent: calling twice on the same parent is a no-op.
+    """
+    items = parent_order.get("items") or []
+    if not items:
+        return []
+
+    # Group by seller_id (treating empty/missing as a single "house" bucket)
+    by_seller: dict[str, list] = {}
+    for it in items:
+        sid = (it.get("seller_id") or "").strip()
+        by_seller.setdefault(sid, []).append(it)
+
+    # Single-vendor order → no split needed
+    if len(by_seller) <= 1:
+        return []
+
+    # Idempotency: if children already exist for this parent, skip
+    existing = await db.orders.count_documents({"parent_order_id": parent_order["id"]})
+    if existing:
+        return []
+
+    parent_subtotal = sum(
+        (it.get("quantity", 0) * it.get("price_per_meter", 0)) for it in items
+    ) or 1.0  # avoid div-zero
+    parent_logistics = float(parent_order.get("logistics_charge", 0) or 0)
+    parent_packaging = float(parent_order.get("packaging_charge", 0) or 0)
+    parent_tax_rate = 0.05  # 5% GST — same rate as calculate_totals()
+    parent_total = float(parent_order.get("total", 0) or 0)
+    now = datetime.now(timezone.utc).isoformat()
+
+    child_docs = []
+    child_ids = []
+    child_numbers = []
+    suffix_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    for idx, (sid, sub_items) in enumerate(by_seller.items()):
+        child_subtotal = sum(it["quantity"] * it["price_per_meter"] for it in sub_items)
+        share = child_subtotal / parent_subtotal if parent_subtotal > 0 else 0
+        child_logistics = round(parent_logistics * share, 2)
+        child_packaging = round(parent_packaging * share, 2)
+        child_tax = round(child_subtotal * parent_tax_rate, 2)
+        child_total = round(child_subtotal + child_tax + child_logistics + child_packaging, 2)
+        child_total_share = round(parent_total * share, 2)  # what they actually paid for this vendor's portion
+
+        suffix = suffix_letters[idx] if idx < len(suffix_letters) else f"{idx + 1}"
+        child_id = str(uuid.uuid4())
+        child_number = f"{parent_order['order_number']}-{suffix}"
+        seller_company = sub_items[0].get("seller_company", "") if sub_items else ""
+
+        child_doc = {
+            "id": child_id,
+            "order_number": child_number,
+            "parent_order_id": parent_order["id"],
+            "parent_order_number": parent_order["order_number"],
+            "is_parent_order": False,
+            "items": sub_items,
+            "customer": parent_order.get("customer", {}),
+            "seller_id": sid,
+            "seller_company": seller_company,
+            "subtotal": round(child_subtotal, 2),
+            "tax": child_tax,
+            "logistics_charge": child_logistics,
+            "packaging_charge": child_packaging,
+            "total": child_total,
+            "total_paid_share": child_total_share,
+            "currency": parent_order.get("currency", "INR"),
+            "status": parent_order.get("status", "confirmed"),
+            "payment_status": parent_order.get("payment_status", "paid"),
+            "payment_method": parent_order.get("payment_method", ""),
+            "booking_type": parent_order.get("booking_type", "online"),
+            "agent_id": parent_order.get("agent_id", ""),
+            "agent_email": parent_order.get("agent_email", ""),
+            "agent_name": parent_order.get("agent_name", ""),
+            # Commission: pro-rata of parent commission for this vendor's share
+            "commission_pct": parent_order.get("commission_pct", 0),
+            "commission_amount": round(float(parent_order.get("commission_amount", 0) or 0) * share, 2),
+            "seller_payout": round(child_subtotal - (float(parent_order.get("commission_amount", 0) or 0) * share), 2),
+            # Each child gets its OWN Shiprocket shipment (different pickup origin)
+            "shiprocket_order_id": None,
+            "shiprocket_shipment_id": None,
+            "awb_code": None,
+            "courier_name": None,
+            "notes": parent_order.get("notes", ""),
+            "created_at": now,
+            "updated_at": now,
+            "paid_at": parent_order.get("paid_at", now),
+        }
+        child_docs.append(child_doc)
+        child_ids.append(child_id)
+        child_numbers.append(child_number)
+
+    # Insert children + tag the parent as such
+    await db.orders.insert_many(child_docs)
+    await db.orders.update_one(
+        {"id": parent_order["id"]},
+        {"$set": {
+            "is_parent_order": True,
+            "child_order_ids": child_ids,
+            "child_order_numbers": child_numbers,
+            "vendor_count": len(child_docs),
+            "updated_at": now,
+        }},
+    )
+    logger.info(
+        f"[order-split] parent={parent_order['order_number']} → "
+        f"{len(child_docs)} children: {', '.join(child_numbers)}"
+    )
+    return child_docs
+
+
 @router.get("/payment-status")
 async def get_payment_status():
     """Check if payment service is configured (for debugging)"""
@@ -362,11 +491,25 @@ async def create_order(order_data: OrderCreate):
                 {'$set': {'status': 'completed', 'order_id': order_id, 'updated_at': now}}
             )
         
+        # Multi-vendor split: if items are from multiple sellers, create one
+        # child order per seller for vendor-side visibility, Shiprocket
+        # shipments, and customer tracking.
+        child_orders = []
+        try:
+            child_orders = await split_order_into_child_orders(order_doc)
+        except Exception as e:
+            logger.warning(f"Failed to split multi-vendor order {order_number}: {e}")
+
         # Send confirmation emails
         try:
             await send_order_notification_emails(db, order_doc)
         except Exception as e:
             logger.warning(f"Failed to send order emails: {e}")
+
+        # Fire Shiprocket pushes — one per child (or per parent if no split)
+        targets = child_orders or [order_doc]
+        for tgt in targets:
+            asyncio.create_task(_push_to_shiprocket_safe(tgt))
         
         return {
             "order_id": order_id,
@@ -375,7 +518,11 @@ async def create_order(order_data: OrderCreate):
             "amount": final_total,
             "currency": "INR",
             "status": "confirmed",
-            "customer": order_data.customer.model_dump()
+            "customer": order_data.customer.model_dump(),
+            "child_orders": [
+                {"id": c["id"], "order_number": c["order_number"], "seller_id": c["seller_id"], "seller_company": c.get("seller_company", ""), "total": c["total"]}
+                for c in child_orders
+            ],
         }
     
     # Razorpay payment path
@@ -513,20 +660,30 @@ async def verify_payment(verification: PaymentVerification):
         logger.error(f"Failed to update inventory: {str(e)}")
     
     # Create Shiprocket shipment (best effort, non-blocking)
+    # First, split into child orders if multi-vendor
+    child_orders = []
     try:
-        shiprocket_result = await create_shiprocket_shipment(order)
-        if shiprocket_result.get("success"):
-            await db.orders.update_one(
-                {"razorpay_order_id": verification.razorpay_order_id},
-                {"$set": {
-                    "shiprocket_order_id": shiprocket_result.get("shiprocket_order_id"),
-                    "shiprocket_shipment_id": shiprocket_result.get("shipment_id"),
-                    "updated_at": datetime.now(timezone.utc).isoformat()
-                }}
-            )
-            logger.info(f"Shiprocket shipment created for order {order['order_number']}")
+        child_orders = await split_order_into_child_orders(order)
     except Exception as e:
-        logger.error(f"Failed to create Shiprocket shipment: {str(e)}")
+        logger.warning(f"Failed to split multi-vendor order {order.get('order_number')}: {e}")
+
+    # Fire Shiprocket pushes — one per child (or parent if no split)
+    shiprocket_targets = child_orders or [order]
+    for tgt in shiprocket_targets:
+        try:
+            shiprocket_result = await create_shiprocket_shipment(tgt)
+            if shiprocket_result.get("success"):
+                await db.orders.update_one(
+                    {"id": tgt["id"]},
+                    {"$set": {
+                        "shiprocket_order_id": str(shiprocket_result.get("order_id") or shiprocket_result.get("shiprocket_order_id") or ""),
+                        "shiprocket_shipment_id": shiprocket_result.get("shipment_id"),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                logger.info(f"Shiprocket shipment created for {tgt['order_number']}")
+        except Exception as e:
+            logger.error(f"Failed to create Shiprocket shipment for {tgt.get('order_number')}: {str(e)}")
     
     # Get updated order
     updated_order = await db.orders.find_one(
@@ -546,8 +703,39 @@ async def verify_payment(verification: PaymentVerification):
     return {
         "success": True,
         "message": "Payment verified successfully",
-        "order": updated_order
+        "order": updated_order,
+        "child_orders": [
+            {"id": c["id"], "order_number": c["order_number"], "seller_id": c.get("seller_id", ""), "seller_company": c.get("seller_company", ""), "total": c["total"]}
+            for c in child_orders
+        ],
     }
+
+
+async def _push_to_shiprocket_safe(order: dict) -> None:
+    """Fire-and-forget Shiprocket push that persists the returned SR ids
+    back onto the order doc. Used by the auto-create path after order
+    creation; errors are logged but never raised so the order flow
+    completes regardless of Shiprocket availability.
+    """
+    try:
+        result = await create_shiprocket_shipment(order)
+        if not result.get("success"):
+            logger.warning(f"[shiprocket-auto] {order.get('order_number')} failed: {result.get('error')}")
+            return
+        sr_order_id = result.get("order_id") or result.get("shiprocket_order_id")
+        update = {
+            "shiprocket_order_id": str(sr_order_id) if sr_order_id is not None else None,
+            "shiprocket_shipment_id": result.get("shipment_id"),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if result.get("awb_code"):
+            update["awb_code"] = result["awb_code"]
+        if result.get("courier_name"):
+            update["courier_name"] = result["courier_name"]
+        await db.orders.update_one({"id": order["id"]}, {"$set": update})
+        logger.info(f"[shiprocket-auto] {order.get('order_number')} pushed · sr={sr_order_id}")
+    except Exception as e:
+        logger.warning(f"[shiprocket-auto] {order.get('order_number')} exception: {e}")
 
 
 async def create_shiprocket_shipment(order: dict) -> dict:
