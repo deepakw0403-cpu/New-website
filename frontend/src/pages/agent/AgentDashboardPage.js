@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAgentAuth } from "../../context/AgentAuthContext";
-import { Search, ShoppingCart, Send, Package, LogOut, Plus, Minus, Trash2, ExternalLink, Copy, Loader2, Eye, Clock, CheckCircle, XCircle, FileText, Store, SlidersHorizontal, X } from "lucide-react";
+import { Search, ShoppingCart, Send, Package, LogOut, Plus, Minus, Trash2, ExternalLink, Copy, Loader2, Eye, Clock, CheckCircle, XCircle, FileText, Store, SlidersHorizontal, X, Mail, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 import { getFabrics, getFabricsCount, getCategories, getFabricFilterOptions } from "../../lib/api";
@@ -308,6 +308,69 @@ const AgentDashboardPage = () => {
   const copyLink = (token) => {
     navigator.clipboard.writeText(`${window.location.origin}/shared-cart/${token}`);
     toast.success("Link copied!");
+  };
+
+  // Build the pitch message shared with the customer over WhatsApp / Email.
+  // Kept concise (most carts go over WhatsApp where long blocks look spammy)
+  // but still informative — agent name, item summary, indicative total and
+  // a clear CTA so the buyer doesn't need to ask "what is this?"
+  const buildShareMessage = (sc) => {
+    const url = `${window.location.origin}/shared-cart/${sc.token}`;
+    const agentName = sc.agent_name || agent?.name || "your Locofast agent";
+    const itemCount = sc.items?.length || 0;
+    const subtotal = (sc.items || []).reduce(
+      (s, it) => s + (Number(it.quantity) || 0) * (Number(it.price_per_meter) || 0),
+      0
+    );
+    const itemsLine = (sc.items || []).slice(0, 3).map((it) => {
+      const tag = it.order_type === "sample" ? "Sample" : "Bulk";
+      return `• ${it.fabric_name} — ${it.quantity}m (${tag})`;
+    }).join("\n");
+    const overflow = itemCount > 3 ? `\n• +${itemCount - 3} more item${itemCount - 3 !== 1 ? "s" : ""}` : "";
+    const subtotalLine = subtotal > 0
+      ? `\n\nIndicative subtotal: ₹${subtotal.toLocaleString("en-IN")} (excl. GST, logistics & packaging)`
+      : "";
+    return {
+      url,
+      subject: `Your curated fabric cart from Locofast`,
+      body:
+`Hi,
+
+I've curated a fabric cart for you on Locofast — ${itemCount} item${itemCount !== 1 ? "s" : ""} ready to review.
+
+${itemsLine}${overflow}${subtotalLine}
+
+Open the cart to review specs, edit quantities and place the order:
+${url}
+
+The link is private to you. Reply here or call me with any questions.
+
+— ${agentName}
+Locofast Online Services`,
+    };
+  };
+
+  const shareViaWhatsApp = (sc) => {
+    const { url, body } = buildShareMessage(sc);
+    // Use the universal wa.me deeplink — works on mobile (opens WhatsApp app)
+    // and desktop (opens WhatsApp Web). Customer phone is intentionally NOT
+    // prefilled — agent might want to send to a different contact than the
+    // one captured in the shared cart, so we leave it as a free-form open.
+    const text = encodeURIComponent(body);
+    const wa = `https://wa.me/?text=${text}`;
+    window.open(wa, "_blank", "noopener,noreferrer");
+    toast.success("WhatsApp opened — pick a contact to send");
+    // Keep clipboard handy too as a fallback if WhatsApp didn't open
+    try { navigator.clipboard.writeText(url); } catch {}
+  };
+
+  const shareViaEmail = (sc) => {
+    const { subject, body } = buildShareMessage(sc);
+    const prefill = sc.customer_email && !sc.customer_email.endsWith("@phone.locofast.local")
+      ? sc.customer_email : "";
+    const mailto = `mailto:${encodeURIComponent(prefill)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+    toast.success("Opening your email client…");
   };
 
   const handleDeleteSharedCart = async (cart) => {
@@ -924,7 +987,23 @@ const AgentDashboardPage = () => {
                             <span className="text-xs text-gray-400 ml-3">{formatDate(sc.created_at)}</span>
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
+                          <button
+                            onClick={() => shareViaWhatsApp(sc)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-50"
+                            data-testid={`agent-share-whatsapp-${sc.token}`}
+                            title="Share via WhatsApp"
+                          >
+                            <MessageCircle size={14} />WhatsApp
+                          </button>
+                          <button
+                            onClick={() => shareViaEmail(sc)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-50"
+                            data-testid={`agent-share-email-${sc.token}`}
+                            title="Share via Email"
+                          >
+                            <Mail size={14} />Email
+                          </button>
                           <button onClick={() => copyLink(sc.token)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#2563EB] border border-blue-200 rounded-lg hover:bg-blue-50"><Copy size={14} />Copy Link</button>
                           <a href={`/shared-cart/${sc.token}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"><ExternalLink size={14} />Open</a>
                           {sc.status !== "completed" && (
