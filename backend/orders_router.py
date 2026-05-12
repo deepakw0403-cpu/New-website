@@ -1258,51 +1258,115 @@ async def razorpay_webhook(request: Request):
 
 # ==================== INVOICE GENERATION ====================
 
+# Authoritative state code → name map. Used to derive Place of Supply
+# from the buyer's GSTIN first 2 digits (most reliable signal) or from
+# the customer.state free-text as a fallback. Names match the official
+# GST portal so the buyer's reconciliation will not flag mismatches.
+GST_STATE_CODES = {
+    '01': 'Jammu and Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab',
+    '04': 'Chandigarh', '05': 'Uttarakhand', '06': 'Haryana', '07': 'Delhi',
+    '08': 'Rajasthan', '09': 'Uttar Pradesh', '10': 'Bihar', '11': 'Sikkim',
+    '12': 'Arunachal Pradesh', '13': 'Nagaland', '14': 'Manipur', '15': 'Mizoram',
+    '16': 'Tripura', '17': 'Meghalaya', '18': 'Assam', '19': 'West Bengal',
+    '20': 'Jharkhand', '21': 'Odisha', '22': 'Chhattisgarh', '23': 'Madhya Pradesh',
+    '24': 'Gujarat', '25': 'Daman and Diu', '26': 'Dadra and Nagar Haveli',
+    '27': 'Maharashtra', '28': 'Andhra Pradesh', '29': 'Karnataka',
+    '30': 'Goa', '31': 'Lakshadweep', '32': 'Kerala', '33': 'Tamil Nadu',
+    '34': 'Puducherry', '35': 'Andaman and Nicobar Islands', '36': 'Telangana',
+    '37': 'Andhra Pradesh (New)', '38': 'Ladakh', '97': 'Other Territory',
+    '99': 'Centre Jurisdiction',
+}
+
+# Locofast's seller GSTIN — used to compare against the buyer's state for
+# the IGST vs CGST+SGST decision. Sourced from env so multi-state
+# warehouses can be added later by storing per-order seller GSTIN on the
+# order doc.
+SELLER_GSTIN_DEFAULT = os.environ.get('LOCOFAST_SELLER_GSTIN', '07AADCL8794N1ZM')
+SELLER_STATE_CODE_DEFAULT = SELLER_GSTIN_DEFAULT[:2] if SELLER_GSTIN_DEFAULT else '07'
+
+
+def _state_code_from_state_text(state: str) -> str:
+    """Reverse-lookup the 2-digit state code from the buyer's state name."""
+    if not state:
+        return ''
+    s = state.strip().lower()
+    for code, name in GST_STATE_CODES.items():
+        if name.lower() == s:
+            return code
+    return ''
+
+
+def _resolve_buyer_state(customer: dict) -> tuple[str, str]:
+    """Return (state_code, state_name) for the buyer.
+
+    Priority:
+      1. GSTIN first 2 digits (most reliable — set by the GST portal)
+      2. Customer.state free-text → reverse-lookup
+      3. Empty fallback (caller must handle)
+    """
+    gst = (customer or {}).get('gst_number') or ''
+    if gst and len(gst) >= 2 and gst[:2].isdigit():
+        code = gst[:2]
+        return code, GST_STATE_CODES.get(code, customer.get('state', '') or '')
+    state_text = (customer or {}).get('state', '') or ''
+    code = _state_code_from_state_text(state_text)
+    return code, state_text
+
+
 def number_to_words(num: float) -> str:
-    """Convert number to words (Indian format)"""
+    """Convert a rupee amount to Indian-format words.
+
+    GST tax invoices MUST spell out the paise portion when present, so a
+    value like ₹887.50 becomes "Eight Hundred Eighty Seven Rupees and
+    Fifty Paise Only" — NOT "Eight Hundred and Eighty Eight Rupees Only"
+    which is what `round()`-based legacy logic produced (causing buyer
+    accounts-payable teams to reject invoices).
+    """
     ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
             'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
     tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
-    
-    if num == 0:
-        return 'Zero'
-    
-    num = int(round(num))
-    
-    def words_under_100(n):
+
+    def _words_under_100(n):
         if n < 20:
             return ones[n]
         return tens[n // 10] + ('' if n % 10 == 0 else ' ' + ones[n % 10])
-    
-    def words_under_1000(n):
+
+    def _words_under_1000(n):
         if n < 100:
-            return words_under_100(n)
-        return ones[n // 100] + ' Hundred' + ('' if n % 100 == 0 else ' and ' + words_under_100(n % 100))
-    
-    # Indian numbering: Crores, Lakhs, Thousands, Hundreds
-    if num >= 10000000:  # Crores
-        crores = num // 10000000
-        remainder = num % 10000000
-        result = words_under_100(crores) + ' Crore'
-        if remainder:
-            result += ' ' + number_to_words(remainder)
-        return result
-    elif num >= 100000:  # Lakhs
-        lakhs = num // 100000
-        remainder = num % 100000
-        result = words_under_100(lakhs) + ' Lakh'
-        if remainder:
-            result += ' ' + number_to_words(remainder)
-        return result
-    elif num >= 1000:  # Thousands
-        thousands = num // 1000
-        remainder = num % 1000
-        result = words_under_100(thousands) + ' Thousand'
-        if remainder:
-            result += ' ' + words_under_1000(remainder)
-        return result
-    else:
-        return words_under_1000(num)
+            return _words_under_100(n)
+        return ones[n // 100] + ' Hundred' + ('' if n % 100 == 0 else ' and ' + _words_under_100(n % 100))
+
+    def _indian_words(n: int) -> str:
+        """Convert a non-negative integer using the Indian numbering system."""
+        if n == 0:
+            return 'Zero'
+        parts = []
+        if n >= 10000000:
+            parts.append(_words_under_100(n // 10000000) + ' Crore')
+            n %= 10000000
+        if n >= 100000:
+            parts.append(_words_under_100(n // 100000) + ' Lakh')
+            n %= 100000
+        if n >= 1000:
+            parts.append(_words_under_100(n // 1000) + ' Thousand')
+            n %= 1000
+        if n > 0:
+            parts.append(_words_under_1000(n))
+        return ' '.join(parts)
+
+    if num is None:
+        return 'Zero Rupees Only'
+    # Split into integer rupees + integer paise WITHOUT rounding the
+    # rupee portion (a 0.50 amount must NOT become 1).
+    total_paise = int(round(float(num) * 100))
+    rupees = total_paise // 100
+    paise = total_paise % 100
+    rupees_words = _indian_words(rupees) if rupees > 0 else 'Zero'
+    rupee_unit = 'Rupee' if rupees == 1 else 'Rupees'
+    paise_unit = 'Paisa' if paise == 1 else 'Paise'
+    if paise > 0:
+        return f"{rupees_words} {rupee_unit} and {_words_under_100(paise)} {paise_unit} Only"
+    return f"{rupees_words} {rupee_unit} Only"
 
 def generate_invoice_pdf(order: dict) -> io.BytesIO:
     """Generate a GST-compliant invoice PDF in Locofast brand style"""
@@ -1364,37 +1428,65 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     elements.append(invoice_table)
     elements.append(Spacer(1, 5*mm))
     
+    # Resolve buyer state (drives Place of Supply + GST type)
+    buyer_state_code, buyer_state_name = _resolve_buyer_state(customer)
+    is_interstate = bool(buyer_state_code) and buyer_state_code != SELLER_STATE_CODE_DEFAULT
+    pos_label = (
+        f"{buyer_state_name} ({buyer_state_code})" if buyer_state_code
+        else (customer.get('state') or 'Not specified')
+    )
+
     # Seller and Buyer Details
-    seller_info = """<b>Sold By:</b><br/>
+    seller_info = f"""<b>Sold By:</b><br/>
     LOCOFAST ONLINE SERVICES PRIVATE LIMITED<br/>
     First Floor, Khasra No 385, Deskconnect<br/>
     100 Feet Road, Opp. Corporation Bank<br/>
     Ghitorni, New Delhi - 110030<br/>
-    <b>GSTIN:</b> 07AADCL8794N1ZM<br/>
+    <b>State Code:</b> {SELLER_STATE_CODE_DEFAULT} ({GST_STATE_CODES.get(SELLER_STATE_CODE_DEFAULT, 'Delhi')})<br/>
+    <b>GSTIN:</b> {SELLER_GSTIN_DEFAULT}<br/>
     <b>Email:</b> mail@locofast.com<br/>
     <b>Phone:</b> +91-8920392418"""
-    
+
     gst_line = ''
     cust_gst = customer.get('gst_number', '')
     if cust_gst:
         gst_line = f'<b>GSTIN:</b> {cust_gst}<br/>'
-    
+
+    buyer_state_line = (
+        f'<b>State Code:</b> {buyer_state_code} ({buyer_state_name})<br/>' if buyer_state_code else ''
+    )
+
     buyer_info = f"""<b>Bill To:</b><br/>
     {customer.get('name', 'N/A')}<br/>
     {customer.get('company', '') + '<br/>' if customer.get('company') else ''}
     {gst_line}{customer.get('address', 'N/A')}<br/>
     {customer.get('city', '')}, {customer.get('state', '')}<br/>
     PIN: {customer.get('pincode', 'N/A')}<br/>
-    <b>Phone:</b> {customer.get('phone', 'N/A')}<br/>
+    {buyer_state_line}<b>Phone:</b> {customer.get('phone', 'N/A')}<br/>
     <b>Email:</b> {customer.get('email', 'N/A')}"""
-    
-    address_table = Table([
-        [Paragraph(seller_info, small_style), Paragraph(buyer_info, small_style)]
-    ], colWidths=[90*mm, 90*mm])
+
+    # Ship-To block — only included when different from billing. Most B2C
+    # orders only have one address; multi-address brand checkouts pass
+    # `ship_to_*` keys on the order doc.
+    ship_to = order.get('ship_to') or {}
+    ship_addr = ship_to.get('address') or order.get('ship_to_address') or ''
+    if ship_addr and ship_addr.strip() != (customer.get('address') or '').strip():
+        ship_info = f"""<b>Ship To:</b><br/>
+        {ship_to.get('name') or customer.get('name', 'N/A')}<br/>
+        {ship_addr}<br/>
+        {ship_to.get('city') or order.get('ship_to_city', '')}, {ship_to.get('state') or order.get('ship_to_state', '')}<br/>
+        PIN: {ship_to.get('pincode') or order.get('ship_to_pincode', '')}"""
+        address_table = Table([
+            [Paragraph(seller_info, small_style), Paragraph(buyer_info, small_style), Paragraph(ship_info, small_style)]
+        ], colWidths=[60*mm, 60*mm, 60*mm])
+    else:
+        address_table = Table([
+            [Paragraph(seller_info, small_style), Paragraph(buyer_info, small_style)]
+        ], colWidths=[90*mm, 90*mm])
     address_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (0, 0), 0.5, colors.HexColor('#dbeafe')),
-        ('BOX', (1, 0), (1, 0), 0.5, colors.HexColor('#dbeafe')),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#dbeafe')),
+        ('INNERGRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#dbeafe')),
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(LIGHT_BG)),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
@@ -1402,6 +1494,24 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
         ('RIGHTPADDING', (0, 0), (-1, -1), 8),
     ]))
     elements.append(address_table)
+    elements.append(Spacer(1, 3*mm))
+
+    # Mandatory GST invoice metadata — Place of Supply + Reverse Charge.
+    # Both are required on every Indian tax invoice (Rule 46 of CGST Rules).
+    meta_table = Table([[
+        Paragraph(f"<b>Place of Supply:</b> {pos_label}", small_style),
+        Paragraph("<b>Reverse Charge:</b> No", small_style),
+        Paragraph(f"<b>Tax Type:</b> {'IGST (Inter-state)' if is_interstate else 'CGST + SGST (Intra-state)'}", small_style),
+    ]], colWidths=[80*mm, 40*mm, 60*mm])
+    meta_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#dbeafe')),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    elements.append(meta_table)
     elements.append(Spacer(1, 5*mm))
     
     # Items Table
@@ -1426,8 +1536,29 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
         if order_type:
             description += f"\nType: {order_type.title()}"
         
-        # HSN code: use item-specific if set, fallback to generic fabric HSN
-        hsn = item.get('hsn_code', '') or '540799'
+        # HSN code: use item-specific if set, fallback to a category-aware
+        # default. 540799 ONLY applies to synthetic-filament woven fabrics —
+        # using it as a global default caused buyer-side HSN mismatches.
+        # We now infer a safer default from the item's name; sellers should
+        # still set the precise HSN on each fabric (validated on the seller
+        # form).
+        hsn = item.get('hsn_code', '')
+        if not hsn:
+            name = (item.get('fabric_name') or '').lower()
+            if 'cotton' in name:
+                hsn = '5208'   # Woven cotton fabrics (most common default for this catalog)
+            elif 'denim' in name:
+                hsn = '5209'   # Cotton denim
+            elif 'linen' in name:
+                hsn = '5309'   # Woven linen
+            elif 'silk' in name:
+                hsn = '5007'   # Woven silk
+            elif 'wool' in name:
+                hsn = '5111'   # Woven wool
+            elif 'poly' in name or 'synth' in name:
+                hsn = '5407'   # Synthetic filament woven
+            else:
+                hsn = '5208'   # Default to cotton (catalog is cotton-heavy)
         
         if order_type == 'sample':
             lead_time = "Ready Stock"
@@ -1485,14 +1616,19 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     packaging = order.get('packaging_charge', 0)
     logistics_only = order.get('logistics_only_charge', 0)
     total = order.get('total', 0)
-    cgst = tax / 2
-    sgst = tax / 2
     
     totals_data = [
         ['Subtotal:', f"Rs {subtotal:,.2f}"],
-        ['CGST (2.5%):', f"Rs {cgst:,.2f}"],
-        ['SGST (2.5%):', f"Rs {sgst:,.2f}"],
     ]
+    if is_interstate:
+        # Inter-state supply → single IGST line at the combined 5% rate.
+        totals_data.append(['IGST (5%):', f"Rs {tax:,.2f}"])
+    else:
+        # Intra-state supply → CGST + SGST split equally
+        cgst = tax / 2
+        sgst = tax / 2
+        totals_data.append(['CGST (2.5%):', f"Rs {cgst:,.2f}"])
+        totals_data.append(['SGST (2.5%):', f"Rs {sgst:,.2f}"])
     
     # Show packaging and logistics separately for bulk orders
     if packaging > 0 and logistics_only > 0:
@@ -1524,10 +1660,10 @@ def generate_invoice_pdf(order: dict) -> io.BytesIO:
     elements.append(totals_table)
     elements.append(Spacer(1, 3*mm))
     
-    # Amount in Words
+    # Amount in Words (paise-aware)
     amount_words = number_to_words(total)
     elements.append(Paragraph(
-        f"<b>Amount in Words:</b> {amount_words} Rupees Only",
+        f"<b>Amount in Words:</b> {amount_words}",
         ParagraphStyle('AmountWords', parent=styles['Normal'], fontSize=9, backColor=colors.HexColor(LIGHT_BG), borderPadding=5)
     ))
     elements.append(Spacer(1, 5*mm))
