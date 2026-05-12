@@ -100,10 +100,44 @@ const LogoCard = ({ brand }) => {
   );
 };
 
-const BrandTicker = () => {
+const BrandTicker = ({ compact = false }) => {
   // Duplicate the list so the marquee animation loops seamlessly
   // (single set would create a visible jump at the end).
   const doubled = useMemo(() => [...BRANDS, ...BRANDS], []);
+
+  // Compact mode = embedded inside the hero (dark gradient bg). Renders
+  // a minimal marquee with no section wrapper, no title, smaller cards.
+  if (compact) {
+    return (
+      <div className="relative w-full overflow-hidden" data-testid="brand-ticker-section">
+        <p className="text-center text-[10px] sm:text-[11px] font-semibold tracking-[0.2em] text-white/70 uppercase mb-3">
+          Trusted by Global Brand Production Networks
+        </p>
+        <div className="relative">
+          {/* edge-fade for the hero background */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-[#2563EB] to-transparent z-10" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-[#2563EB] to-transparent z-10" />
+          <div className="flex animate-marquee" style={{ width: "max-content" }}>
+            {doubled.map((b, i) => (
+              <LogoCard key={`${b.slug}-${i}`} brand={b} compact />
+            ))}
+          </div>
+        </div>
+        <style>{`
+          @keyframes locofast-marquee {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .animate-marquee {
+            animation: locofast-marquee 45s linear infinite;
+          }
+          .animate-marquee:hover {
+            animation-play-state: paused;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <section

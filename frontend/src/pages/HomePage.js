@@ -179,8 +179,13 @@ const HomePage = () => {
 
               <HeroSearchCard />
 
+              {/* Brand ticker inside the hero — on the top fold */}
+              <div className="mt-10">
+                <BrandTicker compact />
+              </div>
+
               {/* Trust indicators */}
-              <div className="flex flex-wrap justify-center gap-8 mt-16 pt-8 border-t border-white/10">
+              <div className="flex flex-wrap justify-center gap-8 mt-8 pt-6 border-t border-white/10">
                 {trustBadges.map((badge, index) => (
                   <div key={index} className="flex items-center gap-2 text-white/80">
                     <badge.icon size={18} className="text-blue-200" />
@@ -191,9 +196,6 @@ const HomePage = () => {
             </div>
           </div>
         </section>
-
-        {/* ========== TRUSTED BY GLOBAL BRANDS (ticker) ========== */}
-        <BrandTicker />
 
         {/* ========== WHO WE SERVE ========== */}
         <section className="py-20 lg:py-28 bg-white" data-testid="audience-section">
