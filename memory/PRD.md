@@ -514,6 +514,15 @@ Full admin order-edit capability + Shiprocket pickup now sourced from the assign
 - **Frontend — `EditOrderModal.js`**: Full 5-tab modal (Items / Customer / Shipping / Vendor / History) opened via "Edit Order" button on the admin order detail. Live total recomputation preview, vendor search with pickup-warning badge, audit history viewer with collapsible diff JSON, optional "cancel & re-push SR" checkbox.
 - **Frontend — Admin Seller Detail Finance tab**: Adds a "Pickup address (Ship-From)" card with 7 fields + Save button so admin can register each vendor's warehouse for Shiprocket pickup.
 
+### Phase 59: 5% GST on Packaging + Logistics (Complete - Feb 2026)
+Compliance fix — per Schedule II of the CGST Act, packaging and logistics charged by the supplier are part of the value of supply and are taxable at the same rate as the principal goods. Earlier orders didn't tax these charges; new orders do. Tested 9/9 backend + frontend (iteration_62.json).
+- **Backend (`orders_router.py`)**: `calculate_totals` rewritten — `taxable_value = goods_subtotal + packaging + logistics`, `tax = 5% × taxable_value`, `total = taxable_value + tax`. Result also exposes a `tax_on_charges_v2: True` flag so the PDF renderer can branch correctly.
+- **Order doc**: New persisted fields `taxable_value` and `tax_on_charges_v2: True` on both Razorpay and credit-paid order creation paths. Bangladesh export PI flow unchanged (exports stay zero-rated).
+- **Invoice PDF — dual presentation**:
+  - **v2 (Feb 2026+)**: Goods Subtotal → Packaging Charge → Logistics Charge → **Taxable Value** → IGST 5% (or CGST 2.5% + SGST 2.5%) → TOTAL
+  - **v1 (legacy)**: Subtotal → IGST/CGST/SGST (on goods only) → Packaging → Logistics → TOTAL — preserved exactly so historical invoices match what customers were actually charged.
+- **Checkout UI (`CheckoutPage.js`)**: Both `calculatePricing` and `calculateMultiItemPricing` now compute tax base = `goods + packaging + logistics`. Order summary panel reorders to: Goods Subtotal → Packaging → Logistics → "Taxable value (Goods + Packaging + Logistics)" dashed row → GST 5% → Coupon/Credit → Total.
+
 ## Backlog
 
 ### P0 (Top Priority — Next)
