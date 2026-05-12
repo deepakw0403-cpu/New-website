@@ -310,6 +310,27 @@ const AgentDashboardPage = () => {
     toast.success("Link copied!");
   };
 
+  const handleDeleteSharedCart = async (cart) => {
+    const label = `${cart.items?.length || 0} item${(cart.items?.length || 0) !== 1 ? "s" : ""}`;
+    if (!window.confirm(`Delete this shared cart (${label})?\n\nThe customer's link will stop working. This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${API}/api/agent/shared-cart/${cart.id || cart.token}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to delete cart");
+      }
+      toast.success("Shared cart deleted");
+      // Optimistic update — drop the row immediately, then re-sync
+      setSharedCarts((prev) => prev.filter((c) => (c.id || c.token) !== (cart.id || cart.token)));
+      fetchSharedCarts();
+    } catch (e) {
+      toast.error(e.message || "Failed to delete cart");
+    }
+  };
+
   const cartTotal = cart.reduce((s, c) => s + c.quantity * c.price_per_meter, 0);
   const totalMeters = cart.reduce((s, c) => s + (c.order_type === "bulk" ? c.quantity : 0), 0);
   const METERS_TO_YARDS = 1.0936;
@@ -906,6 +927,16 @@ const AgentDashboardPage = () => {
                         <div className="flex gap-2">
                           <button onClick={() => copyLink(sc.token)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#2563EB] border border-blue-200 rounded-lg hover:bg-blue-50"><Copy size={14} />Copy Link</button>
                           <a href={`/shared-cart/${sc.token}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"><ExternalLink size={14} />Open</a>
+                          {sc.status !== "completed" && (
+                            <button
+                              onClick={() => handleDeleteSharedCart(sc)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
+                              data-testid={`agent-shared-cart-delete-${sc.id || sc.token}`}
+                              title="Delete this shared cart"
+                            >
+                              <Trash2 size={14} />Delete
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div className="text-sm text-gray-600">
