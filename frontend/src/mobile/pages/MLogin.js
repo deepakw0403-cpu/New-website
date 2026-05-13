@@ -1,0 +1,233 @@
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { ChevronLeft, Mail, KeyRound, ArrowRight, Shield } from "lucide-react";
+import { toast } from "sonner";
+import api, { sendCustomerOTP, verifyCustomerOTP } from "../../lib/api";
+import { useCustomerAuth } from "../../context/CustomerAuthContext";
+
+export default function MLogin() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { login, isLoggedIn } = useCustomerAuth();
+  const [step, setStep] = useState("email"); // 'email' | 'otp'
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [loading, setLoading] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+  const otpRefs = useRef([]);
+  const redirect = searchParams.get("redirect") || "/m";
+
+  useEffect(() => {
+    if (isLoggedIn) navigate(redirect, { replace: true });
+  }, [isLoggedIn, navigate, redirect]);
+
+  // Resend timer
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn(resendIn - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
+
+  const validateEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+
+  const sendOtp = async (resend = false) => {
+    if (!validateEmail(email)) {
+      toast.error("Enter a valid email");
+      return;
+    }
+    setLoading(true);
+    try {
+      await sendCustomerOTP(email.trim().toLowerCase());
+      setStep("otp");
+      setResendIn(45);
+      if (!resend) {
+        toast.success("OTP sent to your email");
+      } else {
+        toast.success("New OTP sent");
+      }
+      // Auto-focus first OTP box
+      setTimeout(() => otpRefs.current[0]?.focus(), 200);
+    } catch (err) {
+      const msg = err?.response?.data?.detail || "Failed to send OTP";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOtp = async (code) => {
+    setLoading(true);
+    try {
+      const res = await verifyCustomerOTP(email.trim().toLowerCase(), code);
+      const { token, customer } = res.data;
+      login(token, customer);
+      toast.success("Welcome to Locofast");
+      navigate(redirect, { replace: true });
+    } catch (err) {
+      const msg = err?.response?.data?.detail || "Invalid OTP";
+      toast.error(msg);
+      setOtp(["", "", "", "", "", ""]);
+      setTimeout(() => otpRefs.current[0]?.focus(), 100);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onOtpChange = (idx, val) => {
+    const sanitized = val.replace(/\D/g, "").slice(0, 1);
+    const next = otp.slice();
+    next[idx] = sanitized;
+    setOtp(next);
+    if (sanitized && idx < 5) otpRefs.current[idx + 1]?.focus();
+    // Auto-submit when all 6 entered
+    if (idx === 5 && sanitized) {
+      const code = next.join("");
+      if (code.length === 6) verifyOtp(code);
+    }
+  };
+
+  const onOtpKey = (idx, e) => {
+    if (e.key === "Backspace" && !otp[idx] && idx > 0) {
+      otpRefs.current[idx - 1]?.focus();
+    } else if (e.key === "Enter") {
+      const code = otp.join("");
+      if (code.length === 6) verifyOtp(code);
+    }
+  };
+
+  const onOtpPaste = (e) => {
+    const pasted = (e.clipboardData || window.clipboardData).getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pasted.length === 6) {
+      e.preventDefault();
+      setOtp(pasted.split(""));
+      verifyOtp(pasted);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "var(--m-bg)", paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      {/* Header */}
+      <div style={{ padding: "12px 16px" }}>
+        <button
+          onClick={() => (step === "otp" ? setStep("email") : navigate(-1))}
+          style={{ width: 40, height: 40, borderRadius: 12, background: "var(--m-surface)", border: "1px solid var(--m-border)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--m-ink)" }}
+          aria-label="Back"
+        >
+          <ChevronLeft size={20} />
+        </button>
+      </div>
+
+      <div className="m-container" style={{ paddingTop: 8 }}>
+        {/* Locofast mark */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg, var(--m-orange), var(--m-orange-700))", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 18, boxShadow: "0 4px 14px rgba(255,122,61,0.4)" }}>L</div>
+          <div style={{ fontWeight: 800, fontSize: 20, color: "var(--m-ink)", letterSpacing: "-0.01em" }}>locofast</div>
+        </div>
+
+        {step === "email" ? (
+          <>
+            <h1 className="m-title-xl" style={{ marginBottom: 6 }}>Welcome back</h1>
+            <p className="m-body" style={{ marginBottom: 28 }}>Sign in to track orders, manage RFQs, and reorder fabric in one tap.</p>
+
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--m-ink-3)", marginBottom: 8 }}>Email address</label>
+            <div className="m-card" style={{ padding: "4px 6px 4px 14px", display: "flex", alignItems: "center", gap: 10, border: "1px solid var(--m-border-2)" }}>
+              <Mail size={18} color="var(--m-ink-3)" />
+              <input
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoFocus
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") sendOtp(); }}
+                placeholder="you@brand.com"
+                style={{ flex: 1, border: "none", outline: "none", padding: "14px 0", fontSize: 16, background: "transparent", color: "var(--m-ink)" }}
+              />
+            </div>
+
+            <button
+              onClick={() => sendOtp(false)}
+              disabled={loading || !email}
+              className="m-btn m-btn-primary"
+              style={{ width: "100%", marginTop: 18 }}
+            >
+              {loading ? <><span className="m-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Sending…</> : <>Send OTP <ArrowRight size={16} /></>}
+            </button>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 22, color: "var(--m-ink-3)", fontSize: 12 }}>
+              <Shield size={14} />
+              <span>We'll email you a 6-digit code. No passwords required.</span>
+            </div>
+
+            <p style={{ marginTop: 36, fontSize: 13, color: "var(--m-ink-3)", lineHeight: 1.5, textAlign: "center" }}>
+              By continuing, you agree to Locofast's{" "}
+              <Link to="/terms" style={{ color: "var(--m-blue)", textDecoration: "underline" }}>Terms</Link> and{" "}
+              <Link to="/privacy" style={{ color: "var(--m-blue)", textDecoration: "underline" }}>Privacy Policy</Link>.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="m-title-xl" style={{ marginBottom: 6 }}>Check your inbox</h1>
+            <p className="m-body" style={{ marginBottom: 28 }}>
+              We sent a 6-digit code to <strong style={{ color: "var(--m-ink)" }}>{email}</strong>.
+            </p>
+
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--m-ink-3)", marginBottom: 12 }}>
+              <KeyRound size={12} style={{ display: "inline", verticalAlign: "-1px", marginRight: 4 }} />
+              Verification code
+            </label>
+
+            <div style={{ display: "flex", gap: 8 }} onPaste={onOtpPaste}>
+              {otp.map((d, i) => (
+                <input
+                  key={i}
+                  ref={(el) => (otpRefs.current[i] = el)}
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={1}
+                  value={d}
+                  onChange={(e) => onOtpChange(i, e.target.value)}
+                  onKeyDown={(e) => onOtpKey(i, e)}
+                  style={{
+                    flex: 1, aspectRatio: "1", textAlign: "center",
+                    fontSize: 24, fontWeight: 800, color: "var(--m-ink)",
+                    border: d ? "2px solid var(--m-orange)" : "1px solid var(--m-border-2)",
+                    borderRadius: 12, background: "var(--m-surface)",
+                    outline: "none", padding: 0,
+                  }}
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={() => { const code = otp.join(""); if (code.length === 6) verifyOtp(code); }}
+              disabled={loading || otp.join("").length !== 6}
+              className="m-btn m-btn-primary"
+              style={{ width: "100%", marginTop: 22 }}
+            >
+              {loading ? <><span className="m-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Verifying…</> : <>Verify & sign in <ArrowRight size={16} /></>}
+            </button>
+
+            <div style={{ marginTop: 22, textAlign: "center" }}>
+              {resendIn > 0 ? (
+                <span style={{ fontSize: 13, color: "var(--m-ink-3)" }}>Resend code in {resendIn}s</span>
+              ) : (
+                <button onClick={() => sendOtp(true)} disabled={loading} style={{ background: "none", border: "none", color: "var(--m-blue)", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
+                  Didn't get it? Resend code
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={() => setStep("email")}
+              style={{ display: "block", margin: "16px auto 0", background: "none", border: "none", color: "var(--m-ink-3)", fontSize: 13, cursor: "pointer" }}
+            >
+              Use a different email
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

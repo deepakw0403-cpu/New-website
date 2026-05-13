@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
@@ -9,7 +9,10 @@ import { BrandAuthProvider } from "./context/BrandAuthContext";
 import { BrandCartProvider } from "./context/BrandCartContext";
 import { ConfirmProvider } from "./components/useConfirm";
 import WhatsAppChat from "./components/WhatsAppChat";
+import TryMobilePreview from "./components/TryMobilePreview";
 import { useEffect, lazy, Suspense } from "react";
+import { isMobileDevice, shouldAutoRedirectToMobile, mapToMobilePath } from "./mobile/utils/mobileDetect";
+import { registerMobileSW } from "./mobile/utils/registerServiceWorker";
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -186,6 +189,36 @@ const PolyKnitSportswear = lazy(() => import("./pages/seo/poly-knit/PolyKnitSpor
 const PolyKnitBulkSuppliers = lazy(() => import("./pages/seo/poly-knit/PolyKnitBulkSuppliers"));
 const PolyKnitManufacturers = lazy(() => import("./pages/seo/poly-knit/PolyKnitManufacturers"));
 
+// Lazy-loaded mobile entry point — owns all /m/* routes
+const MobileApp = lazy(() => import("./mobile/MobileApp"));
+
+// Auto-redirects mobile devices hitting the desktop site to /m/*.
+// Also registers the mobile service worker when on /m/* routes.
+function MobileRedirector() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!isMobileDevice()) return;
+    if (!shouldAutoRedirectToMobile(location.pathname)) return;
+    const target = mapToMobilePath(location.pathname, location.search || "");
+    if (target && target !== location.pathname + location.search) {
+      navigate(target, { replace: true });
+    }
+  }, [location.pathname, location.search, navigate]);
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/m")) registerMobileSW();
+  }, [location.pathname]);
+  return null;
+}
+
+// Hide WhatsApp widget on /m/* routes (mobile app handles support itself)
+function ConditionalWhatsAppChat() {
+  const { pathname } = useLocation();
+  if (pathname.startsWith("/m")) return null;
+  return <WhatsAppChat />;
+}
+
 function App() {
   return (
     <HelmetProvider>
@@ -199,9 +232,12 @@ function App() {
         <BrowserRouter>
           <Toaster position="top-right" richColors />
           <ScrollToTop />
+          <MobileRedirector />
           <CanonicalTag />
           <Suspense fallback={<PageLoader />}>
           <Routes>
+          {/* Mobile PWA (buyer-facing) — owns all /m/* routes */}
+          <Route path="/m/*" element={<MobileApp />} />
           {/* Public routes */}
           <Route path="/" element={<><Navbar /><HomePage /><Footer /></>} />
           <Route path="/fabrics" element={<FabricsPage />} />
@@ -351,7 +387,8 @@ function App() {
           <Route path="/vendor/payouts" element={<Suspense fallback={<PageLoader />}><VendorProtectedRoute><VendorPayouts /></VendorProtectedRoute></Suspense>} />
         </Routes>
         </Suspense>
-        <WhatsAppChat />
+        <ConditionalWhatsAppChat />
+        <TryMobilePreview />
       </BrowserRouter>
     </AuthProvider>
     </VendorAuthProvider>
