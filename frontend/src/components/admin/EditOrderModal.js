@@ -13,7 +13,7 @@
 //   • Bottom bar shows recomputed total preview vs. current total
 //   • Save → PATCH /api/orders/{id}/edit → toast + onSaved callback
 import { useEffect, useMemo, useState } from "react";
-import { X, Loader2, Edit3, History, Truck, User, ShoppingCart, Store, Trash2, Plus, AlertCircle, CheckCircle2, ExternalLink } from "lucide-react";
+import { X, Loader2, Edit3, History, Truck, User, ShoppingCart, Store, Trash2, Plus, AlertCircle, CheckCircle2, ExternalLink, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { adminEditOrder, listOrderEdits } from "../../lib/api";
 
@@ -23,8 +23,13 @@ const TABS = [
   { id: "customer", label: "Customer", icon: User },
   { id: "ship_to", label: "Shipping", icon: Truck },
   { id: "vendor", label: "Vendor", icon: Store },
+  { id: "pickup", label: "Pickup", icon: MapPin },
   { id: "history", label: "History", icon: History },
 ];
+
+const EMPTY_PICKUP = {
+  name: "", company: "", address: "", city: "", state: "", pincode: "", phone: "", email: "",
+};
 
 const EditOrderModal = ({ order, onClose, onSaved }) => {
   const [active, setActive] = useState("items");
@@ -34,6 +39,8 @@ const EditOrderModal = ({ order, onClose, onSaved }) => {
   const [shipTo, setShipTo] = useState({});
   const [hasShipTo, setHasShipTo] = useState(false);
   const [sellerId, setSellerId] = useState("");
+  const [pickup, setPickup] = useState(EMPTY_PICKUP);
+  const [hasPickup, setHasPickup] = useState(false);
   const [notes, setNotes] = useState("");
   const [allSellers, setAllSellers] = useState([]);
   const [audit, setAudit] = useState([]);
@@ -50,6 +57,8 @@ const EditOrderModal = ({ order, onClose, onSaved }) => {
     setShipTo({ ...(order.ship_to || { name: "", company: "", gst_number: "", address: "", city: "", state: "", pincode: "", phone: "" }) });
     setHasShipTo(!!order.ship_to);
     setSellerId(order.seller_id || (order.items?.[0]?.seller_id) || "");
+    setPickup({ ...EMPTY_PICKUP, ...(order.pickup_override || {}) });
+    setHasPickup(!!order.pickup_override);
     setNotes(order.notes || "");
     setRepushShiprocket(true);
     // Lazy-load sellers list once per open
@@ -59,7 +68,7 @@ const EditOrderModal = ({ order, onClose, onSaved }) => {
       .catch(() => setAllSellers([]));
     // Audit trail
     listOrderEdits(order.id).then((r) => setAudit(r.data?.edits || [])).catch(() => setAudit([]));
-  }, [order?.id, token]);
+  }, [order?.id, order?.updated_at, token]);
 
   const totals = useMemo(() => {
     const subtotal = items.reduce(
@@ -100,6 +109,7 @@ const EditOrderModal = ({ order, onClose, onSaved }) => {
         customer: customer,
         ship_to: cleanedShipTo,
         seller_id: sellerId || null,
+        pickup_override: hasPickup ? pickup : { ...EMPTY_PICKUP },
         notes: notes,
         repush_shiprocket: repushShiprocket,
       };
@@ -203,6 +213,19 @@ const EditOrderModal = ({ order, onClose, onSaved }) => {
               setSellerId={setSellerId}
               currentSellerId={order.seller_id || order.items?.[0]?.seller_id || ""}
               editable={editable}
+            />
+          )}
+          {active === "pickup" && (
+            <PickupTab
+              pickup={pickup}
+              setPickup={setPickup}
+              hasPickup={hasPickup}
+              setHasPickup={setHasPickup}
+              editable={editable}
+              currentVendorCompany={
+                allSellers.find((s) => s.id === sellerId)?.company_name ||
+                order.seller_company || ""
+              }
             />
           )}
           {active === "history" && <HistoryTab audit={audit} />}
@@ -521,6 +544,61 @@ const VendorTab = ({ sellers, sellerId, setSellerId, currentSellerId, editable }
           </button>
         ))}
       </div>
+    </div>
+  );
+};
+
+// ── Pickup tab ──────────────────────────────────────────────────────
+const PickupTab = ({ pickup, setPickup, hasPickup, setHasPickup, editable, currentVendorCompany }) => {
+  const F = ({ k, label, type = "text" }) => (
+    <div>
+      <label className="text-[10px] font-medium text-gray-600 mb-0.5 block">{label}</label>
+      <input
+        type={type}
+        value={pickup[k] || ""}
+        onChange={(e) => setPickup({ ...pickup, [k]: e.target.value })}
+        disabled={!editable || !hasPickup}
+        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm disabled:bg-gray-50"
+        data-testid={`edit-order-pickup-${k}`}
+      />
+    </div>
+  );
+  return (
+    <div data-testid="edit-order-pickup-tab">
+      <label className="flex items-center gap-2 mb-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={hasPickup}
+          onChange={(e) => setHasPickup(e.target.checked)}
+          disabled={!editable}
+          data-testid="edit-order-pickup-enable"
+        />
+        <span className="text-sm font-medium">Override Ship-From pickup address for this order only</span>
+      </label>
+      {!hasPickup && (
+        <p className="text-xs text-gray-500 ml-6">
+          Shipment will be picked up from <strong>{currentVendorCompany || "the assigned vendor"}</strong>'s saved address.
+        </p>
+      )}
+      {hasPickup && (
+        <div className="grid md:grid-cols-2 gap-3 mt-2 p-4 border border-gray-200 rounded-lg bg-gray-50/30">
+          <div className="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-2.5 text-[11px] text-blue-800 flex items-start gap-1.5 mb-1">
+            <AlertCircle size={12} className="mt-0.5 flex-shrink-0" />
+            <span>
+              This override applies <strong>only to this order's shipment</strong>. The vendor's saved pickup address is left
+              unchanged. On re-push, a one-off Shiprocket pickup <code className="text-[10px] bg-white px-1 rounded">ORD-&lt;order#&gt;</code> will be registered.
+            </span>
+          </div>
+          <F k="name" label="Contact / Pickup name" />
+          <F k="company" label="Company (optional)" />
+          <F k="phone" label="Phone" />
+          <F k="email" label="Email" type="email" />
+          <div className="md:col-span-2"><F k="address" label="Street address" /></div>
+          <F k="city" label="City" />
+          <F k="state" label="State" />
+          <F k="pincode" label="PIN code" />
+        </div>
+      )}
     </div>
   );
 };

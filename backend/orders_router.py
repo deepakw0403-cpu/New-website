@@ -878,6 +878,63 @@ async def _ensure_vendor_pickup_nickname(seller: dict) -> str:
     return candidate_nickname
 
 
+async def _register_order_pickup_override(order: dict, override: dict) -> str:
+    """Register a one-off Shiprocket pickup location keyed to the order
+    number. Returns the SR nickname to use for the shipment push.
+
+    Falls back to "Primary" if registration fails so the shipment can
+    still go through (Locofast warehouse).
+    """
+    order_num = (order.get("order_number") or order.get("id") or "")[:24]
+    base = "".join(ch for ch in order_num if ch.isalnum() or ch in "-_")[:24] or "ORDER"
+    nickname = f"ORD-{base}"[:36]
+
+    addr = (override.get("address") or "").strip()
+    city = (override.get("city") or "").strip()
+    state = (override.get("state") or "").strip()
+    pin = (override.get("pincode") or "").strip()
+    name = (override.get("name") or override.get("company") or "Pickup").strip()
+    phone = (override.get("phone") or "0000000000").strip()
+    email = (override.get("email") or "noreply@locofast.com").strip()
+
+    if not (addr and city and state and pin):
+        logger.warning(
+            f"[shiprocket-pickup-override] {order.get('order_number')} override missing required fields — falling back to Primary"
+        )
+        return "Primary"
+
+    try:
+        import httpx
+        from shiprocket.services.auth import auth_service
+        from shiprocket.services.pickup import PickupService
+        from shiprocket.schemas.pickup import AddPickupLocationRequest
+
+        req = AddPickupLocationRequest(
+            pickup_location=nickname,
+            name=name,
+            email=email,
+            phone=phone,
+            address=addr,
+            city=city,
+            state=state,
+            country="India",
+            pin_code=pin,
+        )
+        headers = await auth_service.get_auth_headers_async()
+        async with httpx.AsyncClient(timeout=30) as client:
+            svc = PickupService(client, headers)
+            await svc.add_pickup_location(req)
+        logger.info(
+            f"[shiprocket-pickup-override] registered '{nickname}' for {order.get('order_number')}"
+        )
+    except Exception as e:
+        # "Nickname already exists" is a benign re-run — keep going.
+        logger.info(
+            f"[shiprocket-pickup-override] add_pickup_location skipped for {nickname}: {e}"
+        )
+    return nickname
+
+
 async def _cancel_shiprocket_order_safe(sr_order_id: str) -> dict:
     """Cancel an existing Shiprocket order. Best-effort; returns
     {success, error?} but never raises so the caller can proceed even if
@@ -919,18 +976,26 @@ async def create_shiprocket_shipment(order: dict) -> dict:
         # New behaviour: pull the seller from the first item, register a
         # vendor-specific pickup nickname in Shiprocket if needed, and use
         # that as the source of the shipment.
-        seller_id_from_items = ""
-        for it in items:
-            if (it.get("seller_id") or "").strip():
-                seller_id_from_items = it["seller_id"].strip()
-                break
-        # Child orders carry seller_id at the order level (set by the
-        # parent/child split logic) — use it as a stronger signal.
-        seller_id = (order.get("seller_id") or seller_id_from_items or "").strip()
-        seller_doc = None
-        if seller_id:
-            seller_doc = await db.sellers.find_one({"id": seller_id}, {"_id": 0})
-        pickup_nickname = await _ensure_vendor_pickup_nickname(seller_doc or {})
+        #
+        # Per-order override: if the order has a `pickup_override` dict
+        # (set via Admin → Edit Order → Pickup tab), register a one-off
+        # SR pickup keyed by the order number and use that instead.
+        pickup_override = order.get("pickup_override") or {}
+        if pickup_override and (pickup_override.get("address") or "").strip():
+            pickup_nickname = await _register_order_pickup_override(order, pickup_override)
+        else:
+            seller_id_from_items = ""
+            for it in items:
+                if (it.get("seller_id") or "").strip():
+                    seller_id_from_items = it["seller_id"].strip()
+                    break
+            # Child orders carry seller_id at the order level (set by the
+            # parent/child split logic) — use it as a stronger signal.
+            seller_id = (order.get("seller_id") or seller_id_from_items or "").strip()
+            seller_doc = None
+            if seller_id:
+                seller_doc = await db.sellers.find_one({"id": seller_id}, {"_id": 0})
+            pickup_nickname = await _ensure_vendor_pickup_nickname(seller_doc or {})
 
         # ── Resolve shipping address (Ship-To) ──
         # Use the explicit ship_to when present, else fall back to billing.
@@ -1082,6 +1147,19 @@ async def get_order(order_id: str):
 # ────────────────────────────────────────────────────────────────────
 #  ADMIN — Edit Order
 # ────────────────────────────────────────────────────────────────────
+class PickupOverride(BaseModel):
+    """Per-order Ship-From override. If set, overrides the vendor's
+    default Shiprocket pickup for this single shipment."""
+    name: str = ""               # contact / pickup person name
+    company: str = ""
+    address: str = ""
+    city: str = ""
+    state: str = ""
+    pincode: str = ""
+    phone: str = ""
+    email: str = ""
+
+
 class OrderEditPayload(BaseModel):
     """Partial edit payload. Any field omitted is left unchanged.
     Per business rules:
@@ -1089,6 +1167,8 @@ class OrderEditPayload(BaseModel):
         admin's responsibility to update separately if needed.
       • Recompute totals after edits (since ship_to state may have
         flipped IGST↔CGST+SGST).
+      • Recompute commission + seller_payout after vendor changes —
+        new vendor may attract a different commission rule.
       • If the order was already pushed to Shiprocket, cancel the old
         shipment and create a new one (with the new vendor's pickup
         address + new shipping address).
@@ -1098,6 +1178,7 @@ class OrderEditPayload(BaseModel):
     ship_to: Optional[ShipTo] = None
     seller_id: Optional[str] = None
     seller_company: Optional[str] = None
+    pickup_override: Optional[PickupOverride] = None
     notes: Optional[str] = None
     repush_shiprocket: bool = True  # set False to skip the Shiprocket re-push
 
@@ -1209,6 +1290,20 @@ async def admin_edit_order(
         update["notes"] = payload.notes
         changed["notes"] = {"before": order.get("notes", ""), "after": payload.notes}
 
+    # Pickup-address override — admin can override the Ship-From for
+    # this one order without modifying the vendor's saved address.
+    # Empty dict (all blanks) is treated as "clear override".
+    if payload.pickup_override is not None:
+        new_po = payload.pickup_override.model_dump()
+        if all(not (v or "").strip() for v in new_po.values() if isinstance(v, str)):
+            new_po = None
+        if new_po != order.get("pickup_override"):
+            update["pickup_override"] = new_po
+            changed["pickup_override"] = {
+                "before": order.get("pickup_override"),
+                "after": new_po,
+            }
+
     if not changed:
         return {"success": True, "no_changes": True, "order": order}
 
@@ -1225,6 +1320,46 @@ async def admin_edit_order(
             "before": {k: order.get(k) for k in ("subtotal", "tax", "total")},
             "after": totals,
         }
+
+    # Recompute commission + seller_payout when items OR vendor change.
+    # A new vendor may attract a vendor-specific commission rule, and
+    # quantity/price edits change the commission base — keeping the
+    # stale values would show wrong payouts in the order detail panel.
+    if changed.get("items") or vendor_changed:
+        try:
+            from commission_router import calculate_commission
+            commission_info = await calculate_commission(
+                {"source": order.get("source", "")},
+                items_for_totals,
+            )
+            new_subtotal = update.get("subtotal", order.get("subtotal", 0))
+            new_commission_pct = commission_info["commission_pct"]
+            new_commission_amount = commission_info["commission_amount"]
+            new_rule = commission_info["rule_applied"]
+            new_seller_payout = round(new_subtotal - new_commission_amount, 2)
+            commission_diff = {
+                "before": {
+                    "commission_pct": order.get("commission_pct"),
+                    "commission_amount": order.get("commission_amount"),
+                    "commission_rule": order.get("commission_rule"),
+                    "seller_payout": order.get("seller_payout"),
+                },
+                "after": {
+                    "commission_pct": new_commission_pct,
+                    "commission_amount": new_commission_amount,
+                    "commission_rule": new_rule,
+                    "seller_payout": new_seller_payout,
+                },
+            }
+            # Only persist when at least one field actually changed
+            if commission_diff["before"] != commission_diff["after"]:
+                update["commission_pct"] = new_commission_pct
+                update["commission_amount"] = new_commission_amount
+                update["commission_rule"] = new_rule
+                update["seller_payout"] = new_seller_payout
+                changed["commission"] = commission_diff
+        except Exception as e:
+            logger.warning(f"[order-edit] commission recompute failed for {order.get('order_number')}: {e}")
 
     update["updated_at"] = now
     update["last_edited_by"] = admin.get("email", "")
