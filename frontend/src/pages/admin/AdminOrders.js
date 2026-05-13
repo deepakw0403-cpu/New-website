@@ -428,9 +428,19 @@ const AdminOrders = () => {
                   {/* Shiprocket push — visible for every order. Shows current state + push/re-push controls. */}
                   {selectedOrder.shiprocket_order_id ? (
                     <div className="flex items-center gap-2" data-testid="admin-order-sr-status">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 text-sm font-medium" title={`Shipment ID: ${selectedOrder.shiprocket_shipment_id || '—'}`}>
-                        <Truck size={14} /> Shiprocket #{selectedOrder.shiprocket_order_id}
-                        {selectedOrder.awb_code && <span className="text-[11px] text-emerald-600 ml-1">· AWB {selectedOrder.awb_code}</span>}
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium ${
+                          selectedOrder.shiprocket_vertical === "cargo"
+                            ? "bg-purple-50 text-purple-700"
+                            : "bg-emerald-50 text-emerald-700"
+                        }`}
+                        title={`Shipment ID: ${selectedOrder.shiprocket_shipment_id || '—'}${selectedOrder.shiprocket_lrn ? ' · LRN ' + selectedOrder.shiprocket_lrn : ''}`}
+                        data-testid="admin-order-sr-vertical-badge"
+                      >
+                        <Truck size={14} />
+                        {selectedOrder.shiprocket_vertical === "cargo" ? "Cargo" : "Shiprocket"} #{selectedOrder.shiprocket_order_id}
+                        {selectedOrder.shiprocket_waybill_no && <span className="text-[11px] ml-1 opacity-80">· LR {selectedOrder.shiprocket_waybill_no}</span>}
+                        {!selectedOrder.shiprocket_waybill_no && selectedOrder.awb_code && <span className="text-[11px] ml-1 opacity-80">· AWB {selectedOrder.awb_code}</span>}
                       </span>
                       <button
                         onClick={() => handlePushToShiprocket(true)}
@@ -448,10 +458,18 @@ const AdminOrders = () => {
                       disabled={pushingShiprocket || selectedOrder.status === 'cancelled'}
                       className="flex items-center gap-2 px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50"
                       data-testid="admin-order-sr-push"
-                      title="Create shipment in Shiprocket"
+                      title={(() => {
+                        const isBulk = (selectedOrder.items || []).length > 0 && (selectedOrder.items || []).every(it => (it.order_type || '').toLowerCase() === 'production');
+                        return isBulk
+                          ? "Create LTL freight shipment in Shiprocket Cargo (B2B)"
+                          : "Create courier shipment in Shiprocket (B2C)";
+                      })()}
                     >
                       {pushingShiprocket ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                      Push to Shiprocket
+                      {(() => {
+                        const isBulk = (selectedOrder.items || []).length > 0 && (selectedOrder.items || []).every(it => (it.order_type || '').toLowerCase() === 'production');
+                        return isBulk ? "Push to Cargo (B2B)" : "Push to Shiprocket";
+                      })()}
                     </button>
                   )}
                 </div>

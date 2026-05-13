@@ -956,9 +956,60 @@ async def _cancel_shiprocket_order_safe(sr_order_id: str) -> dict:
 async def create_shiprocket_shipment(order: dict) -> dict:
     """Create a shipment in Shiprocket after payment is confirmed.
 
-    Routes through the new `shiprocket` module (services.OrderService).
+    Routing rule (per business spec):
+      • Bulk order (all items have order_type == "production")
+            → push to Shiprocket Cargo (B2B / LTL freight).
+      • Sample or mixed order
+            → push to Shiprocket Courier (B2C / standard parcels) — existing flow.
+
+    Cargo and Courier responses are normalized into the same envelope
+    on the order doc so downstream UI/PDF/payouts code doesn't care
+    which vertical handled the shipment.
     """
     try:
+        # ── Vertical routing — Cargo for bulk, Courier for everything else ──
+        items_for_routing = order.get("items", []) or []
+        is_bulk = bool(items_for_routing) and all(
+            (it.get("order_type") or "").lower() == "production" for it in items_for_routing
+        )
+
+        if is_bulk:
+            try:
+                from shiprocket.cargo_service import is_enabled as cargo_enabled, create_cargo_shipment
+                if cargo_enabled():
+                    logger.info(f"[shiprocket-route] {order.get('order_number')} → CARGO (B2B/LTL)")
+                    cargo = await create_cargo_shipment(order, db)
+                    # Persist the cargo response onto the order doc so we
+                    # don't lose it if the caller forgets to.
+                    await db.orders.update_one(
+                        {"id": order["id"]},
+                        {"$set": {
+                            "shiprocket_vertical": "cargo",
+                            "shiprocket_pushed": True,
+                            "shiprocket_pushed_at": datetime.now(timezone.utc).isoformat(),
+                            "shiprocket_shipment_id": cargo.get("shipment_id"),
+                            "shiprocket_order_id": cargo.get("order_id"),
+                            "shiprocket_waybill_no": cargo.get("waybill_no"),
+                            "shiprocket_lrn": cargo.get("lrn"),
+                            "shiprocket_label_url": cargo.get("label_url"),
+                            "shiprocket_courier_name": cargo.get("delivery_partner_name", "Cargo"),
+                            "shiprocket_meta": {
+                                "transporter_id": cargo.get("transporter_id"),
+                                "mode": cargo.get("mode"),
+                            },
+                        }},
+                    )
+                    return {"success": True, "vertical": "cargo", **cargo}
+                else:
+                    logger.warning(
+                        f"[shiprocket-route] {order.get('order_number')} is BULK but Cargo is not enabled — "
+                        f"falling back to Courier"
+                    )
+            except Exception as cargo_err:
+                logger.error(f"[shiprocket-route] Cargo push failed for {order.get('order_number')}: {cargo_err} — falling back to Courier")
+
+        # ── Courier (B2C) path ── (default / fallback)
+        logger.info(f"[shiprocket-route] {order.get('order_number')} → COURIER (B2C)")
         import httpx
         from shiprocket.services.auth import auth_service
         from shiprocket.services.orders import OrderService
