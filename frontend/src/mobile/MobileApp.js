@@ -13,6 +13,11 @@ const MLogin = lazy(() => import("./pages/MLogin"));
 const MCheckout = lazy(() => import("./pages/MCheckout"));
 const MOrderDetail = lazy(() => import("./pages/MOrderDetail"));
 const MNotifications = lazy(() => import("./pages/MNotifications"));
+const MRfqDetail = lazy(() => import("./pages/MRfqDetail"));
+const MOrderConfirmation = lazy(() => import("./pages/MOrderConfirmation"));
+const MInventory = lazy(() => import("./pages/MInventory"));
+const MCollections = lazy(() => import("./pages/MCollections"));
+const MCollectionDetail = lazy(() => import("./pages/MCollectionDetail"));
 
 const MobileLoader = () => (
   <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -35,6 +40,11 @@ export default function MobileApp() {
           <Route path="login" element={<MLogin />} />
           <Route path="checkout" element={<MCheckout />} />
           <Route path="notifications" element={<MNotifications />} />
+          <Route path="rfq/:rfqId" element={<MRfqDetail />} />
+          <Route path="order-confirmation/:orderNumber" element={<MOrderConfirmation />} />
+          <Route path="inventory" element={<MInventory />} />
+          <Route path="collections" element={<MCollections />} />
+          <Route path="collections/:id" element={<MCollectionDetail />} />
           <Route path="*" element={<Navigate to="/m" replace />} />
         </Route>
       </Routes>

@@ -22,7 +22,7 @@ export function shouldAutoRedirectToMobile(pathname) {
   if (pathname.startsWith("/api") || pathname.endsWith(".xml") || pathname.endsWith(".txt")) return false;
   // Only redirect known buyer-facing routes
   const buyerRoots = [
-    "/", "/fabrics", "/collections", "/about-us", "/how-it-works",
+    "/", "/fabrics", "/collections", "/inventory", "/about-us", "/how-it-works",
     "/contact", "/faq", "/account", "/rfq", "/request-quote",
     "/checkout", "/order-confirmation", "/customers", "/blog",
   ];
@@ -45,10 +45,20 @@ export function mapToMobilePath(pathname, search = "") {
     return `/m/orders/${id}` + search;
   }
   if (path === "/rfq" || path === "/request-quote") return "/m/rfq" + search;
+  if (path.startsWith("/account/queries/")) {
+    const id = path.replace("/account/queries/", "");
+    return `/m/rfq/${id}` + search;
+  }
   if (path === "/checkout") return "/m/checkout" + search;
   if (path.startsWith("/order-confirmation/")) {
     const id = path.replace("/order-confirmation/", "");
-    return `/m/orders/${id}?fresh=1` + search;
+    return `/m/order-confirmation/${id}` + search;
+  }
+  if (path === "/inventory") return "/m/inventory" + search;
+  if (path === "/collections") return "/m/collections" + search;
+  if (path.startsWith("/collections/")) {
+    const id = path.replace("/collections/", "");
+    return `/m/collections/${id}` + search;
   }
   // Fallback — send to mobile home
   return "/m" + search;
