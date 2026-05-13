@@ -4,7 +4,7 @@ import { useAgentAuth } from "../../context/AgentAuthContext";
 import { Search, ShoppingCart, Send, Package, LogOut, Plus, Minus, Trash2, ExternalLink, Copy, Loader2, Eye, Clock, CheckCircle, XCircle, FileText, Store, SlidersHorizontal, X, Mail, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
-import { getFabrics, getFabricsCount, getCategories, getFabricFilterOptions } from "../../lib/api";
+import { getFabrics, getFabricsCount, getCategories, getFabricFilterOptions, getSellers } from "../../lib/api";
 import { getCheapestBulkPrice, formatQtyThreshold } from "../../lib/pricing";
 import { thumbImage } from "../../lib/imageUrl";
 import Watermark from "../../components/Watermark";
@@ -36,9 +36,12 @@ const AgentDashboardPage = () => {
   // Catalog filters (mirror B2C /fabrics)
   const [categories, setCategories] = useState([]);
   const [filterOptions, setFilterOptions] = useState({ colors: [], patterns: [], widths: [], compositions: [] });
+  const [sellers, setSellers] = useState([]);     // Supplier filter options (full active vendor roster)
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedType, setSelectedType] = useState("");
+  const [selectedSupplier, setSelectedSupplier] = useState("");    // Supplier filter (seller_id)
+  const [supplierSearch, setSupplierSearch] = useState("");        // typeahead within the dropdown
   const [availabilityFilter, setAvailabilityFilter] = useState(""); // bulk | enquiry
   const [gsmRange, setGsmRange] = useState({ min: "", max: "" });
   const [weightRange, setWeightRange] = useState({ min: "", max: "" });
@@ -81,6 +84,7 @@ const AgentDashboardPage = () => {
       const params = { page, limit: 20 };
       if (searchQuery) params.search = searchQuery;
       if (selectedCategory) params.category_id = selectedCategory;
+      if (selectedSupplier) params.seller_id = selectedSupplier;
       if (selectedType) params.fabric_type = selectedType;
       if (availabilityFilter === "bulk") params.bookable_only = true;
       if (availabilityFilter === "enquiry") params.enquiry_only = true;
@@ -105,7 +109,7 @@ const AgentDashboardPage = () => {
       toast.error("Failed to load fabrics");
     }
     setFabricsLoading(false);
-  }, [page, searchQuery, selectedCategory, selectedType, availabilityFilter, gsmRange, weightRange, priceRange, selectedPattern, selectedColor, selectedWidth, selectedComposition]);
+  }, [page, searchQuery, selectedCategory, selectedSupplier, selectedType, availabilityFilter, gsmRange, weightRange, priceRange, selectedPattern, selectedColor, selectedWidth, selectedComposition]);
 
   const fetchSharedCarts = async () => {
     setCartsLoading(true);
@@ -135,22 +139,32 @@ const AgentDashboardPage = () => {
   useEffect(() => { if (activeTab === "shared") fetchSharedCarts(); }, [activeTab]);
   useEffect(() => { if (activeTab === "orders") fetchOrders(); }, [activeTab]);
 
-  // Load categories + filter options once
+  // Load categories + filter options + sellers once
   useEffect(() => {
     getCategories().then(res => setCategories(res.data || [])).catch(() => {});
     getFabricFilterOptions().then(res => setFilterOptions(res.data || { colors: [], patterns: [], widths: [], compositions: [] })).catch(() => {});
+    // Sellers roster for the "Supplier" filter. Sorted alphabetically by
+    // company_name so the dropdown is scannable. We keep inactive sellers
+    // out (default include_inactive=false).
+    getSellers()
+      .then(res => {
+        const list = Array.isArray(res.data) ? res.data : (res.data?.sellers || []);
+        list.sort((a, b) => (a.company_name || a.name || "").localeCompare(b.company_name || b.name || ""));
+        setSellers(list);
+      })
+      .catch(() => setSellers([]));
   }, []);
 
   // Reset to page 1 when any filter changes
-  useEffect(() => { setPage(1); }, [searchQuery, selectedCategory, selectedType, availabilityFilter, gsmRange, weightRange, priceRange, selectedPattern, selectedColor, selectedWidth, selectedComposition]);
+  useEffect(() => { setPage(1); }, [searchQuery, selectedCategory, selectedSupplier, selectedType, availabilityFilter, gsmRange, weightRange, priceRange, selectedPattern, selectedColor, selectedWidth, selectedComposition]);
 
   const activeFilterCount = [
-    selectedCategory, selectedType, availabilityFilter, selectedPattern, selectedColor, selectedWidth, selectedComposition,
+    selectedCategory, selectedSupplier, selectedType, availabilityFilter, selectedPattern, selectedColor, selectedWidth, selectedComposition,
     gsmRange.min, gsmRange.max, weightRange.min, weightRange.max, priceRange.min, priceRange.max,
   ].filter(Boolean).length;
 
   const clearAllFilters = () => {
-    setSelectedCategory(""); setSelectedType(""); setAvailabilityFilter("");
+    setSelectedCategory(""); setSelectedSupplier(""); setSelectedType(""); setAvailabilityFilter("");
     setGsmRange({ min: "", max: "" }); setWeightRange({ min: "", max: "" }); setPriceRange({ min: "", max: "" });
     setSelectedPattern(""); setSelectedColor(""); setSelectedWidth(""); setSelectedComposition("");
   };
@@ -514,6 +528,10 @@ Locofast Online Services`,
                     const c = categories.find(x => x.id === selectedCategory);
                     return c ? <FilterChip label={c.name} onClear={() => setSelectedCategory("")} /> : null;
                   })()}
+                  {selectedSupplier && (() => {
+                    const s = sellers.find(x => x.id === selectedSupplier);
+                    return s ? <FilterChip label={`Supplier: ${s.company_name || s.name}`} onClear={() => setSelectedSupplier("")} /> : null;
+                  })()}
                   {selectedType && <FilterChip label={selectedType === "knitted" ? "Knits" : selectedType === "woven" ? "Woven" : selectedType} onClear={() => setSelectedType("")} />}
                   {availabilityFilter && <FilterChip label={availabilityFilter === "bulk" ? "Bookable Now" : "Enquiry Only"} onClear={() => setAvailabilityFilter("")} />}
                   {selectedColor && <FilterChip label={`Color: ${selectedColor}`} onClear={() => setSelectedColor("")} />}
@@ -545,6 +563,59 @@ Locofast Online Services`,
                         <option value="">All categories</option>
                         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
+                    </div>
+
+                    {/* Supplier — typeahead + scrollable list. Sellers
+                        are pre-sorted alphabetically; typing in the
+                        search box narrows the list. */}
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Supplier</label>
+                      <input
+                        type="text"
+                        value={supplierSearch}
+                        onChange={(e) => setSupplierSearch(e.target.value)}
+                        placeholder="Search supplier…"
+                        className="w-full px-2.5 py-2 border border-gray-200 rounded-md text-sm mb-1.5 focus:border-blue-500 focus:outline-none"
+                        data-testid="agent-filter-supplier-search"
+                      />
+                      <div className="max-h-44 overflow-y-auto border border-gray-200 rounded-md bg-white" data-testid="agent-filter-supplier-list">
+                        <label className={`flex items-center gap-2 px-2.5 py-1.5 text-sm cursor-pointer hover:bg-gray-50 ${selectedSupplier === "" ? "bg-blue-50 font-medium" : ""}`}>
+                          <input
+                            type="radio"
+                            name="agent-supplier"
+                            checked={selectedSupplier === ""}
+                            onChange={() => setSelectedSupplier("")}
+                            data-testid="agent-filter-supplier-all"
+                          />
+                          <span>All suppliers</span>
+                        </label>
+                        {sellers
+                          .filter(s => {
+                            const q = supplierSearch.trim().toLowerCase();
+                            if (!q) return true;
+                            const name = (s.company_name || s.name || "").toLowerCase();
+                            return name.includes(q);
+                          })
+                          .slice(0, 100)
+                          .map(s => (
+                            <label
+                              key={s.id}
+                              className={`flex items-center gap-2 px-2.5 py-1.5 text-sm cursor-pointer hover:bg-gray-50 ${selectedSupplier === s.id ? "bg-blue-50 font-medium" : ""}`}
+                              data-testid={`agent-filter-supplier-${s.id}`}
+                            >
+                              <input
+                                type="radio"
+                                name="agent-supplier"
+                                checked={selectedSupplier === s.id}
+                                onChange={() => setSelectedSupplier(s.id)}
+                              />
+                              <span className="truncate" title={s.company_name || s.name}>{s.company_name || s.name}</span>
+                            </label>
+                          ))}
+                        {sellers.length === 0 && (
+                          <div className="px-2.5 py-2 text-xs text-gray-500">No suppliers available</div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Type */}
