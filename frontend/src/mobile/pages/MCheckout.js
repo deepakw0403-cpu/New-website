@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronLeft, MapPin, Shield, CreditCard, Lock, Package, ArrowRight, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
-import { useRequireMobileAuth } from "../utils/authGuard";
 import { getFabric, createOrder, verifyPayment, sendOrderConfirmation, getCustomerProfile } from "../../lib/api";
 import { formatPriceINR, getBulkPrice, getSamplePrice, getPrimaryImage } from "../lib/format";
 
@@ -16,7 +15,9 @@ export default function MCheckout() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { customer, token, updateCustomer, loading: authLoading } = useCustomerAuth();
-  useRequireMobileAuth();
+  // Mobile checkout supports GUEST orders (matches desktop). Logged-in
+  // users get their profile auto-filled; guests fill the form manually.
+  // No hard login gate here.
 
   const fabricId = searchParams.get("fabric");
   const variantId = searchParams.get("variant");
@@ -36,20 +37,20 @@ export default function MCheckout() {
   });
   const [addrErrors, setAddrErrors] = useState({});
 
-  // Load fabric + profile
+  // Load fabric + (optional) profile prefill
   useEffect(() => {
-    if (authLoading || !token || !fabricId) return;
+    if (authLoading || !fabricId) return;
     let alive = true;
     (async () => {
       try {
-        const [fRes, pRes] = await Promise.all([
-          getFabric(fabricId),
-          getCustomerProfile(token).catch(() => null),
-        ]);
+        // Profile fetch is best-effort — guests have no token and we just
+        // skip the prefill. Order creation works for both authed + guest.
+        const fRes = await getFabric(fabricId);
+        const pRes = token ? await getCustomerProfile(token).catch(() => null) : null;
         if (!alive) return;
         setFabric(fRes.data);
         const c = pRes?.data || customer || {};
-        updateCustomer && c && updateCustomer(c);
+        if (token && c && updateCustomer) updateCustomer(c);
         setAddr({
           name: c.name || "",
           phone: c.phone || "",
