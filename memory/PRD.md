@@ -540,6 +540,13 @@ Compliance fix — per Schedule II of the CGST Act, packaging and logistics char
 - [ ] Homepage redesign modules: Block CMS, Deal Wall Manager, Live Auctions, Trending Rankings
 - [ ] Further `server.py` slimming (GST, Stats, Seed, RFQ-lead still inline; target <400 lines)
 
+## Mobile PWA (Feb 13, 2026)
+- Dual-surface app: Desktop `/` and Mobile `/m/*` share React tree but isolate theme/SW.
+- Mobile pages: MHome, MCatalog, MFabricDetail, MRFQ, MOrders, MOrderDetail, MAccount, MCheckout, MNotifications, MLogin, **MRfqDetail**, **MOrderConfirmation**, **MInventory**, **MCollections**, **MCollectionDetail**, **MQueries** (new Feb 13: parity gap fix).
+- MAccount now has parity with desktop `/account`: Orders + Queries + RFQ stat cards, Company auto-fill, phone-only nudge, inline edit-sheet validation, Email field.
+- Architectural rules in `/app/frontend/src/mobile/README.md` — never touch `src/pages/` for mobile work.
+
+
 ### P3 (Low Priority)
 - [ ] Wishlist/Favorites for B2B buyers
 - [ ] Advanced Analytics Dashboard

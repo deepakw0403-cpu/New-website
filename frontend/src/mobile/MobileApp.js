@@ -18,6 +18,7 @@ const MOrderConfirmation = lazy(() => import("./pages/MOrderConfirmation"));
 const MInventory = lazy(() => import("./pages/MInventory"));
 const MCollections = lazy(() => import("./pages/MCollections"));
 const MCollectionDetail = lazy(() => import("./pages/MCollectionDetail"));
+const MQueries = lazy(() => import("./pages/MQueries"));
 
 const MobileLoader = () => (
   <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -45,6 +46,7 @@ export default function MobileApp() {
           <Route path="inventory" element={<MInventory />} />
           <Route path="collections" element={<MCollections />} />
           <Route path="collections/:id" element={<MCollectionDetail />} />
+          <Route path="queries" element={<MQueries />} />
           <Route path="*" element={<Navigate to="/m" replace />} />
         </Route>
       </Routes>
