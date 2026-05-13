@@ -1023,29 +1023,31 @@ async def create_shiprocket_shipment(order: dict) -> dict:
             return {"success": False, "error": "Missing customer or items"}
 
         # ── Resolve vendor pickup (Ship-From) ──
-        # Earlier behaviour: hard-coded "Primary" → always shipped from Locofast.
-        # New behaviour: pull the seller from the first item, register a
-        # vendor-specific pickup nickname in Shiprocket if needed, and use
-        # that as the source of the shipment.
-        #
-        # Per-order override: if the order has a `pickup_override` dict
-        # (set via Admin → Edit Order → Pickup tab), register a one-off
-        # SR pickup keyed by the order number and use that instead.
-        pickup_override = order.get("pickup_override") or {}
-        if pickup_override and (pickup_override.get("address") or "").strip():
-            pickup_nickname = await _register_order_pickup_override(order, pickup_override)
-        else:
-            seller_id_from_items = ""
-            for it in items:
-                if (it.get("seller_id") or "").strip():
-                    seller_id_from_items = it["seller_id"].strip()
-                    break
-            # Child orders carry seller_id at the order level (set by the
-            # parent/child split logic) — use it as a stronger signal.
-            seller_id = (order.get("seller_id") or seller_id_from_items or "").strip()
-            seller_doc = None
-            if seller_id:
-                seller_doc = await db.sellers.find_one({"id": seller_id}, {"_id": 0})
+        # Resolution order:
+        #   1. order.pickup_address_id  →  pick from seller's saved addresses
+        #   2. seller's PRIMARY pickup address
+        #   3. legacy `_ensure_vendor_pickup_nickname` fallback
+        # Free-form pickup overrides are NO LONGER supported — admins
+        # must define addresses on the seller first.
+        seller_id_from_items = ""
+        for it in items:
+            if (it.get("seller_id") or "").strip():
+                seller_id_from_items = it["seller_id"].strip()
+                break
+        seller_id = (order.get("seller_id") or seller_id_from_items or "").strip()
+        seller_doc = await db.sellers.find_one({"id": seller_id}, {"_id": 0}) if seller_id else None
+        pickup_nickname = None
+        if seller_doc:
+            sel_addresses = seller_doc.get("pickup_addresses", []) or []
+            chosen = None
+            order_addr_id = order.get("pickup_address_id")
+            if order_addr_id:
+                chosen = next((a for a in sel_addresses if a.get("id") == order_addr_id), None)
+            if not chosen:
+                chosen = next((a for a in sel_addresses if a.get("is_primary")), None) or (sel_addresses[0] if sel_addresses else None)
+            if chosen and chosen.get("shiprocket_nickname"):
+                pickup_nickname = chosen["shiprocket_nickname"]
+        if not pickup_nickname:
             pickup_nickname = await _ensure_vendor_pickup_nickname(seller_doc or {})
 
         # ── Resolve shipping address (Ship-To) ──
@@ -1198,19 +1200,6 @@ async def get_order(order_id: str):
 # ────────────────────────────────────────────────────────────────────
 #  ADMIN — Edit Order
 # ────────────────────────────────────────────────────────────────────
-class PickupOverride(BaseModel):
-    """Per-order Ship-From override. If set, overrides the vendor's
-    default Shiprocket pickup for this single shipment."""
-    name: str = ""               # contact / pickup person name
-    company: str = ""
-    address: str = ""
-    city: str = ""
-    state: str = ""
-    pincode: str = ""
-    phone: str = ""
-    email: str = ""
-
-
 class OrderEditPayload(BaseModel):
     """Partial edit payload. Any field omitted is left unchanged.
     Per business rules:
@@ -1229,7 +1218,10 @@ class OrderEditPayload(BaseModel):
     ship_to: Optional[ShipTo] = None
     seller_id: Optional[str] = None
     seller_company: Optional[str] = None
-    pickup_override: Optional[PickupOverride] = None
+    # Pickup-address selector: must be one of the seller's saved
+    # `pickup_addresses[].id`. Set to "" to fall back to the seller's
+    # primary. Free-form addresses are no longer supported here.
+    pickup_address_id: Optional[str] = None
     notes: Optional[str] = None
     repush_shiprocket: bool = True  # set False to skip the Shiprocket re-push
 
@@ -1341,19 +1333,31 @@ async def admin_edit_order(
         update["notes"] = payload.notes
         changed["notes"] = {"before": order.get("notes", ""), "after": payload.notes}
 
-    # Pickup-address override — admin can override the Ship-From for
-    # this one order without modifying the vendor's saved address.
-    # Empty dict (all blanks) is treated as "clear override".
-    if payload.pickup_override is not None:
-        new_po = payload.pickup_override.model_dump()
-        if all(not (v or "").strip() for v in new_po.values() if isinstance(v, str)):
-            new_po = None
-        if new_po != order.get("pickup_override"):
-            update["pickup_override"] = new_po
-            changed["pickup_override"] = {
-                "before": order.get("pickup_override"),
-                "after": new_po,
-            }
+    # Pickup-address selector — must reference one of the SELLER's
+    # saved pickup_addresses (after any seller_id change above).
+    # Empty string clears the per-order override, falling back to the
+    # seller's Primary.
+    if payload.pickup_address_id is not None and payload.pickup_address_id != order.get("pickup_address_id", ""):
+        new_pid = (payload.pickup_address_id or "").strip()
+        if new_pid:
+            # Determine effective seller (post-edit)
+            effective_seller_id = update.get("seller_id") or order.get("seller_id") or ""
+            if not effective_seller_id:
+                raise HTTPException(400, "Order has no seller — cannot set pickup address")
+            seller = await db.sellers.find_one({"id": effective_seller_id}, {"_id": 0})
+            if not seller:
+                raise HTTPException(404, "Seller not found")
+            addrs = seller.get("pickup_addresses", []) or []
+            if not any(a.get("id") == new_pid for a in addrs):
+                raise HTTPException(
+                    400,
+                    "Pickup address not found on this seller. Add it under Sellers → Pickup Addresses first.",
+                )
+        update["pickup_address_id"] = new_pid
+        changed["pickup_address_id"] = {
+            "before": order.get("pickup_address_id", ""),
+            "after": new_pid,
+        }
 
     if not changed:
         return {"success": True, "no_changes": True, "order": order}

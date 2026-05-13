@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Pencil, X, Upload, Check, Package, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
+import PickupAddressesPanel from "../../components/admin/PickupAddressesPanel";
 import { getSeller, updateSeller, getCategories, getFabrics, uploadImage, approveFabric, rejectFabric, deleteFabric } from "../../lib/api";
 import { useConfirm } from "../../components/useConfirm";
 
@@ -269,6 +270,13 @@ const AdminSellerDetail = () => {
             data-testid="tab-finance"
           >
             Finance & Payouts
+          </button>
+          <button
+            onClick={() => setActiveTab("pickup")}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "pickup" ? "border-[#2563EB] text-[#2563EB]" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+            data-testid="tab-pickup"
+          >
+            Pickup Addresses
           </button>
         </div>
 
@@ -606,6 +614,11 @@ const AdminSellerDetail = () => {
         {/* Finance & Payouts Tab */}
         {activeTab === "finance" && (
           <FinanceTab seller={seller} onSaved={fetchSeller} />
+        )}
+
+        {/* Pickup Addresses Tab */}
+        {activeTab === "pickup" && (
+          <PickupAddressesPanel sellerId={seller.id} />
         )}
       </div>
     </AdminLayout>

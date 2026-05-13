@@ -93,6 +93,13 @@ export const createSeller = (data) => api.post("/sellers", data);
 export const updateSeller = (id, data) => api.put(`/sellers/${id}`, data);
 export const deleteSeller = (id) => api.delete(`/sellers/${id}`);
 
+// Pickup addresses (Ship-From) — multi-address support per seller
+export const listSellerPickupAddresses = (sellerId) => api.get(`/sellers/${sellerId}/pickup-addresses`);
+export const addSellerPickupAddress = (sellerId, data) => api.post(`/sellers/${sellerId}/pickup-addresses`, data);
+export const updateSellerPickupAddress = (sellerId, addrId, data) => api.patch(`/sellers/${sellerId}/pickup-addresses/${addrId}`, data);
+export const deleteSellerPickupAddress = (sellerId, addrId) => api.delete(`/sellers/${sellerId}/pickup-addresses/${addrId}`);
+export const setSellerPickupPrimary = (sellerId, addrId) => api.post(`/sellers/${sellerId}/pickup-addresses/${addrId}/primary`);
+
 // Reviews
 export const getReviews = (sellerId) => api.get("/reviews", { params: sellerId ? { seller_id: sellerId } : {} });
 export const createReview = (data) => api.post("/reviews", data);

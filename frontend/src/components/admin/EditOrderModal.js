@@ -13,9 +13,9 @@
 //   • Bottom bar shows recomputed total preview vs. current total
 //   • Save → PATCH /api/orders/{id}/edit → toast + onSaved callback
 import { useEffect, useMemo, useState } from "react";
-import { X, Loader2, Edit3, History, Truck, User, ShoppingCart, Store, Trash2, Plus, AlertCircle, CheckCircle2, ExternalLink, MapPin } from "lucide-react";
+import { X, Loader2, Edit3, History, Truck, User, ShoppingCart, Store, Trash2, Plus, AlertCircle, CheckCircle2, ExternalLink, MapPin, Star } from "lucide-react";
 import { toast } from "sonner";
-import { adminEditOrder, listOrderEdits } from "../../lib/api";
+import { adminEditOrder, listOrderEdits, listSellerPickupAddresses } from "../../lib/api";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const TABS = [
@@ -27,10 +27,6 @@ const TABS = [
   { id: "history", label: "History", icon: History },
 ];
 
-const EMPTY_PICKUP = {
-  name: "", company: "", address: "", city: "", state: "", pincode: "", phone: "", email: "",
-};
-
 const EditOrderModal = ({ order, onClose, onSaved }) => {
   const [active, setActive] = useState("items");
   const [submitting, setSubmitting] = useState(false);
@@ -39,8 +35,9 @@ const EditOrderModal = ({ order, onClose, onSaved }) => {
   const [shipTo, setShipTo] = useState({});
   const [hasShipTo, setHasShipTo] = useState(false);
   const [sellerId, setSellerId] = useState("");
-  const [pickup, setPickup] = useState(EMPTY_PICKUP);
-  const [hasPickup, setHasPickup] = useState(false);
+  const [pickupAddressId, setPickupAddressId] = useState("");      // chosen pickup id (empty = use primary)
+  const [sellerPickups, setSellerPickups] = useState([]);          // list of seller's saved addresses
+  const [pickupsLoading, setPickupsLoading] = useState(false);
   const [notes, setNotes] = useState("");
   const [allSellers, setAllSellers] = useState([]);
   const [audit, setAudit] = useState([]);
@@ -57,8 +54,7 @@ const EditOrderModal = ({ order, onClose, onSaved }) => {
     setShipTo({ ...(order.ship_to || { name: "", company: "", gst_number: "", address: "", city: "", state: "", pincode: "", phone: "" }) });
     setHasShipTo(!!order.ship_to);
     setSellerId(order.seller_id || (order.items?.[0]?.seller_id) || "");
-    setPickup({ ...EMPTY_PICKUP, ...(order.pickup_override || {}) });
-    setHasPickup(!!order.pickup_override);
+    setPickupAddressId(order.pickup_address_id || "");
     setNotes(order.notes || "");
     setRepushShiprocket(true);
     // Lazy-load sellers list once per open
@@ -69,6 +65,18 @@ const EditOrderModal = ({ order, onClose, onSaved }) => {
     // Audit trail
     listOrderEdits(order.id).then((r) => setAudit(r.data?.edits || [])).catch(() => setAudit([]));
   }, [order?.id, order?.updated_at, token]);
+
+  // Whenever the selected vendor changes, reload that vendor's
+  // saved pickup addresses. The dropdown in the Pickup tab is
+  // strictly bounded to this list.
+  useEffect(() => {
+    if (!sellerId) { setSellerPickups([]); return; }
+    setPickupsLoading(true);
+    listSellerPickupAddresses(sellerId)
+      .then((r) => setSellerPickups(r.data?.addresses || []))
+      .catch(() => setSellerPickups([]))
+      .finally(() => setPickupsLoading(false));
+  }, [sellerId]);
 
   const totals = useMemo(() => {
     const subtotal = items.reduce(
@@ -109,7 +117,7 @@ const EditOrderModal = ({ order, onClose, onSaved }) => {
         customer: customer,
         ship_to: cleanedShipTo,
         seller_id: sellerId || null,
-        pickup_override: hasPickup ? pickup : { ...EMPTY_PICKUP },
+        pickup_address_id: pickupAddressId || "",
         notes: notes,
         repush_shiprocket: repushShiprocket,
       };
@@ -217,10 +225,11 @@ const EditOrderModal = ({ order, onClose, onSaved }) => {
           )}
           {active === "pickup" && (
             <PickupTab
-              pickup={pickup}
-              setPickup={setPickup}
-              hasPickup={hasPickup}
-              setHasPickup={setHasPickup}
+              sellerId={sellerId}
+              sellerPickups={sellerPickups}
+              pickupsLoading={pickupsLoading}
+              pickupAddressId={pickupAddressId}
+              setPickupAddressId={setPickupAddressId}
               editable={editable}
               currentVendorCompany={
                 allSellers.find((s) => s.id === sellerId)?.company_name ||
@@ -549,54 +558,121 @@ const VendorTab = ({ sellers, sellerId, setSellerId, currentSellerId, editable }
 };
 
 // ── Pickup tab ──────────────────────────────────────────────────────
-const PickupTab = ({ pickup, setPickup, hasPickup, setHasPickup, editable, currentVendorCompany }) => {
-  const F = ({ k, label, type = "text" }) => (
-    <div>
-      <label className="text-[10px] font-medium text-gray-600 mb-0.5 block">{label}</label>
-      <input
-        type={type}
-        value={pickup[k] || ""}
-        onChange={(e) => setPickup({ ...pickup, [k]: e.target.value })}
-        disabled={!editable || !hasPickup}
-        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm disabled:bg-gray-50"
-        data-testid={`edit-order-pickup-${k}`}
-      />
-    </div>
-  );
+// Admin can only choose from the SELLER's saved pickup addresses.
+// To add a new one, they must visit /admin/sellers/<id> → Pickup Addresses tab.
+const PickupTab = ({ sellerId, sellerPickups, pickupsLoading, pickupAddressId, setPickupAddressId, editable, currentVendorCompany }) => {
+  const primary = sellerPickups.find((a) => a.is_primary);
+  const selectedAddr = sellerPickups.find((a) => a.id === pickupAddressId);
+  const effective = selectedAddr || primary;
+
   return (
     <div data-testid="edit-order-pickup-tab">
-      <label className="flex items-center gap-2 mb-3 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={hasPickup}
-          onChange={(e) => setHasPickup(e.target.checked)}
-          disabled={!editable}
-          data-testid="edit-order-pickup-enable"
-        />
-        <span className="text-sm font-medium">Override Ship-From pickup address for this order only</span>
-      </label>
-      {!hasPickup && (
-        <p className="text-xs text-gray-500 ml-6">
-          Shipment will be picked up from <strong>{currentVendorCompany || "the assigned vendor"}</strong>'s saved address.
-        </p>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-[12px] text-blue-900 flex items-start gap-2 mb-4">
+        <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+        <div>
+          <p className="font-medium mb-0.5">Pickup is bounded to seller's saved addresses</p>
+          <p className="text-blue-800/80">
+            To use a different pickup, first add it under <strong>Sellers → {currentVendorCompany || "Vendor"} → Pickup Addresses</strong>. The new address gets registered with Shiprocket and becomes available here.
+          </p>
+        </div>
+      </div>
+
+      {!sellerId && (
+        <div className="text-sm text-gray-500 p-4 border border-gray-200 rounded-lg">
+          No vendor selected. Set vendor first in the Vendor tab.
+        </div>
       )}
-      {hasPickup && (
-        <div className="grid md:grid-cols-2 gap-3 mt-2 p-4 border border-gray-200 rounded-lg bg-gray-50/30">
-          <div className="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-2.5 text-[11px] text-blue-800 flex items-start gap-1.5 mb-1">
-            <AlertCircle size={12} className="mt-0.5 flex-shrink-0" />
-            <span>
-              This override applies <strong>only to this order's shipment</strong>. The vendor's saved pickup address is left
-              unchanged. On re-push, a one-off Shiprocket pickup <code className="text-[10px] bg-white px-1 rounded">ORD-&lt;order#&gt;</code> will be registered.
-            </span>
+
+      {sellerId && pickupsLoading && (
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <Loader2 size={14} className="animate-spin" /> Loading vendor's pickup addresses…
+        </div>
+      )}
+
+      {sellerId && !pickupsLoading && sellerPickups.length === 0 && (
+        <div className="border-2 border-dashed border-amber-200 bg-amber-50/40 rounded-lg p-5 text-sm text-amber-800">
+          <p className="font-medium mb-1">⚠ No pickup addresses on this vendor</p>
+          <p className="text-amber-700 text-[12px]">
+            Shiprocket push will fail. Go to <strong>Sellers → {currentVendorCompany || "Vendor"} → Pickup Addresses</strong> and add at least one address first.
+          </p>
+        </div>
+      )}
+
+      {sellerId && !pickupsLoading && sellerPickups.length > 0 && (
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-2">Choose pickup for this order</label>
+          <div className="space-y-2">
+            {/* "Use Primary (default)" option */}
+            <label
+              className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${pickupAddressId === "" ? "border-indigo-300 bg-indigo-50/50" : "border-gray-200 hover:bg-gray-50"}`}
+              data-testid="edit-order-pickup-default"
+            >
+              <input
+                type="radio"
+                name="pickup"
+                value=""
+                checked={pickupAddressId === ""}
+                onChange={() => setPickupAddressId("")}
+                disabled={!editable}
+                className="mt-0.5"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-medium text-sm">Use vendor's Primary</span>
+                  {primary && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">
+                      <Star size={9} fill="currentColor" /> {primary.nickname}
+                    </span>
+                  )}
+                </div>
+                {primary ? (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {primary.address_line1}, {primary.city}, {primary.state} {primary.pincode}
+                  </p>
+                ) : (
+                  <p className="text-xs text-red-500 mt-0.5">No primary set — will fall back to legacy nickname</p>
+                )}
+              </div>
+            </label>
+
+            {sellerPickups.map((a) => (
+              <label
+                key={a.id}
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${pickupAddressId === a.id ? "border-indigo-300 bg-indigo-50/50" : "border-gray-200 hover:bg-gray-50"}`}
+                data-testid={`edit-order-pickup-option-${a.id}`}
+              >
+                <input
+                  type="radio"
+                  name="pickup"
+                  value={a.id}
+                  checked={pickupAddressId === a.id}
+                  onChange={() => setPickupAddressId(a.id)}
+                  disabled={!editable}
+                  className="mt-0.5"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium text-sm">{a.nickname}</span>
+                    {a.is_primary && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">
+                        <Star size={9} fill="currentColor" /> PRIMARY
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-600 mt-0.5">{a.contact_person_name} · {a.contact_phone}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {a.address_line1}, {a.city}, {a.state} {a.pincode}
+                  </p>
+                </div>
+              </label>
+            ))}
           </div>
-          <F k="name" label="Contact / Pickup name" />
-          <F k="company" label="Company (optional)" />
-          <F k="phone" label="Phone" />
-          <F k="email" label="Email" type="email" />
-          <div className="md:col-span-2"><F k="address" label="Street address" /></div>
-          <F k="city" label="City" />
-          <F k="state" label="State" />
-          <F k="pincode" label="PIN code" />
+
+          {effective && (
+            <p className="text-[11px] text-gray-500 mt-3" data-testid="edit-order-pickup-effective">
+              <strong>Effective Ship-From for this shipment:</strong> {effective.nickname} ({effective.city}, {effective.state})
+            </p>
+          )}
         </div>
       )}
     </div>

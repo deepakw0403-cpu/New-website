@@ -133,37 +133,46 @@ async def create_cargo_shipment(order: dict, db) -> dict:
         raise RuntimeError(f"Order {order.get('order_number')} has invoice_value < 1 — Cargo rejects")
 
     # ── Source (vendor pickup) ──
-    # Prefer per-order pickup override, then vendor's saved address,
-    # else fall back to the Primary Locofast warehouse.
-    po = order.get("pickup_override") or {}
-    if (po.get("address") or "").strip():
-        src_name = _safe_str(po.get("company") or po.get("name") or "Pickup", 50)
+    # Resolution order:
+    #   1. order.pickup_address_id → pick from seller's saved addresses
+    #   2. seller's PRIMARY pickup address
+    #   3. legacy single-field pickup_* on seller doc (back-compat)
+    seller_id = (order.get("seller_id") or (items[0].get("seller_id") if items else "") or "").strip()
+    seller = await db.sellers.find_one({"id": seller_id}, {"_id": 0}) if seller_id else None
+    chosen_addr = None
+    if seller:
+        sel_addresses = seller.get("pickup_addresses", []) or []
+        order_addr_id = order.get("pickup_address_id")
+        if order_addr_id:
+            chosen_addr = next((a for a in sel_addresses if a.get("id") == order_addr_id), None)
+        if not chosen_addr:
+            chosen_addr = next((a for a in sel_addresses if a.get("is_primary")), None) or (sel_addresses[0] if sel_addresses else None)
+
+    if chosen_addr:
         src = {
-            "name": src_name,
-            "line1": _safe_str(po.get("address"), 150),
-            "line2": "",
-            "city": _safe_str(po.get("city"), 60),
-            "state": _safe_str(po.get("state"), 60),
-            "pincode": _safe_str(po.get("pincode"), 6),
-            "contact": _safe_str(po.get("name"), 80) or src_name,
-            "email": _safe_str(po.get("email"), 80) or "noreply@locofast.com",
-            "phone": _normalize_phone(po.get("phone")),
+            "name": _safe_str(chosen_addr.get("nickname") or seller.get("company_name") or "Pickup", 50),
+            "line1": _safe_str(chosen_addr.get("address_line1"), 150),
+            "line2": _safe_str(chosen_addr.get("address_line2", ""), 100),
+            "city": _safe_str(chosen_addr.get("city"), 60),
+            "state": _safe_str(chosen_addr.get("state"), 60),
+            "pincode": _safe_str(chosen_addr.get("pincode"), 6),
+            "contact": _safe_str(chosen_addr.get("contact_person_name"), 80),
+            "email": _safe_str(chosen_addr.get("contact_email") or "noreply@locofast.com", 80),
+            "phone": _normalize_phone(chosen_addr.get("contact_phone")),
         }
     else:
-        seller_id = (order.get("seller_id") or (items[0].get("seller_id") if items else "") or "").strip()
-        seller = await db.sellers.find_one({"id": seller_id}, {"_id": 0}) if seller_id else None
         s = seller or {}
         src_name = _safe_str(s.get("shiprocket_pickup_nickname") or s.get("company_name") or "Locofast WH", 50)
         src = {
             "name": src_name,
-            "line1": _safe_str(s.get("address") or "Locofast Warehouse", 150),
+            "line1": _safe_str(s.get("pickup_address") or s.get("address") or "Locofast Warehouse", 150),
             "line2": "",
-            "city": _safe_str(s.get("city") or "Gurgaon", 60),
-            "state": _safe_str(s.get("state") or "Haryana", 60),
-            "pincode": _safe_str(s.get("pincode") or "122001", 6),
-            "contact": _safe_str(s.get("contact_person") or s.get("company_name") or "Warehouse Manager", 80),
-            "email": _safe_str(s.get("email") or "noreply@locofast.com", 80),
-            "phone": _normalize_phone(s.get("shiprocket_pickup_phone") or s.get("phone")),
+            "city": _safe_str(s.get("pickup_city") or s.get("city") or "Gurgaon", 60),
+            "state": _safe_str(s.get("pickup_state") or s.get("state") or "Haryana", 60),
+            "pincode": _safe_str(s.get("pickup_pincode") or "122001", 6),
+            "contact": _safe_str(s.get("pickup_contact_name") or s.get("name") or "Warehouse Manager", 80),
+            "email": _safe_str(s.get("contact_email") or "noreply@locofast.com", 80),
+            "phone": _normalize_phone(s.get("pickup_contact_phone") or s.get("contact_phone")),
         }
 
     # ── Destination (buyer) ──
