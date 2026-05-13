@@ -333,6 +333,7 @@ export const batchFillMissingSEO = () => api.post(`/seo/batch-fill-missing`, nul
 export const batchFillMissingSEOStart = () => api.post(`/seo/batch-fill-missing/start`);
 export const batchFillMissingSEOStatus = (jobId) => api.get(`/seo/batch-fill-missing/status/${jobId}`);
 export const batchFillMissingSEOLatest = () => api.get(`/seo/batch-fill-missing/latest`);
+export const batchFillMissingSEOResume = () => api.post(`/seo/batch-fill-missing/resume`);
 export const seoAudit = () => api.get(`/seo/audit`);
 
 // Blog - Categories

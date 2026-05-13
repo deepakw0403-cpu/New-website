@@ -5,7 +5,7 @@ import os
 import re
 import uuid
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -1149,6 +1149,11 @@ async def _run_batch_fill_job(job_id: str, only_active: bool):
         )
 
         filled, errors = [], []
+        # Per-fabric timeout — without this, ONE hung LLM call (rate
+        # limit / network / API quota) blocks the whole job indefinitely.
+        # 90s comfortably covers 3 sequential LLM blocks; anything slower
+        # is treated as a soft-failure and we move on.
+        PER_FABRIC_TIMEOUT = 90
         for idx, (fabric, miss) in enumerate(work):
             await db.seo_jobs.update_one(
                 {"job_id": job_id},
@@ -1163,7 +1168,10 @@ async def _run_batch_fill_job(job_id: str, only_active: bool):
                 }},
             )
             try:
-                await generate_fabric_seo(fabric["id"])
+                await asyncio.wait_for(
+                    generate_fabric_seo(fabric["id"]),
+                    timeout=PER_FABRIC_TIMEOUT,
+                )
                 filled.append({
                     "id": fabric["id"],
                     "fabric_code": fabric.get("fabric_code", ""),
@@ -1173,6 +1181,17 @@ async def _run_batch_fill_job(job_id: str, only_active: bool):
                 await db.seo_jobs.update_one(
                     {"job_id": job_id},
                     {"$inc": {"filled_count": 1}},
+                )
+            except asyncio.TimeoutError:
+                errors.append({
+                    "id": fabric["id"],
+                    "fabric_code": fabric.get("fabric_code", ""),
+                    "name": fabric.get("name", ""),
+                    "error": f"Timed out after {PER_FABRIC_TIMEOUT}s",
+                })
+                await db.seo_jobs.update_one(
+                    {"job_id": job_id},
+                    {"$inc": {"errors_count": 1}},
                 )
             except Exception as e:
                 errors.append({
@@ -1266,4 +1285,62 @@ async def batch_fill_missing_seo_latest():
         sort=[("started_at", -1)],
     )
     return job or {"job_id": None}
+
+
+@router.post("/batch-fill-missing/resume")
+async def batch_fill_missing_seo_resume():
+    """Recover from a stalled job: if the most recent job is `running`
+    but its heartbeat (`updated_at`) is older than 3 minutes, treat it
+    as dead, mark the previous job as `stalled`, and start a fresh
+    job that picks up the still-missing fabrics.
+
+    Idempotent — calling repeatedly while a healthy job is running is
+    a no-op.
+    """
+    latest = await db.seo_jobs.find_one({}, {"_id": 0}, sort=[("started_at", -1)])
+    if not latest:
+        # Nothing has ever run; just start a fresh job
+        return await batch_fill_missing_seo_start()
+
+    if latest.get("status") == "running":
+        # Check heartbeat freshness
+        last = latest.get("updated_at") or latest.get("started_at")
+        try:
+            last_dt = datetime.fromisoformat(last.replace("Z", "+00:00")) if last else None
+        except Exception:
+            last_dt = None
+        stale_threshold = datetime.now(timezone.utc) - timedelta(minutes=3)
+        if last_dt and last_dt > stale_threshold:
+            # Job is healthy — return it
+            return {"job_id": latest["job_id"], "already_running": True, "healthy": True}
+        # Otherwise: mark as stalled and re-spawn
+        await db.seo_jobs.update_one(
+            {"job_id": latest["job_id"]},
+            {"$set": {
+                "status": "stalled",
+                "finished_at": datetime.now(timezone.utc).isoformat(),
+                "stalled_reason": f"No heartbeat since {last}",
+            }},
+        )
+
+    # Start a fresh job — it will scan again and only pick up still-missing fabrics
+    job_id = str(uuid.uuid4())
+    await db.seo_jobs.insert_one({
+        "job_id": job_id,
+        "status": "queued",
+        "only_active": True,
+        "total": 0,
+        "processed": 0,
+        "filled_count": 0,
+        "errors_count": 0,
+        "skipped_already_complete": 0,
+        "current_fabric": None,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "finished_at": None,
+        "filled_sample": [],
+        "errors": [],
+        "resumed_from": latest.get("job_id") if latest else None,
+    })
+    asyncio.create_task(_run_batch_fill_job(job_id, True))
+    return {"job_id": job_id, "already_running": False, "resumed_from": latest.get("job_id") if latest else None}
 

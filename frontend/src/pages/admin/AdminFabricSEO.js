@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, RefreshCw, Eye, AlertTriangle, Check, ChevronDown, ChevronUp, Sparkles, X, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { getFabrics, getFabricSEO, generateFabricSEO, regenerateSEOBlock, updateFabricSEO, getSEOPreview, batchGenerateSlugs, batchFillMissingSEOStart, batchFillMissingSEOStatus, batchFillMissingSEOLatest, seoAudit } from "../../lib/api";
+import { getFabrics, getFabricSEO, generateFabricSEO, regenerateSEOBlock, updateFabricSEO, getSEOPreview, batchGenerateSlugs, batchFillMissingSEOStart, batchFillMissingSEOStatus, batchFillMissingSEOLatest, batchFillMissingSEOResume, seoAudit } from "../../lib/api";
 
 const AdminFabricSEO = () => {
   const [fabrics, setFabrics] = useState([]);
@@ -187,6 +187,19 @@ const AdminFabricSEO = () => {
   const [fillJob, setFillJob] = useState(null);   // { job_id, status, total, processed, ... }
   const filling = !!(fillJob && (fillJob.status === "running" || fillJob.status === "queued"));
 
+  // Heartbeat watchdog — if the backend hasn't updated the job doc in
+  // > 90 seconds while it claims to be "running", the worker is almost
+  // certainly dead (orphaned asyncio task after a deploy / restart, or
+  // an LLM call hanging past our per-fabric timeout).
+  const isStale = (() => {
+    if (!fillJob || fillJob.status !== "running") return false;
+    const last = fillJob.updated_at || fillJob.started_at;
+    if (!last) return false;
+    const lastDt = new Date(last);
+    if (Number.isNaN(lastDt.getTime())) return false;
+    return (Date.now() - lastDt.getTime()) > 90_000;
+  })();
+
   // Resume polling on mount if a previous job is still in flight (or just
   // finished and the admin reloaded the page).
   useEffect(() => {
@@ -259,8 +272,27 @@ const AdminFabricSEO = () => {
 
   const dismissJobPanel = () => {
     // Only allow dismiss when job has finished — running jobs stay visible
-    if (fillJob?.status === "completed" || fillJob?.status === "failed") {
+    if (fillJob?.status === "completed" || fillJob?.status === "failed" || fillJob?.status === "stalled") {
       setFillJob(null);
+    }
+  };
+
+  const handleResumeStale = async () => {
+    try {
+      toast.info("Recovering stuck job…");
+      const res = await batchFillMissingSEOResume();
+      const { job_id, already_running, healthy, resumed_from } = res.data || {};
+      if (healthy) {
+        toast.success("Job is healthy — no resume needed");
+      } else if (resumed_from) {
+        toast.success(`Resumed — old job (${resumed_from.slice(0, 8)}…) marked stalled. New job picking up remaining fabrics.`);
+      } else {
+        toast.success("Started fresh fill job");
+      }
+      // Reset local state to start tracking the new job
+      setFillJob({ job_id, status: "queued", total: 0, processed: 0, filled_count: 0, errors_count: 0 });
+    } catch (err) {
+      toast.error("Resume failed: " + (err?.response?.data?.detail || err.message || "unknown"));
     }
   };
 
@@ -604,6 +636,33 @@ const AdminFabricSEO = () => {
 
                 {fillJob.status === "failed" && fillJob.fatal_error && (
                   <p className="mt-1.5 text-[11px] text-red-700 break-words">{fillJob.fatal_error}</p>
+                )}
+
+                {/* Stale-job recovery — surfaces a Resume button if the
+                    backend heartbeat has gone quiet for > 90s while the
+                    job claims to be running (orphaned task after deploy,
+                    or LLM hang past the per-fabric timeout). */}
+                {isStale && (
+                  <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-[11px]" data-testid="seo-fill-stale-notice">
+                    <p className="text-amber-800 mb-1.5 flex items-start gap-1">
+                      <AlertTriangle size={12} className="mt-0.5 flex-shrink-0" />
+                      <span>No progress for &gt;90s — worker may have crashed.</span>
+                    </p>
+                    <button
+                      onClick={handleResumeStale}
+                      className="w-full py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-[11px] font-medium"
+                      data-testid="seo-fill-resume-btn"
+                    >
+                      Resume Fill Job
+                    </button>
+                  </div>
+                )}
+
+                {/* Stalled — the previous run was marked dead by /resume */}
+                {fillJob.status === "stalled" && (
+                  <p className="mt-1.5 text-[11px] text-amber-700">
+                    Marked stalled — {fillJob.stalled_reason || "no recent heartbeat"}.
+                  </p>
                 )}
               </div>
             )}
