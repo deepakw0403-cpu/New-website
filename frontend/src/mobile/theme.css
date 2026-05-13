@@ -1,16 +1,24 @@
 /* Locofast Mobile — design tokens & global styles (scoped to .m-app) */
+/* PRIMARY brand color flipped from orange → Locofast blue (#2563EB) on
+ * 2026-05-13. The `--m-orange*` variable names are preserved to avoid
+ * touching every consumer file; only their values changed. New consumers
+ * should prefer `--m-primary*` aliases declared below. */
 .m-app {
-  --m-orange: #FF7A3D;
-  --m-orange-700: #E5631E;
-  --m-orange-50: #FFF1E6;
+  --m-orange: #2563EB;
+  --m-orange-700: #1D4ED8;
+  --m-orange-50: #EFF6FF;
+  /* Forward-looking aliases — same values, semantically correct names. */
+  --m-primary: #2563EB;
+  --m-primary-700: #1D4ED8;
+  --m-primary-50: #EFF6FF;
   --m-ink: #0F1B2D;
   --m-ink-2: #4A5468;
   --m-ink-3: #8A93A6;
-  --m-cream: #FFF6EE;
+  --m-cream: #F5F8FF;
   --m-surface: #FFFFFF;
-  --m-bg: #F7F5F1;
-  --m-border: #ECE6DD;
-  --m-border-2: #E0DAD0;
+  --m-bg: #F4F7FB;
+  --m-border: #E4ECF7;
+  --m-border-2: #D6E0EE;
   --m-blue: #2563EB;
   --m-blue-50: #EFF6FF;
   --m-green: #15803D;
@@ -151,8 +159,8 @@
 .m-appbar .m-appbar-logo { display: flex; align-items: center; gap: 8px; font-weight: 800; color: var(--m-ink); font-size: 18px; letter-spacing: -0.01em; }
 .m-appbar .m-appbar-logo-mark {
   width: 28px; height: 28px; border-radius: 8px;
-  background: linear-gradient(135deg, var(--m-orange) 0%, var(--m-orange-700) 100%);
-  display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 14px;
+  background: var(--m-blue-50);
+  display: flex; align-items: center; justify-content: center; color: var(--m-blue); font-weight: 800; font-size: 14px;
 }
 .m-appbar .m-appbar-actions { display: flex; align-items: center; gap: 4px; }
 .m-appbar .m-icon-btn {

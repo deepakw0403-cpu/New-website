@@ -1,6 +1,35 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft, Bell, Search } from "lucide-react";
 
+// Locofast brand mark — inline SVG approximation of the interlocked
+// double-checkmark/diamond device from the official logo. Two slanted
+// strokes form a connected ✓✓ icon, in brand blue.
+const LocofastMark = ({ size = 24 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    <path
+      d="M5 13.5 L9 18 L14 4"
+      stroke="currentColor"
+      strokeWidth="2.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M10.5 13.5 L14.5 18 L19.5 4"
+      stroke="currentColor"
+      strokeWidth="2.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export default function TopAppBar({ title, showBack = false, showSearch = true, showNotifications = true, onSearchClick, hasNotifications = false, right = null }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -15,7 +44,9 @@ export default function TopAppBar({ title, showBack = false, showSearch = true, 
           </button>
         ) : (
           <div className="m-appbar-logo">
-            <span className="m-appbar-logo-mark">L</span>
+            <span className="m-appbar-logo-mark" aria-label="Locofast">
+              <LocofastMark size={18} />
+            </span>
             <span>locofast</span>
           </div>
         )}

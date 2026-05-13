@@ -118,9 +118,14 @@ export default function MLogin() {
       </div>
 
       <div className="m-container" style={{ paddingTop: 8 }}>
-        {/* Locofast mark */}
+        {/* Locofast mark — brand blue with inline double-check icon */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg, var(--m-orange), var(--m-orange-700))", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 18, boxShadow: "0 4px 14px rgba(255,122,61,0.4)" }}>L</div>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--m-blue-50)", color: "var(--m-blue)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(37,99,235,0.20)" }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 13.5 L9 18 L14 4" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M10.5 13.5 L14.5 18 L19.5 4" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
           <div style={{ fontWeight: 800, fontSize: 20, color: "var(--m-ink)", letterSpacing: "-0.01em" }}>locofast</div>
         </div>
 
