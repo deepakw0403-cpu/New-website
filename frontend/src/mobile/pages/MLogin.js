@@ -135,7 +135,7 @@ export default function MLogin() {
             <p className="m-body" style={{ marginBottom: 18 }}>Sign in to track orders, manage RFQs, and reorder fabric in one tap.</p>
 
             <label style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--m-ink-3)", marginBottom: 6 }}>Email address</label>
-            <div className="m-card" style={{ padding: "4px 6px 4px 14px", display: "flex", alignItems: "center", gap: 10, border: "1px solid var(--m-border-2)" }}>
+            <div className="m-card" style={{ padding: "4px 6px 4px 14px", display: "flex", alignItems: "center", gap: 10, border: "1px solid var(--m-border-2)", outline: "none" }}>
               <Mail size={18} color="var(--m-ink-3)" />
               <input
                 type="email"
@@ -146,7 +146,7 @@ export default function MLogin() {
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") sendOtp(); }}
                 placeholder="you@brand.com"
-                style={{ flex: 1, border: "none", outline: "none", padding: "12px 0", fontSize: 16, background: "transparent", color: "var(--m-ink)" }}
+                style={{ flex: 1, border: "none", outline: "none", boxShadow: "none", WebkitAppearance: "none", padding: "12px 0", fontSize: 16, background: "transparent", color: "var(--m-ink)" }}
               />
             </div>
 

@@ -47,6 +47,19 @@
 .m-app * { box-sizing: border-box; }
 .m-app button { font-family: inherit; cursor: pointer; }
 .m-app input, .m-app textarea, .m-app select { font-family: inherit; font-size: 16px; }
+/* Suppress browser/Tailwind default focus outlines/rings inside the
+ * mobile tree. We use border-color + box-shadow on the WRAPPER (.m-card)
+ * to indicate focus state instead, which gives full design control. */
+.m-app input:focus,
+.m-app input:focus-visible,
+.m-app textarea:focus,
+.m-app textarea:focus-visible,
+.m-app select:focus,
+.m-app select:focus-visible,
+.m-app .m-card:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+}
 
 .m-app .m-screen {
   min-height: 100vh;
