@@ -107,34 +107,34 @@ export default function MLogin() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--m-bg)", paddingTop: "env(safe-area-inset-top, 0px)" }}>
       {/* Header */}
-      <div style={{ padding: "12px 16px" }}>
+      <div style={{ padding: "8px 16px 0" }}>
         <button
           onClick={() => (step === "otp" ? setStep("email") : navigate(-1))}
-          style={{ width: 40, height: 40, borderRadius: 12, background: "var(--m-surface)", border: "1px solid var(--m-border)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--m-ink)" }}
+          style={{ width: 36, height: 36, borderRadius: 10, background: "var(--m-surface)", border: "1px solid var(--m-border)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--m-ink)" }}
           aria-label="Back"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={18} />
         </button>
       </div>
 
-      <div className="m-container" style={{ paddingTop: 8 }}>
+      <div className="m-container" style={{ paddingTop: 12 }}>
         {/* Locofast mark — brand blue with inline double-check icon */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--m-blue-50)", color: "var(--m-blue)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(37,99,235,0.20)" }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 11, background: "var(--m-blue-50)", color: "var(--m-blue)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(37,99,235,0.20)" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M5 13.5 L9 18 L14 4" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M10.5 13.5 L14.5 18 L19.5 4" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <div style={{ fontWeight: 800, fontSize: 20, color: "var(--m-ink)", letterSpacing: "-0.01em" }}>locofast</div>
+          <div style={{ fontWeight: 800, fontSize: 19, color: "var(--m-ink)", letterSpacing: "-0.01em" }}>locofast</div>
         </div>
 
         {step === "email" ? (
           <>
-            <h1 className="m-title-xl" style={{ marginBottom: 6 }}>Welcome back</h1>
-            <p className="m-body" style={{ marginBottom: 28 }}>Sign in to track orders, manage RFQs, and reorder fabric in one tap.</p>
+            <h1 className="m-title-xl" style={{ marginBottom: 4, fontSize: 24 }}>Welcome back</h1>
+            <p className="m-body" style={{ marginBottom: 18 }}>Sign in to track orders, manage RFQs, and reorder fabric in one tap.</p>
 
-            <label style={{ display: "block", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--m-ink-3)", marginBottom: 8 }}>Email address</label>
+            <label style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--m-ink-3)", marginBottom: 6 }}>Email address</label>
             <div className="m-card" style={{ padding: "4px 6px 4px 14px", display: "flex", alignItems: "center", gap: 10, border: "1px solid var(--m-border-2)" }}>
               <Mail size={18} color="var(--m-ink-3)" />
               <input
@@ -146,7 +146,7 @@ export default function MLogin() {
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") sendOtp(); }}
                 placeholder="you@brand.com"
-                style={{ flex: 1, border: "none", outline: "none", padding: "14px 0", fontSize: 16, background: "transparent", color: "var(--m-ink)" }}
+                style={{ flex: 1, border: "none", outline: "none", padding: "12px 0", fontSize: 16, background: "transparent", color: "var(--m-ink)" }}
               />
             </div>
 
@@ -154,17 +154,17 @@ export default function MLogin() {
               onClick={() => sendOtp(false)}
               disabled={loading || !email}
               className="m-btn m-btn-primary"
-              style={{ width: "100%", marginTop: 18 }}
+              style={{ width: "100%", marginTop: 14 }}
             >
               {loading ? <><span className="m-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Sending…</> : <>Send OTP <ArrowRight size={16} /></>}
             </button>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 22, color: "var(--m-ink-3)", fontSize: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, color: "var(--m-ink-3)", fontSize: 12 }}>
               <Shield size={14} />
               <span>We'll email you a 6-digit code. No passwords required.</span>
             </div>
 
-            <p style={{ marginTop: 36, fontSize: 13, color: "var(--m-ink-3)", lineHeight: 1.5, textAlign: "center" }}>
+            <p style={{ marginTop: 18, fontSize: 12, color: "var(--m-ink-3)", lineHeight: 1.4, textAlign: "center" }}>
               By continuing, you agree to Locofast's{" "}
               <Link to="/terms" style={{ color: "var(--m-blue)", textDecoration: "underline" }}>Terms</Link> and{" "}
               <Link to="/privacy" style={{ color: "var(--m-blue)", textDecoration: "underline" }}>Privacy Policy</Link>.
@@ -172,17 +172,17 @@ export default function MLogin() {
           </>
         ) : (
           <>
-            <h1 className="m-title-xl" style={{ marginBottom: 6 }}>Check your inbox</h1>
-            <p className="m-body" style={{ marginBottom: 28 }}>
+            <h1 className="m-title-xl" style={{ marginBottom: 4, fontSize: 24 }}>Check your inbox</h1>
+            <p className="m-body" style={{ marginBottom: 18 }}>
               We sent a 6-digit code to <strong style={{ color: "var(--m-ink)" }}>{email}</strong>.
             </p>
 
-            <label style={{ display: "block", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--m-ink-3)", marginBottom: 12 }}>
+            <label style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--m-ink-3)", marginBottom: 10 }}>
               <KeyRound size={12} style={{ display: "inline", verticalAlign: "-1px", marginRight: 4 }} />
               Verification code
             </label>
 
-            <div style={{ display: "flex", gap: 8 }} onPaste={onOtpPaste}>
+            <div style={{ display: "flex", gap: 6, maxWidth: 320, margin: "0 auto" }} onPaste={onOtpPaste}>
               {otp.map((d, i) => (
                 <input
                   key={i}
@@ -195,10 +195,11 @@ export default function MLogin() {
                   onChange={(e) => onOtpChange(i, e.target.value)}
                   onKeyDown={(e) => onOtpKey(i, e)}
                   style={{
-                    flex: 1, aspectRatio: "1", textAlign: "center",
-                    fontSize: 24, fontWeight: 800, color: "var(--m-ink)",
-                    border: d ? "2px solid var(--m-orange)" : "1px solid var(--m-border-2)",
-                    borderRadius: 12, background: "var(--m-surface)",
+                    flex: 1, minWidth: 0, height: 50,
+                    textAlign: "center",
+                    fontSize: 22, fontWeight: 800, color: "var(--m-ink)",
+                    border: d ? "2px solid var(--m-blue)" : "1px solid var(--m-border-2)",
+                    borderRadius: 10, background: "var(--m-surface)",
                     outline: "none", padding: 0,
                   }}
                 />
@@ -209,12 +210,12 @@ export default function MLogin() {
               onClick={() => { const code = otp.join(""); if (code.length === 6) verifyOtp(code); }}
               disabled={loading || otp.join("").length !== 6}
               className="m-btn m-btn-primary"
-              style={{ width: "100%", marginTop: 22 }}
+              style={{ width: "100%", marginTop: 16 }}
             >
               {loading ? <><span className="m-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Verifying…</> : <>Verify & sign in <ArrowRight size={16} /></>}
             </button>
 
-            <div style={{ marginTop: 22, textAlign: "center" }}>
+            <div style={{ marginTop: 14, textAlign: "center" }}>
               {resendIn > 0 ? (
                 <span style={{ fontSize: 13, color: "var(--m-ink-3)" }}>Resend code in {resendIn}s</span>
               ) : (
@@ -226,7 +227,7 @@ export default function MLogin() {
 
             <button
               onClick={() => setStep("email")}
-              style={{ display: "block", margin: "16px auto 0", background: "none", border: "none", color: "var(--m-ink-3)", fontSize: 13, cursor: "pointer" }}
+              style={{ display: "block", margin: "10px auto 0", background: "none", border: "none", color: "var(--m-ink-3)", fontSize: 13, cursor: "pointer" }}
             >
               Use a different email
             </button>
