@@ -1169,9 +1169,24 @@ async def admin_edit_order(
 
     vendor_changed = False
     if payload.seller_id is not None and payload.seller_id != (order.get("seller_id") or ""):
+        # Look up the target vendor — accept active OR inactive (admin
+        # may legitimately want to reassign to a soft-disabled vendor
+        # for back-office corrections). Frontend lists active only.
         new_seller = await db.sellers.find_one({"id": payload.seller_id}, {"_id": 0})
         if not new_seller:
-            raise HTTPException(status_code=404, detail="Target vendor not found")
+            # Defensive: also try matching by `_id` (legacy / Mongo ObjectId
+            # string) so a frontend cache miss doesn't silently 404.
+            from bson import ObjectId  # local import — never used elsewhere in this hot path
+            try:
+                new_seller = await db.sellers.find_one({"_id": ObjectId(payload.seller_id)}, {"_id": 0})
+            except Exception:
+                new_seller = None
+        if not new_seller:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Target vendor not found (id={payload.seller_id}). "
+                       f"It may have been deleted or is missing from the sellers collection.",
+            )
         update["seller_id"] = payload.seller_id
         update["seller_company"] = new_seller.get("company_name") or payload.seller_company or ""
         changed["seller_id"] = {"before": order.get("seller_id", ""), "after": payload.seller_id}

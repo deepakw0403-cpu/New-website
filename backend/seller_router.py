@@ -145,10 +145,13 @@ def normalize_seller(seller: dict) -> dict:
 @router.get("/sellers", response_model=List[Seller])
 async def get_sellers(include_inactive: bool = Query(False)):
     query = {} if include_inactive else {'is_active': {'$ne': False}}
-    sellers = await db.sellers.find(query, {'_id': 0}).sort('created_at', -1).to_list(100)
+    # No cap — admin tools (Edit Order's vendor reassignment, payouts
+    # picker, etc.) need the full vendor roster. 10k is a safe upper
+    # bound that comfortably exceeds expected vendor count.
+    sellers = await db.sellers.find(query, {'_id': 0}).sort('created_at', -1).to_list(10000)
 
     all_cat_ids = list(set(cid for s in sellers for cid in s.get('category_ids', [])))
-    categories = await db.categories.find({'id': {'$in': all_cat_ids}}, {'_id': 0}).to_list(100) if all_cat_ids else []
+    categories = await db.categories.find({'id': {'$in': all_cat_ids}}, {'_id': 0}).to_list(1000) if all_cat_ids else []
     cat_map = {c['id']: c['name'] for c in categories}
 
     for seller in sellers:
