@@ -123,12 +123,21 @@ const FabricsPage = () => {
         if (priceRange.min) params.min_price = priceRange.min;
         if (priceRange.max) params.max_price = priceRange.max;
 
-        const [fabricsRes, countRes] = await Promise.all([
+        // Use allSettled so a slow/failing /count endpoint doesn't blank the
+        // listing when fabrics already loaded. Prod has seen intermittent
+        // 520s on /count under load.
+        const [fabricsResult, countResult] = await Promise.allSettled([
           getFabrics(params),
           getFabricsCount(params)
         ]);
+        if (fabricsResult.status === "rejected") throw fabricsResult.reason;
+        const fabricsRes = fabricsResult.value;
         setFabrics(fabricsRes.data);
-        setTotalCount(countRes.data.count);
+        setTotalCount(
+          countResult.status === "fulfilled"
+            ? (countResult.value.data?.count ?? fabricsRes.data.length)
+            : fabricsRes.data.length
+        );
         // GA4: track catalog view
         if (fabricsRes.data.length > 0) {
           const listName = selectedCategory
